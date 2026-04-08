@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>美国AIDC自建供电浪潮：从马斯克xAI标杆案例到全产业链投资方案</title>
+    <style>
+        /* 全局样式重置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            line-height: 1.8;
+            color: #333;
+            padding: 20px 0;
+        }
+
+        /* 容器 */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* 主标题 */
+        .main-title {
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            color: #222;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .sub-title {
+            font-size: 16px;
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+        }
+
+        /* 一级手风琴样式 */
+        .accordion-level1 {
+            margin-bottom: 12px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .accordion-level1-header {
+            background-color: #007bff; /* 亮蓝色一级标题，符合要求 */
+            color: #ffffff;
+            padding: 16px 24px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.2s ease;
+        }
+
+        .accordion-level1-header:hover {
+            background-color: #0056b3;
+        }
+
+        .accordion-level1-header .icon {
+            font-size: 22px;
+            font-weight: 400;
+            transition: transform 0.3s ease;
+        }
+
+        .accordion-level1-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease;
+            background-color: #ffffff;
+        }
+
+        .accordion-level1.active .accordion-level1-content {
+            max-height: 20000px;
+            padding: 24px;
+        }
+
+        .accordion-level1.active .accordion-level1-header .icon {
+            transform: rotate(45deg);
+        }
+
+        /* 二级手风琴样式 */
+        .accordion-level2 {
+            margin-bottom: 12px;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+            overflow: hidden;
+        }
+
+        .accordion-level2:last-child {
+            margin-bottom: 0;
+        }
+
+        .accordion-level2-header {
+            background-color: #e9ecef;
+            color: #222;
+            padding: 14px 20px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.2s ease;
+        }
+
+        .accordion-level2-header:hover {
+            background-color: #dee2e6;
+        }
+
+        .accordion-level2-header .icon {
+            font-size: 18px;
+            font-weight: 400;
+            transition: transform 0.3s ease;
+        }
+
+        .accordion-level2-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            background-color: #ffffff;
+            font-size: 14px;
+            color: #444;
+        }
+
+        .accordion-level2.active .accordion-level2-content {
+            max-height: 20000px;
+            padding: 16px 20px;
+        }
+
+        .accordion-level2.active .accordion-level2-header .icon {
+            transform: rotate(45deg);
+        }
+
+        /* 内容样式 */
+        .content-text {
+            margin-bottom: 12px;
+        }
+
+        .content-text:last-child {
+            margin-bottom: 0;
+        }
+
+        .content-list {
+            margin-left: 24px;
+            margin-bottom: 12px;
+        }
+
+        .content-list li {
+            margin-bottom: 8px;
+        }
+
+        .content-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+        }
+
+        .content-table th, .content-table td {
+            border: 1px solid #dee2e6;
+            padding: 10px 12px;
+            text-align: left;
+        }
+
+        .content-table th {
+            background-color: #f0f5ff;
+            font-weight: 600;
+            color: #222;
+        }
+
+        .highlight {
+            font-weight: 600;
+            color: #007bff;
+        }
+
+        /* 响应式适配 */
+        @media (max-width: 768px) {
+            .main-title {
+                font-size: 22px;
+            }
+
+            .sub-title {
+                font-size: 14px;
+            }
+
+            .accordion-level1-header {
+                font-size: 16px;
+                padding: 12px 16px;
+            }
+
+            .accordion-level2-header {
+                font-size: 14px;
+                padding: 10px 14px;
+            }
+
+            .accordion-level1.active .accordion-level1-content {
+                padding: 16px;
+            }
+
+            .accordion-level2.active .accordion-level2-content {
+                padding: 12px 14px;
+                font-size: 13px;
+            }
+
+            .content-list {
+                margin-left: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 主标题 -->
+        <h1 class="main-title">美国AIDC自建供电浪潮：从马斯克xAI标杆案例到全产业链投资方案</h1>
+        <p class="sub-title">基于2026年3月最新政策 | 全产业链拆解 | 可落地投资方案</p>
+
+        <!-- 一级手风琴1：核心标杆：马斯克xAI田纳西AIDC自建供电全方案拆解 -->
+        <div class="accordion-level1">
+            <div class="accordion-level1-header">
+                <span>核心标杆：马斯克xAI田纳西AIDC自建供电全方案拆解</span>
+                <span class="icon">+</span>
+            </div>
+            <div class="accordion-level1-content">
+                <!-- 二级1.1 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>项目核心供电架构与电源配置明细</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">本项目除远期规划的光伏配套外，<span class="highlight">核心采用燃气发电作为主力供电与桥接电源</span>，配套储能与专属电网设施，完整电源配置如下：</p>
+                        <ul class="content-list">
+                            <li><strong>初期快速启动电源</strong>：14台移动式车载燃气发电机，单台容量2.5MW，合计35MW，属于小型分布式发电设备，用于项目初期算力集群快速上线</li>
+                            <li><strong>中期规模化扩容电源</strong>：35台中型工业级燃气轮机（含Solar Turbines 16MW SMT-130机组），现场燃气发电总容量最高达420MW，配套150MW特斯拉Megapack储能系统，用于平抑AI算力负载的瞬时电力波动</li>
+                            <li><strong>远期长期基荷电源</strong>：已向韩国斗山集团采购5台380MW级重型燃气轮机，总装机容量达1.9GW，用于支撑未来百万GPU集群的长期电力需求</li>
+                            <li><strong>电网配套设施</strong>：自筹3500万美元建设专属变电站，完成与田纳西河谷管理局（TVA）电网的并网，获得150MW的电网长期供电许可</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- 二级1.2 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>分阶段供电落地路径与核心亮点</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">项目采用「快速上线-规模化扩容-长期基荷布局」的三阶落地逻辑，彻底打破了传统AIDC「等电网扩容再建设」的行业模式，核心亮点如下：</p>
+                        <ul class="content-list">
+                            <li><strong>第一阶段：紧急上线期</strong>：利用美国“临时发电机364天内运行无需许可证”的规则，仅用122天就完成了10万块H100 GPU集群的投运，解决了项目选址原有电网仅能提供8MW电力的缺口问题</li>
+                            <li><strong>第二阶段：稳定运营期</strong>：通过中型工业级燃气轮机+储能的组合，实现规模化算力集群的稳定供电，同时推进专属变电站建设，完成与公共电网的并网，实现“自备电源为主、电网为辅”的混合供电模式</li>
+                            <li><strong>第三阶段：长期扩容期</strong>：提前锁定重型燃气轮机产能，为后续百万GPU集群的扩张预留充足电力空间，彻底摆脱对公共电网扩容的依赖</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- 二级1.3 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>项目设计初衷与解决的行业核心痛点</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">本项目的设计初衷，是解决当前美国AIDC行业面临的三大核心痛点，为AI算力的快速扩张提供可复制的供电解决方案：</p>
+                        <ul class="content-list">
+                            <li><strong>并网周期痛点</strong>：美国公用电网并网扩容等待周期普遍长达3-5年，完全无法匹配AI行业“抢时间、快迭代”的算力扩张需求，本项目通过自备电源将投产周期从数年压缩至数月</li>
+                            <li><strong>成本合规痛点</strong>：AIDC电网扩容成本极易通过电费涨价转嫁给居民用户，面临监管与舆论风险，本项目通过全额承担电网改造成本、以自备电源满足新增电力需求，彻底规避了成本转嫁的合规风险</li>
+                            <li><strong>供电可靠性痛点</strong>：AI算力负载具有瞬时波动大、7×24小时不间断运行的特点，传统公共电网供电无法满足高可靠性要求，本项目通过“自备燃机+储能”的组合，实现了供电的高稳定性与负载波动的快速响应</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 一级手风琴2：政策支撑：美国2026年3月AIDC自建供电政策全解读 -->
+        <div class="accordion-level1">
+            <div class="accordion-level1-header">
+                <span>政策支撑：美国2026年3月AIDC自建供电政策全解读</span>
+                <span class="icon">+</span>
+            </div>
+            <div class="accordion-level1-content">
+                <!-- 二级2.1 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>政策官方属性与法律效力</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">本次政策官方名称为<strong>《费率支付者保护承诺》（Ratepayer Protection Pledge）</strong>，其核心属性与法律效力如下：</p>
+                        <ul class="content-list">
+                            <li>该政策是由白宫牵头、美国7大AI巨头（亚马逊、微软、谷歌、Meta、OpenAI、xAI、甲骨文）共同签署的<span class="highlight">自愿性行业承诺，并非联邦强制法规，无需国会审批即可生效</span></li>
+                            <li>承诺本身无直接的违约处罚条款，但有配套的联邦与州级强制监管规则兜底，不遵守承诺的企业将面临并网审批受阻、监管审查加码等隐性约束</li>
+                            <li>目前联邦层面已有配套立法正在推进，未来有望将本次承诺的核心要求上升为强制法律条款</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- 二级2.2 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>核心条款、生效时间与适用范围</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">本次承诺的核心条款、生效时间与适用范围明确如下：</p>
+                        <ul class="content-list">
+                            <li><strong>核心生效时间</strong>：2026年7月1日起，针对签约企业的新建/扩建AIDC项目正式生效</li>
+                            <li><strong>核心条款1：新增电力自给要求</strong>：签约企业新建/扩建AIDC的全部新增电力需求，必须通过自建发电设施、签订长期绿电购电协议（PPA）解决，不得依赖公共电网的增量容量</li>
+                            <li><strong>核心条款2：成本承担要求</strong>：企业必须全额承担AIDC配套的电网扩容、输电线路升级的全部成本，严禁通过电费涨价将AI算力扩张的成本转嫁给居民用户</li>
+                            <li><strong>核心条款3：披露义务</strong>：签约企业需每季度公开AIDC能耗数据、绿电采购比例、自建电厂发电量，接受公众与监管机构监督</li>
+                            <li><strong>存量项目要求</strong>：2027年1月1日前，签约企业存量AIDC的绿电占比不低于30%；2028年1月1日前，绿电占比不低于60%</li>
+                            <li><strong>适用范围</strong>：覆盖7家签约企业在美国境内的所有AIDC项目，后续已有多家AI企业表态将参照执行</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- 二级2.3 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>配套强制监管规则与立法铺垫</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">本次自愿承诺背后，有明确的强制监管规则与立法铺垫，形成了“自愿承诺+强制监管”的双重约束，具体如下：</p>
+                        <ul class="content-list">
+                            <li><strong>FERC并网规则调整</strong>：联邦能源监管委员会（FERC）同步推进大负荷并网提案，为具备自备电源的AIDC项目开放60天快速并网绿色通道；无自备电源的项目，仍需进入长达3-7年的常规并网排队流程</li>
+                            <li><strong>州级强制立法先行</strong>：得克萨斯州已通过<strong>SB6法案</strong>，强制要求2026年后并网的75MW以上大型负载，必须自建至少50%的冗余电源，否则电网紧急状态下将被优先限电；弗吉尼亚州、亚利桑那州等AIDC聚集州，也在推进类似的强制立法</li>
+                            <li><strong>联邦强制立法铺垫</strong>：联邦层面<strong>《GRID Act》</strong>正在推进，拟立法强制要求20MW以上的新建AIDC，必须具备独立自备电源，实现与主电网的财务与物理隔离，未来将把本次承诺的核心要求上升为全国性强制法规</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- 二级2.4 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>xAI田纳西方案与政策的匹配度及标杆代表性</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">xAI田纳西方案是对本次政策的提前完美落地，<span class="highlight">100%匹配政策核心原则，具备全行业的标杆代表性</span>，具体如下：</p>
+                        <ul class="content-list">
+                            <li><strong>完美匹配政策核心要求</strong>：方案完全遵循“自建电源为主、电网为辅、全额承担电网改造成本”的核心原则，新增电力需求全部通过自备燃气发电解决，未依赖公共电网增量容量，彻底规避了成本转嫁居民的合规风险</li>
+                            <li><strong>唯一全流程落地的标杆项目</strong>：是本次7家签约企业中，唯一已完成“自备电源建设+算力集群投运+专属电网配套”全流程落地的项目，具备完整的可复制经验</li>
+                            <li><strong>已成为行业参考范本</strong>：其分阶段供电策略、混合供电架构、自建电网基建的模式，已被微软、Meta等企业的新建AIDC项目参考，成为当前美国AIDC行业自建供电的标杆模板</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 一级手风琴3：行业价值：xAI供电方案对美国AIDC建设的可复制借鉴意义 -->
+        <div class="accordion-level1">
+            <div class="accordion-level1-header">
+                <span>行业价值：xAI供电方案对美国AIDC建设的可复制借鉴意义</span>
+                <span class="icon">+</span>
+            </div>
+            <div class="accordion-level1-content">
+                <!-- 二级3.1 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>分阶段供电策略：破解并网周期瓶颈的可复制路径</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">xAI田纳西项目的「移动式燃机快速上线→中型燃机规模化扩容→重型燃机长期布局」分阶段供电策略，为全行业提供了破解并网周期瓶颈的可复制路径，核心价值如下：</p>
+                        <ul class="content-list">
+                            <li>彻底打破了传统AIDC“先等电网扩容、再建设算力集群”的固有模式，将项目投产周期从3-5年压缩至3-4个月，完美适配AI行业“抢时间、快迭代、抢占市场先机”的核心竞争需求</li>
+                            <li>实现了“算力扩张与电力配套同步推进”，用临时电源解决短期上线需求，同步推进长期电源与电网配套建设，避免了算力集群建成后无电可用的行业常见困境</li>
+                            <li>可根据算力集群的扩张节奏，灵活调整电源建设规模，避免了一次性大规模投资带来的产能闲置问题，大幅提升了资金使用效率</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- 二级3.2 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>混合供电架构：兼顾可靠性与合规性的行业标准</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">xAI田纳西项目采用的「自备燃机+储能+电网并网+远期清洁能源」混合供电架构，已成为美国GW级超算中心的主流供电架构，具备全行业的推广价值：</p>
+                        <ul class="content-list">
+                            <li><strong>高可靠性保障</strong>：自备燃机作为主电源，彻底摆脱了对老化公共电网的依赖，可满足AIDC 7×24小时不间断供电要求；储能系统用于平抑AI算力负载的瞬时波动，实现了供电的高稳定性</li>
+                            <li><strong>政策合规适配</strong>：完全符合2026年3月新政策“新增电力需求自给自足”的核心要求，规避了监管风险</li>
+                            <li><strong>ESG与环保合规</strong>：以燃气发电作为过渡基荷电源，同步规划光伏等新能源配套，可长期适配美国各州的碳排放与环保政策，满足企业ESG目标</li>
+                            <li><strong>成本可控性</strong>：电网并网作为备用电源，仅需支付基础容量费用，大幅降低了电网扩容的高额成本；自备电源可根据算力负载灵活调整出力，实现了用电成本的优化</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- 二级3.3 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>自建电网基建模式：绕过审批壁垒的落地方案</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">xAI田纳西项目自筹资金建设专属变电站、配套输电线路的模式，为行业破解美国电网审批壁垒提供了可复制的落地方案：</p>
+                        <ul class="content-list">
+                            <li>美国电网运营分散、跨区调度能力弱，输电线路与变电站扩容的审批周期长达5-15年，是制约AIDC建设的核心瓶颈之一</li>
+                            <li>通过自筹资金建设专属电网基建，可与电网公司协商定向扩容，大幅缩短审批周期，避免了进入公共电网扩容的漫长排队流程</li>
+                            <li>该模式可实现AIDC项目与电网的精准对接，完全满足项目的电力需求，同时无需承担公共电网升级的额外成本，实现了成本与效率的最优平衡</li>
+                            <li>目前该模式已被美国多家AIDC企业采用，成为绕过电网审批壁垒的主流解决方案</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- 二级3.4 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>过渡电源+长期清洁能源的平衡设计</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">xAI田纳西项目“以燃气发电为过渡基荷电源，同步规划新能源配套”的平衡设计，为行业解决“落地速度与环保合规的矛盾”提供了可复制的思路：</p>
+                        <ul class="content-list">
+                            <li>新能源项目（光伏、风电）的建设周期长、占地面积大，且受自然条件影响，无法满足AI算力快速扩张的紧急电力需求；燃气发电具备建设周期短、出力稳定、占地面积小的优势，是完美的过渡电源</li>
+                            <li>该设计既解决了短期供电缺口，实现了算力集群的快速上线，又通过远期新能源配套的规划，满足了长期碳排放与环保政策要求，平衡了项目落地速度与长期合规目标</li>
+                            <li>可根据新能源项目的建设进度，逐步替代燃气发电的供电比例，实现平稳的清洁能源转型，避免了一次性大规模新能源投资带来的资金压力与不确定性</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 一级手风琴4：出海机遇：中国电力相关企业的增量市场与核心赛道 -->
+        <div class="accordion-level1">
+            <div class="accordion-level1-header">
+                <span>出海机遇：中国电力相关企业的增量市场与核心赛道</span>
+                <span class="icon">+</span>
+            </div>
+            <div class="accordion-level1-content">
+                <!-- 二级4.1 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>核心输配电设备出海：供需错配下的确定性机会</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">美国AIDC自建供电浪潮，催生了大规模的输配电设备需求，而美国本土产能严重不足，形成了显著的供需错配，为中国企业带来了确定性极强的出海机遇：</p>
+                        <ul class="content-list">
+                            <li><strong>供需格局</strong>：美国本土电力设备产能仅能满足当地约40%的需求，大型变压器等核心设备的交付周期已拉长至2-4年，完全无法匹配AIDC的快速建设节奏；而中国是全球最大的输配电设备生产国，产能占全球55%以上，标准产品交付周期仅6-12个月，制造成本比欧美厂商低20-30%，核心技术指标达到国际领先水平</li>
+                            <li><strong>核心需求品类</strong>：大型电力变压器、干式变压器、高压开关柜、继电保护设备、母线槽等AIDC供电核心配套设备</li>
+                            <li><strong>国内厂商进展</strong>：金盘科技、安靠智电、特变电工、思源电气等龙头企业已通过UL等北美强制认证，成功切入北美AIDC核心供应链，单项目订单规模达数亿元，北美市场毛利率较国内高出10%-80%，订单排期已至2027年</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- 二级4.2 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>燃气轮机全产业链：全球产能缺口下的替代机遇</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">燃气轮机是AIDC自建电源的首选技术路径，当前全球产能严重紧缺，中国企业凭借技术突破与产能优势，迎来了历史性的替代机遇：</p>
+                        <ul class="content-list">
+                            <li><strong>供需格局</strong>：全球重型燃机主流厂商（GE、西门子、三菱）2028年的产能已全部排满，2025-2028年全球燃气轮机供应缺口达30GW以上；而中国是全球唯一具备燃气轮机大规模剩余产能的国家，在50MW级工业燃机、移动式燃气发电机组领域已实现核心技术突破，产品报价仅为国际巨头的50%，具备极强的市场竞争力</li>
+                            <li><strong>核心需求品类</strong>：1-5MW移动式燃气发电机组、10-50MW中型工业级燃气轮机、重型燃气轮机及配套零部件、燃机控制系统、运维服务</li>
+                            <li><strong>国内厂商进展</strong>：杰瑞股份已成为北美AIDC燃气轮机发电机组的核心供应商，4个月内斩获4份大额订单，单笔合同最高达12.65亿元；东方电气、上海电气、中国重燃等企业已实现50MW级及以上重型燃机的国产化与出口，正在加速推进北美市场布局</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- 二级4.3 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>储能与供电配套设备：全产业链优势下的出海红利</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">中国在储能与AIDC供电配套设备领域具备全产业链优势，在北美AIDC自建供电浪潮中，可充分享受出海红利：</p>
+                        <ul class="content-list">
+                            <li><strong>核心优势</strong>：中国是全球最大的储能产品生产国，产能占全球80%以上，在UPS不间断电源、HVDC高压直流供电系统、储能逆变器（PCS）、电池管理系统（BMS）、液冷配套电源等细分赛道，具备全产业链配套、高性价比、快速交付的核心优势，产品性能完全满足北美市场要求</li>
+                            <li><strong>核心需求品类</strong>：大中型UPS系统、HVDC高压直流供电设备、储能系统（含锂电池、PCS、BMS）、液冷配套电源、电能质量治理设备</li>
+                            <li><strong>国内厂商进展</strong>：科士达、科华数据、阳光电源、宁德时代等企业已通过北美强制认证，进入英伟达、微软、Meta等企业的超算中心供应链，2025年北美市场收入同比增长超150%；磁悬浮离心压缩机等液冷核心设备，也凭借高能效、宽负荷调节的优势，加速替代开利、约克等美系巨头，成为新建高密度AIDC的标配</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- 二级4.4 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>微电网与能源管理系统：一体化解决方案的差异化机会</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">美国AIDC正普遍从“电网依赖”向“自建微电网”转型，对一体化能源解决方案的需求爆发，为中国企业带来了差异化的竞争机会：</p>
+                        <ul class="content-list">
+                            <li><strong>需求背景</strong>：AIDC自建供电模式，本质上是构建一个“源网荷储”一体化的独立微电网，需要配套专业的能源管理系统（EMS）、微电网调度算法、一体化设计与EPC总包服务，而欧美厂商在该领域的交付周期长、成本高，无法满足大规模的市场需求</li>
+                            <li><strong>中国企业优势</strong>：中国企业在国内新能源微电网、虚拟电厂、储能电站项目中积累了丰富的技术与项目经验，可针对AIDC的定制化需求，提供从方案设计、设备供货、系统集成到运维服务的全流程一体化解决方案，成本仅为欧美厂商的60%-70%，具备极强的差异化竞争优势</li>
+                            <li><strong>核心机会点</strong>：AIDC微电网一体化设计方案、能源管理系统（EMS）、微电网调度控制算法、EPC总包服务、全生命周期运维服务</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 一级手风琴5：跨境壁垒：中美进出口政策限制与合规风险全梳理 -->
+        <div class="accordion-level1">
+            <div class="accordion-level1-header">
+                <span>跨境壁垒：中美进出口政策限制与合规风险全梳理</span>
+                <span class="icon">+</span>
+            </div>
+            <div class="accordion-level1-content">
+                <!-- 二级5.1 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>美国对华关税与贸易壁垒</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">美国现行针对中国电力相关产品的关税与贸易壁垒，核心法规与约束如下：</p>
+                        <ul class="content-list">
+                            <li>
+                                <strong>《1962年贸易扩展法》第232条（钢铝产品关税令）</strong>
+                                <br><span class="highlight">生效时间：2018年3月23日，2025年10月更新实施细则</span>
+                                <br>核心约束：对中国产大型电力变压器、取向硅钢、变压器铁芯等钢铝相关核心产品，征收25%基础关税+25%附加关税，合计50%高额关税，基本抹去中国产品的价格优势；新规对电工钢、变压器铁芯等半成品按钢铝成分计征关税，堵死了企业通过第三国转口加工的绕道模式
+                            </li>
+                            <li>
+                                <strong>《2022年通胀削减法案》（IRA）</strong>
+                                <br><span class="highlight">签署生效时间：2022年8月16日，2026年本土含量要求阶梯式收紧</span>
+                                <br>核心约束：针对储能系统、配套逆变器等产品，设置严格的北美本地化生产含量要求，2026年起本土含量不低于60%方可获得30%投资税收抵免（ITC）；非北美本地生产的产品无法享受补贴，且难以进入头部AI巨头的供应链
+                            </li>
+                            <li>
+                                <strong>《美国-墨西哥-加拿大协定》（USMCA）</strong>
+                                <br><span class="highlight">生效时间：2020年7月1日</span>
+                                <br>核心约束：明确非协定区域生产的电力设备、储能产品进入北美市场，需缴纳最惠国关税，部分产品额外征收反倾销反补贴税；仅在协定区域内完成核心生产环节的产品，可享受零关税待遇
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- 二级5.2 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>进口禁令与国家安全审查风险</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">美国针对中国电力设备的进口禁令与国家安全审查相关法规，核心约束如下：</p>
+                        <ul class="content-list">
+                            <li>
+                                <strong>《2024财年国防授权法案》（NDAA 2024）</strong>
+                                <br><span class="highlight">签署生效时间：2023年12月22日</span>
+                                <br>核心约束：明确禁止美国联邦政府机构、联邦资金支持的项目，采购中国企业生产的电网关键设备，包括大型变压器、储能系统、继电保护设备等
+                            </li>
+                            <li>
+                                <strong>美国能源部（DOE）《关键电网设备安全规则》</strong>
+                                <br><span class="highlight">生效时间：2025年10月1日</span>
+                                <br>核心约束：明确将中国列为“外国敌对国家”，禁止美国公用事业公司采购来自中国的关键电网设备，覆盖AIDC供电核心的大型变压器、高压开关柜、储能逆变器、能源管理系统等
+                            </li>
+                            <li>
+                                <strong>《外国投资风险审查现代化法案》（FIRRMA）配套《CFIUS实施条例》</strong>
+                                <br><span class="highlight">最新修订版生效时间：2022年9月15日</span>
+                                <br>核心约束：明确将电力基础设施、储能系统、电网调度相关技术纳入国家安全审查范围；中国企业投资美国AIDC供电相关项目、收购美国电力相关企业，必须通过CFIUS审查，否则项目将被强制叫停
+                            </li>
+                            <li>
+                                <strong>拟出台《可靠充电法案》</strong>
+                                <br><span class="highlight">预计生效时间：2026年下半年</span>
+                                <br>核心约束：计划禁止进口中国企业拥有或许可技术制造的、具备远程监控能力的储能系统，违规者将面临刑事处罚，目前已进入众议院审议阶段
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- 二级5.3 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>中国出口管制相关约束</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">中国针对AIDC供电相关核心技术、设备的出口管制法规，核心约束如下：</p>
+                        <ul class="content-list">
+                            <li>
+                                <strong>《中华人民共和国出口管制法》</strong>
+                                <br><span class="highlight">生效时间：2020年12月1日</span>
+                                <br>核心约束：中国出口管制的基础法律，明确对两用物项、军品、核等相关物项实施出口管制，违规出口将面临行政处罚乃至刑事责任
+                            </li>
+                            <li>
+                                <strong>《两用物项和技术出口许可证管理目录（2024年版）》</strong>
+                                <br><span class="highlight">生效时间：2024年1月1日</span>
+                                <br>核心约束：明确将燃气轮机核心制造设备、高温合金单晶铸造设备、涡轮叶片关键零部件、高性能储能电池管理系统（BMS）、IGBT芯片制造设备等物项纳入出口管制范围，出口需向商务部申请两用物项和技术出口许可证
+                            </li>
+                            <li>
+                                <strong>商务部、海关总署《关于优化调整两用物项和技术出口管制清单的公告》（2025年第12号）</strong>
+                                <br><span class="highlight">生效时间：2025年7月1日</span>
+                                <br>核心约束：新增针对能量密度≥300Wh/kg的高性能锂电池、储能变流器（PCS）、高压直流供电设备的出口管制要求，明确出口许可条件与合规流程
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- 二级5.4 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>认证与环保合规准入壁垒</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">美国市场针对AIDC供电相关产品的强制准入认证与环保合规要求，核心壁垒如下：</p>
+                        <ul class="content-list">
+                            <li>
+                                <strong>美国《国家电气规范》（NEC 2023版）</strong>
+                                <br><span class="highlight">生效时间：2023年1月1日</span>
+                                <br>核心约束：美国50个州强制执行的电气安全标准，所有AIDC用输配电设备、储能产品、电气配套设备，必须符合NEC规范，且通过UL系列强制认证（UL 1561变压器标准、UL 1973储能标准等），否则不得在美国市场销售、安装
+                            </li>
+                            <li>
+                                <strong>美国《清洁空气法》配套《固定式燃气轮机排放法规》（40 CFR Part 60 Subpart JJJJ）</strong>
+                                <br><span class="highlight">最新修订版生效时间：2024年1月1日</span>
+                                <br>核心约束：强制要求所有在美国境内销售、使用的固定式燃气发电机组、移动式燃气发电机，必须通过美国环保署（EPA）排放认证，满足氮氧化物、一氧化碳等严格排放限值，各州可在此基础上出台更严苛的地方标准
+                            </li>
+                            <li>
+                                <strong>美国《联邦通信委员会规则》（FCC Rules Part 15）</strong>
+                                <br><span class="highlight">最新修订版生效时间：2025年1月1日</span>
+                                <br>核心约束：针对具备远程通信、智能调度功能的储能系统、能源管理系统、微电网控制设备，必须通过FCC电磁兼容强制认证，否则不得进入美国市场
+                            </li>
+                            <li>
+                                <strong>Uptime Institute《数据中心Tier分类标准》（2023版）</strong>
+                                <br><span class="highlight">生效时间：2023年</span>
+                                <br>核心约束：虽为行业标准，但已成为美国头部AI巨头AIDC项目供应商准入的强制门槛，要求供电配套设备必须满足Tier IV级（最高级）的可靠性要求，配套设计、施工需通过Uptime认证
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 一级手风琴6：投资落地：AIDC电力供应链全周期投资方案 -->
+        <div class="accordion-level1">
+            <div class="accordion-level1-header">
+                <span>投资落地：AIDC电力供应链全周期投资方案</span>
+                <span class="icon">+</span>
+            </div>
+            <div class="accordion-level1-content">
+                <!-- 二级6.1 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>核心投资主线与优先级排序</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">结合政策导向、行业需求与供需格局，按确定性与收益性综合排序，核心投资主线分为三大类，优先级如下：</p>
+                        <ol class="content-list">
+                            <li>
+                                <strong>主线一：刚性缺口的核心设备赛道（确定性最高，优先配置）</strong>
+                                <br>投资逻辑：美国本土产能无法满足爆发式需求，交付周期大幅拉长，具备出海能力的中国厂商具备极强的替代优势，订单确定性极强
+                                <br>细分赛道优先级：<span class="highlight">燃气轮机全产业链＞高压/干式变压器＞储能系统与配套＞HVDC高压直流供电设备＞液冷配套电源</span>
+                            </li>
+                            <li>
+                                <strong>主线二：算电一体化运营赛道（长期稳健，适合大资金配置）</strong>
+                                <br>投资逻辑：政策倒逼AI巨头从“电力消费者”转向“电力生产者”，具备“电源建设+电网接入+AIDC运营+算力服务”全链条能力的运营商，将获得AI巨头的长期订单，现金流稳定，壁垒极高
+                                <br>核心配置方向：具备美国本土电源开发资质、能与AI巨头签订长期PPA协议的运营商，以及为其提供EPC总包服务的集成商
+                            </li>
+                            <li>
+                                <strong>主线三：细分赛道的“卡脖子”核心零部件（弹性最大，适合进取型配置）</strong>
+                                <br>投资逻辑：核心零部件是全球供应链的瓶颈环节，议价能力极强，毛利率显著高于整机环节，且不受整机厂商关税壁垒的限制
+                                <br>核心配置方向：燃气轮机高温合金单晶叶片、燃机控制系统、变压器取向硅钢、储能IGBT芯片、继电器等核心零部件
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+                <!-- 二级6.2 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>一二级市场投资组合配置方案</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">针对不同风险偏好，提供两套标准化的投资组合配置方案，具体如下：</p>
+                        <table class="content-table">
+                            <thead>
+                                <tr>
+                                    <th>配置类型</th>
+                                    <th>一级市场:二级市场资金比例</th>
+                                    <th>上游核心供应商:各层级集成商资金比例</th>
+                                    <th>核心配置逻辑</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>稳健型</td>
+                                    <td>3:7</td>
+                                    <td>6:4</td>
+                                    <td>70%资金配置二级市场已兑现海外订单、业绩确定性强的龙头标的，30%资金布局一级市场已完成认证、有明确订单的成长期项目；60%资金聚焦上游核心零部件与材料（壁垒高、毛利率稳、抗风险强），40%资金配置具备海外EPC与集成能力的龙头，兼顾收益与稳定性</td>
+                                </tr>
+                                <tr>
+                                    <td>进取型</td>
+                                    <td>5:5</td>
+                                    <td>4:6</td>
+                                    <td>50%资金布局一级市场具备技术突破的早期项目、海外本土化运营团队，50%资金配置二级市场高弹性细分赛道龙头；40%资金布局上游核心瓶颈环节，60%资金配置具备全链条服务能力的集成商（直接对接AI巨头订单，业绩爆发性强），最大化捕捉行业增长红利</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p class="content-text"><strong>风险控制规则</strong>：单一标的配置比例不超过组合总资金的10%，单一细分赛道配置比例不超过30%，避免技术路径迭代与地缘政治带来的集中度风险</p>
+                    </div>
+                </div>
+                <!-- 二级6.3 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>核心退出路径设计</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text"><span class="highlight">二级市场证券化是该投资组合的核心主流退出路径</span>，同时配套多元化退出渠道，具体设计如下：</p>
+                        <ul class="content-list">
+                            <li><strong>二级市场标的退出路径</strong>：核心通过二级市场集中交易、大宗交易、定增解禁退出，流动性强，适合中短期配置，可根据行业估值变化灵活调整持仓</li>
+                            <li><strong>一级市场标的核心退出路径</strong>：
+                                <ol>
+                                    <li><strong>上市公司并购（主流首选）</strong>：被国内电力设备龙头、新能源龙头上市公司并购，是中早期项目最稳妥的退出方式，当前国内龙头企业普遍有加速出海、完善产业链布局的需求，并购意愿极强</li>
+                                    <li><strong>IPO上市</strong>：符合条件的成熟项目，可选择A股、港股、美股IPO上市，实现证券化退出</li>
+                                    <li><strong>海外产业方收购</strong>：被北美本土电力集成商、电力设备厂商、AIDC运营商收购，实现跨境退出</li>
+                                    <li><strong>现金流分红</strong>：针对运营类项目，可通过长期项目现金流分红，实现稳定的投资回报</li>
+                                </ol>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 一级手风琴7：跨境执行：国内产能出海的核心要点与解决方案 -->
+        <div class="accordion-level1">
+            <div class="accordion-level1-header">
+                <span>跨境执行：国内产能出海的核心要点与解决方案</span>
+                <span class="icon">+</span>
+            </div>
+            <div class="accordion-level1-content">
+                <!-- 二级7.1 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>跨境布局的核心关注要点</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">针对“国内核心供应能力出海嫁接海外AIDC基建”的投资方向，需要重点关注四大核心风险与合规要点：</p>
+                        <ol class="content-list">
+                            <li><strong>贸易与关税壁垒</strong>：美国对华高额关税、IRA本地化要求带来的成本压力与市场准入限制，是跨境布局的首要风险</li>
+                            <li><strong>认证与合规准入壁垒</strong>：美国市场严苛的强制认证体系，认证周期长、成本高，是进入北美市场的核心准入门槛</li>
+                            <li><strong>地缘政治与安全审查风险</strong>：美国以国家安全为由，对中国电力设备的进口审查与禁令不断加码，存在项目落地后被限制使用的政策风险</li>
+                            <li><strong>技术适配与本地化服务能力</strong>：美国AIDC的供电标准、电网调度规则、电压等级与国内差异极大，且头部AI巨头要求7×24小时本地化运维服务，若无法实现本地响应，很难拿到长期订单</li>
+                        </ol>
+                    </div>
+                </div>
+                <!-- 二级7.2 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>可复制的落地解决方案</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">针对上述核心风险，结合国内企业的成功实践，总结出四大可复制的落地解决方案：</p>
+                        <ol class="content-list">
+                            <li>
+                                <strong>产能本地化布局，规避关税壁垒</strong>
+                                <br>核心方案：在墨西哥等USMCA协定区域建设组装工厂，核心零部件在国内生产，在海外工厂完成总装与测试，既规避了美国对华高额关税，又满足了IRA的本地化生产要求，同时大幅缩短了北美市场的交付周期
+                                <br>成功案例：金盘科技、伊戈尔等企业已通过墨西哥工厂布局，成功切入北美AIDC供应链，订单实现大幅增长
+                            </li>
+                            <li>
+                                <strong>前置认证布局，打通准入门槛</strong>
+                                <br>核心方案：提前1-3年启动UL、EPA、FCC等北美强制认证，针对美国各州的差异化法规完成产品适配，优先通过北美本土第三方机构完成测试与认证，降低准入风险；同时加入OCP开放计算项目等行业组织，提前适配头部AI巨头的技术标准，进入供应商短名单
+                            </li>
+                            <li>
+                                <strong>“绑定本土集成商+联合开发”模式，降低拓展成本与地缘风险</strong>
+                                <br>核心方案：不直接直面终端AI巨头客户，而是与北美本土具备电力项目EPC资质、有AI巨头客户资源的集成商、工程公司深度合作，以设备供应商+技术联合开发的身份切入项目，规避地缘政治风险，同时借助本土合作方完成本地化运维、客户对接与合规审批
+                                <br>成功案例：杰瑞股份通过该模式，4个月内斩获北美AIDC超12亿元的燃机订单，快速打开了北美市场
+                            </li>
+                            <li>
+                                <strong>技术差异化突破，避开同质化竞争</strong>
+                                <br>核心方案：聚焦欧美厂商无法快速响应的细分需求，比如6-9个月的快速交付能力、定制化产品设计、全生命周期运维服务，针对AIDC的高密度供电、快速启停、电网协同等需求，开发专用产品，形成差异化竞争优势，避开同质化价格竞争与地缘政治限制
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 一级手风琴8：能力要求：该赛道投资管理人必备的核心能力 -->
+        <div class="accordion-level1">
+            <div class="accordion-level1-header">
+                <span>能力要求：该赛道投资管理人必备的核心能力</span>
+                <span class="icon">+</span>
+            </div>
+            <div class="accordion-level1-content">
+                <!-- 二级8.1 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>全产业链的深度产业认知能力</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">这是该赛道投资的核心前提，投资管理人必须同时具备三大领域的深度认知：</p>
+                        <ul class="content-list">
+                            <li>深度理解AI算力行业的发展规律、AIDC的建设节奏与技术要求，能精准预判未来的电力需求变化</li>
+                            <li>深度熟悉美国电力市场的联邦与州级监管规则、电网运行机制、并网流程与行业惯例</li>
+                            <li>深度掌握电力设备全产业链的技术壁垒、竞争格局、核心玩家与技术路径迭代方向，能精准判断不同技术的商业化前景，识别伪需求、伪技术标的</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- 二级8.2 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>跨境合规与全流程风控能力</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">该赛道投资涉及中美两国的跨境监管，合规与风控能力是投资安全的核心保障：</p>
+                        <ul class="content-list">
+                            <li>深度熟悉中美两国的进出口政策、关税规则、投资审查制度、出口管制要求，能提前识别政策变动带来的投资风险</li>
+                            <li>熟悉美国电力市场的州级与联邦监管要求，能为被投企业提供合规指导，规避项目落地过程中的合规风险</li>
+                            <li>具备搭建合规跨境投资架构的能力，能设计合理的风险隔离机制，避免因地缘政治、政策变动导致的投资损失</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- 二级8.3 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>中美两地产业资源整合与投后赋能能力</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">这是国内投资机构在该赛道的核心竞争壁垒，也是为被投企业创造核心价值的关键：</p>
+                        <ul class="content-list">
+                            <li>具备北美本土的产业资源，包括AI巨头的采购团队、电力项目EPC集成商、认证机构、本土律所与会计师事务所，能为被投企业对接客户资源、完成认证布局、搭建本土化团队</li>
+                            <li>具备国内电力全产业链的资源整合能力，能帮助被投企业对接上游核心供应商、下游客户，完善产业链布局</li>
+                            <li>具备跨境投后赋能能力，能为被投企业提供跨境运营、合规管理、市场拓展等全流程的赋能支持，帮助企业快速落地北美市场</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- 二级8.4 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>一二级市场联动的投资与退出能力</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">该赛道投资需要同时覆盖一二级市场，一二级市场联动能力是实现最大化投资收益的核心：</p>
+                        <ul class="content-list">
+                            <li>能同时把握一级市场的早期投资机会与二级市场的产业并购、证券化退出机会，熟悉A股、港股、美股的资本市场规则</li>
+                            <li>能为被投企业规划清晰的退出路径，提前对接上市公司并购资源、IPO承销机构，帮助企业顺利实现退出</li>
+                            <li>能通过一二级市场的估值差，实现跨市场的套利机会，同时通过二级市场持仓，对冲一级市场投资的周期风险</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- 二级8.5 -->
+                <div class="accordion-level2">
+                    <div class="accordion-level2-header">
+                        <span>长周期的资金管理与抗周期能力</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="accordion-level2-content">
+                        <p class="content-text">该赛道的项目从技术研发、认证布局到订单兑现，周期普遍在1-3年，需要投资管理人具备长周期的资金管理与抗周期能力：</p>
+                        <ul class="content-list">
+                            <li>具备匹配长周期项目的资金募集与管理能力，能对接长期限的机构资金，避免因短期市场波动导致的投资决策变形</li>
+                            <li>能抵御中美贸易政策、技术路径迭代带来的行业周期波动，具备跨周期的投资布局能力，能在行业波动中把握确定性的投资机会</li>
+                            <li>具备合理的现金流管理能力，能通过运营类项目的稳定现金流，平衡早期项目的长周期回报，实现投资组合的现金流平衡</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 一级手风琴展开收起逻辑
+        const level1Accordions = document.querySelectorAll('.accordion-level1');
+        level1Accordions.forEach(accordion => {
+            const header = accordion.querySelector('.accordion-level1-header');
+            header.addEventListener('click', () => {
+                const isActive = accordion.classList.contains('active');
+                level1Accordions.forEach(acc => acc.classList.remove('active'));
+                if (!isActive) {
+                    accordion.classList.add('active');
+                }
+            });
+        });
+
+        // 二级手风琴展开收起逻辑
+        const level2Accordions = document.querySelectorAll('.accordion-level2');
+        level2Accordions.forEach(accordion => {
+            const header = accordion.querySelector('.accordion-level2-header');
+            header.addEventListener('click', () => {
+                const isActive = accordion.classList.contains('active');
+                level2Accordions.forEach(acc => acc.classList.remove('active'));
+                if (!isActive) {
+                    accordion.classList.add('active');
+                }
+            });
+        });
+    </script>

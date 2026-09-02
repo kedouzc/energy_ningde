@@ -1,0 +1,30 @@
+{
+  "L2 - 2.0": {
+    "title": [
+      {"text": "未被定价", "color": "amber"},
+      {"text": "换电", "color": "accent"},
+      {"text": "范式转换窗口", "color": "accent"},
+      {"text": "价值重估", "color": "green"}
+    ],
+    "summary": [
+      {"text": "未被定价", "color": "amber"},
+      {"text": "资产运营", "color": "accent"},
+      {"text": "走势不明朗", "color": "amber"},
+      {"text": "网络密度是关键", "color": "accent"},
+      {"text": "观察窗口", "color": "amber"}
+    ],
+    "content": [
+      {"text": "至今未被资本市场充分定价——换电", "color": "red"},
+      {"text": "资产属性和业务属性将从"制造业"转变为"资本运营业"", "color": "green"},
+      {"text": "市场还在观察", "color": "amber"},
+      {"text": "挣一次钱的制造业利润", "color": "red"},
+      {"text": "持续挣资产运营的钱", "color": "green"},
+      {"text": "行业补能生态争夺逐渐白热化", "color": "amber"},
+      {"text": "10万座", "color": "accent"},
+      {"text": "仅建成1365座", "color": "red"},
+      {"text": "2万座闪充站", "color": "accent"},
+      {"text": "1万座换电站", "color": "accent"},
+      {"text": "观察换电能否跑通的好窗口", "color": "amber"}
+    ]
+  }
+}

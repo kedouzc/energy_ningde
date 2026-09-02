@@ -1,0 +1,205 @@
+--- a/src/capex.py
++++ b/src/capex.py
+@@ -270,26 +270,45 @@
+     battery_depreciation_by_pool = {pk: 0.0 for pk in BATTERY_POOLS}
+     factor_samples: dict[str, float] = {}
+     residual_samples: dict[str, float] = {}
++    # 【新增｜单站 vintage 表】按 (池 × 装机年) 留存单位经济性，供报告下钻与「窗口成本」章。
++    unit_vintage: list[dict[str, float | str]] = []
+     for cohort in battery_cohorts:
+         factors = lifecycle_factors(
+             config, float(cohort["install_year"]), float(cohort["life"])
+         )
+         initial_capex = float(cohort["initial_capex"])
++        life = float(cohort["life"])
+         lifecycle_capital += initial_capex * factors.capital_multiplier
+-        battery_depreciation += (
+-            initial_capex
+-            * (factors.capital_multiplier - factors.terminal_residual_ratio)
+-            / float(cohort["life"])
+-        )
++        # 【修正 2026-09-02｜折旧分子】原式用 (capital_multiplier − terminal_residual)/life：
++        # capital_multiplier 是「15 年全周期要花多少钱」的 PV 倍数——那是 EAC 的分子；
++        # 折旧要回答的是「现在装着的这一代电池每年掉多少价」，只与本代有关。
++        # 两者共用分子 ⇒ 把 15 年要买的 N 代电池压进一代寿命里摊完，累计折旧达名义支出的 2.28 倍。
++        # 正确式：本代初装 × (1 − 退役回收率) / 本代寿命。EAC 与折旧从此不共用分子。
++        # 见 DECISIONS.md「2026-09-02 · 成熟期折旧用错了分子」。
++        battery_depreciation += initial_capex * (1.0 - recovery_ratio) / life
+         pool_key = str(cohort["battery_pool"])
+         lifecycle_capital_by_pool[pool_key] += (
+             initial_capex * factors.capital_multiplier
+         )
+         battery_depreciation_by_pool[pool_key] += (
+-            initial_capex
+-            * (factors.capital_multiplier - factors.terminal_residual_ratio)
+-            / float(cohort["life"])
++            initial_capex * (1.0 - recovery_ratio) / life
+         )
++        unit_vintage.append({
++            "battery_pool": pool_key,
++            "kind": str(cohort.get("kind", "")),
++            "install_year": int(cohort["install_year"]),
++            "life_years": life,
++            "initial_capex_yi": initial_capex,
++            "capital_multiplier": factors.capital_multiplier,
++            # 单位全周期资本 PV：锚在该批次自身 t=0——这正是「单站模型」要的口径，
++            # 所以它可以直接 × CRF 得单位 EAC，比值往上聚合不受年份影响。
++            "lifecycle_pv_yi": initial_capex * factors.capital_multiplier,
++            "annual_capital_requirement_yi": (
++                initial_capex * factors.capital_multiplier
++                * finance["capital_recovery_factor"]
++            ),
++            "annual_depreciation_yi": initial_capex * (1.0 - recovery_ratio) / life,
++        })
+         label = f"{float(cohort['life']):g}年"
+         if int(cohort["install_year"]) == years[0]:
+             factor_samples[label] = factors.capital_multiplier
+@@ -337,12 +356,76 @@
+     ):
+         if abs(sum(by_pool.values()) - total) > 1e-6:
+             raise ValueError(f"分池{label}之和({sum(by_pool.values())})≠总量({total})")
++
++    # 【新增 2026-09-02｜估值资本，统一折到基年】
++    # lifecycle_capital 是「各批次锚在自身 t=0 的 PV 之和」——那是**门槛口径**（单位 EAC 聚合，
++    # 比值无量纲，跨年份加总不影响它），不是估值口径。估值要的是同一时点的钱，
++    # 所以这里单独算一条：全部 CAPEX 折到 base_year。NPV 只能用这一条。
++    # 见 DECISIONS.md「2026-09-02 · EAC 的资本底座混了年份」。
++    base_year = years[0]
++    wacc = finance["wacc"]
++    valuation_capital_pv = preperiod_station_initial_capex + sum(
++        sum(initial_components[year].values()) / (1.0 + wacc) ** (year - base_year)
++        for year in years
++    ) + sum(
++        amount / (1.0 + wacc) ** (year - base_year)
++        for year, amount in replacement_net.items()
++        if amount
++    )
++
++    # 【新增 2026-09-02｜不变量断言】这类错误用一个恒等式就能挡住，不必靠人眼审。
++    nominal_total_capex = total_initial + sum(
++        amount for amount in replacement_net.values() if amount
++    )
++    # 【强化 2026-09-02b】原来只断言「累计折旧 ≤ 名义净支出」——那是个很弱的不等式，
++    # 而且两个数不同源：nominal_total_capex 已扣期中残值、且用逐年下降的实际价格。
++    # 真正的恒等式是会计意义上的资本消耗：
++    #     累计折旧 == 毛资本支出 − 期中残值回收 − 期末在役资产残值
++    # 三项都在本函数内可得，故直接断言，容差 5%（残余偏差来自折旧按初装价计
++    # 而更换按逐年下降价发生，方向已知、量级 3% 左右）。
++    replacement_gross_all = sum(
++        amount / (1.0 - recovery_ratio) for amount in replacement_net.values() if amount
++    ) if recovery_ratio < 1.0 else 0.0
++    interim_residual = replacement_gross_all - sum(
++        amount for amount in replacement_net.values() if amount
++    )
++    terminal_residual = sum(
++        float(cohort["initial_capex"])
++        * lifecycle_factors(
++            config, float(cohort["install_year"]), float(cohort["life"])
++        ).terminal_residual_ratio
++        for cohort in battery_cohorts
++    )
++    capital_consumed = (
++        total_initial + replacement_gross_all - interim_residual - terminal_residual
++    )
++    cumulative_depreciation = mature_depreciation * horizon
++    if capital_consumed > 0:
++        drift = cumulative_depreciation / capital_consumed - 1.0
++        if abs(drift) > 0.05:
++            raise ValueError(
++                f"累计折旧({cumulative_depreciation:.1f})与真实资本消耗"
++                f"({capital_consumed:.1f})偏离{drift:+.1%}，超过5%容差——折旧口径错误。"
++                f"（毛支出{total_initial + replacement_gross_all:.1f}"
++                f" 期中残值{interim_residual:.1f} 期末残值{terminal_residual:.1f}）"
++            )
++    if valuation_capital_pv > nominal_total_capex + 1e-6:
++        raise ValueError(
++            f"估值资本PV({valuation_capital_pv:.1f})>名义总支出({nominal_total_capex:.1f})"
++        )
+     peak = max(annual, key=lambda row: row.catl_equity_call_yi)
+     return CapexResult(
+         annual=annual,
+         total_initial_capex_yi=total_initial,
+         first_replacement_net_capex_yi=sum(replacement_net[year] for year in years),
+         lifecycle_capital_base_yi=lifecycle_capital,
++        valuation_capital_pv_yi=valuation_capital_pv,
++        nominal_total_capex_yi=nominal_total_capex,
++        gross_total_capex_yi=total_initial + replacement_gross_all,
++        interim_residual_yi=interim_residual,
++        terminal_residual_yi=terminal_residual,
++        capital_consumed_yi=capital_consumed,
++        unit_vintage=unit_vintage,
+         lifecycle_crf=crf,
+         annual_capital_requirement_yi=lifecycle_capital * crf,
+         mature_annual_depreciation_yi=mature_depreciation,
+--- a/src/business.py
++++ b/src/business.py
+@@ -208,7 +208,14 @@
+     annuity_wacc = (1 - (1 + wacc) ** -horizon) / wacc
+     ev_crf = forward_fcff / crf if crf else 0.0
+     ev_wacc = forward_fcff * annuity_wacc
+-    debt = capex.lifecycle_capital_base_yi * debt_ratio
++    # 【修正 2026-09-02｜估值口径统一时点】NPV 与股权价值是「同一时点两笔钱相减」，
++    # 必须用 valuation_capital_pv_yi（全部 CAPEX 折到基年），不能用 lifecycle_capital_base_yi
++    # （那是各批次锚在自身 t=0 的 PV 之和，是**门槛口径**，加总时混了年份）。
++    # 门槛口径仍留给 annual_capital_requirement / 覆盖倍数——那是无量纲比值，不受年份影响。
++    # 见 DECISIONS.md「2026-09-02 · EAC 的资本底座混了年份」。
++    valuation_capital = capex.valuation_capital_pv_yi
++    debt = valuation_capital * debt_ratio
++    debt_legacy = capex.lifecycle_capital_base_yi * debt_ratio
+     catl_value_crf = max(0.0, ev_crf - debt) * ownership
+     catl_value_multiple = max(0.0, ebitda * multiple - debt) * ownership
+     implied_crf = ev_crf / ebitda if ebitda else 0.0
+@@ -218,9 +225,13 @@
+         "dcf_implied_multiple_at_crf": implied_crf,
+         "dcf_implied_multiple_at_wacc": ev_wacc / ebitda if ebitda else 0.0,
+         "dcf_multiple_premium": multiple / implied_crf if implied_crf else 0.0,
+-        "dcf_npv_at_crf_yi": ev_crf - capex.lifecycle_capital_base_yi,
++        "dcf_npv_at_crf_yi": ev_crf - valuation_capital,
+         "dcf_catl_value_at_crf_yi": catl_value_crf,
+         "dcf_catl_value_gap_yi": catl_value_multiple - catl_value_crf,
++        "dcf_valuation_capital_pv_yi": valuation_capital,
++        "dcf_valuation_debt_yi": debt,
++        # 对照：旧口径债务（门槛底座×债务比）。留一轮供核对，确认后删。
++        "dcf_legacy_debt_yi": debt_legacy,
+     }
+ 
+ 
+--- a/src/schemas.py
++++ b/src/schemas.py
+@@ -159,6 +159,18 @@
+     total_initial_capex_yi: float
+     first_replacement_net_capex_yi: float
+     lifecycle_capital_base_yi: float
++    # 【2026-09-02】三个资本数，三个用途，永不共用：
++    #   lifecycle_capital_base_yi —— 门槛口径。各批次锚在自身 t=0 的 PV 之和，×CRF 得年资本要求。
++    #     这是「单站 EAC 往上聚合」的结果，比值无量纲，跨年份加总不影响它。
++    #   valuation_capital_pv_yi  —— 估值口径。全部 CAPEX 统一折到基年。NPV 只能用这一条。
++    #   nominal_total_capex_yi   —— 名义口径。不折现的实际花钱总额，只用于不变量断言。
++    valuation_capital_pv_yi: float
++    nominal_total_capex_yi: float
++    # 折旧口径的会计恒等式三项：累计折旧 == 毛支出 − 期中残值 − 期末残值（容差5%）
++    gross_total_capex_yi: float
++    interim_residual_yi: float
++    terminal_residual_yi: float
++    capital_consumed_yi: float
+     lifecycle_crf: float
+     annual_capital_requirement_yi: float
+     mature_annual_depreciation_yi: float
+@@ -185,6 +197,7 @@
+     # 【新增｜分池资本】四站型各自的资本口径（键=池键=站型键）：
+     # 全周期资本底座、成熟期年折旧、终局初装 CAPEX。四池之和与对应总量字段恒等
+     # （capex.py 构建时断言校验），供 report 分站型列示与 business 分池推演使用。
++    unit_vintage: list[dict] = field(default_factory=list)
+     lifecycle_capital_base_by_pool: dict[str, float] = field(default_factory=dict)
+     mature_annual_depreciation_by_pool: dict[str, float] = field(default_factory=dict)
+     total_initial_capex_by_pool: dict[str, float] = field(default_factory=dict)
+@@ -296,6 +309,9 @@
+     # 口径B（成本线）：EV = FCFF × 年金因子(WACC, 分析期)。WACC 是成本下限，故本口径给出上界。
+     # 注意：两条都用**成熟期**FCFF 资本化，未扣建设期爬坡，因此都偏乐观；
+     #   带爬坡的逐年 DCF 需等年度化做完，届时隐含倍数只会更低。
++    dcf_valuation_capital_pv_yi: float = 0.0
++    dcf_valuation_debt_yi: float = 0.0
++    dcf_legacy_debt_yi: float = 0.0
+     dcf_ev_at_crf_yi: float = 0.0
+     dcf_ev_at_wacc_yi: float = 0.0
+     dcf_implied_multiple_at_crf: float = 0.0

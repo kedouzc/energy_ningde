@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>共振决策分析框架</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif; background: #f5f5f4; color: #44403c; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+  h1 { text-align: center; font-size: 24px; margin-bottom: 6px; color: #1c1917; }
+  .subtitle { text-align: center; font-size: 13px; color: #78716c; margin-bottom: 24px; }
+  .svg-wrap { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 10px; margin-bottom: 24px; overflow-x: auto; }
+  svg text { font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif; }
+  .section { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 24px; margin-bottom: 24px; }
+  .section h2 { font-size: 18px; margin-bottom: 12px; color: #1c1917; border-left: 4px solid #7c3aed; padding-left: 12px; }
+  .section h3 { font-size: 15px; margin: 16px 0 8px; color: #57534e; }
+  .section p, .section li { font-size: 14px; line-height: 1.8; color: #57534e; }
+  .section ul { padding-left: 20px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+  th { background: #f5f5f4; padding: 8px 10px; text-align: left; font-weight: 600; border-bottom: 2px solid #d6d3d1; }
+  td { padding: 8px 10px; border-bottom: 1px solid #e7e5e4; vertical-align: top; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .tag-zhi { background: #dbeafe; color: #1e40af; }
+  .tag-xing { background: #dcfce7; color: #166534; }
+  .tag-he { background: #fef3c7; color: #92400e; }
+  .tag-yi { background: #f3e8ff; color: #6b21a8; }
+  .highlight { background: #fef2f2; border-left: 3px solid #dc2626; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; }
+  .note { background: #f0fdf4; border-left: 3px solid #22c55e; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>共振决策分析框架</h1>
+<p class="subtitle">知行合一的操作化表达 · 东方为体，西方为用 · V5.0</p>
+
+<!-- ==================== 图1：框架总图 ==================== -->
+<div class="svg-wrap">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1060 680" width="100%">
+  <defs>
+    <linearGradient id="gField" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#e8e0d5"/><stop offset="100%" style="stop-color:#d4c8b8"/>
+    </linearGradient>
+    <linearGradient id="gZhi" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#dbeafe"/><stop offset="100%" style="stop-color:#bfdbfe"/>
+    </linearGradient>
+    <linearGradient id="gXing" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#dcfce7"/><stop offset="100%" style="stop-color:#bbf7d0"/>
+    </linearGradient>
+    <linearGradient id="gHe" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#fef3c7"/><stop offset="100%" style="stop-color:#fde68a"/>
+    </linearGradient>
+    <linearGradient id="gYi" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f3e8ff"/><stop offset="100%" style="stop-color:#e9d5ff"/>
+    </linearGradient>
+    <marker id="aGray" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0,8 3,0 6" fill="#78716c"/>
+    </marker>
+    <marker id="aRed" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <polygon points="0 0,10 4,0 8" fill="#dc2626"/>
+    </marker>
+    <marker id="aPurple" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0,8 3,0 6" fill="#7c3aed"/>
+    </marker>
+  </defs>
+
+  <!-- 外框 -->
+  <rect x="5" y="5" width="1050" height="670" rx="12" fill="#fafaf9" stroke="#a8a29e" stroke-width="1.5"/>
+
+  <!-- ===== 客观大场 ===== -->
+  <rect x="20" y="15" width="1020" height="48" rx="8" fill="url(#gField)" stroke="#a8a29e" stroke-width="1.2"/>
+  <text x="530" y="37" text-anchor="middle" font-size="15" font-weight="bold" fill="#57534e">【基底】客观大场（时代 / 趋势 / 道 / 周期）</text>
+  <text x="530" y="54" text-anchor="middle" font-size="10" fill="#78716c">不以人的意志为转移，呈钟摆式周期运动 · 识别极端位置比判断趋势方向更重要</text>
+
+  <!-- ===== 知→行→合→一 主循环 ===== -->
+  <!-- 知 -->
+  <rect x="60" y="80" width="220" height="260" rx="10" fill="url(#gZhi)" stroke="#60a5fa" stroke-width="2"/>
+  <text x="170" y="104" text-anchor="middle" font-size="16" font-weight="bold" fill="#1e40af">知</text>
+  <text x="170" y="120" text-anchor="middle" font-size="10" fill="#3b82f6">信息 × 意识耦合</text>
+  <text x="170" y="134" text-anchor="middle" font-size="9" fill="#64748b">带宽基础设施 + 偏差校准</text>
+  <line x1="75" y1="142" x2="265" y2="142" stroke="#93c5fd" stroke-width="0.8"/>
+  <text x="170" y="158" text-anchor="middle" font-size="9" fill="#475569">感知客观场的界面</text>
+  <text x="170" y="172" text-anchor="middle" font-size="9" fill="#475569">决定系统能否及时感知变化</text>
+  <text x="170" y="190" text-anchor="middle" font-size="9" font-weight="bold" fill="#1e40af">带宽三维度：</text>
+  <text x="170" y="204" text-anchor="middle" font-size="9" fill="#475569">广度（信息源多样性）</text>
+  <text x="170" y="218" text-anchor="middle" font-size="9" fill="#475569">深度（第一性原理拆解）</text>
+  <text x="170" y="232" text-anchor="middle" font-size="9" fill="#475569">速度（信息处理与更新）</text>
+  <text x="170" y="252" text-anchor="middle" font-size="9" font-weight="bold" fill="#1e40af">偏差校准：</text>
+  <text x="170" y="266" text-anchor="middle" font-size="9" fill="#475569">事前验尸 / 红队 / 外部视角</text>
+  <text x="170" y="286" text-anchor="middle" font-size="9" font-weight="bold" fill="#1e40af">知-Q：认知相干度</text>
+  <text x="170" y="300" text-anchor="middle" font-size="9" fill="#475569">信息与意识是否同频？</text>
+  <text x="170" y="318" text-anchor="middle" font-size="8" fill="#78716c">（注：卡尼曼——认知偏差需制度对抗）</text>
+
+  <!-- 知→行 箭头 -->
+  <line x1="280" y1="210" x2="330" y2="210" stroke="#78716c" stroke-width="2" marker-end="url(#aGray)"/>
+  <text x="305" y="203" text-anchor="middle" font-size="9" fill="#78716c">触发</text>
+
+  <!-- 行 -->
+  <rect x="335" y="80" width="220" height="260" rx="10" fill="url(#gXing)" stroke="#4ade80" stroke-width="2"/>
+  <text x="445" y="104" text-anchor="middle" font-size="16" font-weight="bold" fill="#166534">行</text>
+  <text x="445" y="120" text-anchor="middle" font-size="10" fill="#22c55e">物质 × 力耦合</text>
+  <text x="445" y="134" text-anchor="middle" font-size="9" fill="#64748b">运营共振 + 战略失谐双模式</text>
+  <line x1="350" y1="142" x2="540" y2="142" stroke="#86efac" stroke-width="0.8"/>
+  <text x="445" y="158" text-anchor="middle" font-size="9" fill="#475569">被知触发后独立运行</text>
+  <text x="445" y="176" text-anchor="middle" font-size="9" font-weight="bold" fill="#166534">物质（mc²）：</text>
+  <text x="445" y="190" text-anchor="middle" font-size="9" fill="#475569">客观要素（资源/资产/技术）</text>
+  <text x="445" y="210" text-anchor="middle" font-size="9" font-weight="bold" fill="#166534">力（pc）：</text>
+  <text x="445" y="224" text-anchor="middle" font-size="9" fill="#475569">主观机制（组织/流程/激励）</text>
+  <text x="445" y="248" text-anchor="middle" font-size="9" font-weight="bold" fill="#166534">双模式：</text>
+  <text x="445" y="262" text-anchor="middle" font-size="9" fill="#475569">运营共振（高效对齐、低内耗）</text>
+  <text x="445" y="276" text-anchor="middle" font-size="9" fill="#475569">战略失谐（故意偏离、探索边缘）</text>
+  <text x="445" y="300" text-anchor="middle" font-size="9" font-weight="bold" fill="#166534">行-Q：执行相干度</text>
+  <text x="445" y="314" text-anchor="middle" font-size="9" fill="#475569">物质与力是否匹配？</text>
+  <text x="445" y="332" text-anchor="middle" font-size="8" fill="#78716c">（注：贝佐斯——Day 1保持不适应）</text>
+
+  <!-- 行→合 箭头 -->
+  <line x1="555" y1="210" x2="605" y2="210" stroke="#78716c" stroke-width="2" marker-end="url(#aGray)"/>
+  <text x="580" y="203" text-anchor="middle" font-size="9" fill="#78716c">注入</text>
+
+  <!-- 合 -->
+  <rect x="610" y="80" width="220" height="260" rx="10" fill="url(#gHe)" stroke="#fbbf24" stroke-width="2"/>
+  <text x="720" y="104" text-anchor="middle" font-size="16" font-weight="bold" fill="#92400e">合</text>
+  <text x="720" y="120" text-anchor="middle" font-size="10" fill="#d97706">跨界耦合涌现 E²</text>
+  <text x="720" y="134" text-anchor="middle" font-size="9" fill="#64748b">思考锚定，非计算公式</text>
+  <line x1="625" y1="142" x2="815" y2="142" stroke="#fcd34d" stroke-width="0.8"/>
+  <text x="720" y="158" text-anchor="middle" font-size="9" fill="#475569">知和行共同注入后的本体</text>
+  <text x="720" y="180" text-anchor="middle" font-size="9" font-weight="bold" fill="#92400e">E² = (mc²)² + (pc)²</text>
+  <text x="720" y="194" text-anchor="middle" font-size="9" fill="#475569">mc² = 静能量（物质势能）</text>
+  <text x="720" y="208" text-anchor="middle" font-size="9" fill="#475569">pc = 动能量（机制动能）</text>
+  <text x="720" y="234" text-anchor="middle" font-size="9" font-weight="bold" fill="#92400e">交叉验证：</text>
+  <text x="720" y="248" text-anchor="middle" font-size="9" fill="#475569">≥3个学科视角的加权共识</text>
+  <text x="720" y="270" text-anchor="middle" font-size="9" font-weight="bold" fill="#92400e">测量仪表：</text>
+  <text x="720" y="284" text-anchor="middle" font-size="9" fill="#475569">IRR/市值/份额 ← E的读数</text>
+  <text x="720" y="300" text-anchor="middle" font-size="9" font-weight="bold" fill="#92400e">合-Q：跨界相干度</text>
+  <text x="720" y="314" text-anchor="middle" font-size="9" fill="#475569">战略与执行是否对齐？</text>
+  <text x="720" y="332" text-anchor="middle" font-size="8" fill="#78716c">（注：芒格——多元思维模型）</text>
+
+  <!-- ===== 一：动态调谐 ===== -->
+  <rect x="60" y="360" width="770" height="80" rx="10" fill="url(#gYi)" stroke="#7c3aed" stroke-width="2"/>
+  <text x="445" y="384" text-anchor="middle" font-size="15" font-weight="bold" fill="#5b21b6">一 · 动态调谐能力</text>
+  <text x="445" y="400" text-anchor="middle" font-size="10" fill="#7c3aed">不是状态，是在路上 = 失谐后快速回归 + 从失谐中获益 · 调谐速度 > 调谐精度</text>
+  <text x="445" y="418" text-anchor="middle" font-size="9" fill="#6b21a8">观察 → 调整认知 → 再决策 → 行动 → 反馈</text>
+  <text x="445" y="434" text-anchor="middle" font-size="9" fill="#6b21a8">一-Q：全系统相干度 · 系统与场是否合拍？失谐后能快速回归吗？</text>
+
+  <!-- 一→知 反馈闭环（红色虚线） -->
+  <path d="M 60 400 L 30 400 L 30 210 L 55 210" fill="none" stroke="#dc2626" stroke-width="2.5" stroke-dasharray="8,4" marker-end="url(#aRed)"/>
+  <text x="18" y="310" text-anchor="middle" font-size="10" font-weight="bold" fill="#dc2626" transform="rotate(-90,18,310)">反馈闭环：共振结果 → 知的带宽解析</text>
+
+  <!-- ===== 右侧：双视角共振 ===== -->
+  <rect x="855" y="80" width="185" height="360" rx="10" fill="#fff" stroke="#d6d3d1" stroke-width="1.5"/>
+  <text x="947" y="102" text-anchor="middle" font-size="13" font-weight="bold" fill="#44403c">双视角共振</text>
+  <line x1="870" y1="110" x2="1025" y2="110" stroke="#e7e5e4" stroke-width="1"/>
+
+  <!-- 决策者 -->
+  <rect x="870" y="120" width="155" height="120" rx="6" fill="#eff6ff" stroke="#93c5fd" stroke-width="1"/>
+  <text x="947" y="140" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e40af">决策者视角</text>
+  <text x="947" y="156" text-anchor="middle" font-size="9" fill="#475569">Inside-Out</text>
+  <text x="947" y="174" text-anchor="middle" font-size="9" fill="#475569">"我要做什么？</text>
+  <text x="947" y="188" text-anchor="middle" font-size="9" fill="#475569">推进得怎么样？"</text>
+  <text x="947" y="210" text-anchor="middle" font-size="9" font-weight="bold" fill="#1e40af">先行指标</text>
+  <text x="947" y="224" text-anchor="middle" font-size="8" fill="#64748b">战略推进有效性</text>
+
+  <!-- 共振箭头 -->
+  <line x1="935" y1="245" x2="935" y2="260" stroke="#dc2626" stroke-width="2" marker-end="url(#aRed)"/>
+  <line x1="960" y1="260" x2="960" y2="245" stroke="#dc2626" stroke-width="2" marker-end="url(#aRed)"/>
+  <text x="947" y="255" text-anchor="middle" font-size="8" font-weight="bold" fill="#dc2626">共振</text>
+
+  <!-- 投资人 -->
+  <rect x="870" y="265" width="155" height="120" rx="6" fill="#f0fdf4" stroke="#86efac" stroke-width="1"/>
+  <text x="947" y="285" text-anchor="middle" font-size="11" font-weight="bold" fill="#166534">投资人视角</text>
+  <text x="947" y="301" text-anchor="middle" font-size="9" fill="#475569">Outside-In</text>
+  <text x="947" y="319" text-anchor="middle" font-size="9" fill="#475569">"他说的是不是真的？</text>
+  <text x="947" y="333" text-anchor="middle" font-size="9" fill="#475569">值不值得投？"</text>
+  <text x="947" y="355" text-anchor="middle" font-size="9" font-weight="bold" fill="#166534">验证指标</text>
+  <text x="947" y="369" text-anchor="middle" font-size="8" fill="#64748b">战略可信度/烟雾弹</text>
+
+  <!-- 共振判断 -->
+  <rect x="870" y="395" width="155" height="38" rx="6" fill="#fffbeb" stroke="#fbbf24" stroke-width="1"/>
+  <text x="947" y="412" text-anchor="middle" font-size="9" font-weight="bold" fill="#92400e">共振判断矩阵</text>
+  <text x="947" y="426" text-anchor="middle" font-size="8" fill="#78716c">真战略/烟雾弹/定力/收缩</text>
+
+  <!-- ===== 底部：分析步骤与共振诊断的矩阵关系 ===== -->
+  <rect x="20" y="455" width="1020" height="210" rx="10" fill="#fff" stroke="#d6d3d1" stroke-width="1"/>
+  <text x="530" y="478" text-anchor="middle" font-size="13" font-weight="bold" fill="#44403c">分析步骤 × 共振诊断 × 双视角 —— 三维矩阵</text>
+  <text x="530" y="494" text-anchor="middle" font-size="10" fill="#78716c">每个分析步骤都同时经历知/行/合/一的完整循环，同时从两个视角展开</text>
+
+  <!-- 表头 -->
+  <rect x="35" y="504" width="130" height="28" rx="4" fill="#f5f5f4" stroke="#d6d3d1" stroke-width="0.8"/>
+  <text x="100" y="522" text-anchor="middle" font-size="10" font-weight="bold" fill="#57534e">分析步骤</text>
+
+  <rect x="170" y="504" width="130" height="28" rx="4" fill="#dbeafe" stroke="#93c5fd" stroke-width="0.8"/>
+  <text x="235" y="522" text-anchor="middle" font-size="10" font-weight="bold" fill="#1e40af">知-Q 诊断</text>
+
+  <rect x="305" y="504" width="130" height="28" rx="4" fill="#dcfce7" stroke="#86efac" stroke-width="0.8"/>
+  <text x="370" y="522" text-anchor="middle" font-size="10" font-weight="bold" fill="#166534">行-Q 诊断</text>
+
+  <rect x="440" y="504" width="130" height="28" rx="4" fill="#fef3c7" stroke="#fcd34d" stroke-width="0.8"/>
+  <text x="505" y="522" text-anchor="middle" font-size="10" font-weight="bold" fill="#92400e">合-Q 诊断</text>
+
+  <rect x="575" y="504" width="130" height="28" rx="4" fill="#f3e8ff" stroke="#c4b5fd" stroke-width="0.8"/>
+  <text x="640" y="522" text-anchor="middle" font-size="10" font-weight="bold" fill="#6b21a8">一-Q 诊断</text>
+
+  <rect x="710" y="504" width="160" height="28" rx="4" fill="#eff6ff" stroke="#93c5fd" stroke-width="0.8"/>
+  <text x="790" y="516" text-anchor="middle" font-size="9" font-weight="bold" fill="#1e40af">决策者视角</text>
+  <text x="790" y="528" text-anchor="middle" font-size="8" fill="#475569">先行指标</text>
+
+  <rect x="875" y="504" width="150" height="28" rx="4" fill="#f0fdf4" stroke="#86efac" stroke-width="0.8"/>
+  <text x="950" y="516" text-anchor="middle" font-size="9" font-weight="bold" fill="#166534">投资人视角</text>
+  <text x="950" y="528" text-anchor="middle" font-size="8" fill="#475569">验证指标</text>
+
+  <!-- Row 1: 问题界定 -->
+  <rect x="35" y="536" width="130" height="24" rx="3" fill="#f5f5f4"/>
+  <text x="100" y="552" text-anchor="middle" font-size="9" font-weight="bold" fill="#57534e">1.问题界定</text>
+  <text x="235" y="552" text-anchor="middle" font-size="8" fill="#475569">信息边界清晰？</text>
+  <text x="370" y="552" text-anchor="middle" font-size="8" fill="#475569">分析资源匹配？</text>
+  <text x="505" y="552" text-anchor="middle" font-size="8" fill="#475569">边界共识达成？</text>
+  <text x="640" y="552" text-anchor="middle" font-size="8" fill="#475569">边界可动态调整？</text>
+  <text x="790" y="552" text-anchor="middle" font-size="8" fill="#475569">决策类型/时间范围</text>
+  <text x="950" y="552" text-anchor="middle" font-size="8" fill="#475569">公司是否明确表态？</text>
+
+  <!-- Row 2: 需求验证 -->
+  <rect x="35" y="562" width="130" height="24" rx="3" fill="#f5f5f4"/>
+  <text x="100" y="578" text-anchor="middle" font-size="9" font-weight="bold" fill="#57534e">2.需求验证</text>
+  <text x="235" y="578" text-anchor="middle" font-size="8" fill="#475569">需求信息充分？</text>
+  <text x="370" y="578" text-anchor="middle" font-size="8" fill="#475569">验证行动有效？</text>
+  <text x="505" y="578" text-anchor="middle" font-size="8" fill="#475569">需求判断可靠？</text>
+  <text x="640" y="578" text-anchor="middle" font-size="8" fill="#475569">需求变化可追踪？</text>
+  <text x="790" y="578" text-anchor="middle" font-size="8" fill="#475569">使用频次/增长率</text>
+  <text x="950" y="578" text-anchor="middle" font-size="8" fill="#475569">CAPEX占比/高管绑定</text>
+
+  <!-- Row 3: 产业结构 -->
+  <rect x="35" y="588" width="130" height="24" rx="3" fill="#f5f5f4"/>
+  <text x="100" y="604" text-anchor="middle" font-size="9" font-weight="bold" fill="#57534e">3.产业结构</text>
+  <text x="235" y="604" text-anchor="middle" font-size="8" fill="#475569">五力信息完整？</text>
+  <text x="370" y="604" text-anchor="middle" font-size="8" fill="#475569">护城河可构建？</text>
+  <text x="505" y="604" text-anchor="middle" font-size="8" fill="#475569">结构判断交叉验证？</text>
+  <text x="640" y="604" text-anchor="middle" font-size="8" fill="#475569">10倍速变化可检测？</text>
+  <text x="790" y="604" text-anchor="middle" font-size="8" fill="#475569">替代方案联盟数</text>
+  <text x="950" y="604" text-anchor="middle" font-size="8" fill="#475569">研报是否单独估值</text>
+
+  <!-- Row 4: 战略必要性 -->
+  <rect x="35" y="614" width="130" height="24" rx="3" fill="#f5f5f4"/>
+  <text x="100" y="630" text-anchor="middle" font-size="9" font-weight="bold" fill="#57534e">4.战略必要性</text>
+  <text x="235" y="630" text-anchor="middle" font-size="8" fill="#475569">威胁信息准确？</text>
+  <text x="370" y="630" text-anchor="middle" font-size="8" fill="#475569">应对行动可行？</text>
+  <text x="505" y="630" text-anchor="middle" font-size="8" fill="#475569">必要性判断一致？</text>
+  <text x="640" y="630" text-anchor="middle" font-size="8" fill="#475569">不可逆点可监控？</text>
+  <text x="790" y="630" text-anchor="middle" font-size="8" fill="#475569">紧迫度/不可逆点</text>
+  <text x="950" y="630" text-anchor="middle" font-size="8" fill="#475569">融资用途是否明确</text>
+
+  <!-- Row 5-7 compressed -->
+  <rect x="35" y="640" width="130" height="20" rx="3" fill="#f5f5f4"/>
+  <text x="100" y="654" text-anchor="middle" font-size="8" fill="#57534e">5.能力圈 6.合作方 7.概率判断</text>
+  <text x="235" y="654" text-anchor="middle" font-size="8" fill="#78716c">每步都经过知-Q→行-Q→合-Q→一-Q诊断</text>
+  <text x="505" y="654" text-anchor="middle" font-size="8" fill="#78716c">每步都从双视角展开</text>
+  <text x="790" y="654" text-anchor="middle" font-size="8" fill="#78716c">先行指标从步骤推导</text>
+  <text x="950" y="654" text-anchor="middle" font-size="8" fill="#78716c">验证指标从步骤推导</text>
+
+</svg>
+</div>
+
+<!-- ==================== 图2：共振循环详解 ==================== -->
+<div class="svg-wrap">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%">
+  <defs>
+    <marker id="aG2" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0,8 3,0 6" fill="#666"/>
+    </marker>
+    <marker id="aR2" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <polygon points="0 0,10 4,0 8" fill="#dc2626"/>
+    </marker>
+  </defs>
+
+  <rect x="5" y="5" width="790" height="390" rx="12" fill="#fafaf9" stroke="#a8a29e" stroke-width="1.5"/>
+  <text x="400" y="30" text-anchor="middle" font-size="15" font-weight="bold" fill="#44403c">共振决策循环：每个分析步骤都经历知→行→合→一的完整循环</text>
+
+  <!-- 中心：分析步骤 -->
+  <rect x="300" y="150" width="200" height="60" rx="10" fill="#fff" stroke="#a8a29e" stroke-width="2"/>
+  <text x="400" y="175" text-anchor="middle" font-size="13" font-weight="bold" fill="#44403c">分析步骤</text>
+  <text x="400" y="195" text-anchor="middle" font-size="10" fill="#78716c">（如"需求验证"）</text>
+
+  <!-- 知（上方） -->
+  <rect x="310" y="50" width="180" height="60" rx="8" fill="#dbeafe" stroke="#60a5fa" stroke-width="1.5"/>
+  <text x="400" y="72" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e40af">知-Q</text>
+  <text x="400" y="88" text-anchor="middle" font-size="9" fill="#475569">获取了什么信息？</text>
+  <text x="400" y="102" text-anchor="middle" font-size="9" fill="#475569">认知有没有偏差？</text>
+
+  <!-- 行（右方） -->
+  <rect x="540" y="150" width="180" height="60" rx="8" fill="#dcfce7" stroke="#4ade80" stroke-width="1.5"/>
+  <text x="630" y="172" text-anchor="middle" font-size="12" font-weight="bold" fill="#166534">行-Q</text>
+  <text x="630" y="188" text-anchor="middle" font-size="9" fill="#475569">采取了什么行动？</text>
+  <text x="630" y="202" text-anchor="middle" font-size="9" fill="#475569">执行能力匹配吗？</text>
+
+  <!-- 合（下方） -->
+  <rect x="310" y="250" width="180" height="60" rx="8" fill="#fef3c7" stroke="#fbbf24" stroke-width="1.5"/>
+  <text x="400" y="272" text-anchor="middle" font-size="12" font-weight="bold" fill="#92400e">合-Q</text>
+  <text x="400" y="288" text-anchor="middle" font-size="9" fill="#475569">判断质量如何？</text>
+  <text x="400" y="302" text-anchor="middle" font-size="9" fill="#475569">有没有交叉验证？</text>
+
+  <!-- 一（左方） -->
+  <rect x="80" y="150" width="180" height="60" rx="8" fill="#f3e8ff" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="170" y="172" text-anchor="middle" font-size="12" font-weight="bold" fill="#6b21a8">一-Q</text>
+  <text x="170" y="188" text-anchor="middle" font-size="9" fill="#475569">跟踪机制建了吗？</text>
+  <text x="170" y="202" text-anchor="middle" font-size="9" fill="#475569">能动态调整吗？</text>
+
+  <!-- 箭头：知→行→合→一→知 -->
+  <path d="M 490 95 L 540 155" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#aG2)"/>
+  <path d="M 630 210 L 540 270" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#aG2)"/>
+  <path d="M 310 280 L 260 210" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#aG2)"/>
+  <path d="M 170 150 L 260 95" fill="none" stroke="#dc2626" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#aR2)"/>
+
+  <text x="530" y="118" text-anchor="middle" font-size="8" fill="#666">触发</text>
+  <text x="600" y="248" text-anchor="middle" font-size="8" fill="#666">注入</text>
+  <text x="270" y="258" text-anchor="middle" font-size="8" fill="#666">调谐</text>
+  <text x="200" y="112" text-anchor="middle" font-size="8" font-weight="bold" fill="#dc2626">反馈</text>
+
+  <!-- 示例：需求验证 -->
+  <rect x="30" y="310" width="740" height="75" rx="8" fill="#fff" stroke="#d6d3d1" stroke-width="1"/>
+  <text x="400" y="330" text-anchor="middle" font-size="11" font-weight="bold" fill="#44403c">示例：以"需求验证"步骤为例</text>
+  <text x="120" y="352" text-anchor="middle" font-size="9" font-weight="bold" fill="#1e40af">知-Q：用户需求信息充分吗？</text>
+  <text x="120" y="366" text-anchor="middle" font-size="8" fill="#475569">有没有确认偏误？</text>
+  <text x="310" y="352" text-anchor="middle" font-size="9" font-weight="bold" fill="#166534">行-Q：验证行动有效吗？</text>
+  <text x="310" y="366" text-anchor="middle" font-size="8" fill="#475569">调研/访谈/试点做了吗？</text>
+  <text x="500" y="352" text-anchor="middle" font-size="9" font-weight="bold" fill="#92400e">合-Q：需求判断可靠吗？</text>
+  <text x="500" y="366" text-anchor="middle" font-size="8" fill="#475569">多个信息源交叉验证了吗？</text>
+  <text x="690" y="352" text-anchor="middle" font-size="9" font-weight="bold" fill="#6b21a8">一-Q：需求变化能追踪吗？</text>
+  <text x="690" y="366" text-anchor="middle" font-size="8" fill="#475569">跟踪指标设了吗？</text>
+</svg>
+</div>
+
+<!-- ==================== 文字说明 ==================== -->
+<div class="section">
+  <h2>框架核心逻辑</h2>
+
+  <div class="highlight">
+    <strong>关键转变</strong>：知/行/合/一不是分析步骤的容器，而是决策质量的诊断维度。每个分析步骤都同时经历知→行→合→一的完整循环。
+  </div>
+
+  <h3>为什么不能把步骤"分配"给某一层？</h3>
+  <p>因为每个分析步骤都同时涉及感知（知）、执行（行）、判断（合）和调优（一）。</p>
+  <p>例如"战略必要性"——不做会怎样？</p>
+  <ul>
+    <li><span class="tag tag-zhi">知</span> 我获取了什么威胁信息？对威胁的认知有没有偏差？</li>
+    <li><span class="tag tag-xing">行</span> 我采取了什么行动去验证威胁？验证方式有效吗？</li>
+    <li><span class="tag tag-he">合</span> 我的"必要性判断"可靠吗？有没有交叉验证？</li>
+    <li><span class="tag tag-yi">一</span> 不可逆点能监控吗？威胁变化能及时发现吗？</li>
+  </ul>
+  <p>如果硬把"战略必要性"归为"行层"，就丢失了它的知/合/一维度。这就是为什么V5的映射"不像有逻辑"。</p>
+
+  <h3>正确的三维结构</h3>
+  <table>
+    <tr><th>维度</th><th>含义</th><th>性质</th></tr>
+    <tr><td><strong>X轴：分析步骤</strong></td><td>问什么问题（问题界定→需求验证→产业结构→战略必要性→能力圈→合作方→概率判断）</td><td>顺序推进，每步建在上一步之上</td></tr>
+    <tr><td><strong>Y轴：共振诊断</strong></td><td>怎么问这些问题（知-Q/行-Q/合-Q/一-Q）</td><td>同时存在，每步都要检验</td></tr>
+    <tr><td><strong>Z轴：双视角</strong></td><td>谁在问（决策者/投资人）</td><td>交叉验证，识别烟雾弹</td></tr>
+  </table>
+
+  <div class="note">
+    <strong>命名说明</strong>："共振决策分析框架"为操作名称，"知行合一"为哲学根基。共振更精确地表达了框架的动态本质——从失谐到共振的过程、双视角的共振验证、主观与客观场的共振对齐。知行合一则是这套框架的哲学源头——"知是行的主意，行是知的功夫"。
+  </div>
+</div>
+
+<div class="section">
+  <h2>7步分析流程</h2>
+  <p>7步是分析的内容维度——问什么问题。每步都必须通过知-Q/行-Q/合-Q/一-Q的诊断，同时从决策者和投资人两个视角展开。</p>
+
+  <table>
+    <tr><th>步骤</th><th>核心问题</th><th>关卡检验</th><th>决策者先行指标</th><th>投资人验证指标</th></tr>
+    <tr>
+      <td><strong>1.问题界定</strong></td>
+      <td>我要判断什么？边界在哪？</td>
+      <td>战略转折点检测</td>
+      <td>决策类型/时间范围</td>
+      <td>公司是否明确表态</td>
+    </tr>
+    <tr>
+      <td><strong>2.需求验证</strong></td>
+      <td>用户真正在买什么？</td>
+      <td>待办任务+颠覆检验</td>
+      <td>使用频次/增长率/NPS</td>
+      <td>CAPEX占比/高管KPI绑定</td>
+    </tr>
+    <tr>
+      <td><strong>3.产业结构</strong></td>
+      <td>行业允不允许赚钱？</td>
+      <td>五力+护城河</td>
+      <td>替代方案联盟数/覆盖率</td>
+      <td>研报是否单独给该业务估值</td>
+    </tr>
+    <tr>
+      <td><strong>4.战略必要性</strong></td>
+      <td>不做会怎样？</td>
+      <td>10倍速变化+不可逆点</td>
+      <td>紧迫度/不可逆点时间线</td>
+      <td>融资用途是否明确用于战略</td>
+    </tr>
+    <tr>
+      <td><strong>5.能力圈检验</strong></td>
+      <td>有没有资格做？</td>
+      <td>8维度+粗算→精算</td>
+      <td>EBITDA/CAC/证券化进度</td>
+      <td>核心人才流向/独立融资进度</td>
+    </tr>
+    <tr>
+      <td><strong>6.合作方博弈</strong></td>
+      <td>我给什么不可替代价值？</td>
+      <td>议价能力矩阵</td>
+      <td>签约数/适配产品数</td>
+      <td>合作协议约束性/专利申报数</td>
+    </tr>
+    <tr>
+      <td><strong>7.概率判断</strong></td>
+      <td>底线在哪？期望多大？</td>
+      <td>底线条件+概率绑定指标</td>
+      <td>情景概率触发条件</td>
+      <td>竞争对手针对性反应</td>
+    </tr>
+  </table>
+</div>
+
+<div class="section">
+  <h2>共振判断矩阵</h2>
+  <p>当决策者视角和投资人视角出现分歧时：</p>
+  <table>
+    <tr><th>决策者视角</th><th>投资人视角</th><th>共振判断</th><th>行动建议</th></tr>
+    <tr><td>积极推进</td><td>真金白银投入</td><td>✅ 真战略，共振</td><td>跟随，加大配置</td></tr>
+    <tr><td>积极推进</td><td>口头重视但无投入</td><td>⚠️ 烟雾弹/试探</td><td>观察，等验证信号</td></tr>
+    <tr><td>推进遇阻</td><td>持续投入</td><td>⚠️ 战略定力/盲目坚持</td><td>分析是"定力"还是"沉没成本"</td></tr>
+    <tr><td>推进遇阻</td><td>削减投入</td><td>❌ 战略收缩/放弃</td><td>重新评估可行性</td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <h2>动态调谐机制（一层的操作化）</h2>
+  <table>
+    <tr><th>阶段</th><th>对应四层</th><th>操作</th><th>频率</th></tr>
+    <tr><td>观察</td><td>知层带宽检验</td><td>监控双视角仪表盘</td><td>实时/日/周</td></tr>
+    <tr><td>调整认知</td><td>知层偏差校准+一层失谐识别</td><td>对比假设vs实际</td><td>周/月</td></tr>
+    <tr><td>再决策</td><td>合层交叉验证</td><td>更新概率加权</td><td>月/季</td></tr>
+    <tr><td>行动</td><td>行层执行+一层调谐</td><td>执行调整</td><td>即时</td></tr>
+    <tr><td>反馈</td><td>一层→知层闭环</td><td>共振结果→知的带宽解析</td><td>持续</td></tr>
+  </table>
+
+  <h3>Day 1触发器（什么情况下必须重启分析）</h3>
+  <table>
+    <tr><th>触发器</th><th>含义</th><th>行动</th></tr>
+    <tr><td>替代方案联盟成员超临界</td><td>替代方案可能成行业标准</td><td>立即战略紧急会议</td></tr>
+    <tr><td>核心用户选择率<40%</td><td>商业模式不被接受</td><td>暂停扩张，重评价值主张</td></tr>
+    <tr><td>核心合作方退出</td><td>网络效应开始瓦解</td><td>危机公关+替代谈判</td></tr>
+    <tr><td>关键成本<临界点</td><td>竞争优势被抵消</td><td>加速差异化</td></tr>
+    <tr><td>政策强制非己方标准</td><td>标准定义权丧失</td><td>评估是否加入新标准</td></tr>
+    <tr><td>核心指标连续3个月触发警报</td><td>商业模式不成立</td><td>暂停新建，优化存量</td></tr>
+  </table>
+
+  <h3>反脆弱设计</h3>
+  <table>
+    <tr><th>情景</th><th>脆弱设计</th><th>反脆弱设计</th></tr>
+    <tr><td>竞争对手成为标准</td><td>全部押注单一方案</td><td>兼容设计，可灵活切换</td></tr>
+    <tr><td>颠覆性技术提前量产</td><td>速度优势消失</td><td>技术路线储备，模块化接口</td></tr>
+    <tr><td>合作方大规模退出</td><td>网络扩张停滞</td><td>自建标杆+轻资产加盟双轨</td></tr>
+    <tr><td>利用率长期低迷</td><td>持续亏损拖垮现金流</td><td>资产证券化出表，隔离风险</td></tr>
+    <tr><td><strong>失谐成为常态</strong></td><td>追求快速回归共振</td><td><strong>从每次失谐中学习并升级系统</strong></td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <h2>常见错误与纠正</h2>
+  <table>
+    <tr><th>常见错误</th><th>错误表现</th><th>纠正方式</th></tr>
+    <tr><td>需求静态化</td><td>"用户现在需要，所以未来也需要"</td><td>加入替代方案进化分析</td></tr>
+    <tr><td>竞争后置</td><td>先算账，再看竞争</td><td>产业结构在步骤3就评估</td></tr>
+    <tr><td>战略一次性</td><td>"战略必要性确认了，推进"</td><td>建立双视角仪表盘，持续监控</td></tr>
+    <tr><td>财务真空化</td><td>算的是没有竞争的模型</td><td>加入竞争压缩系数</td></tr>
+    <tr><td>概率拍脑袋</td><td>"我觉得有50%概率"</td><td>绑定可验证指标，动态调整</td></tr>
+    <tr><td>框架公式化</td><td>把E²当计算公式</td><td>当作思考锚定，管理是实践不是物理</td></tr>
+    <tr><td>共振绝对化</td><td>"必须时时与场共振"</td><td>允许战略失谐，保持不适应</td></tr>
+    <tr><td>调谐完美化</td><td>"精度比速度重要"</td><td>动态调谐循环速度决定生死</td></tr>
+    <tr><td>单视角陷阱</td><td>只从决策者或投资人一个视角看</td><td>双视角共振，识别烟雾弹</td></tr>
+    <tr><td>步骤归层化</td><td>把分析步骤硬塞进知/行/合某一层</td><td>每步都经历知/行/合/一完整循环</td></tr>
+  </table>
+</div>
+
+</div>
+</body>
+</html>

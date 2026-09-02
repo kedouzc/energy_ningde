@@ -1,0 +1,105 @@
+
+<h2 class="sr-only">Γ改善信号时序：从γ结构证据到飞轮闭合再到相变跃迁的四个阶段，标注每阶段的可观测信号和误判风险</h2>
+<div style="padding:1rem 0 0.5rem;">
+
+<svg width="100%" viewBox="0 0 680 310" role="img">
+  <title>Γ改善四级信号时序图</title>
+  <desc>从左到右：一级γ结构证据→二级η飞轮闭合→三级负反馈衰减→四级相变跃迁，每阶段标注可观测信号和误判率</desc>
+  <defs>
+    <marker id="arr3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <!-- timeline spine -->
+  <line x1="60" y1="120" x2="628" y2="120" stroke="var(--color-border-secondary)" stroke-width="0.5" marker-end="url(#arr3)"/>
+
+  <!-- phase blocks -->
+  <!-- Phase 1 -->
+  <g class="node" onclick="sendPrompt('γ调谐力的结构性证据：如何在实地调研中验证人才密度变化和客户决策链缩短？有没有具体的访谈问题模板？')">
+    <rect x="60" y="56" width="126" height="54" rx="6" fill="var(--color-background-secondary)" stroke="var(--color-border-tertiary)" stroke-width="0.5"/>
+    <text class="th" x="123" y="76" text-anchor="middle">γ 结构证据</text>
+    <text class="ts" x="123" y="93" text-anchor="middle" style="fill:var(--color-text-secondary);">人才 · 客户链 · 研发</text>
+    <line x1="123" y1="110" x2="123" y2="120" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+    <circle cx="123" cy="120" r="4" fill="var(--color-background-primary)" stroke="var(--color-border-primary)" stroke-width="1.2"/>
+  </g>
+
+  <!-- Phase 2 -->
+  <g class="node" onclick="sendPrompt('飞轮断点识别：如何判断η飞轮的哪个接口断裂了？数据→产品→用户三个节点分别用什么代理指标衡量？')">
+    <rect x="218" y="56" width="126" height="54" rx="6" fill="var(--color-background-info)" stroke="var(--color-border-info)" stroke-width="0.5" opacity="0.7"/>
+    <text class="th" x="281" y="76" text-anchor="middle" style="fill:var(--color-text-info);">η 飞轮闭合</text>
+    <text class="ts" x="281" y="93" text-anchor="middle" style="fill:var(--color-text-info);opacity:0.85;">复购 · 单经济 · 被模仿</text>
+    <line x1="281" y1="110" x2="281" y2="120" stroke="var(--color-border-info)" stroke-width="0.5"/>
+    <circle cx="281" cy="120" r="4" fill="var(--color-background-primary)" stroke="var(--color-border-info)" stroke-width="1.2"/>
+  </g>
+
+  <!-- Phase 3 -->
+  <g class="node" onclick="sendPrompt('负反馈衰减如何量化？毛利保持vs份额换价格，两种情况的财务特征有什么区别？如何从季报数据提取这个信号？')">
+    <rect x="376" y="56" width="126" height="54" rx="6" fill="var(--color-background-success)" stroke="var(--color-border-success)" stroke-width="0.5" opacity="0.7"/>
+    <text class="th" x="439" y="76" text-anchor="middle" style="fill:var(--color-text-success);">负反馈衰减</text>
+    <text class="ts" x="439" y="93" text-anchor="middle" style="fill:var(--color-text-success);opacity:0.85;">毛利 · 流失率 · 现金</text>
+    <line x1="439" y1="110" x2="439" y2="120" stroke="var(--color-border-success)" stroke-width="0.5"/>
+    <circle cx="439" cy="120" r="4" fill="var(--color-background-primary)" stroke="var(--color-border-success)" stroke-width="1.2"/>
+  </g>
+
+  <!-- Phase 4 -->
+  <g class="node" onclick="sendPrompt('相变临界点的外部压力消失：竞争对手融资状况和库存水位如何追踪？监管靴子落地后的估值修复有多快？历史案例有哪些？')">
+    <rect x="534" y="56" width="90" height="54" rx="6" fill="var(--color-background-warning)" stroke="var(--color-border-warning)" stroke-width="0.5" opacity="0.7"/>
+    <text class="th" x="579" y="76" text-anchor="middle" style="fill:var(--color-text-warning);">相变跃迁</text>
+    <text class="ts" x="579" y="93" text-anchor="middle" style="fill:var(--color-text-warning);opacity:0.9;">外压消失</text>
+    <line x1="579" y1="110" x2="579" y2="120" stroke="var(--color-border-warning)" stroke-width="0.5"/>
+    <circle cx="579" cy="120" r="4" fill="var(--color-background-primary)" stroke="var(--color-border-warning)" stroke-width="1.2"/>
+  </g>
+
+  <!-- connecting arrows on spine -->
+  <line x1="186" y1="120" x2="216" y2="120" stroke="var(--color-border-secondary)" stroke-width="0.5" marker-end="url(#arr3)"/>
+  <line x1="344" y1="120" x2="374" y2="120" stroke="var(--color-border-secondary)" stroke-width="0.5" marker-end="url(#arr3)"/>
+  <line x1="502" y1="120" x2="532" y2="120" stroke="var(--color-border-secondary)" stroke-width="0.5" marker-end="url(#arr3)"/>
+
+  <!-- time labels -->
+  <text class="ts" x="60" y="140" style="fill:var(--color-text-tertiary)">观察等待期开始</text>
+  <text class="ts" x="620" y="140" text-anchor="end" style="fill:var(--color-text-tertiary)">可介入窗口</text>
+
+  <!-- below timeline: misread risk indicators -->
+  <text class="ts" x="340" y="170" text-anchor="middle" style="fill:var(--color-text-tertiary);">误判风险（越早信号越容易被噪音淹没）</text>
+
+  <!-- risk bar -->
+  <rect x="60" y="182" width="126" height="8" rx="4" fill="var(--color-background-danger)" opacity="0.7"/>
+  <rect x="60" y="182" width="107" height="8" rx="4" fill="var(--color-text-danger)" opacity="0.5"/>
+  <text class="ts" x="123" y="204" text-anchor="middle" style="fill:var(--color-text-danger);opacity:0.8;">误判率 ≈ 高</text>
+
+  <rect x="218" y="182" width="126" height="8" rx="4" fill="var(--color-background-danger)" opacity="0.4"/>
+  <rect x="218" y="182" width="88" height="8" rx="4" fill="var(--color-text-warning)" opacity="0.5"/>
+  <text class="ts" x="281" y="204" text-anchor="middle" style="fill:var(--color-text-secondary);">误判率 ≈ 中</text>
+
+  <rect x="376" y="182" width="126" height="8" rx="4" fill="var(--color-background-secondary)" opacity="0.8"/>
+  <rect x="376" y="182" width="55" height="8" rx="4" fill="var(--color-text-success)" opacity="0.45"/>
+  <text class="ts" x="439" y="204" text-anchor="middle" style="fill:var(--color-text-success);">误判率 ≈ 低</text>
+
+  <rect x="534" y="182" width="90" height="8" rx="4" fill="var(--color-background-secondary)" opacity="0.8"/>
+  <rect x="534" y="182" width="18" height="8" rx="4" fill="var(--color-text-success)" opacity="0.5"/>
+  <text class="ts" x="579" y="204" text-anchor="middle" style="fill:var(--color-text-success);">误判率 ≈ 极低</text>
+
+  <!-- source label -->
+  <text class="ts" x="60" y="222" style="fill:var(--color-text-tertiary);">调研来源</text>
+
+  <text class="ts" x="123" y="240" text-anchor="middle" style="fill:var(--color-text-secondary);">创始人访谈</text>
+  <text class="ts" x="123" y="256" text-anchor="middle" style="fill:var(--color-text-secondary);">供应链侧验</text>
+
+  <text class="ts" x="281" y="240" text-anchor="middle" style="fill:var(--color-text-secondary);">客户调研</text>
+  <text class="ts" x="281" y="256" text-anchor="middle" style="fill:var(--color-text-secondary);">竞争对手观察</text>
+
+  <text class="ts" x="439" y="240" text-anchor="middle" style="fill:var(--color-text-secondary);">季报财务数据</text>
+  <text class="ts" x="439" y="256" text-anchor="middle" style="fill:var(--color-text-secondary);">≥2个季度确认</text>
+
+  <text class="ts" x="579" y="240" text-anchor="middle" style="fill:var(--color-text-secondary);">行业数据</text>
+  <text class="ts" x="579" y="256" text-anchor="middle" style="fill:var(--color-text-secondary);">监管动态</text>
+
+</svg>
+
+<div style="background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 14px;margin-top:4px;cursor:pointer;" onclick="sendPrompt('一个完整的Γ改善验证清单：我应该按什么顺序做调研？每个信号的最小确认样本量是多少？避免确认偏误的具体方法？')">
+  <span style="font-size:12px;font-weight:500;color:var(--color-text-primary);">关键操作原则</span>
+  <span style="font-size:12px;color:var(--color-text-secondary);margin-left:8px;">一二级信号只建仓位，三级才加仓——越早介入越需要更小的初始仓位对冲误判 ↗</span>
+</div>
+
+</div>

@@ -1,0 +1,99 @@
+
+<h2 class="sr-only">共振投资框架：双场错位矩阵，通过实体场强度Ω×Γ和资本场偏差Δ构建四象限决策系统，含参数化简和介入退出规则</h2>
+<div style="padding:1rem 0;">
+
+  <p style="font-weight:500;font-size:18px;color:var(--color-text-primary);text-align:center;margin:0 0 5px;">Alpha = 双场错位</p>
+  <p style="font-size:12px;color:var(--color-text-secondary);text-align:center;margin:0 0 18px;">五参数 → 三维度 · 实体场强度高 × 资本场定价低 = 介入信号</p>
+
+  <div style="display:grid;grid-template-columns:1fr 26px 1fr 38px 1fr;align-items:center;margin-bottom:16px;gap:0;">
+
+    <div style="background:var(--color-background-success);border:0.5px solid var(--color-border-success);border-radius:var(--border-radius-md);padding:10px 12px;cursor:pointer;" onclick="sendPrompt('Ω实体强度详解：α虹吸率和β盈利质量的具体评分方法，以宁德时代为例')">
+      <div style="font-size:13px;font-weight:500;color:var(--color-text-success);">Ω 实体强度</div>
+      <div style="font-size:11px;color:var(--color-text-success);opacity:0.8;margin-top:3px;">α 虹吸率 × β 盈利质量</div>
+      <div style="font-size:11px;color:var(--color-text-tertiary);margin-top:4px;">收入增速 ÷ 行业均 × ROIC</div>
+    </div>
+
+    <div style="text-align:center;font-size:15px;color:var(--color-text-tertiary);">×</div>
+
+    <div style="background:var(--color-background-info);border:0.5px solid var(--color-border-info);border-radius:var(--border-radius-md);padding:10px 12px;cursor:pointer;" onclick="sendPrompt('Γ方向轨迹详解：γ调谐力和η飞轮效应的判断维度，什么情况下Γ转负？')">
+      <div style="font-size:13px;font-weight:500;color:var(--color-text-info);">Γ 方向轨迹</div>
+      <div style="font-size:11px;color:var(--color-text-info);opacity:0.8;margin-top:3px;">γ 调谐力 × η 飞轮</div>
+      <div style="font-size:11px;color:var(--color-text-tertiary);margin-top:4px;">战略匹配 × 自我强化</div>
+    </div>
+
+    <div style="text-align:center;font-size:11px;font-weight:500;color:var(--color-text-tertiary);letter-spacing:1px;">vs</div>
+
+    <div style="background:var(--color-background-warning);border:0.5px solid var(--color-border-warning);border-radius:var(--border-radius-md);padding:10px 12px;cursor:pointer;" onclick="sendPrompt('Δ资本偏差详解：如何用PE/PEG/EV-EBITDA计算偏差系数？Δ<0.8意味着什么？')">
+      <div style="font-size:13px;font-weight:500;color:var(--color-text-warning);">Δ 资本偏差</div>
+      <div style="font-size:11px;color:var(--color-text-warning);opacity:0.8;margin-top:3px;">δ 市场估值 / 公允价值</div>
+      <div style="font-size:11px;color:var(--color-text-tertiary);margin-top:4px;">资本场信念偏差系数</div>
+    </div>
+
+  </div>
+
+  <svg width="100%" viewBox="0 0 680 300" role="img">
+    <title>双场错位矩阵：四象限决策图</title>
+    <desc>纵轴为实体场强度Ω×Γ，横轴为资本场偏差Δ，四象限分别对应买入、持有、观察和价值陷阱四种决策</desc>
+    <defs>
+      <marker id="arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </marker>
+    </defs>
+
+    <text class="ts" x="62" y="16" text-anchor="start" style="fill:var(--color-text-tertiary)">Ω×Γ 实体场强度 ↑</text>
+
+    <rect x="60" y="22" width="280" height="120" style="fill:var(--color-background-success)" opacity="0.28"/>
+    <rect x="340" y="22" width="280" height="120" style="fill:var(--color-background-secondary)" opacity="0.6"/>
+    <rect x="60" y="142" width="280" height="120" style="fill:var(--color-background-tertiary)" opacity="0.6"/>
+    <rect x="340" y="142" width="280" height="120" style="fill:var(--color-background-danger)" opacity="0.18"/>
+
+    <rect x="60" y="22" width="560" height="240" fill="none" stroke="var(--color-border-secondary)" stroke-width="0.5"/>
+    <line x1="60" y1="142" x2="620" y2="142" stroke="var(--color-border-secondary)" stroke-width="0.5" stroke-dasharray="4 3"/>
+    <line x1="340" y1="22" x2="340" y2="262" stroke="var(--color-border-secondary)" stroke-width="0.5" stroke-dasharray="4 3"/>
+
+    <line x1="60" y1="262" x2="620" y2="22" stroke="var(--color-border-primary)" stroke-width="1" stroke-dasharray="8 5" opacity="0.45"/>
+    <text class="ts" x="596" y="36" text-anchor="end" style="fill:var(--color-text-tertiary)" opacity="0.7">公允估值线</text>
+
+    <g class="node" onclick="sendPrompt('买入区间：实体场强且市场低估，Ω×Γ高Δ低时的完整操作逻辑和仓位管理')">
+      <text class="th" x="200" y="53" text-anchor="middle" style="fill:var(--color-text-success);">买入区间</text>
+      <text class="ts" x="200" y="71" text-anchor="middle" style="fill:var(--color-text-success);">实体强 · 市场悲观</text>
+      <text class="ts" x="200" y="87" text-anchor="middle" style="fill:var(--color-text-success);">Alpha 最大化</text>
+      <circle cx="108" cy="112" r="4" style="fill:var(--color-text-success)" opacity="0.6"/>
+      <text class="ts" x="118" y="117" style="fill:var(--color-text-success);opacity:0.7;">宁德时代 2020H2</text>
+    </g>
+
+    <g class="node" onclick="sendPrompt('公允偏贵区间：实体场强但Δ已高，持有逻辑和分批退出的判断标准')">
+      <text class="th" x="480" y="53" text-anchor="middle">公允 / 偏贵</text>
+      <text class="ts" x="480" y="71" text-anchor="middle">实体强 · 市场乐观</text>
+      <text class="ts" x="480" y="87" text-anchor="middle">持有 · 不追高</text>
+    </g>
+
+    <g class="node" onclick="sendPrompt('观察等待区间：实体场弱且市场悲观，哪些信号意味着Γ已开始改善？')">
+      <text class="th" x="200" y="173" text-anchor="middle" style="fill:var(--color-text-secondary);">观察等待</text>
+      <text class="ts" x="200" y="191" text-anchor="middle" style="fill:var(--color-text-secondary);">实体弱 · 市场悲观</text>
+      <text class="ts" x="200" y="207" text-anchor="middle" style="fill:var(--color-text-secondary);">等 Γ 改善再进场</text>
+    </g>
+
+    <g class="node" onclick="sendPrompt('价值陷阱详解：实体场弱但市场高估，典型特征与识别方法，如何区分价值陷阱与短期低谷？')">
+      <text class="th" x="480" y="173" text-anchor="middle" style="fill:var(--color-text-danger);">价值陷阱</text>
+      <text class="ts" x="480" y="191" text-anchor="middle" style="fill:var(--color-text-danger);">实体弱 · 市场乐观</text>
+      <text class="ts" x="480" y="207" text-anchor="middle" style="fill:var(--color-text-danger);">回避 / 做空候选</text>
+    </g>
+
+    <line x1="60" y1="276" x2="622" y2="276" stroke="var(--color-border-secondary)" stroke-width="0.5" marker-end="url(#arr2)"/>
+    <text class="ts" x="63" y="292" text-anchor="start" style="fill:var(--color-text-tertiary)">Δ低（市场悲观）</text>
+    <text class="ts" x="617" y="292" text-anchor="end" style="fill:var(--color-text-tertiary)">Δ高（市场乐观）</text>
+  </svg>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;">
+    <div style="background:var(--color-background-success);border:0.5px solid var(--color-border-success);border-radius:var(--border-radius-md);padding:10px 14px;cursor:pointer;" onclick="sendPrompt('介入条件三者同时满足的实操检查清单：Ω阈值如何定？Γ向上的判断依据？Δ<0.8的计算方式？')">
+      <div style="font-size:12px;font-weight:500;color:var(--color-text-success);margin-bottom:4px;">介入条件（三者同时满足）</div>
+      <div style="font-size:11px;color:var(--color-text-success);opacity:0.85;">Ω &gt; 行业阈值 &nbsp;·&nbsp; Γ 向上 &nbsp;·&nbsp; Δ &lt; 0.8</div>
+    </div>
+    <div style="background:var(--color-background-danger);border:0.5px solid var(--color-border-danger);border-radius:var(--border-radius-md);padding:10px 14px;cursor:pointer;" onclick="sendPrompt('退出条件的优先级：Δ>1.2高估触发的减仓速度vs Γ转负触发的清仓速度，有何不同？')">
+      <div style="font-size:12px;font-weight:500;color:var(--color-text-danger);margin-bottom:4px;">退出条件（任一触发）</div>
+      <div style="font-size:11px;color:var(--color-text-danger);opacity:0.85;">Δ &gt; 1.2（高估） &nbsp;·&nbsp; 或 Γ 转负（轨迹恶化）</div>
+    </div>
+  </div>
+
+</div>

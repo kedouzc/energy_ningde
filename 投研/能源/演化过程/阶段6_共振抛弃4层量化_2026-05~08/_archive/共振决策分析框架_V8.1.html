@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>共振决策分析框架 V8.1</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif; background: #f8f7f5; color: #44403c; line-height: 1.7; }
+  .container { max-width: 1140px; margin: 0 auto; padding: 24px 20px; }
+  h1 { text-align: center; font-size: 26px; margin-bottom: 4px; color: #1c1917; letter-spacing: 2px; }
+  .subtitle { text-align: center; font-size: 13px; color: #78716c; margin-bottom: 32px; }
+  .svg-section { background: #fff; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); padding: 20px; margin-bottom: 28px; }
+  .svg-section h2 { font-size: 17px; margin-bottom: 6px; color: #1c1917; border-left: 4px solid #7c3aed; padding-left: 12px; }
+  .svg-section .desc { font-size: 12px; color: #78716c; margin-bottom: 14px; padding-left: 16px; }
+  .svg-wrap { overflow-x: auto; }
+  svg text { font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif; }
+  .section { background: #fff; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); padding: 24px; margin-bottom: 28px; }
+  .section h2 { font-size: 17px; margin-bottom: 12px; color: #1c1917; border-left: 4px solid #7c3aed; padding-left: 12px; }
+  .section h3 { font-size: 15px; margin: 18px 0 8px; color: #57534e; }
+  .section p, .section li { font-size: 14px; line-height: 1.8; color: #57534e; }
+  .section ul { padding-left: 20px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+  th { background: #f5f5f4; padding: 8px 10px; text-align: left; font-weight: 600; border-bottom: 2px solid #d6d3d1; }
+  td { padding: 8px 10px; border-bottom: 1px solid #e7e5e4; vertical-align: top; }
+  .highlight { background: #fef2f2; border-left: 3px solid #dc2626; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 14px; }
+  .note { background: #f0fdf4; border-left: 3px solid #22c55e; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>共振决策分析框架</h1>
+<p class="subtitle">知行合一的操作化表达 · 东方为体，西方为用 · V8.1</p>
+
+<!-- ==================== 图1：共振机制（V8.1 嵌套结构） ==================== -->
+<div class="svg-section">
+  <h2>图一：知行合一 = 主观小场在客观大场中持续运转</h2>
+  <p class="desc">"一"不是任何一条线，而是整个知→行→合→知循环持续运转的状态。主观小场（一）在客观大场中运转，通过能量输出改变大场。</p>
+  <div class="svg-wrap">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 680" width="100%">
+      <defs>
+        <linearGradient id="gField" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#e8e0d5"/><stop offset="100%" style="stop-color:#d4c8b8"/>
+        </linearGradient>
+        <linearGradient id="gZhi" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#dbeafe"/><stop offset="100%" style="stop-color:#bfdbfe"/>
+        </linearGradient>
+        <linearGradient id="gXing" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#dcfce7"/><stop offset="100%" style="stop-color:#bbf7d0"/>
+        </linearGradient>
+        <linearGradient id="gHe" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#fef3c7"/><stop offset="100%" style="stop-color:#fde68a"/>
+        </linearGradient>
+        <marker id="aInfo" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0,8 3,0 6" fill="#6366f1"/>
+        </marker>
+        <marker id="aEnergy" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+          <polygon points="0 0,10 4,0 8" fill="#ea580c"/>
+        </marker>
+      </defs>
+
+      <!-- ====== 客观大场（最外层） ====== -->
+      <rect x="30" y="15" width="840" height="55" rx="10" fill="url(#gField)" stroke="#a8a29e" stroke-width="1.5"/>
+      <text x="450" y="36" text-anchor="middle" font-size="15" font-weight="bold" fill="#57534e">客观大场（时代 / 趋势 / 道 / 周期）</text>
+      <text x="450" y="55" text-anchor="middle" font-size="10" fill="#78716c">不以人的意志为转移 · 但被主观小场的能量输出局部改变</text>
+
+      <!-- ====== "一" 圆环（主观小场持续运转） ====== -->
+      <ellipse cx="450" cy="370" rx="340" ry="245" fill="none" stroke="#be185d" stroke-width="2.5" stroke-dasharray="12,6" opacity="0.7"/>
+      <!-- 圆环标注 -->
+      <rect x="340" y="595" width="220" height="50" rx="8" fill="#fce7f3" stroke="#be185d" stroke-width="1.5"/>
+      <text x="450" y="614" text-anchor="middle" font-size="14" font-weight="bold" fill="#be185d">一</text>
+      <text x="450" y="634" text-anchor="middle" font-size="10" fill="#9d174d">主观小场持续运转的状态</text>
+
+      <!-- ====== 知 ====== -->
+      <rect x="220" y="100" width="460" height="105" rx="12" fill="url(#gZhi)" stroke="#60a5fa" stroke-width="2"/>
+      <text x="450" y="124" text-anchor="middle" font-size="17" font-weight="bold" fill="#1e40af">知 · 信息 × 意识耦合</text>
+      <text x="450" y="142" text-anchor="middle" font-size="11" fill="#3b82f6">决策指令的发出端 · 信息反馈的接收端</text>
+      <line x1="240" y1="150" x2="660" y2="150" stroke="#93c5fd" stroke-width="1"/>
+      <text x="450" y="170" text-anchor="middle" font-size="11" fill="#475569">带宽：广度 × 深度 × 速度 · 偏差校准：事前验尸 / 红队 / 外部视角</text>
+      <text x="450" y="192" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e40af">知-Q：认知相干度 —— 信息与意识是否同频？</text>
+
+      <!-- ====== 行 ====== -->
+      <rect x="220" y="240" width="460" height="105" rx="12" fill="url(#gXing)" stroke="#4ade80" stroke-width="2"/>
+      <text x="450" y="264" text-anchor="middle" font-size="17" font-weight="bold" fill="#166534">行 · 物质 × 力耦合</text>
+      <text x="450" y="282" text-anchor="middle" font-size="11" fill="#22c55e">被知触发 · 物质与力的执行 · 改变客观大场的行动端</text>
+      <line x1="240" y1="290" x2="660" y2="290" stroke="#86efac" stroke-width="1"/>
+      <text x="450" y="310" text-anchor="middle" font-size="11" fill="#475569">物质(mc²)：客观要素 · 力(pc)：主观机制</text>
+      <text x="450" y="332" text-anchor="middle" font-size="12" font-weight="bold" fill="#166534">行-Q：执行相干度 —— 物质与力是否匹配？</text>
+
+      <!-- ====== 合 ====== -->
+      <rect x="220" y="380" width="460" height="105" rx="12" fill="url(#gHe)" stroke="#fbbf24" stroke-width="2"/>
+      <text x="450" y="404" text-anchor="middle" font-size="17" font-weight="bold" fill="#92400e">合 · 跨界耦合涌现 E²</text>
+      <text x="450" y="422" text-anchor="middle" font-size="11" fill="#d97706">知和行共同注入 · 物质与力的耦合产出 · 能量输出的发出端</text>
+      <line x1="240" y1="430" x2="660" y2="430" stroke="#fcd34d" stroke-width="1"/>
+      <text x="450" y="450" text-anchor="middle" font-size="11" fill="#475569">产出：ΔE（变化量）+ dE/dt（变化速度）→ 信息反馈回知 + 能量输出到客观大场</text>
+      <text x="450" y="472" text-anchor="middle" font-size="12" font-weight="bold" fill="#92400e">合-Q：跨界相干度 —— 战略与执行是否对齐？</text>
+
+      <!-- ====== 信息流（细线/虚线，靛蓝色） ====== -->
+      <!-- 知→行：决策指令 -->
+      <line x1="450" y1="205" x2="450" y2="235" stroke="#6366f1" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#aInfo)"/>
+      <rect x="460" y="208" width="70" height="18" rx="3" fill="#eef2ff" stroke="#6366f1" stroke-width="1"/>
+      <text x="495" y="221" text-anchor="middle" font-size="10" font-weight="bold" fill="#4f46e5">决策指令</text>
+
+      <!-- 合→知：信息反馈 -->
+      <path d="M 220 432 L 140 432 L 140 152 L 215 152" fill="none" stroke="#6366f1" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#aInfo)"/>
+      <rect x="90" y="260" width="100" height="55" rx="6" fill="#eef2ff" stroke="#6366f1" stroke-width="1"/>
+      <text x="140" y="278" text-anchor="middle" font-size="10" font-weight="bold" fill="#4f46e5">信息反馈</text>
+      <text x="140" y="294" text-anchor="middle" font-size="9" fill="#6366f1">ΔE 变化量</text>
+      <text x="140" y="308" text-anchor="middle" font-size="9" fill="#6366f1">dE/dt 变化速度</text>
+
+      <!-- ====== 能量流（粗线/实线，橙色） ====== -->
+      <!-- 行→合：物质×力注入 -->
+      <line x1="450" y1="345" x2="450" y2="375" stroke="#ea580c" stroke-width="3.5" marker-end="url(#aEnergy)"/>
+      <rect x="460" y="348" width="90" height="18" rx="3" fill="#fff7ed" stroke="#ea580c" stroke-width="1"/>
+      <text x="505" y="361" text-anchor="middle" font-size="10" font-weight="bold" fill="#c2410c">物质×力注入</text>
+
+      <!-- 合→客观大场：能量输出 -->
+      <path d="M 680 432 L 780 432 L 780 70 L 740 70" fill="none" stroke="#ea580c" stroke-width="3.5" marker-end="url(#aEnergy)"/>
+      <rect x="745" y="220" width="80" height="70" rx="6" fill="#fff7ed" stroke="#ea580c" stroke-width="1"/>
+      <text x="785" y="240" text-anchor="middle" font-size="10" font-weight="bold" fill="#c2410c">能量输出</text>
+      <text x="785" y="256" text-anchor="middle" font-size="9" fill="#ea580c">改变</text>
+      <text x="785" y="270" text-anchor="middle" font-size="9" fill="#ea580c">客观大场</text>
+      <text x="785" y="284" text-anchor="middle" font-size="8" fill="#78716c">（行+合的力量）</text>
+
+      <!-- ====== 图例 ====== -->
+      <rect x="30" y="540" width="260" height="50" rx="6" fill="#fafaf9" stroke="#d6d3d1" stroke-width="1"/>
+      <line x1="45" y1="558" x2="85" y2="558" stroke="#6366f1" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#aInfo)"/>
+      <text x="95" y="562" font-size="10" fill="#4f46e5">信息流（决策指令 / 信息反馈）</text>
+      <line x1="45" y1="578" x2="85" y2="578" stroke="#ea580c" stroke-width="3.5" marker-end="url(#aEnergy)"/>
+      <text x="95" y="582" font-size="10" fill="#c2410c">能量流（物质×力注入 / 能量输出）</text>
+
+      <!-- 底部核心命题 -->
+      <rect x="30" y="650" width="840" height="22" rx="4" fill="#fafaf9" stroke="#d6d3d1" stroke-width="1"/>
+      <text x="450" y="665" text-anchor="middle" font-size="11" fill="#57534e">一 = 知→行→合→知循环持续运转的状态 · 不是任何一条线 · 而是所有线一起转起来</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ==================== 图2：七步分析流程 ==================== -->
+<div class="svg-section">
+  <h2>图二：七步分析流程——问什么问题</h2>
+  <p class="desc">七个步骤是分析的内容维度，顺序推进。每步都经历知-Q/行-Q/合-Q的诊断，一-Q衡量循环持续运转的品质。</p>
+  <div class="svg-wrap">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" width="100%">
+      <defs>
+        <marker id="aStep" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0,8 3,0 6" fill="#57534e"/>
+        </marker>
+      </defs>
+
+      <rect x="5" y="5" width="950" height="410" rx="12" fill="#fafaf9" stroke="#a8a29e" stroke-width="1.5"/>
+      <text x="480" y="32" text-anchor="middle" font-size="15" font-weight="bold" fill="#1c1917">七步分析流程</text>
+      <text x="480" y="50" text-anchor="middle" font-size="10" fill="#78716c">每步顺序推进 → 每步都经历知-Q / 行-Q / 合-Q 的共振诊断 → 一-Q衡量循环持续运转的品质 → 每步都从双视角展开</text>
+
+      <rect x="30" y="70" width="120" height="90" rx="8" fill="#dbeafe" stroke="#60a5fa" stroke-width="1.5"/>
+      <text x="90" y="90" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e40af">1.问题界定</text>
+      <text x="90" y="108" text-anchor="middle" font-size="9" fill="#475569">我要判断什么？</text>
+      <text x="90" y="122" text-anchor="middle" font-size="9" fill="#475569">边界在哪？</text>
+      <text x="90" y="140" text-anchor="middle" font-size="8" fill="#78716c">关卡：转折点检测</text>
+
+      <rect x="165" y="70" width="120" height="90" rx="8" fill="#dbeafe" stroke="#60a5fa" stroke-width="1.5"/>
+      <text x="225" y="90" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e40af">2.需求验证</text>
+      <text x="225" y="108" text-anchor="middle" font-size="9" fill="#475569">用户真正在买什么？</text>
+      <text x="225" y="122" text-anchor="middle" font-size="9" fill="#475569">待办任务是什么？</text>
+      <text x="225" y="140" text-anchor="middle" font-size="8" fill="#78716c">关卡：待办任务</text>
+
+      <rect x="300" y="70" width="120" height="90" rx="8" fill="#dbeafe" stroke="#60a5fa" stroke-width="1.5"/>
+      <text x="360" y="90" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e40af">3.产业结构</text>
+      <text x="360" y="108" text-anchor="middle" font-size="9" fill="#475569">行业允不允许赚钱？</text>
+      <text x="360" y="122" text-anchor="middle" font-size="9" fill="#475569">护城河深不深？</text>
+      <text x="360" y="140" text-anchor="middle" font-size="8" fill="#78716c">关卡：五力+护城河</text>
+
+      <rect x="435" y="70" width="120" height="90" rx="8" fill="#dcfce7" stroke="#4ade80" stroke-width="1.5"/>
+      <text x="495" y="90" text-anchor="middle" font-size="12" font-weight="bold" fill="#166534">4.战略必要性</text>
+      <text x="495" y="108" text-anchor="middle" font-size="9" fill="#475569">不做会怎样？</text>
+      <text x="495" y="122" text-anchor="middle" font-size="9" fill="#475569">拖一年又会怎样？</text>
+      <text x="495" y="140" text-anchor="middle" font-size="8" fill="#78716c">关卡：10倍速+不可逆</text>
+
+      <rect x="570" y="70" width="120" height="90" rx="8" fill="#dcfce7" stroke="#4ade80" stroke-width="1.5"/>
+      <text x="630" y="90" text-anchor="middle" font-size="12" font-weight="bold" fill="#166534">5.能力圈检验</text>
+      <text x="630" y="108" text-anchor="middle" font-size="9" fill="#475569">有没有资格做？</text>
+      <text x="630" y="122" text-anchor="middle" font-size="9" fill="#475569">账算不算得过？</text>
+      <text x="630" y="140" text-anchor="middle" font-size="8" fill="#78716c">关卡：8维+粗算→精算</text>
+
+      <rect x="705" y="70" width="120" height="90" rx="8" fill="#dcfce7" stroke="#4ade80" stroke-width="1.5"/>
+      <text x="765" y="90" text-anchor="middle" font-size="12" font-weight="bold" fill="#166534">6.合作方博弈</text>
+      <text x="765" y="108" text-anchor="middle" font-size="9" fill="#475569">我给什么不可替代</text>
+      <text x="765" y="122" text-anchor="middle" font-size="9" fill="#475569">的价值？</text>
+      <text x="765" y="140" text-anchor="middle" font-size="8" fill="#78716c">关卡：议价能力矩阵</text>
+
+      <rect x="840" y="70" width="100" height="90" rx="8" fill="#fef3c7" stroke="#fbbf24" stroke-width="1.5"/>
+      <text x="890" y="90" text-anchor="middle" font-size="12" font-weight="bold" fill="#92400e">7.概率判断</text>
+      <text x="890" y="108" text-anchor="middle" font-size="9" fill="#475569">底线在哪？</text>
+      <text x="890" y="122" text-anchor="middle" font-size="9" fill="#475569">期望多大？</text>
+      <text x="890" y="140" text-anchor="middle" font-size="8" fill="#78716c">关卡：底线+概率</text>
+
+      <line x1="150" y1="115" x2="162" y2="115" stroke="#57534e" stroke-width="1.5" marker-end="url(#aStep)"/>
+      <line x1="285" y1="115" x2="297" y2="115" stroke="#57534e" stroke-width="1.5" marker-end="url(#aStep)"/>
+      <line x1="420" y1="115" x2="432" y2="115" stroke="#57534e" stroke-width="1.5" marker-end="url(#aStep)"/>
+      <line x1="555" y1="115" x2="567" y2="115" stroke="#57534e" stroke-width="1.5" marker-end="url(#aStep)"/>
+      <line x1="690" y1="115" x2="702" y2="115" stroke="#57534e" stroke-width="1.5" marker-end="url(#aStep)"/>
+      <line x1="825" y1="115" x2="837" y2="115" stroke="#57534e" stroke-width="1.5" marker-end="url(#aStep)"/>
+
+      <!-- 共振诊断带 -->
+      <rect x="30" y="180" width="700" height="110" rx="10" fill="#fff" stroke="#d6d3d1" stroke-width="1.5"/>
+      <text x="380" y="200" text-anchor="middle" font-size="13" font-weight="bold" fill="#1c1917">每一步都要经过的共振诊断（知-Q / 行-Q / 合-Q）</text>
+      <text x="380" y="216" text-anchor="middle" font-size="10" fill="#78716c">知触发行动，行动注入判断，判断产出反馈——每步内部的知→行→合→知循环</text>
+
+      <rect x="50" y="228" width="200" height="50" rx="6" fill="#dbeafe" stroke="#60a5fa" stroke-width="1"/>
+      <text x="150" y="248" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e40af">知-Q：认知相干度</text>
+      <text x="150" y="265" text-anchor="middle" font-size="9" fill="#475569">信息充分吗？有没有确认偏误？</text>
+
+      <rect x="270" y="228" width="200" height="50" rx="6" fill="#dcfce7" stroke="#4ade80" stroke-width="1"/>
+      <text x="370" y="248" text-anchor="middle" font-size="11" font-weight="bold" fill="#166534">行-Q：执行相干度</text>
+      <text x="370" y="265" text-anchor="middle" font-size="9" fill="#475569">验证行动有效吗？调研做了吗？</text>
+
+      <rect x="490" y="228" width="220" height="50" rx="6" fill="#fef3c7" stroke="#fbbf24" stroke-width="1"/>
+      <text x="600" y="248" text-anchor="middle" font-size="11" font-weight="bold" fill="#92400e">合-Q：跨界相干度</text>
+      <text x="600" y="265" text-anchor="middle" font-size="9" fill="#475569">判断可靠吗？多源交叉验证了吗？</text>
+
+      <!-- 一-Q 标注 -->
+      <rect x="740" y="180" width="200" height="110" rx="10" fill="#fce7f3" stroke="#be185d" stroke-width="1.5"/>
+      <text x="840" y="200" text-anchor="middle" font-size="13" font-weight="bold" fill="#be185d">一-Q：循环运转品质</text>
+      <line x1="755" y1="210" x2="925" y2="210" stroke="#f9a8d4" stroke-width="1"/>
+      <text x="840" y="228" text-anchor="middle" font-size="9" fill="#9d174d">一不是任何一条线</text>
+      <text x="840" y="244" text-anchor="middle" font-size="9" fill="#9d174d">而是整个循环持续运转</text>
+      <text x="840" y="260" text-anchor="middle" font-size="9" fill="#9d174d">循环在转，一就在</text>
+      <text x="840" y="276" text-anchor="middle" font-size="9" fill="#9d174d">循环停了，一就灭</text>
+
+      <!-- 双视角带 -->
+      <rect x="30" y="305" width="910" height="90" rx="10" fill="#fff" stroke="#d6d3d1" stroke-width="1.5"/>
+      <text x="480" y="325" text-anchor="middle" font-size="13" font-weight="bold" fill="#1c1917">每一步都从双视角展开</text>
+
+      <rect x="60" y="338" width="410" height="46" rx="6" fill="#eff6ff" stroke="#93c5fd" stroke-width="1"/>
+      <text x="265" y="358" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e40af">决策者视角（Inside-Out）</text>
+      <text x="265" y="375" text-anchor="middle" font-size="9" fill="#475569">"我要做什么？推进得怎么样？" → 先行指标</text>
+
+      <rect x="490" y="338" width="410" height="46" rx="6" fill="#f0fdf4" stroke="#86efac" stroke-width="1"/>
+      <text x="695" y="358" text-anchor="middle" font-size="11" font-weight="bold" fill="#166534">投资人视角（Outside-In）</text>
+      <text x="695" y="375" text-anchor="middle" font-size="9" fill="#475569">"他说的是不是真的？值不值得投？" → 验证指标</text>
+
+      <text x="480" y="405" text-anchor="middle" font-size="10" fill="#a8a29e">步骤颜色仅表示侧重方向（蓝=认知侧重 / 绿=执行侧重 / 黄=判断侧重），不代表"属于"某一层</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ==================== 核心逻辑说明 ==================== -->
+<div class="section">
+  <h2>核心逻辑：知行合一 = 主观小场在客观大场中持续运转</h2>
+
+  <div class="highlight">
+    <strong>信息流</strong>：知→行（决策指令）+ 合→知（ΔE, dE/dt 信息反馈）<br>
+    <strong>能量流</strong>：行→合（物质×力注入）+ 合→客观大场（能量输出，改变客观大场）<br>
+    <strong>一</strong> = 整个知→行→合→知循环持续运转的状态——不是任何一条线，而是所有线一起转起来<br>
+    <strong>人的意识的伟大</strong>：主观小场通过持续运转，在客观大场中感知并改变客观大场
+  </div>
+
+  <h3>为什么没有"感知线"？</h3>
+  <p>知感知客观大场的方式，就是通过合→知的信息反馈回路。ΔE和dE/dt本身就是客观大场变化的度量。不需要额外画一条"客观大场直接告诉知"的线——客观大场不说话，它只通过你行动后的结果来"回答"你。</p>
+  <p style="font-size:12px;color:#78716c;">（马克思：人不行动就认识不了世界 · 毛泽东：你要知道梨子的滋味，就要亲口吃一吃）</p>
+
+  <h3>两种流 vs 旧理解</h3>
+  <table>
+    <tr><th></th><th>旧理解（V8，有误）</th><th>新理解（V8.1）</th></tr>
+    <tr><td>反馈回路</td><td>一 = 反馈回路本身，包含感知+改变</td><td>合→知只是信息反馈线，一 ≠ 这条线</td></tr>
+    <tr><td>改变客观大场</td><td>反馈回路的功能</td><td>行+合的能量输出——改变场的是能量，不是信息</td></tr>
+    <tr><td>"一"是什么</td><td>反馈回路本身</td><td>整个循环持续运转的状态——所有线一起转起来</td></tr>
+    <tr><td>感知客观大场</td><td>单独一条感知线</td><td>不需要——感知靠的是行动后的信息反馈</td></tr>
+  </table>
+
+  <h3>"一"的三层含义</h3>
+  <table>
+    <tr><th>视角</th><th>"一"是什么</th><th>图上怎么体现</th></tr>
+    <tr><td>静态看</td><td>知→行→合→知循环的结构</td><td>圆环包裹知/行/合</td></tr>
+    <tr><td>动态看</td><td>循环持续运转的状态——回路在转就是一在，回路停就是一灭</td><td>圆环上的虚线（持续运转的节律）</td></tr>
+    <tr><td>本体看</td><td>让知/行/合成为"一件事"的统一性</td><td>圆环本身——不是内部任何元素，而是它们之所以能成为整体的那个"一"</td></tr>
+  </table>
+
+  <h3>七位思想者的批判与优化</h3>
+  <table>
+    <tr><th>思想者</th><th>核心批判</th><th>对框架的优化</th></tr>
+    <tr><td><strong>马克思</strong></td><td>改变世界的不是认识（信息反馈），而是实践（行+合的能量输出）</td><td>能量输出线（合→客观大场）与信息反馈线（合→知）分开画</td></tr>
+    <tr><td><strong>王阳明</strong></td><td>知行合一本是一件事——"一"不是某条线，而是让知/行/合成为整体的统一性</td><td>"一"用圆环体现，不是任何一条线</td></tr>
+    <tr><td><strong>毛泽东</strong></td><td>物质变精神（信息反馈）+ 精神变物质（知→行→合的能量输出）——两条线不同</td><td>信息流和能量流用不同颜色和线型区分</td></tr>
+    <tr><td><strong>普利高津</strong></td><td>创造新秩序的是能量流，不是信息流——信息流是导航，能量流是引擎</td><td>能量流用粗实线，信息流用细虚线</td></tr>
+    <tr><td><strong>维纳</strong></td><td>信息线和能量线是两条不同的线，不能混为一谈</td><td>严格区分两种流，不把"一"等同于任何一条</td></tr>
+    <tr><td><strong>哈耶克</strong></td><td>客观大场是自发秩序，能量输出只是局部扰动</td><td>能量输出线标注"局部改变"，不是"控制"</td></tr>
+    <tr><td><strong>塔勒布</strong></td><td>反脆弱需要暴露在真实能量波动中，不是靠信息回路</td><td>反脆弱来自行+合的能量暴露，不是来自信息反馈</td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <h2>共振判断矩阵</h2>
+  <table>
+    <tr><th>决策者视角</th><th>投资人视角</th><th>共振判断</th><th>行动建议</th></tr>
+    <tr><td>积极推进</td><td>真金白银投入</td><td>✅ 真战略，共振</td><td>跟随，加大配置</td></tr>
+    <tr><td>积极推进</td><td>口头重视但无投入</td><td>⚠️ 烟雾弹/试探</td><td>观察，等验证信号</td></tr>
+    <tr><td>推进遇阻</td><td>持续投入</td><td>⚠️ 战略定力/盲目坚持</td><td>分析是"定力"还是"沉没成本"</td></tr>
+    <tr><td>推进遇阻</td><td>削减投入</td><td>❌ 战略收缩/放弃</td><td>重新评估可行性</td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <h2>动态调谐机制（一的操作化）</h2>
+  <p>一 = 循环持续运转的状态。操作化就是：让信息流和能量流持续运转，不断感知、不断改变、不断从失谐中获益。</p>
+  <table>
+    <tr><th>阶段</th><th>操作</th><th>流的类型</th><th>频率</th></tr>
+    <tr><td>观察</td><td>监控双视角仪表盘，感知ΔE和dE/dt</td><td>信息流：合→知</td><td>实时/日/周</td></tr>
+    <tr><td>调整认知</td><td>对比预设假设vs实际，识别认知偏见</td><td>信息流：知内部更新</td><td>周/月</td></tr>
+    <tr><td>再决策</td><td>基于新信息调整战略，更新概率加权</td><td>信息流：知→行</td><td>月/季</td></tr>
+    <tr><td>行动</td><td>执行调整，物质×力注入</td><td>能量流：行→合</td><td>即时</td></tr>
+    <tr><td>能量输出</td><td>行+合的能量涌现改变客观大场</td><td>能量流：合→客观大场</td><td>持续</td></tr>
+    <tr><td>反馈</td><td>新的ΔE, dE/dt反馈回知，新一轮观察</td><td>信息流：合→知</td><td>持续</td></tr>
+  </table>
+
+  <h3>Day 1触发器（循环失灵的信号）</h3>
+  <table>
+    <tr><th>触发器</th><th>含义</th><th>行动</th></tr>
+    <tr><td>替代方案联盟成员超临界</td><td>替代方案可能成行业标准</td><td>立即战略紧急会议</td></tr>
+    <tr><td>核心用户选择率&lt;40%</td><td>商业模式不被接受</td><td>暂停扩张，重评价值主张</td></tr>
+    <tr><td>核心合作方退出</td><td>网络效应开始瓦解</td><td>危机公关+替代谈判</td></tr>
+    <tr><td>关键成本&lt;临界点</td><td>竞争优势被抵消</td><td>加速差异化</td></tr>
+    <tr><td>政策强制非己方标准</td><td>标准定义权丧失</td><td>评估是否加入新标准</td></tr>
+    <tr><td>核心指标连续3个月触发警报</td><td>商业模式不成立</td><td>暂停新建，优化存量</td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <h2>常见错误与纠正</h2>
+  <table>
+    <tr><th>常见错误</th><th>错误表现</th><th>纠正方式</th></tr>
+    <tr><td>把"一"当第四层</td><td>知/行/合/一并列</td><td>一是循环持续运转的状态，不是与知/行/合同级的层</td></tr>
+    <tr><td>把"一"等同于反馈线</td><td>一 = 合→知这条线</td><td>一不是任何一条线，而是所有线一起转起来的状态</td></tr>
+    <tr><td>混淆信息流和能量流</td><td>以为反馈回路能改变客观大场</td><td>信息流（感知）≠ 能量流（改变），改变场的是行+合的能量输出</td></tr>
+    <tr><td>画多余的感知线</td><td>客观大场→知的单独感知线</td><td>感知靠行动后的信息反馈，不需要单独的感知线</td></tr>
+    <tr><td>步骤归层化</td><td>把步骤硬塞进知/行/合</td><td>每步都经历知→行→合的完整循环</td></tr>
+    <tr><td>需求静态化</td><td>"用户现在需要，所以未来也需要"</td><td>加入替代方案进化分析</td></tr>
+    <tr><td>概率拍脑袋</td><td>"我觉得有50%概率"</td><td>绑定可验证指标，动态调整</td></tr>
+    <tr><td>单视角陷阱</td><td>只从一个视角看</td><td>双视角共振，识别烟雾弹</td></tr>
+  </table>
+</div>
+
+</div>
+</body>
+</html>

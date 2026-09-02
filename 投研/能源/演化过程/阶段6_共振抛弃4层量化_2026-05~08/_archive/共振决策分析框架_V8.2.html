@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>共振决策分析框架 V8.2</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Microsoft YaHei","PingFang SC",system-ui,sans-serif; background: #f8f7f5; color: #44403c; line-height: 1.7; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+  h1 { text-align: center; font-size: clamp(20px,4vw,26px); margin-bottom: 4px; color: #1c1917; letter-spacing: 2px; }
+  .subtitle { text-align: center; font-size: clamp(11px,2vw,13px); color: #78716c; margin-bottom: 28px; }
+  .card { background: #fff; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); padding: clamp(14px,3vw,24px); margin-bottom: 24px; }
+  .card h2 { font-size: clamp(14px,2.5vw,17px); margin-bottom: 6px; color: #1c1917; border-left: 4px solid #7c3aed; padding-left: 10px; }
+  .card .desc { font-size: clamp(10px,1.8vw,12px); color: #78716c; margin-bottom: 12px; padding-left: 14px; }
+  .section h3 { font-size: clamp(13px,2.2vw,15px); margin: 16px 0 8px; color: #57534e; }
+  .section p, .section li { font-size: clamp(12px,2vw,14px); line-height: 1.8; color: #57534e; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: clamp(11px,1.8vw,13px); }
+  th { background: #f5f5f4; padding: 6px 8px; text-align: left; font-weight: 600; border-bottom: 2px solid #d6d3d1; }
+  td { padding: 6px 8px; border-bottom: 1px solid #e7e5e4; vertical-align: top; }
+  .highlight { background: #fef2f2; border-left: 3px solid #dc2626; padding: 10px 14px; margin: 10px 0; border-radius: 0 8px 8px 0; font-size: clamp(12px,2vw,14px); }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>共振决策分析框架</h1>
+<p class="subtitle">知行合一的操作化表达 · 东方为体，西方为用 · V8.2</p>
+
+<!-- ==================== 图一：嵌套耦合结构（竖排） ==================== -->
+<div class="card">
+  <h2>图一：主观小场嵌入客观大场，每层都与客观耦合</h2>
+  <p class="desc">客观大场是全域背景。知/行/合竖向流转，每层都与客观大场耦合。左侧反馈轨道：合→知。右侧能量出口：合→客观大场。</p>
+
+  <!-- ====== 客观大场（最外层） ====== -->
+  <div style="border:3px solid #a8a29e; border-radius:14px; padding:clamp(10px,2vw,16px); background:linear-gradient(135deg,#f5f0e8,#ede4d3);">
+    <div style="text-align:center; font-size:clamp(13px,2.5vw,16px); font-weight:bold; color:#78716c; margin-bottom:2px;">客观大场</div>
+    <div style="text-align:center; font-size:clamp(9px,1.5vw,11px); color:#a8a29e; margin-bottom:10px;">时代 · 趋势 · 道 · 周期 · 规律 · 物质 · 力 —— 不以人的意志为转移，但被主观小场每层的耦合所感知和改变</div>
+
+    <!-- ====== 一 = 主观小场 ====== -->
+    <div style="border:3px dashed #be185d; border-radius:12px; padding:clamp(10px,2vw,16px); background:rgba(250,250,249,0.92);">
+      <div style="text-align:center; font-size:clamp(12px,2.2vw,14px); font-weight:bold; color:#be185d; margin-bottom:4px; background:linear-gradient(135deg,#faf5ff,#fce7f3); border-radius:6px; padding:6px 0; border:1px solid #e9d5ff;">一 = 主观小场（知→行→合→知 循环持续运转的状态）</div>
+      <div style="text-align:center; font-size:clamp(8px,1.4vw,10px); color:#9d174d; margin-bottom:12px;">循环在转，一就在；循环停了，一就灭。一全包知/行/合，不是与它们平级的第四层。</div>
+
+      <!-- ====== 主体：左侧反馈轨道 + 右侧知行合 ====== -->
+      <div style="display:flex; gap:0; align-items:stretch;">
+
+        <!-- ====== 左侧：信息反馈轨道（合→知） ====== -->
+        <div style="display:flex; flex-direction:column; align-items:center; width:clamp(36px,6vw,50px); flex-shrink:0; padding:0 2px;">
+          <!-- 顶部箭头（指向知） -->
+          <div style="margin-top:clamp(28px,5vw,45px); color:#6366f1; font-size:clamp(14px,2.5vw,18px); font-weight:bold;">▲</div>
+          <!-- 竖线 -->
+          <div style="flex:1; border-left:2.5px solid #6366f1; min-height:20px;"></div>
+          <!-- 底部拐角（连接合） -->
+          <div style="width:clamp(24px,4vw,36px); border-left:2.5px solid #6366f1; border-bottom:2.5px solid #6366f1; height:clamp(10px,2vw,16px);"></div>
+          <!-- 标签 -->
+          <div style="writing-mode:vertical-rl; font-size:clamp(8px,1.3vw,10px); color:#4f46e5; font-weight:bold; letter-spacing:2px; margin-top:4px;">ΔE dE/dt 信息反馈</div>
+        </div>
+
+        <!-- ====== 右侧：知/行/合 竖向流转 ====== -->
+        <div style="flex:1; min-width:0;">
+
+          <!-- ── 知 ── -->
+          <div style="border:2px solid #3b82f6; border-radius:10px; padding:clamp(8px,1.5vw,12px); background:linear-gradient(180deg,#eff6ff,#bfdbfe);">
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start;">
+              <div style="flex:1; min-width:160px;">
+                <div style="font-weight:bold; color:#1e40af; font-size:clamp(13px,2.5vw,16px); margin-bottom:3px;">知 · 信息 × 意识耦合</div>
+                <div style="font-size:clamp(9px,1.6vw,11px); color:#3b82f6; margin-bottom:4px;">主观意识提取客观大场中已存在的信息和规律</div>
+                <div style="font-size:clamp(9px,1.5vw,11px); color:#475569;">带宽：广度 × 深度 × 速度 · 偏差校准：事前验尸 / 红队 / 外部视角</div>
+                <div style="margin-top:4px; background:#dbeafe; border-radius:4px; padding:2px 8px; font-size:clamp(9px,1.5vw,11px); color:#1d4ed8; font-weight:bold;">知-Q：认知相干度 —— 信息与意识是否同频？</div>
+              </div>
+              <!-- 与客观大场的耦合 -->
+              <div style="flex:0 0 auto; background:#f5f3ff; border:1.5px solid #7c3aed; border-radius:6px; padding:4px 10px; font-size:clamp(9px,1.5vw,11px); color:#7c3aed; font-weight:bold; text-align:center;">
+                ⇄ 提取<br>客观信息/规律
+              </div>
+            </div>
+          </div>
+
+          <!-- ↓ 决策指令 -->
+          <div style="text-align:center; padding:clamp(4px,1vw,8px) 0;">
+            <div style="display:inline-block; background:#eef2ff; border:1px solid #6366f1; border-radius:4px; padding:2px 12px; font-size:clamp(9px,1.5vw,11px); color:#4f46e5; font-weight:bold;">↓ 决策指令（信息流：知→行）</div>
+          </div>
+
+          <!-- ── 行 ── -->
+          <div style="border:2px solid #22c55e; border-radius:10px; padding:clamp(8px,1.5vw,12px); background:linear-gradient(180deg,#f0fdf4,#bbf7d0);">
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start;">
+              <div style="flex:1; min-width:160px;">
+                <div style="font-weight:bold; color:#166534; font-size:clamp(13px,2.5vw,16px); margin-bottom:3px;">行 · 物质 × 力耦合</div>
+                <div style="font-size:clamp(9px,1.6vw,11px); color:#16a34a; margin-bottom:4px;">主观选择客观大场中已存在的物质和力，让它们耦合出想要的结果</div>
+                <div style="font-size:clamp(9px,1.5vw,11px); color:#475569;">物质(mc²)：客观要素 · 力(pc)：主观机制 · 基于认知选择组合</div>
+                <div style="margin-top:4px; background:#dcfce7; border-radius:4px; padding:2px 8px; font-size:clamp(9px,1.5vw,11px); color:#15803d; font-weight:bold;">行-Q：执行相干度 —— 物质与力是否匹配？</div>
+              </div>
+              <!-- 与客观大场的耦合 -->
+              <div style="flex:0 0 auto; background:#f5f3ff; border:1.5px solid #7c3aed; border-radius:6px; padding:4px 10px; font-size:clamp(9px,1.5vw,11px); color:#7c3aed; font-weight:bold; text-align:center;">
+                ⇄ 选择<br>客观物质/力
+              </div>
+            </div>
+          </div>
+
+          <!-- ↓ 物质×力注入 -->
+          <div style="text-align:center; padding:clamp(4px,1vw,8px) 0;">
+            <div style="display:inline-block; background:#fff7ed; border:1px solid #ea580c; border-radius:4px; padding:2px 12px; font-size:clamp(9px,1.5vw,11px); color:#c2410c; font-weight:bold;">↓ 物质×力注入（能量流：行→合）</div>
+          </div>
+
+          <!-- ── 合 ── -->
+          <div style="border:2px solid #f59e0b; border-radius:10px; padding:clamp(8px,1.5vw,12px); background:linear-gradient(180deg,#fffbeb,#fde68a);">
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start;">
+              <div style="flex:1; min-width:160px;">
+                <div style="font-weight:bold; color:#92400e; font-size:clamp(13px,2.5vw,16px); margin-bottom:3px;">合 · 跨界耦合涌现 E²</div>
+                <div style="font-size:clamp(9px,1.6vw,11px); color:#d97706; margin-bottom:4px;">知和行共同注入后跨界耦合——物质和力的耦合产出</div>
+                <div style="font-size:clamp(9px,1.5vw,11px); color:#475569;">产出：ΔE（变化量）+ dE/dt（变化速度）→ 信息反馈回知 + 能量输出到客观大场</div>
+                <div style="margin-top:4px; background:#fef3c7; border-radius:4px; padding:2px 8px; font-size:clamp(9px,1.5vw,11px); color:#92400e; font-weight:bold;">合-Q：跨界相干度 —— 战略与执行是否对齐？</div>
+              </div>
+              <!-- 能量输出到客观大场 -->
+              <div style="flex:0 0 auto; background:#fff7ed; border:1.5px solid #ea580c; border-radius:6px; padding:4px 10px; font-size:clamp(9px,1.5vw,11px); color:#c2410c; font-weight:bold; text-align:center;">
+                → 能量输出<br>改变客观大场
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /右侧知行合 -->
+      </div><!-- /主体flex -->
+
+      <!-- 底部：两种流说明 -->
+      <div style="display:flex; gap:clamp(6px,1.5vw,10px); flex-wrap:wrap; margin-top:10px;">
+        <div style="flex:1; min-width:160px; background:#eef2ff; border:1.5px solid #6366f1; border-radius:6px; padding:clamp(4px,1vw,8px); text-align:center;">
+          <div style="font-size:clamp(9px,1.5vw,11px); font-weight:bold; color:#4f46e5;">信息流（让循环更聪明）</div>
+          <div style="font-size:clamp(8px,1.3vw,10px); color:#6366f1;">知→行：决策指令 · 合→知：ΔE, dE/dt</div>
+        </div>
+        <div style="flex:1; min-width:160px; background:#fff7ed; border:1.5px solid #ea580c; border-radius:6px; padding:clamp(4px,1vw,8px); text-align:center;">
+          <div style="font-size:clamp(9px,1.5vw,11px); font-weight:bold; color:#c2410c;">能量流（让循环改变世界）</div>
+          <div style="font-size:clamp(8px,1.3vw,10px); color:#ea580c;">行→合：物质×力注入 · 合→客观大场：能量输出</div>
+        </div>
+      </div>
+
+    </div><!-- /一 -->
+
+    <!-- 底部嵌套逻辑 -->
+    <div style="text-align:center; font-size:clamp(9px,1.5vw,11px); color:#78716c; margin-top:8px; line-height:1.6;">
+      嵌套逻辑：客观大场（全域背景）⊃ 主观小场/一（嵌入其中）⊃ 知/行/合（竖向流转）<br>
+      每层都与客观大场做耦合 · 信息流让循环更聪明 · 能量流让循环改变世界
+    </div>
+  </div><!-- /客观大场 -->
+</div>
+
+<!-- ==================== 图二：七步分析流程 ==================== -->
+<div class="card">
+  <h2>图二：七步分析流程——问什么问题</h2>
+  <p class="desc">七个步骤顺序推进。每步都经历知-Q/行-Q/合-Q的诊断，一-Q衡量循环持续运转的品质。</p>
+
+  <div style="display:flex; gap:clamp(4px,1vw,6px); flex-wrap:wrap; align-items:stretch; margin-bottom:12px;">
+    <div style="flex:1; min-width:100px; border:2px solid #60a5fa; border-radius:8px; padding:clamp(5px,1vw,8px); background:#eff6ff; text-align:center;">
+      <div style="font-weight:bold; color:#1e40af; font-size:clamp(10px,1.8vw,12px);">1.问题界定</div>
+      <div style="font-size:clamp(8px,1.4vw,10px); color:#475569;">我要判断什么？</div>
+      <div style="font-size:clamp(7px,1.2vw,9px); color:#78716c;">关卡：转折点检测</div>
+    </div>
+    <div style="display:flex; align-items:center; font-size:clamp(12px,2vw,16px); color:#78716c;">→</div>
+    <div style="flex:1; min-width:100px; border:2px solid #60a5fa; border-radius:8px; padding:clamp(5px,1vw,8px); background:#eff6ff; text-align:center;">
+      <div style="font-weight:bold; color:#1e40af; font-size:clamp(10px,1.8vw,12px);">2.需求验证</div>
+      <div style="font-size:clamp(8px,1.4vw,10px); color:#475569;">用户真正在买什么？</div>
+      <div style="font-size:clamp(7px,1.2vw,9px); color:#78716c;">关卡：待办任务</div>
+    </div>
+    <div style="display:flex; align-items:center; font-size:clamp(12px,2vw,16px); color:#78716c;">→</div>
+    <div style="flex:1; min-width:100px; border:2px solid #60a5fa; border-radius:8px; padding:clamp(5px,1vw,8px); background:#eff6ff; text-align:center;">
+      <div style="font-weight:bold; color:#1e40af; font-size:clamp(10px,1.8vw,12px);">3.产业结构</div>
+      <div style="font-size:clamp(8px,1.4vw,10px); color:#475569;">行业允不允许赚钱？</div>
+      <div style="font-size:clamp(7px,1.2vw,9px); color:#78716c;">关卡：五力+护城河</div>
+    </div>
+    <div style="display:flex; align-items:center; font-size:clamp(12px,2vw,16px); color:#78716c;">→</div>
+    <div style="flex:1; min-width:100px; border:2px solid #4ade80; border-radius:8px; padding:clamp(5px,1vw,8px); background:#f0fdf4; text-align:center;">
+      <div style="font-weight:bold; color:#166534; font-size:clamp(10px,1.8vw,12px);">4.战略必要性</div>
+      <div style="font-size:clamp(8px,1.4vw,10px); color:#475569;">不做会怎样？</div>
+      <div style="font-size:clamp(7px,1.2vw,9px); color:#78716c;">关卡：10倍速+不可逆</div>
+    </div>
+    <div style="display:flex; align-items:center; font-size:clamp(12px,2vw,16px); color:#78716c;">→</div>
+    <div style="flex:1; min-width:100px; border:2px solid #4ade80; border-radius:8px; padding:clamp(5px,1vw,8px); background:#f0fdf4; text-align:center;">
+      <div style="font-weight:bold; color:#166534; font-size:clamp(10px,1.8vw,12px);">5.能力圈检验</div>
+      <div style="font-size:clamp(8px,1.4vw,10px); color:#475569;">有没有资格做？</div>
+      <div style="font-size:clamp(7px,1.2vw,9px); color:#78716c;">关卡：8维+粗算→精算</div>
+    </div>
+    <div style="display:flex; align-items:center; font-size:clamp(12px,2vw,16px); color:#78716c;">→</div>
+    <div style="flex:1; min-width:100px; border:2px solid #4ade80; border-radius:8px; padding:clamp(5px,1vw,8px); background:#f0fdf4; text-align:center;">
+      <div style="font-weight:bold; color:#166534; font-size:clamp(10px,1.8vw,12px);">6.合作方博弈</div>
+      <div style="font-size:clamp(8px,1.4vw,10px); color:#475569;">我给什么不可替代的价值？</div>
+      <div style="font-size:clamp(7px,1.2vw,9px); color:#78716c;">关卡：议价能力矩阵</div>
+    </div>
+    <div style="display:flex; align-items:center; font-size:clamp(12px,2vw,16px); color:#78716c;">→</div>
+    <div style="flex:1; min-width:100px; border:2px solid #fbbf24; border-radius:8px; padding:clamp(5px,1vw,8px); background:#fffbeb; text-align:center;">
+      <div style="font-weight:bold; color:#92400e; font-size:clamp(10px,1.8vw,12px);">7.概率判断</div>
+      <div style="font-size:clamp(8px,1.4vw,10px); color:#475569;">底线在哪？期望多大？</div>
+      <div style="font-size:clamp(7px,1.2vw,9px); color:#78716c;">关卡：底线+概率</div>
+    </div>
+  </div>
+
+  <div style="border:2px solid #d6d3d1; border-radius:10px; padding:clamp(8px,1.5vw,12px); background:#fff; margin-bottom:10px;">
+    <div style="text-align:center; font-size:clamp(11px,2vw,13px); font-weight:bold; color:#1c1917; margin-bottom:8px;">每一步都要经过的共振诊断（知-Q / 行-Q / 合-Q）</div>
+    <div style="text-align:center; font-size:clamp(9px,1.5vw,10px); color:#78716c; margin-bottom:6px;">知触发行动，行动注入判断，判断产出反馈——每步内部的知→行→合→知循环</div>
+    <div style="display:flex; gap:clamp(6px,1.5vw,10px); flex-wrap:wrap;">
+      <div style="flex:1; min-width:140px; border:1px solid #93c5fd; border-radius:6px; padding:6px; background:#dbeafe; text-align:center;">
+        <div style="font-weight:bold; font-size:clamp(10px,1.8vw,12px); color:#1e40af;">知-Q：认知相干度</div>
+        <div style="font-size:clamp(8px,1.4vw,10px); color:#475569;">信息充分吗？有没有确认偏误？</div>
+      </div>
+      <div style="flex:1; min-width:140px; border:1px solid #86efac; border-radius:6px; padding:6px; background:#dcfce7; text-align:center;">
+        <div style="font-weight:bold; font-size:clamp(10px,1.8vw,12px); color:#166534;">行-Q：执行相干度</div>
+        <div style="font-size:clamp(8px,1.4vw,10px); color:#475569;">验证行动有效吗？调研做了吗？</div>
+      </div>
+      <div style="flex:1; min-width:140px; border:1px solid #fcd34d; border-radius:6px; padding:6px; background:#fef3c7; text-align:center;">
+        <div style="font-weight:bold; font-size:clamp(10px,1.8vw,12px); color:#92400e;">合-Q：跨界相干度</div>
+        <div style="font-size:clamp(8px,1.4vw,10px); color:#475569;">判断可靠吗？多源交叉验证了吗？</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex; gap:clamp(6px,1.5vw,10px); flex-wrap:wrap;">
+    <div style="flex:1; min-width:180px; border:2px solid #be185d; border-radius:10px; padding:clamp(8px,1.5vw,12px); background:#fce7f3; text-align:center;">
+      <div style="font-weight:bold; font-size:clamp(11px,2vw,13px); color:#be185d; margin-bottom:4px;">一-Q：循环运转品质</div>
+      <div style="font-size:clamp(9px,1.5vw,10px); color:#9d174d;">一 = 主观小场的统一性 · 全包知/行/合</div>
+      <div style="font-size:clamp(9px,1.5vw,10px); color:#9d174d;">循环在转，一就在；循环停了，一就灭</div>
+    </div>
+    <div style="flex:1; min-width:180px; border:2px solid #d6d3d1; border-radius:10px; padding:clamp(8px,1.5vw,12px); background:#fff; text-align:center;">
+      <div style="font-weight:bold; font-size:clamp(11px,2vw,13px); color:#1c1917; margin-bottom:4px;">双视角共振（每步都展开）</div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:4px;">
+        <div style="flex:1; min-width:120px; border:1px solid #93c5fd; border-radius:5px; padding:4px; background:#eff6ff;">
+          <div style="font-weight:bold; font-size:clamp(8px,1.4vw,10px); color:#1e40af;">决策者视角（Inside-Out）</div>
+          <div style="font-size:clamp(7px,1.2vw,9px); color:#475569;">"我要做什么？" → 先行指标</div>
+        </div>
+        <div style="display:flex; align-items:center; font-size:clamp(10px,1.8vw,14px); color:#dc2626; font-weight:bold;">⇄</div>
+        <div style="flex:1; min-width:120px; border:1px solid #86efac; border-radius:5px; padding:4px; background:#f0fdf4;">
+          <div style="font-weight:bold; font-size:clamp(8px,1.4vw,10px); color:#166534;">投资人视角（Outside-In）</div>
+          <div style="font-size:clamp(7px,1.2vw,9px); color:#475569;">"值不值得投？" → 验证指标</div>
+        </div>
+      </div>
+      <div style="font-size:clamp(8px,1.3vw,9px); color:#dc2626; font-weight:bold;">双视角同频 = 真战略共振 | 不同频 = 烟雾弹信号</div>
+    </div>
+  </div>
+
+  <div style="text-align:center; font-size:clamp(8px,1.3vw,9px); color:#a8a29e; margin-top:8px;">
+    步骤颜色表示侧重方向（蓝=认知侧重 / 绿=执行侧重 / 黄=判断侧重），不代表"属于"某一层
+  </div>
+</div>
+
+<!-- ==================== 核心逻辑说明 ==================== -->
+<div class="card section">
+  <h2>核心逻辑：主观小场嵌入客观大场，每层都与客观耦合</h2>
+
+  <div class="highlight">
+    <strong>空间关系</strong>：客观大场（全域背景）→ 主观小场/一（嵌入其中）→ 知/行/合（竖向流转）<br>
+    <strong>每层耦合</strong>：知提取客观信息 · 行选择客观物质/力 · 合向客观大场输出能量<br>
+    <strong>两种流</strong>：信息流（让循环更聪明）+ 能量流（让循环改变世界）<br>
+    <strong>一</strong> = 主观小场的统一性——全包知/行/合，循环在转就是一在
+  </div>
+
+  <h3>每层与客观大场的耦合接口</h3>
+  <table>
+    <tr><th>层</th><th>从客观大场提取/选择什么</th><th>向客观大场输出什么</th><th>耦合方式</th></tr>
+    <tr><td><strong>知</strong></td><td>信息、规律、趋势信号</td><td>（无直接输出，通过行间接作用）</td><td>主观意识提取客观信息</td></tr>
+    <tr><td><strong>行</strong></td><td>物质（资源/要素）、力（机制/杠杆）</td><td>（无直接输出，通过合间接作用）</td><td>主观选择客观物质和力的组合</td></tr>
+    <tr><td><strong>合</strong></td><td>（无直接提取，承接知和行的注入）</td><td>能量输出（ΔE, dE/dt）</td><td>物质和力的耦合产出改变客观大场</td></tr>
+  </table>
+
+  <h3>主观小场（一）与客观大场的关系</h3>
+  <table>
+    <tr><th>关系</th><th>含义</th><th>图上体现</th></tr>
+    <tr><td>嵌入</td><td>主观小场在客观大场中运转，受其约束</td><td>主观小场在客观大场背景内</td></tr>
+    <tr><td>耦合</td><td>每层都与客观大场有接口</td><td>每层右侧的紫色/橙色耦合标注</td></tr>
+    <tr><td>改变</td><td>主观小场通过能量输出改变客观大场</td><td>合右侧"→ 能量输出"标注</td></tr>
+    <tr><td>被改变</td><td>客观大场的变化通过信息反馈影响主观小场</td><td>左侧靛蓝反馈轨道（合→知）</td></tr>
+  </table>
+
+  <h3>七位思想者的批判与优化</h3>
+  <table>
+    <tr><th>思想者</th><th>核心批判</th><th>对框架的优化</th></tr>
+    <tr><td><strong>马克思</strong></td><td>客观大场不是背景板，而是每层实践的条件和对象</td><td>客观大场=全域背景，每层都有耦合接口</td></tr>
+    <tr><td><strong>王阳明</strong></td><td>知行合一本是一件事——每一层都是主客耦合的产物</td><td>每层都标注与客观大场的耦合方式</td></tr>
+    <tr><td><strong>毛泽东</strong></td><td>外因通过内因起作用——客观大场的规律只有通过主观小场才能被激活</td><td>主观小场嵌入客观大场，不是分离的</td></tr>
+    <tr><td><strong>普利高津</strong></td><td>耗散结构通过边界与环境持续交换——边界是渗透膜不是墙</td><td>主观小场边界是虚线（渗透的），不是实线（封闭的）</td></tr>
+    <tr><td><strong>维纳</strong></td><td>每一层都有自己的传感器和执行器</td><td>每层都有与客观大场的双向接口</td></tr>
+    <tr><td><strong>哈耶克</strong></td><td>人为秩序的每一步都依赖自发秩序提供的信息和资源</td><td>客观大场是全域背景，不是旁观者</td></tr>
+    <tr><td><strong>塔勒布</strong></td><td>反脆弱需要每一层都暴露在客观波动中</td><td>每层都与客观大场有接口，不是只有一条线</td></tr>
+  </table>
+</div>
+
+<div class="card section">
+  <h2>常见错误与纠正</h2>
+  <table>
+    <tr><th>常见错误</th><th>错误表现</th><th>纠正方式</th></tr>
+    <tr><td>客观大场旁观化</td><td>客观大场只是顶部小条或背景板</td><td>客观大场=全域背景，每层都与它耦合</td></tr>
+    <tr><td>把"一"当第四层</td><td>知/行/合/一并列</td><td>一=主观小场的统一性，全包知/行/合</td></tr>
+    <tr><td>把"一"等同于某条线</td><td>一 = 反馈回路 / 一 = 能量输出</td><td>一=循环持续运转的状态，不是任何一条线</td></tr>
+    <tr><td>混淆信息流和能量流</td><td>以为反馈回路能改变客观大场</td><td>信息流（感知）≠ 能量流（改变）</td></tr>
+    <tr><td>只有一条线连客观大场</td><td>只有合→客观大场一条线</td><td>每层都有与客观大场的耦合接口</td></tr>
+    <tr><td>步骤归层化</td><td>把步骤硬塞进知/行/合</td><td>每步都经历知→行→合的完整循环</td></tr>
+  </table>
+</div>
+
+</div>
+</body>
+</html>

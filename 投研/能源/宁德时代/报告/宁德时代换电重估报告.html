@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>宁德时代换电重估 · 制造转运营的范式切换</title>
+<!-- KaTeX：渲染 LaTeX 数学公式 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{
+  --bg:#0f1117;--card:#1a1d27;--card2:#212433;--card3:#262a38;
+  --text:#e1e4ed;--m2:#9ca0b0;--m3:#6b7084;--dim:#454a5c;
+  --accent:#3b82f6;--green:#22c55e;--amber:#f59e0b;--red:#ef4444;--purple:#a855f7;
+  --r:12px;--g:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC","PingFang SC",sans-serif;background:var(--bg);color:var(--text);line-height:1.65}
+
+/* ═══ 顶栏 ═══ */
+.topbar{position:sticky;top:0;z-index:100;background:rgba(15,17,23,0.94);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.05);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.brand{font-size:16px;font-weight:700;letter-spacing:-.3px;display:flex;align-items:center;gap:8px}
+.brand .dot{width:8px;height:8px;border-radius:2px;background:var(--purple)}
+.brand span{color:var(--purple)}
+.cbar{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.cbar .ci{text-align:center;min-width:60px}
+.cbar .cv{font-size:20px;font-weight:700;line-height:1.1}
+.cbar .cv.accent{color:var(--accent)}
+.cbar .cv.purple{color:var(--purple)}
+.cbar .cl{font-size:10px;color:var(--m2);margin-top:2px}
+
+/* ═══ 主容器 ═══ */
+.main{max-width:960px;margin:0 auto;padding:20px 20px 80px}
+
+/* ═══ Hero ═══ */
+.hero{background:linear-gradient(135deg,rgba(168,85,247,0.10),rgba(59,130,246,0.06));border:1px solid rgba(168,85,247,0.25);border-radius:var(--r);padding:24px 26px;margin-bottom:20px}
+.hero .ht{font-size:11px;font-weight:700;color:var(--purple);letter-spacing:.15em;margin-bottom:8px}
+.hero .hl{font-size:22px;font-weight:700;line-height:1.4;margin-bottom:12px;letter-spacing:-.5px}
+.hero .hl em{color:var(--purple);font-style:normal}
+.hero .hs{font-size:13px;color:var(--m2);line-height:1.7;margin-bottom:14px}
+.hero .hs b{color:var(--text)}
+.hero .hr{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.06)}
+.hero .hr .hv{font-size:18px;font-weight:700;color:var(--accent)}
+.hero .hr .hl2{font-size:10px;color:var(--m3);margin-top:2px}
+
+/* ═══ 目录 ═══ */
+.toc{background:var(--card);border-radius:var(--r);padding:16px 18px;margin-bottom:20px;border:1px solid rgba(255,255,255,0.04)}
+.toc h4{font-size:11px;font-weight:700;color:var(--m3);letter-spacing:.1em;margin-bottom:10px}
+.toc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:4px 16px}
+.toc a{font-size:12px;color:var(--m2);text-decoration:none;display:flex;align-items:center;gap:6px;padding:3px 0;transition:color .2s;cursor:pointer}
+.toc a:hover{color:var(--accent)}
+.toc a .ti{font-size:10px;font-weight:700;color:var(--accent);min-width:24px;opacity:.7}
+
+/* ═══ 章节卡片 ═══ */
+.chapter{background:var(--card);border-radius:var(--r);margin-bottom:var(--g);overflow:hidden;border:1px solid rgba(255,255,255,0.04)}
+.chapter .head{display:flex;align-items:center;padding:18px 22px;cursor:pointer;gap:12px;user-select:none}
+.chapter .head:hover{background:rgba(255,255,255,0.015)}
+.chapter .idx{font-size:11px;font-weight:700;color:var(--purple);min-width:40px;opacity:.85}
+.chapter .head h3{font-size:15px;font-weight:600;flex:1}
+.chapter .arr{font-size:14px;color:var(--dim);transition:transform .25s}
+.chapter.open .arr{transform:rotate(180deg)}
+.chapter .body{display:none;padding:4px 22px 22px;font-size:13.5px;color:var(--m2);line-height:1.8;border-top:1px solid rgba(255,255,255,0.04)}
+.chapter.open .body{display:block}
+
+/* ═══ MD 渲染样式 ═══ */
+.md h1{font-size:18px;color:var(--text);margin:16px 0 8px;font-weight:700}
+.md h2{font-size:15px;color:var(--text);margin:18px 0 8px;font-weight:600;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.md h3{font-size:13.5px;color:var(--text);margin:14px 0 6px;font-weight:600}
+.md p{margin:8px 0}
+.md b,.md strong{color:var(--text);font-weight:600}
+.md em{color:var(--accent);font-style:normal;font-weight:600}
+.md ul,.md ol{margin:8px 0 8px 20px}
+.md li{margin:4px 0}
+.md table{width:100%;border-collapse:collapse;font-size:12px;margin:10px 0}
+.md th,.md td{padding:7px 10px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.05)}
+.md th{color:var(--m3);font-weight:500;font-size:11px;background:rgba(255,255,255,0.02)}
+.md td{color:var(--text)}
+.md td:first-child{color:var(--m2)}
+.md tr:hover td{background:rgba(255,255,255,0.015)}
+.md a{color:var(--accent);text-decoration:none;border-bottom:1px dashed var(--accent)}
+.md a:hover{color:var(--purple)}
+.md blockquote{border-left:3px solid var(--purple);padding:6px 14px;margin:10px 0;background:rgba(168,85,247,0.05);color:var(--m2);font-size:12.5px}
+.md blockquote b{color:var(--text)}
+.md code{background:var(--card2);padding:1px 6px;border-radius:4px;font-size:12px;color:var(--amber);font-family:ui-monospace,Consolas,monospace}
+.md .formula{display:block;text-align:center;margin:14px 0;padding:14px 8px;background:var(--card2);border-radius:8px;overflow-x:auto}
+.md .formula .katex{color:#d7dbe8;font-size:1.05em}
+.md hr{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:16px 0}
+
+/* ═══ 定量交互区 ═══ */
+.interactive{background:var(--card2);border-radius:var(--r);padding:20px 22px;margin-top:16px;border:1px solid rgba(59,130,246,0.2)}
+.interactive .it{font-size:12px;font-weight:700;color:var(--accent);letter-spacing:.08em;margin-bottom:14px}
+.result-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.rk{background:var(--card);border-radius:8px;padding:14px;text-align:center}
+.rk .rv{font-size:22px;font-weight:700;color:var(--accent)}
+.rk .rv.purple{color:var(--purple)}
+.rk .rv.green{color:var(--green)}
+.rk .rl{font-size:11px;color:var(--m2);margin-top:4px}
+.param-row{display:flex;align-items:center;gap:14px;margin:12px 0;flex-wrap:wrap}
+.param-row .pl{font-size:12px;color:var(--m2);min-width:150px}
+.param-row .pl b{color:var(--text)}
+.param-row input[type=range]{flex:1;min-width:140px;accent-color:var(--accent)}
+.param-row .pv{font-size:13px;font-weight:700;color:var(--accent);min-width:60px;text-align:right}
+.preset-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.preset-row button{padding:6px 16px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;background:var(--card);color:var(--m2);transition:all .2s}
+.preset-row button.active{background:var(--accent);color:#fff}
+.preset-row button:hover{color:var(--text)}
+.pe-note{font-size:11px;color:var(--m3);margin-top:12px;line-height:1.6}
+
+/* 响应式 */
+@media(max-width:720px){
+  .hero .hr,.result-grid{grid-template-columns:repeat(2,1fr)}
+  .toc-grid{grid-template-columns:1fr}
+  .cbar{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ 顶栏 ═══ -->
+<div class="topbar">
+  <div class="brand"><div class="dot"></div>宁德时代换电重估<span>· 制造转运营的范式切换</span></div>
+  <div class="cbar">
+    <div class="ci"><div class="cv purple" id="top-ni">164.4亿</div><div class="cl">增量税后利润/年</div></div>
+    <div class="ci"><div class="cv accent" id="top-val">3288亿</div><div class="cl">增量股权价值</div></div>
+    <div class="ci"><div class="cv" id="top-pe">20×</div><div class="cl">估值倍数</div></div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ═══ Hero ═══ -->
+  <div class="hero">
+    <div class="ht">核心论点 · CORE THESIS</div>
+    <div class="hl">换电不是"多一个业务"，而是宁德时代<em>第一次从制造业跳进运营业</em>的范式切换——它的成败，决定这个"运营能力"能否外溢到储能、AIDC、船舶、eVTOL、机器人等所有尚未定价的新场景。</div>
+    <div class="hs">本报告回答三个递进问题：<b>① 换电这个切口特殊在哪</b>（电池的物理本质决定了它必然走向"资产运营"）；<b>② 它会改变什么</b>（竞争格局、估值逻辑、运营能力）；<b>③ 它值多少钱、怎么跟踪</b>（四层增量利润 + 估值倍数情景）。</div>
+    <div class="hr">
+      <div><div class="hv">164.4亿</div><div class="hl2">增量税后利润/年（L1+L2+L3）</div></div>
+      <div><div class="hv">3288亿</div><div class="hl2">增量股权价值（20×PE）</div></div>
+      <div><div class="hv">+16%</div><div class="hl2">相对2万亿市值</div></div>
+      <div><div class="hv">PE×1</div><div class="hl2">估值倍数每动1×，价值动164亿</div></div>
+    </div>
+  </div>
+
+  <!-- ═══ 目录 ═══ -->
+  <div class="toc">
+    <h4>报告结构 · 六章递进</h4>
+    <div class="toc-grid" id="toc"></div>
+  </div>
+
+  <!-- ═══ 六章（由 JS 从子 MD 加载）═══ -->
+  <div id="chapters"></div>
+
+</div>
+
+<!-- 量化引擎外部文件：参数(config) 与 逻辑(engine) 分离 -->
+<script src="换电重估_config.js"></script>
+<script src="换电重估_engine.js"></script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   量化引擎已拆分为外部文件（参数与逻辑分离）：
+   - 换电重估_config.js：纯参数（含信源标注）
+   - 换电重估_engine.js：纯计算（零硬编码）
+   加载顺序：config 先，engine 后
+   ═══════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════
+   轻量 MD 渲染器
+   ═══════════════════════════════════════════════════════════ */
+function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function renderMd(text){
+  // 先按行处理块级元素
+  const lines=text.split('\n');
+  let html='';let inTable=false;let tableRows=[];let listType=null;
+  function flushTable(){
+    if(!inTable)return;
+    let t='<table>';
+    tableRows.forEach((row,i)=>{
+      const cells=row.split('|').slice(1,-1).map(c=>c.trim());
+      if(i===0){t+='<tr>'+cells.map(c=>'<th>'+inline(c)+'</th>').join('')+'</tr>';
+      }else{const sep=cells.every(c=>/^:?-{2,}:?$/.test(c));if(sep)return;t+='<tr>'+cells.map(c=>'<td>'+inline(c)+'</td>').join('')+'</tr>';}
+    });
+    t+='</table>';html+=t;tableRows=[];inTable=false;
+  }
+  function flushList(){if(listType){html+='</'+listType+'>';listType=null;}}
+  function inline(s){
+    s=escapeHtml(s);
+    s=s.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
+    s=s.replace(/`([^`]+)`/g,'<code>$1</code>');
+    s=s.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank">$1</a>');
+    return s;
+  }
+  for(let i=0;i<lines.length;i++){
+    let line=lines[i];
+    // 公式块 $$ ... $$（保留原始 LaTeX 供 KaTeX 渲染；支持单行 + 多行）
+    if(/^\s*\$\$/.test(line)){
+      flushTable();flushList();
+      // 单行公式：$$ ... $$ 在同一行
+      const single=line.match(/^\s*\$\$(.*?)\$\$\s*$/);
+      if(single){
+        html+='<div class="formula">$$'+single[1].trim()+'$$</div>';
+        continue;
+      }
+      // 多行公式：$$ 开头，直到 $$ 结尾
+      let f=line.replace(/^\s*\$\$/,'').trim();
+      while(i+1<lines.length && !/\$\$\s*$/.test(lines[i])){
+        i++;
+        f+=' '+lines[i].replace(/\$\$/g,'').trim();
+      }
+      html+='<div class="formula">$$'+f.trim()+'$$</div>';
+      continue;
+    }
+    // 表格
+    if(/^\s*\|/.test(line)){
+      flushList();
+      if(!inTable){inTable=true;}
+      tableRows.push(line);
+      continue;
+    }else if(inTable){flushTable();}
+    // 标题
+    const h=line.match(/^(#{1,4})\s+(.*)/);
+    if(h){flushTable();flushList();const lv=h[1].length;html+='<h'+lv+'>'+inline(h[2])+'</h'+lv+'>';continue;}
+    // 列表
+    const ul=line.match(/^\s*[-*]\s+(.*)/);
+    const ol=line.match(/^\s*\d+[.)]\s+(.*)/);
+    if(ul||ol){
+      const want=ul?'ul':'ol';
+      if(listType!==want){flushList();html+='<'+want+'>';listType=want;}
+      html+='<li>'+inline(ul?ul[1]:ol[1])+'</li>';continue;
+    }else{flushList();}
+    // 引用
+    if(/^>\s?/.test(line)){html+='<blockquote>'+inline(line.replace(/^>\s?/,''))+'</blockquote>';continue;}
+    // 分隔线
+    if(/^\s*(---|\*\*\*)\s*$/.test(line)){html+='<hr>';continue;}
+    // 空行
+    if(!line.trim()){continue;}
+    // 普通段落
+    html+='<p>'+inline(line)+'</p>';
+  }
+  flushTable();flushList();
+  return html;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Token 占位符替换：把 MD 中的 {{TOKEN}} 替换为 engine 计算结果
+   （对齐财务模型架构设计 §6.4 ui_md_linker.js 的机制）
+   ═══════════════════════════════════════════════════════════ */
+function applyTokens(mdText, result, cfg){
+  if(!result) return mdText;
+  const tokens={
+    'L1':            result.L1.toFixed(1),
+    'L2':            result.L2.toFixed(1),
+    'L3':            result.L3.toFixed(1),
+    'TOTAL_NI':      result.totalNI.toFixed(1),
+    'DELTA_VALUE':   result.deltaValue.toFixed(0),
+    'FLEET_WAN':     result.fleetWanTotal.toFixed(0),
+    'FLEET_GWH':     result.fleetTotalGwh.toFixed(1),
+    'INVENTORY_GWH': result.inventoryGwh.toFixed(1),
+    'TOTAL_BAT_GWH': result.totalBatteryGwh.toFixed(1),
+    'STATIONS':      result.totalStations.toFixed(0),
+    'HDT_STATIONS':  result.hdtStations.toFixed(0),
+    'CHOCO_STATIONS':result.chocoStations.toFixed(0),
+    'ENERGY':        result.totalEnergy.toFixed(1),
+    'REVENUE':       result.revenue.toFixed(0),
+    'OPEX':          result.opex.toFixed(0),
+    'EBITDA':        result.deliverableEbitda.toFixed(0),
+    'THRESHOLD_EBITDA': result.thresholdEbitda.toFixed(0),
+    'STANDALONE':    result.standaloneValue.toFixed(0),
+    'DELTA_GWH':     result.deltaGwh.toFixed(1),
+    'ANNUAL_GWH':    result.annualIncrementalGwh.toFixed(1),
+    'GPDIFF':        result.gpDiff.toFixed(0),
+    'PE':            (cfg && cfg.pe ? cfg.pe : 20).toFixed(0),
+    'GM_PROTECTION': ((cfg && cfg.gmProtection ? cfg.gmProtection : 0.015)*100).toFixed(1),
+    'PB_REV_2030':   (cfg && cfg.pbRevenue2030 ? cfg.pbRevenue2030 : 5000).toFixed(0),
+    'GP_PER_KWH':    (cfg && cfg.gpPerKwh ? cfg.gpPerKwh : 139.45).toFixed(2),
+    'BATTERY_PRICE': (cfg && cfg.batteryPrice ? cfg.batteryPrice : 590).toFixed(0),
+    'BATTERY_CAPEX': result.batteryCapex.toFixed(0),
+    'SITE_CAPEX':    result.siteCapex.toFixed(0),
+    'LIFECYCLE_CAPEX': result.lifecycleCapex.toFixed(0),
+    'SERVICE_FEE':   (cfg && cfg.serviceFee ? cfg.serviceFee : 0.4).toFixed(2),
+    'RENT':          (cfg && cfg.rentRmbKwhYear ? cfg.rentRmbKwhYear : 120).toFixed(0),
+    // 表格级 token（由 engine 结果动态生成）
+    'FLEET_TABLE':   buildFleetTable(result),
+    'ORDER_POOL_TABLE': buildOrderPoolTable(result),
+    'DELTA_SHARE_TABLE': buildDeltaShareTable(result),
+    'STATION_TABLE': buildStationTable(result),
+  };
+  let out=mdText;
+  for(const key in tokens){
+    out=out.split('{{'+key+'}}').join(tokens[key]);
+  }
+  return out;
+}
+
+// 分车型车辆数 + 装车电池明细表
+function buildFleetTable(r){
+  const order=['重卡','城配物流','乘用营运','私家车'];
+  let h='| 车型 | 车辆（万辆） | 单车电量（kWh） | 装车电池（GWh） |\n|---|---:|---:|---:|\n';
+  for(const k of order){
+    h+=`| ${k} | ${r.fleetWan[k].toFixed(0)} | ${r.batteryKwh[k].toFixed(0)} | ${r.fleetGwh[k].toFixed(1)} |\n`;
+  }
+  h+=`| **合计** | **${r.fleetWanTotal.toFixed(0)}** | — | **${r.fleetTotalGwh.toFixed(1)}** |`;
+  return h;
+}
+
+// 订单池表（车型/寿命/份数/替换次数）
+function buildOrderPoolTable(r){
+  const order=['重卡','城配物流','乘用营运','私家车'];
+  let h='| 车型 | 寿命（年） | 15年电池份数 | 首装 | 后续替换 |\n|---|---:|---:|---:|---:|\n';
+  for(const k of order){
+    const oc=r.orderPool[k];
+    h+=`| ${k} | ${r.swapLife[k].toFixed(1)} | ${oc} 份 | 1 | ${oc-1} 次 |\n`;
+  }
+  return h;
+}
+
+// ΔShare 表（车型/换电份额/无换电份额/ΔShare）
+function buildDeltaShareTable(r){
+  const order=['重卡','城配物流','乘用营运','私家车'];
+  let h='| 车型 | 换电 CATL 份额 | 无换电 CATL 份额 | ΔShare |\n|---|---:|---:|---:|\n';
+  for(const k of order){
+    const sw=r.swapShare ? r.swapShare[k] : (0.5 + r.deltaShare[k]);
+    const ns=r.noSwapShare ? r.noSwapShare[k] : 0.5;
+    h+=`| ${k} | ${(sw*100).toFixed(0)}% | ${(ns*100).toFixed(0)}% | +${(r.deltaShare[k]*100).toFixed(0)}ppt |\n`;
+  }
+  return h;
+}
+
+// 站级物理参数表（骐骥/巧克力两类站）
+function buildStationTable(r){
+  const q=r.stationInventory['骐骥'], c=r.stationInventory['巧克力'];
+  const qInv=q.blocks*q.kwhPerBlock, cInv=c.blocks*c.kwhPerBlock;
+  let h='| 参数 | 骐骥站（重卡） | 巧克力站（乘用+城配） |\n|---|---:|---:|\n';
+  h+=`| 满负荷功率 | ${q.power} kW | ${c.power} kW |\n`;
+  h+=`| 单站周转块数 | ${q.blocks} 块 | ${c.blocks} 块 |\n`;
+  h+=`| 单块电量 | ${q.kwhPerBlock} kWh | ${c.kwhPerBlock} kWh |\n`;
+  h+=`| 单站周转装机 | ${qInv} 度 | ${cInv} 度 |\n`;
+  h+=`| 单次净补电量 | ${q.netCharge} 度 | ${c.netCharge} 度 |\n`;
+  h+=`| 换电时长 | ${q.swapTime} 秒 | ${c.swapTime} 秒 |\n`;
+  h+=`| 单站投资 | ${r.siteCapexWan['骐骥']} 万/座 | ${r.siteCapexWan['巧克力']} 万/座 |\n`;
+  h+=`| 设计能力 | ${r.designCapacity['骐骥']} 次/天 | ${r.designCapacity['巧克力']} 次/天 |`;
+  return h;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   KaTeX 渲染：等 KaTeX 就绪后渲染全页公式
+   ═══════════════════════════════════════════════════════════ */
+let katexReady=false;
+function renderMath(){
+  function doRender(){
+    if(typeof renderMathInElement==='function'){
+      renderMathInElement(document.body,{
+        delimiters:[
+          {left:'$$',right:'$$',display:true},
+          {left:'$',right:'$',display:false},
+        ],
+        throwOnError:false,
+      });
+    }
+  }
+  if(typeof renderMathInElement==='function'){
+    doRender();
+  }else{
+    // KaTeX 未就绪，等待
+    let tries=0;
+    const timer=setInterval(()=>{
+      tries++;
+      if(typeof renderMathInElement==='function'){
+        clearInterval(timer);
+        doRender();
+      }else if(tries>100){ // 最多等 10 秒
+        clearInterval(timer);
+      }
+    },100);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   章节配置
+   ═══════════════════════════════════════════════════════════ */
+const CHAPTERS=[
+  {id:'ch0',title:'序言 · 为什么研究换电',file:'换电重估_子MD/序言_为什么研究换电.md'},
+  {id:'ch1',title:'第一章 · 电池的本质与行业范式重构',file:'换电重估_子MD/第一章_电池的本质与行业范式重构.md'},
+  {id:'ch2',title:'第二章 · 旧范式的困境与解耦的必然',file:'换电重估_子MD/第二章_旧范式困境与解耦.md'},
+  {id:'ch3',title:'第三章 · 解构换电系统：制造转运营的落地形态',file:'换电重估_子MD/第三章_解构换电系统.md'},
+  {id:'ch4',title:'第四章 · 竞争窗口与战略必要性',file:'换电重估_子MD/第四章_竞争窗口与必要性.md'},
+  {id:'ch5',title:'第五章 · 落地可行性与多方博弈',file:'换电重估_子MD/第五章_落地可行性与博弈.md'},
+  {id:'ch6',title:'第六章 · 破局策略与定量测算',file:'换电重估_子MD/第六章_破局策略与定量测算.md',interactive:true},
+  {id:'ch7',title:'附录 · 参考文档索引',file:'换电重估_子MD/附录_参考文档索引.md'},
+];
+
+/* ═══════════════════════════════════════════════════════════
+   渲染目录 + 章节
+   ═══════════════════════════════════════════════════════════ */
+const chaptersEl=document.getElementById('chapters');
+const tocEl=document.getElementById('toc');
+
+const CN='一二三四五六';
+CHAPTERS.forEach((ch,idx)=>{
+  const isAppendix=ch.title.startsWith('附录');
+  const tocLabel=isAppendix?'附录':(idx===0?'为什么研究换电':(ch.title.split('·')[1]||ch.title));
+  const tocTag=isAppendix?'附录':(idx===0?'序':('第'+CN[idx-1]+'章'));
+  const headIdx=isAppendix?'附':(idx===0?'序':'0'+idx);
+
+  // 目录项
+  const a=document.createElement('a');
+  a.innerHTML='<span class="ti">'+tocTag+'</span><span>'+tocLabel+'</span>';
+  a.onclick=()=>{const el=document.getElementById(ch.id);el.scrollIntoView({behavior:'smooth'});if(!el.classList.contains('open'))el.classList.add('open');};
+  tocEl.appendChild(a);
+
+  // 章节卡
+  const sec=document.createElement('div');
+  sec.className='chapter'+(idx===0?' open':'');
+  sec.id=ch.id;
+  sec.innerHTML='<div class="head"><div class="idx">'+headIdx+'</div><h3>'+ch.title+'</h3><div class="arr">▼</div></div><div class="body"><div class="md"><p style="color:var(--dim)">加载中…</p></div></div>';
+  chaptersEl.appendChild(sec);
+
+  const head=sec.querySelector('.head');
+  head.onclick=()=>sec.classList.toggle('open');
+
+  const body=sec.querySelector('.body .md');
+
+  // 加载 MD
+  fetch(ch.file).then(r=>{
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    return r.text();
+  }).then(txt=>{
+    // 交互章节：先用基准结果替换 {{TOKEN}} 占位符，再渲染
+    let finalTxt=txt;
+    if(ch.interactive && typeof SwapEngine!=='undefined' && typeof SwapConfig!=='undefined'){
+      finalTxt=applyTokens(txt, SwapEngine.compute(SwapConfig.values), SwapConfig.values);
+    }
+    body.innerHTML=renderMd(finalTxt);
+    if(ch.interactive){body.appendChild(buildInteractive());}
+    // KaTeX 渲染公式（需等待 KaTeX 脚本加载完成）
+    renderMath();
+  }).catch(err=>{
+    body.innerHTML='<p style="color:var(--red)">加载失败：'+escapeHtml(ch.file)+'（'+escapeHtml(err.message)+'）。请通过 HTTP 服务打开本报告。</p>';
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════
+   定量交互区（第六章）
+   ═══════════════════════════════════════════════════════════ */
+function buildInteractive(){
+  const wrap=document.createElement('div');
+  wrap.className='interactive';
+  wrap.innerHTML=`
+    <div class="it">▣ 定量交互 · 增量估值模型（拖动参数实时重算）</div>
+    <div class="result-grid">
+      <div class="rk"><div class="rv purple" id="r-L1">-</div><div class="rl">L1 换电平台</div></div>
+      <div class="rk"><div class="rv" id="r-L2">-</div><div class="rl">L2 订单锁定</div></div>
+      <div class="rk"><div class="rv" id="r-L3">-</div><div class="rl">L3 基本盘保护</div></div>
+      <div class="rk"><div class="rv green" id="r-total">-</div><div class="rl">ΔNI 合计</div></div>
+    </div>
+    <div class="result-grid">
+      <div class="rk"><div class="rv accent" id="r-value">-</div><div class="rl">ΔValue（增量股权价值）</div></div>
+      <div class="rk"><div class="rv" id="r-standalone">-</div><div class="rl">Standalone估值(v2.4)</div></div>
+      <div class="rk"><div class="rv" id="r-pe">-</div><div class="rl">估值倍数 PE</div></div>
+      <div class="rk"><div class="rv" id="r-energy">-</div><div class="rl">年换电量（亿度）</div></div>
+    </div>
+    <div class="result-grid">
+      <div class="rk"><div class="rv" id="r-fleet">-</div><div class="rl">换电车辆（万辆）</div></div>
+      <div class="rk"><div class="rv" id="r-fleetgwh">-</div><div class="rl">装车电池（GWh）</div></div>
+      <div class="rk"><div class="rv" id="r-inv">-</div><div class="rl">站内周转电池（GWh）</div></div>
+      <div class="rk"><div class="rv" id="r-stations">-</div><div class="rl">所需站数（座）</div></div>
+    </div>
+    <div id="params"></div>
+    <div class="preset-row" id="presets">
+      <button data-preset="bear">悲观</button>
+      <button data-preset="base" class="active">基准</button>
+      <button data-preset="bull">乐观</button>
+    </div>
+    <div class="pe-note">关键提示：ΔValue = ΔNI × PE，估值倍数每动 1×，增量价值动约 164 亿。但注意（详见第四章）：若不对动力电池做 SOTP 分部估值，制造业绑一起估值、储能/AIDC 高增长托底，整体 PE 很难单独被打下来——这里的 PE 应理解为"整体估值倍数"的敏感变量，而非"动力电池业务线"独立参数。换电对估值的真正作用是守住整体估值叙事、并为"运营"争取被单独定价的资格。</div>
+  `;
+
+  const paramsEl=wrap.querySelector('#params');
+
+  // 简化：直接暴露关键标量参数
+  const scalarParams=[
+    {key:'fleetScale',label:'换电车辆规模',min:0.6,max:1.6,step:0.05,val:1,fmt:v=>(v*358).toFixed(0)+'万',apply:(c,v)=>{const s=v;for(const k in c.fleetWan)c.fleetWan[k]=SwapConfig.values.fleetWan[k]*s;}},
+    {key:'deltaShare',label:'ΔShare 份额差（整体）',min:0.5,max:1.5,step:0.05,val:1,fmt:v=>'×'+v.toFixed(2),apply:(c,v)=>{for(const k in c.deltaShare)c.deltaShare[k]=SwapConfig.values.deltaShare[k]*v;}},
+    {key:'gmProtection',label:'动力电池毛利率保护',min:0,max:0.04,step:0.0025,val:0.015,fmt:v=>'+'+(v*100).toFixed(1)+'ppt',apply:(c,v)=>{c.gmProtection=v;}},
+    {key:'pbRevenue2030',label:'2030动力电池收入（亿元）',min:3000,max:8000,step:100,val:5000,fmt:v=>v+'亿',apply:(c,v)=>{c.pbRevenue2030=v;}},
+    {key:'pe',label:'估值倍数 PE',min:18,max:25,step:0.5,val:20,fmt:v=>v+'×',apply:(c,v)=>{c.pe=v;}},
+  ];
+
+  scalarParams.forEach(sp=>{
+    const row=document.createElement('div');
+    row.className='param-row';
+    row.innerHTML='<div class="pl"><b>'+sp.label+'</b></div><input type="range" min="'+sp.min+'" max="'+sp.max+'" step="'+sp.step+'" value="'+sp.val+'" id="p-'+sp.key+'"><div class="pv" id="pv-'+sp.key+'">'+sp.fmt(sp.val)+'</div>';
+    paramsEl.appendChild(row);
+  });
+
+  function update(){
+    const c=JSON.parse(JSON.stringify(SwapConfig.values));
+    scalarParams.forEach(sp=>{
+      const v=parseFloat(wrap.querySelector('#p-'+sp.key).value);
+      wrap.querySelector('#pv-'+sp.key).textContent=sp.fmt(v);
+      sp.apply(c,v);
+    });
+    const r=SwapEngine.compute(c);
+    wrap.querySelector('#r-L1').textContent=r.L1.toFixed(1)+'亿';
+    wrap.querySelector('#r-L2').textContent=r.L2.toFixed(1)+'亿';
+    wrap.querySelector('#r-L3').textContent=r.L3.toFixed(1)+'亿';
+    wrap.querySelector('#r-total').textContent=r.totalNI.toFixed(1)+'亿';
+    wrap.querySelector('#r-value').textContent=r.deltaValue.toFixed(0)+'亿';
+    wrap.querySelector('#r-standalone').textContent=r.standaloneValue.toFixed(0)+'亿';
+    wrap.querySelector('#r-pe').textContent=c.pe+'×';
+    wrap.querySelector('#r-energy').textContent=r.totalEnergy.toFixed(0)+'亿度';
+    const fleet=Object.values(c.fleetWan).reduce((a,b)=>a+b,0);
+    wrap.querySelector('#r-fleet').textContent=fleet.toFixed(0)+'万';
+    wrap.querySelector('#r-fleetgwh').textContent=r.fleetTotalGwh.toFixed(0)+'GWh';
+    wrap.querySelector('#r-inv').textContent=r.inventoryGwh.toFixed(1)+'GWh';
+    wrap.querySelector('#r-stations').textContent=r.totalStations.toFixed(0)+'座';
+    // 同步顶栏
+    document.getElementById('top-ni').textContent=r.totalNI.toFixed(1)+'亿';
+    document.getElementById('top-val').textContent=r.deltaValue.toFixed(0)+'亿';
+    document.getElementById('top-pe').textContent=c.pe+'×';
+  }
+
+  // 绑定滑杆
+  scalarParams.forEach(sp=>{
+    wrap.querySelector('#p-'+sp.key).addEventListener('input',update);
+  });
+
+  // 预设情景
+  const presets={
+    bear:{fleetScale:0.7,deltaShare:0.7,gmProtection:0,pbRevenue2030:4000,pe:18},
+    base:{fleetScale:1,deltaShare:1,gmProtection:0.015,pbRevenue2030:5000,pe:20},
+    bull:{fleetScale:1.3,deltaShare:1.3,gmProtection:0.03,pbRevenue2030:6500,pe:22},
+  };
+  wrap.querySelectorAll('#presets button').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      wrap.querySelectorAll('#presets button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const pr=presets[btn.dataset.preset];
+      scalarParams.forEach(sp=>{
+        if(pr[sp.key]!==undefined){
+          const input=wrap.querySelector('#p-'+sp.key);
+          input.value=pr[sp.key];
+        }
+      });
+      update();
+    });
+  });
+
+  update();
+  return wrap;
+}
+</script>
+</body>
+</html>

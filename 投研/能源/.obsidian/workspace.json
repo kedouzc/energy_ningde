@@ -1,0 +1,358 @@
+{
+  "main": {
+    "id": "4d50d91d6ca8b6b8",
+    "type": "split",
+    "children": [
+      {
+        "id": "e7cf76783ce389bc",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "c68913f93f282d30",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Clippings/智驾行业之二：车企自研格局分层，第三方供应商长期价值凸显.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "智驾行业之二：车企自研格局分层，第三方供应商长期价值凸显"
+            }
+          },
+          {
+            "id": "7b899b8bbd99d0fb",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Clippings/宁德时代换电方案的经济账 - OFweek锂电网.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "宁德时代换电方案的经济账 - OFweek锂电网"
+            }
+          }
+        ]
+      },
+      {
+        "id": "47b513921391612c",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "017bca2dff010f4e",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "宁德时代/软件平台/宁德时代携百亿基金曲线入股，这家AI“独角兽”凭什么？—维科号.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "宁德时代携百亿基金曲线入股，这家AI“独角兽”凭什么？—维科号"
+            }
+          },
+          {
+            "id": "2f9fef463ab4ce49",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "宁德时代/软件平台/重磅发布！达卯科技预测-调度-交易一体化方案，赋能新型电力系统建设_行业动态_投资界.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "重磅发布！达卯科技预测-调度-交易一体化方案，赋能新型电力系统建设_行业动态_投资界"
+            }
+          },
+          {
+            "id": "e5dd9fa75157eb32",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Clippings/中国电池回收技术“断层式领先”：定向循环如何破解全球废料还原难题.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "中国电池回收技术“断层式领先”：定向循环如何破解全球废料还原难题"
+            }
+          },
+          {
+            "id": "3ec66e4dbcfcfcbc",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Clippings/宁德时代绕道控股世纪互联.md",
+                "mode": "source",
+                "source": true
+              },
+              "icon": "lucide-file",
+              "title": "宁德时代绕道控股世纪互联"
+            }
+          },
+          {
+            "id": "5ec8b795da2714dd",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "宁德时代/业务/换电/media/蔚来江苏V2G放电-联合协鑫.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "蔚来江苏V2G放电-联合协鑫"
+            }
+          },
+          {
+            "id": "ac5cfd6a370b381b",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "宁德时代/业务/换电/media/浙江需求响应资源池6GW，容量补贴1元每千瓦每月，峰时度电补贴2-3元.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "浙江需求响应资源池6GW，容量补贴1元每千瓦每月，峰时度电补贴2-3元"
+            }
+          },
+          {
+            "id": "8989dd3887254817",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "宁德时代/曾毓群/宁德时代发展史vs管仲盐铁论.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "宁德时代发展史vs管仲盐铁论"
+            }
+          }
+        ],
+        "currentTab": 6
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "befed862b8b2e8fb",
+    "type": "split",
+    "children": [
+      {
+        "id": "497996b7dacd1b2d",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "7365f596fd4690ec",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-folder-closed",
+              "title": "文件列表"
+            }
+          },
+          {
+            "id": "7e4284563afbb8fc",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "搜索"
+            }
+          },
+          {
+            "id": "dc095fb1cdfffe1a",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "书签"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "8047ef40773c2cf6",
+    "type": "split",
+    "children": [
+      {
+        "id": "05c0872e508f039d",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "9ef4a25f94c37324",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "宁德时代/业务/换电/分析结论/CATL换电业务_重构版.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "CATL换电业务_重构版 的反向链接列表"
+            }
+          },
+          {
+            "id": "a7d4084105e1eba2",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "宁德时代/业务/换电/分析结论/CATL换电业务_重构版.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "CATL换电业务_重构版 的出链列表"
+            }
+          },
+          {
+            "id": "da8b8f286cd7da7f",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "标签"
+            }
+          },
+          {
+            "id": "6a5839dbbcd20a3f",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "添加笔记属性"
+            }
+          },
+          {
+            "id": "c9171a560ee7f2c5",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "宁德时代/业务/换电/media/宁德时代换电方案的经济账 - 模式降本.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "宁德时代换电方案的经济账 - 模式降本 的大纲"
+            }
+          }
+        ],
+        "currentTab": 4
+      }
+    ],
+    "direction": "horizontal",
+    "width": 200,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:打开快速切换": false,
+      "graph:查看关系图谱": false,
+      "canvas:新建白板": false,
+      "daily-notes:打开/创建今天的日记": false,
+      "templates:插入模板": false,
+      "command-palette:打开命令面板": false,
+      "bases:新建数据库": false,
+      "obsidian-importer:Open Importer": false
+    }
+  },
+  "active": "c68913f93f282d30",
+  "lastOpenFiles": [
+    "Clippings/2026格局与趋势丨（下）：汽车制造商痛失定价权.md",
+    "Clippings/智驾行业之二：车企自研格局分层，第三方供应商长期价值凸显.md",
+    "Clippings/滑板底盘-2025年报被放下的故事.md",
+    "Clippings/宁德时代的 1291 亿季报，和一个被放下的故事 - OFweek锂电网.md",
+    "Clippings/换电重卡行业分析：政策支撑叠加场景渗透共筑未来增速.md",
+    "Clippings/汽车统计数据信源.md",
+    "Clippings/半年出口暴涨32.5% 中国卡车外热内冷.md",
+    "Clippings/10+1重卡换电站，运营5年能回本吗？-电车资源.md",
+    "Clippings/宁德时代骐骥换电2025年建成305座换电站 · 中国道路运输网.md",
+    "Clippings/宁德时代：剥离市梦率，重估“全球能源底层协议”的寡头折现价值.md",
+    "宁德时代/业务/换电/分析结论/换电框架memo.md",
+    "宁德时代/业务/换电/分析结论/换电框架.md",
+    "宁德时代/业务/换电/分析结论/换电毛估估-繁v1.html",
+    "宁德时代/业务/换电/分析结论/换电毛估估-简v1 copy.html",
+    "宁德时代/业务/换电/分析结论/换电毛估估-简v1.html",
+    "Clippings/换电成本近整车售价一半，“车电分离”保费或降15%-30% - 21财经.md",
+    "Clippings/零跑B01使用CTC 2.0 Plus.md",
+    "Clippings/长江证券：宁德时代（300750）：换电篇：迈向应用创新，再造宁德时代.md",
+    "Clippings/18座站、超1亿大蛋糕：康迪科技站上宁德时代“万站计划”C位.md",
+    "Clippings/推75号标准化换电块  宁德时代宣布建“八横十纵”换电绿网.md",
+    "Clippings/换电行业长坡厚雪，2025年规模有望突破千亿 - 第一电动网.md",
+    "宁德时代/业务/换电/media/宁德时代换电方案的经济账 - 模式降本.md",
+    "宁德时代/业务/换电/media/电池租金-宁德vs蔚来.png",
+    "Pasted image 20260709222949.png",
+    "宁德时代/业务/换电/media/换电vs油车-出租车算账.png",
+    "Clippings/宁德时代换电方案的经济账 - OFweek锂电网.md",
+    "Clippings/西门子数字制造：电池产业的下半场，由“数字化”定义.md",
+    "宁德时代/data/IEA Global EV Outlook 20260420.pdf",
+    "Pasted image 20260705122317.png",
+    "Clippings/比亚迪通过博格华纳（电机）卖LFP刀片电池（商用车协议8年）.md",
+    "宁德时代/业务/换电/media/商用车（货车+专用车，not客车）销量翻倍增长、all单车平均带电量超70kWh、插混乘用车超40kwh.md",
+    "宁德时代/业务/换电/media/动力电池全球销量202605.png",
+    "宁德时代/业务/换电/写作素材/动力电池全球销量202605.png",
+    "宁德时代/业务/换电/写作素材/image.png",
+    "宁德时代/业务/换电/media/动力电池全球CR6-202605.png",
+    "宁德时代/业务/换电/写作素材/动力电池全球CR6-202605.png",
+    "宁德时代/业务/换电/写作素材/素材-电池装机量.md",
+    "宁德时代/业务/换电/media/动力电池海外销量202605.png",
+    "宁德时代/业务/换电/分析结论/素材-电池装机量.md",
+    "宁德时代/业务/换电/分析结论/素材-电池装机量",
+    "宁德时代/业务/换电/media/单车带电量，重卡470，乘用车购置税要求续航100km，每增10kwh增重60-70kg（能量密度140-160whkg）.md",
+    "宁德时代/data/iea global ev outlook 20260420~95EDB.tmp",
+    "宁德时代/data/iea global ev outlook 20260420~DF779.tmp",
+    "宁德时代/data/~$EV data by country 2026.xlsx",
+    "宁德时代/data/EV data by country 2026.xlsx",
+    "宁德时代/data/未确认 617393.crdownload"
+  ]
+}

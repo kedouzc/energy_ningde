@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>宁德时代 V1.0 · 相变与重估</title>
+<style>
+:root{
+  --bg:#0f1117;--card:#1a1d27;--card2:#212433;--card3:#262a38;
+  --text:#e1e4ed;--m2:#9ca0b0;--m3:#6b7084;--dim:#454a5c;
+  --accent:#3b82f6;--green:#22c55e;--amber:#f59e0b;--red:#ef4444;
+  --r:12px;--g:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+
+/* ═══ 顶栏 ═══ */
+.topbar{position:sticky;top:0;z-index:100;background:rgba(15,17,23,0.94);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.05);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.topbar .brand{font-size:17px;font-weight:700;letter-spacing:-.3px;display:flex;align-items:center;gap:8px}
+.topbar .brand .dot{width:8px;height:8px;border-radius:2px;background:var(--accent)}
+.topbar .brand span{color:var(--accent)}
+.sc-tabs{display:flex;gap:4px;background:var(--card2);border-radius:8px;padding:3px}
+.sc-tabs button{padding:7px 18px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:var(--m2);background:transparent;transition:all .2s}
+.sc-tabs button.active{background:var(--accent);color:#fff}
+.sc-tabs button:hover:not(.active){color:var(--text)}
+
+/* 结论横条 */
+.cbar{display:flex;gap:18px;align-items:center}
+.cbar .ci{text-align:center;min-width:52px}
+.cbar .cv{font-size:20px;font-weight:700;line-height:1.1}
+.cbar .cl{font-size:10px;color:var(--m2);margin-top:1px}
+
+/* ═══ 主容器 ═══ */
+.main{max-width:920px;margin:0 auto;padding:20px 20px 60px}
+
+/* ═══ 场景概览卡 ═══ */
+.overview{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--g);margin-bottom:22px}
+.ov-card{background:var(--card);border-radius:var(--r);padding:16px;text-align:center;border:1px solid rgba(255,255,255,0.04)}
+.ov-card.hl{border-color:rgba(59,130,246,0.3)}
+.ov-card .tag{font-size:11px;font-weight:600;padding:2px 10px;border-radius:10px;display:inline-block;margin-bottom:6px}
+.ov-card .tag.pes{background:rgba(239,68,68,.12);color:var(--red)}
+.ov-card .tag.bas{background:rgba(34,197,94,.12);color:var(--green)}
+.ov-card .tag.opt{background:rgba(59,130,246,.12);color:var(--accent)}
+.ov-card .yr{font-size:32px;font-weight:700;margin:4px 0}
+.ov-card .rx{font-size:18px;font-weight:600;color:var(--accent)}
+.ov-card .cg{font-size:12px;color:var(--m2)}
+.ov-card .mc{font-size:13px;color:var(--m2);margin-top:6px}
+.ov-card .desc{font-size:11px;color:var(--m3);margin-top:4px;line-height:1.5}
+
+/* ═══ 方法论索引卡 ═══ */
+.methodo{background:linear-gradient(135deg,rgba(59,130,246,0.08),rgba(34,197,94,0.04));border:1px solid rgba(59,130,246,0.2);border-radius:var(--r);padding:18px 20px;margin-bottom:22px}
+.methodo h3{font-size:14px;font-weight:600;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.methodo h3::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.methodo .mt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:8px}
+.methodo .mt-item{background:rgba(255,255,255,0.02);border-radius:8px;padding:12px}
+.methodo .mt-item .mt-l{font-size:11px;font-weight:700;color:var(--green);letter-spacing:0.05em;margin-bottom:6px}
+.methodo .mt-item .mt-c{font-size:12px;color:var(--m2);line-height:1.6}
+.methodo .mt-item .mt-c b{color:var(--text);font-weight:600}
+.methodo .mt-flow{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.05);font-size:12px;color:var(--m2);line-height:1.7}
+.methodo .mt-flow code{background:rgba(255,255,255,0.04);padding:1px 6px;border-radius:4px;color:var(--accent);font-size:11px;font-family:ui-monospace,Menlo,Consolas,monospace}
+
+/* ═══ 逻辑层卡片 ═══ */
+.layer{background:var(--card);border-radius:var(--r);margin-bottom:var(--g);overflow:hidden;border:1px solid rgba(255,255,255,0.04);transition:border-color .2s}
+.layer.pass{border-left:3px solid var(--green)}
+.layer.warn{border-left:3px solid var(--amber)}
+.layer.critical{border-left:3px solid var(--red)}
+.layer .head{display:flex;align-items:flex-start;padding:18px 20px;cursor:pointer;gap:12px;user-select:none}
+.layer .head:hover{background:rgba(255,255,255,0.015)}
+.layer .idx{font-size:11px;font-weight:700;color:var(--accent);min-width:36px;padding-top:2px;opacity:.8}
+.layer .status{font-size:10px;font-weight:600;padding:1px 8px;border-radius:8px;min-width:fit-content}
+.layer .status.ok{background:rgba(34,197,94,.12);color:var(--green)}
+.layer .status.caution{background:rgba(245,158,11,.12);color:var(--amber)}
+.layer .status.critical{background:rgba(239,68,68,.12);color:var(--red)}
+.layer .status.methodo{background:rgba(59,130,246,.12);color:var(--accent)}
+.layer .body{flex:1;min-width:0}
+.layer .body h3{font-size:15px;font-weight:600;margin-bottom:3px}
+.layer .body .oneliner{font-size:13px;color:var(--m2);line-height:1.5}
+.layer .metrics{display:flex;gap:18px;margin-top:9px;flex-wrap:wrap}
+.layer .metrics .m{text-align:left}
+.layer .metrics .mv{font-size:18px;font-weight:700}
+.layer .metrics .ml{font-size:11px;color:var(--m2)}
+.layer .arr{font-size:16px;color:var(--dim);transition:transform .25s;padding-top:4px}
+.layer.open .arr{transform:rotate(180deg)}
+
+/* 展开详情区 */
+.layer .detail{display:none;padding:0 20px 20px 20px;font-size:13px;color:var(--m2);line-height:1.8;border-top:1px solid rgba(255,255,255,0.04)}
+.layer.open .detail{display:block}
+
+/* 详情内子区块 */
+.detail .sec-title{font-size:13px;font-weight:600;color:var(--text);margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.detail .sec-title:first-child{margin-top:10px}
+.detail table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}
+.detail th,.detail td{padding:6px 10px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.05)}
+.detail th{color:var(--m3);font-weight:500;font-size:11px;text-align:left}
+.detail td{color:var(--text)}
+.detail td:first-child{text-align:left;color:var(--m2)}
+.detail .src{font-size:10px;color:var(--dim);margin-top:6px;font-style:italic}
+.detail .calc-step{font-size:12px;color:var(--m2);margin:4px 0;padding-left:12px;border-left:2px solid var(--dim)}
+.detail .highlight{font-weight:600;color:var(--accent)}
+.detail a{color:var(--accent);text-decoration:none}
+.detail a:hover{text-decoration:underline}
+
+/* 章节内的"图示+方法+实例"三栏 */
+.detail .triple{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0}
+.detail .triple .tk{background:rgba(255,255,255,0.02);border-radius:6px;padding:10px;border-left:2px solid var(--accent)}
+.detail .triple .tk.method{border-left-color:var(--green)}
+.detail .triple .tk.instance{border-left-color:var(--amber)}
+.detail .triple .tk .tk-l{font-size:10px;font-weight:700;color:var(--m3);letter-spacing:0.1em;margin-bottom:4px}
+.detail .triple .tk.method .tk-l{color:var(--green)}
+.detail .triple .tk.instance .tk-l{color:var(--amber)}
+.detail .triple .tk .tk-c{font-size:11px;color:var(--text);line-height:1.6}
+.detail .triple .tk .tk-c b{color:var(--accent)}
+
+/* 嵌套追问框 */
+.detail .nest{background:rgba(245,158,11,0.04);border:1px solid rgba(245,158,11,0.15);border-radius:6px;padding:10px 12px;margin:8px 0;font-size:12px}
+.detail .nest .nl{font-size:11px;font-weight:700;color:var(--amber);margin-bottom:4px;letter-spacing:0.05em}
+.detail .nest .nc{color:var(--m2);line-height:1.6}
+
+/* 双层批判块 */
+.detail .critique{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.detail .critique .cq{background:rgba(255,255,255,0.02);border-radius:4px;padding:8px 10px;font-size:11px}
+.detail .critique .cq.self{color:var(--text)}
+.detail .critique .cq.oppo{color:var(--m2)}
+.detail .critique .cq .cl{font-weight:700;margin-bottom:3px;font-size:10px;letter-spacing:0.05em}
+.detail .critique .cq.self .cl{color:var(--accent)}
+.detail .critique .cq.oppo .cl{color:var(--amber)}
+
+/* 信号灯 */
+.detail .signal{display:flex;gap:6px;margin:6px 0;flex-wrap:wrap}
+.detail .signal .sg{padding:3px 8px;border-radius:4px;font-size:10px;font-weight:600}
+.detail .signal .sg.on{background:rgba(34,197,94,0.12);color:var(--green)}
+.detail .signal .sg.off{background:rgba(255,255,255,0.04);color:var(--dim)}
+.detail .signal .sg.watch{background:rgba(245,158,11,0.12);color:var(--amber)}
+
+/* ═══ 风险区 ═══ */
+.risks{margin-top:20px;background:rgba(239,68,68,0.04);border-radius:var(--r);padding:18px 20px;border:1px solid rgba(239,68,68,0.1)}
+.risks h4{font-size:14px;font-weight:600;color:var(--amber);margin-bottom:10px}
+.risks .risk-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.risks .rk-item{font-size:12px;color:var(--m2);line-height:1.6}
+.risks .rk-item strong{color:var(--text)}
+.risks .monitor{margin-top:14px;font-size:12px;color:var(--m2)}
+.risks .monitor b{color:var(--accent)}
+
+/* ═══ 附录区块 ═══ */
+.appendix{background:var(--card);border-radius:var(--r);margin-top:22px;padding:20px;border:1px solid rgba(255,255,255,0.04)}
+.appendix h2{font-size:16px;font-weight:700;color:var(--accent);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.appendix h2::before{content:"";display:inline-block;width:4px;height:16px;background:var(--accent);border-radius:2px}
+.appendix .ap-desc{font-size:12px;color:var(--m2);margin-bottom:14px;line-height:1.6}
+.appendix iframe{width:100%;border:none;border-radius:8px;background:#0a0c12;margin:10px 0}
+.appendix .ap-tabs{display:flex;gap:4px;margin-bottom:10px}
+.appendix .ap-tabs button{padding:6px 14px;border:1px solid rgba(255,255,255,0.08);background:transparent;border-radius:6px;cursor:pointer;font-size:12px;color:var(--m2)}
+.appendix .ap-tabs button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.appendix .ap-content{display:none}
+.appendix .ap-content.active{display:block}
+.appendix .ap-content table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}
+.appendix .ap-content th,.appendix .ap-content td{padding:6px 10px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.05)}
+.appendix .ap-content th{color:var(--m3);font-weight:500;font-size:11px}
+.appendix .ap-content td{color:var(--text)}
+.appendix .ap-content code{background:rgba(255,255,255,0.04);padding:1px 6px;border-radius:4px;color:var(--accent);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px}
+.appendix .glossary-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.appendix .glossary-grid .gt{font-size:11px;color:var(--m2);padding:6px 10px;background:rgba(255,255,255,0.02);border-radius:4px}
+.appendix .glossary-grid .gt b{color:var(--text);margin-right:6px}
+
+/* ═══ 响应式 ═══ */
+@media(max-width:640px){
+  .topbar{flex-direction:column;align-items:flex-start}
+  .cbar{gap:10px}
+  .overview{grid-template-columns:1fr}
+  .methodo .mt-grid{grid-template-columns:1fr}
+  .layer .metrics{flex-direction:column;gap:4px}
+  .risks .risk-grid{grid-template-columns:1fr}
+  .detail .triple{grid-template-columns:1fr}
+  .detail .critique{grid-template-columns:1fr}
+  .appendix .glossary-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 顶栏 -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="topbar">
+  <div class="brand"><div class="dot"></div>宁德时代<span>·</span>相变与重估 V1.0</div>
+  <div class="sc-tabs" id="tabs">
+    <button data-s="pessimistic">悲观</button>
+    <button data-s="baseline" class="active">基准</button>
+    <button data-s="optimistic">乐观</button>
+  </div>
+  <div class="cbar" id="cbar">
+    <div class="ci"><div class="cv" style="color:var(--green)" id="h_yr">8-10年</div><div class="cl">可投年限</div></div>
+    <div class="ci"><div class="cv" style="color:var(--accent)" id="h_rx">2.02x</div><div class="cl">总回报</div></div>
+    <div class="ci"><div class="cv" style="color:var(--green)" id="h_cg">7.3%</div><div class="cl">年化回报</div></div>
+    <div class="ci"><div class="cv" id="h_mc">3.55万亿</div><div class="cl">2035终端市值</div></div>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 方法论索引卡：图示+方法+实例 三层结构 -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="methodo" id="methodo">
+<h3>本报告方法论：图示 × 方法 × 实例</h3>
+<div class="mt-grid">
+  <div class="mt-item">
+    <div class="mt-l">图示</div>
+    <div class="mt-c">每一章都先给出<b>可视化</b>——结构图、信号灯、决策矩阵。让读者一眼看到全章骨架。</div>
+  </div>
+  <div class="mt-item">
+    <div class="mt-l">方法</div>
+    <div class="mt-c">采用<b>共振决策框架 + Q6 要素重构推演 + 双层批判追问</b>三种方法论交叉验证。详见 <a href="#appendixA" style="color:var(--accent)">附录A</a>。</div>
+  </div>
+  <div class="mt-item">
+    <div class="mt-l">实例</div>
+    <div class="mt-c">用<b>宁德时代 2025-2026 年</b>最新数据做锚定——超级科技日、巧克力换电、电池银行、10万座目标。</div>
+  </div>
+</div>
+<div class="mt-flow">
+  <b>阅读路径建议</b>：从 L0（物理基础）→ L1-L3（需求与护城河）→ L4-L5（业务模式与现状估值）→ <b>L8（业务相变识别 · 核心）</b> → L9（估值重估）→ L6-L7（储能/V2G）→ L10（竞争）→ 风险与附录。<br>
+  <b>共振视角</b>：本报告贯穿"知-行-合"三层追问——<b>知</b>层（信息+认知）对应 L0-L3，<b>行</b>层（执行+行动）对应 L4-L7，<b>合</b>层（产出+共振）对应 L8-L9。<code>L0-L3 验基础 → L4-L7 测执行 → L8-L9 判产出</code>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 三情景概览（顶栏场景切换驱动） -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="overview" id="overview">
+  <div class="ov-card" data-s="pessimistic">
+    <span class="tag pes">悲观</span>
+    <div class="yr" id="ov_yr">5-8年</div>
+    <div class="rx" id="ov_rx">0.34x</div>
+    <div class="cg" id="ov_cg">-10.2%</div>
+    <div class="mc" id="ov_mc">0.44万亿</div>
+    <div class="desc" id="ov_desc">换电利用率低于临界限→大面积亏损→回归纯制造商估值+市占率侵蚀</div>
+  </div>
+  <div class="ov-card hl" data-s="baseline">
+    <span class="tag bas">基准</span>
+    <div class="yr" id="ov_yr">8-10年</div>
+    <div class="rx" id="ov_rx">2.02x</div>
+    <div class="cg" id="ov_cg">7.3%</div>
+    <div class="mc" id="ov_mc">3.55万亿</div>
+    <div class="desc" id="ov_desc">制造四板块稳健+换电运营突破临界触发估值切换+储能CAGR 25%</div>
+  </div>
+  <div class="ov-card" data-s="optimistic">
+    <span class="tag opt">乐观</span>
+    <div class="yr" id="ov_yr">10-12年</div>
+    <div class="rx" id="ov_rx">3.8x</div>
+    <div class="cg" id="ov_cg">14.4%</div>
+    <div class="mc" id="ov_mc">7.0万亿</div>
+    <div class="desc" id="ov_desc">换电网络效应形成→估值切换完成→制造超基线40%→利润PE自洽</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 逻辑层 0：物理基础 -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="layer pass" id="l0">
+<div class="head" onclick="toggle('l0')">
+  <div class="idx">L0</div>
+  <span class="status ok">高确定性</span>
+  <div class="body">
+    <h3>电池产业存在的前提是什么？</h3>
+    <div class="oneliner">电磁力是四种基本力中唯一可精准控制的力。只要三个物理定律不崩塌，电池产业就有百年尺度的存续基础。这几乎是投资分析中能获得的最高级别确定性。</div>
+    <div class="metrics">
+      <div class="m"><div class="mv" style="color:var(--green)">≈ 0</div><div class="ml">物理定律被颠覆概率</div></div>
+      <div class="m"><div class="mv" style="color:var(--green)">100年级</div><div class="ml">产业存续确定性</div></div>
+      <div class="m"><div class="mv" style="color:var(--green)">唯一可控</div><div class="ml">电磁力 vs 其他基本力</div></div>
+    </div>
+  </div>
+  <div class="arr">▼</div>
+</div>
+<div class="detail">
+  <div class="sec-title">图示+方法+实例</div>
+  <div class="triple">
+    <div class="tk">
+      <div class="tk-l">图示</div>
+      <div class="tk-c">四基本力对比表：电磁力(力程∞, 可控) vs 引力(力程∞, 不可控) vs 强力(10⁻¹⁵m) vs 弱力(衰变)</div>
+    </div>
+    <div class="tk method">
+      <div class="tk-l">方法</div>
+      <div class="tk-c">第一性原理+物理学定律反证。问"什么不变"而不是"什么会变"</div>
+    </div>
+    <div class="tk instance">
+      <div class="tk-l">实例</div>
+      <div class="tk-c">宁德存在的物理基础 = 电磁力的可控性，与公司战略无关</div>
+    </div>
+  </div>
+
+  <div class="sec-title">推导逻辑</div>
+  <p>四种基本力中，<strong>只有电磁力可以精准控制</strong>（电压/电流/频率任意调节）。强力只在原子核尺度起作用（10⁻¹⁵m），弱力只决定放射性衰变，引力不可屏蔽不可调控。因此，<strong>电气化是工业文明的物理终点</strong>——所有能源转化最终都要经过"电磁力"这个中介。</p>
+  <p>而电池的物理本质是<strong>在微观尺度上控制电子和离子的迁移</strong>——这天然是电磁力的应用范畴。电池产业的存续性，等同于电磁力的可控性。</p>
+
+  <div class="sec-title">物理定律稳定性矩阵</div>
+  <table>
+    <tr><th>物理定律</th><th>如果被颠覆</th><th>对电池产业的影响</th><th>被颠覆概率</th></tr>
+    <tr><td>电荷守恒</td><td>真空零点能可提取→能源体系重构</td><td style="color:var(--red)">淘汰</td><td style="color:var(--green)">极低</td></tr>
+    <tr><td>光子无静质量</td><td>电磁力力程受限→长距离输电失效</td><td style="color:var(--green)">不受影响</td><td style="color:var(--green)">极低</td></tr>
+    <tr><td>光速恒定</td><td>时间同时性崩塌→数字文明崩塌</td><td style="color:var(--green)">不受影响</td><td style="color:var(--green)">极低</td></tr>
+  </table>
+
+  <div class="sec-title">为什么这很重要？</div>
+  <p>投资的终极风险是<strong>产业本身消失了</strong>。任何基于"电池产业将继续存在10年以上"的投资决策，其前提就是 L0 层给出的答案。这个确定性是其他所有分析的地基。</p>
+  <div class="src">来源：PBL框架 §第0层 · 量子场论 + 经典电磁学 · 2026-03-19_宁德时代_PBL框架.md</div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 逻辑层 1：储能必要 -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="layer pass" id="l1">
+<div class="head" onclick="toggle('l1')">
+  <div class="idx">L1</div>
+  <span class="status ok">高确定性</span>
+  <div class="body">
+    <h3>储能是否必要？</h3>
+    <div class="oneliner">电力必须实时平衡（物理定律），但发电时间和用电时间天然错配。只要光伏（白天发晚上用）和电动车（瞬时高功率）持续增长，储能就必要。</div>
+    <div class="metrics">
+      <div class="m"><div class="mv" style="color:var(--green)" id="v_demand">6.78 TWh</div><div class="ml">2035全球电池年需求(基准)</div></div>
+      <div class="m"><div class="mv" style="color:var(--green)">15-20%</div><div class="ml">年复合增速</div></div>
+      <div class="m"><div class="mv" style="color:var(--green)">3大场景</div><div class="ml">时间·功率·可靠性错配</div></div>
+    </div>
+  </div>
+  <div class="arr">▼</div>
+</div>
+<div class="detail">
+  <div class="sec-title">核心矛盾：电能不能大规模存储</div>
+  <p>电能是目前唯一<strong>不能大规模直接存储</strong>的能源形式（物理原理：电荷分离需要介电材料，大规模储能必须转化为化学能）。电力系统的"发电=用电"是毫秒级的物理约束。但当光伏占发电比例超过20%后，"白天发晚上用"的时间差无法靠电网调度解决。</p>
+
+  <div class="sec-title">三种不可回避的储能场景</div>
+  <table>
+    <tr><th>场景</th><th>核心矛盾</th><th>物理原理</th><th>是否必须储能</th></tr>
+    <tr><td>时间错配（光伏）</td><td>发电时间(白天) ≠ 用电时间(夜间)</td><td>太阳辐射不可储存</td><td style="color:var(--green)">必须</td></tr>
+    <tr><td>功率错配（电动车/超充）</td><td>瞬时功率 > 发电能力</td><td>功率=能量/时间，能量密度有限</td><td style="color:var(--green)">必须</td></tr>
+    <tr><td>可靠性（极端天气）</td><td>发电中断风险</td><td>天气是混沌系统</td><td style="color:var(--green)">必须</td></tr>
+  </table>
+
+  <div class="sec-title">需求测算</div>
+  <table>
+    <tr><th>细分</th><th>悲观</th><th>基准</th><th>乐观</th></tr>
+    <tr><td>动力电池(TWh)</td><td>2.54</td><td id="t1_ev">3.50</td><td>4.78</td></tr>
+    <tr><td>储能电池(TWh)</td><td>1.34</td><td id="t1_es">1.85</td><td>2.52</td></tr>
+    <tr><td>消费+其他(TWh)</td><td>1.04</td><td>1.43</td><td>1.90</td></tr>
+    <tr><td><strong>合计(TWh)</strong></td><td><strong>4.92</strong></td><td id="t1_tot"><strong>6.78</strong></td><td><strong>9.20</strong></td></tr>
+  </table>
+  <div class="calc-step">动力电池需求 = 全球汽车销量 × 电动化率 × 单车带电量</div>
+  <div class="calc-step">基准：9,500万辆 × 65% × 55kWh = 3.50 TWh</div>
+  <div class="src">来源：PBL框架 §问题1 · IEA全球电动汽车展望2025 · BNEF · GGII</div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 逻辑层 2：锂电不可替代 -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="layer pass" id="l2">
+<div class="head" onclick="toggle('l2')">
+  <div class="idx">L2</div>
+  <span class="status ok">高确定性</span>
+  <div class="body">
+    <h3>锂电会被替代吗？</h3>
+    <div class="oneliner">三步推导锁定锂的不可替代性：①微观化学键能(~eV)比宏观机械能(~meV)高千倍 ②电化学是唯一可控×可逆×高效的能量转换方式 ③锂是周期表最轻金属，电极电位最低——这是元素周期表决定的物理底层上限。</div>
+    <div class="metrics">
+      <div class="m"><div class="mv" style="color:var(--green)">6.94</div><div class="ml">锂原子量(最轻金属)</div></div>
+      <div class="m"><div class="mv" style="color:var(--green)">-3.04V</div><div class="ml">电极电位(最低)</div></div>
+      <div class="m"><div class="mv" style="color:var(--green)">90%+</div><div class="ml">核心市场份额</div></div>
+    </div>
+  </div>
+  <div class="arr">▼</div>
+</div>
+<div class="detail">
+  <div class="sec-title">三步推导</div>
+  <p><strong>第一步：微观 vs 宏观</strong>——化学键能(eV量级)比机械运动能量密度(meV量级)高约三个数量级。这是物理铁律，不是工程问题。</p>
+  <p><strong>第二步：电化学 vs 其他</strong>——核能不可控，机械能能量密度太低，热能卡诺效率有理论上限。电化学在可控性×可逆性×效率上<strong>同时占优</strong>。</p>
+  <p><strong>第三步：锂 vs 其他元素</strong>——</p>
+
+  <table>
+    <tr><th>元素</th><th>原子量</th><th>电极电位</th><th>理论能量密度</th><th>实际应用</th></tr>
+    <tr><td style="color:var(--accent);font-weight:700">锂 Li</td><td>6.94</td><td>-3.04V</td><td style="color:var(--green)">最高</td><td>动力·储能·AIDC</td></tr>
+    <tr><td>钠 Na</td><td>22.99</td><td>-2.71V</td><td>中(低30-40%)</td><td>低端储能</td></tr>
+    <tr><td>钾 K</td><td>39.10</td><td>-2.93V</td><td>低</td><td>实验室</td></tr>
+    <tr><td>镁 Mg</td><td>24.31</td><td>-2.37V</td><td>高</td><td>早期研究(固态瓶颈)</td></tr>
+  </table>
+
+  <div class="sec-title">固态电池的影响</div>
+  <p>固态电池预计 <strong>2032 年之后</strong>才具备规模化量产条件，且核心仍是锂基体系（锂金属负极 + 固态电解质）——锂的优势不是被削弱，而是被强化。固态电池的颠覆对象是液态电解液体系，不是电化学本身。</p>
+
+  <div class="sec-title">结论</div>
+  <p>在可预见的 10-15 年内，不存在从物理底层超越锂电的技术路径。钠电只能补低端，氢燃料卡在基础设施，液流电池能量密度太低不适合移动场景。锂的物理优势是<strong>周期表决定的</strong>。</p>
+  <div class="src">来源：PBL框架 §问题2-3 · 元素周期表第一族碱金属 · 电化学标准电极电位表</div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 逻辑层 3：宁德护城河 -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="layer pass" id="l3">
+<div class="head" onclick="toggle('l3')">
+  <div class="idx">L3</div>
+  <span class="status ok">高确定性</span>
+  <div class="body">
+    <h3>宁德时代能持续领先吗？</h3>
+    <div class="oneliner">市占率39.2%全球第一，年研发200亿+，全技术路线覆盖(LFP/NMC/钠电/凝聚态/固态)，~4000亿现金储备。护城河是三位一体的系统优势——追赶者无论从哪个方向进攻，都会遇到防线。</div>
+    <div class="metrics">
+      <div class="m"><div class="mv" style="color:var(--green)" id="v_share">39.2%</div><div class="ml">全球动力市占率</div></div>
+      <div class="m"><div class="mv" style="color:var(--green)">200亿+</div><div class="ml">年研发投入</div></div>
+      <div class="m"><div class="mv" style="color:var(--green)">~4000亿</div><div class="ml">类现金储备</div></div>
+    </div>
+  </div>
+  <div class="arr">▼</div>
+</div>
+<div class="detail">
+  <div class="sec-title">三位一体的竞争壁垒</div>
+  <table>
+    <tr><th>壁垒维度</th><th>具体表现</th><th>竞争对手差距</th></tr>
+    <tr><td><strong>全技术覆盖</strong></td><td>LFP/NMC/钠电/凝聚态/固态/M3P全路线并行</td><td>比亚迪仅LFP+刀片，LG仅三元</td></tr>
+    <tr><td><strong>规模效应</strong></td><td>低成本→更多订单→更大规模正反馈</td><td>二线企业毛利率低5-10pct</td></tr>
+    <tr><td><strong>研发投入</strong></td><td>200亿+/年是比亚迪以外所有车企自研总和的数倍</td><td>比亚迪约120亿，LG约80亿</td></tr>
+  </table>
+
+  <div class="sec-title">核心人物</div>
+  <p><strong>曾毓群</strong>：中科院物理所博士，ATL(消费锂电世界第一)创始人。电化学底层认知 + 顶级商业决断力。"赌性坚强"不是盲目赌博，是基于技术物理本质的理性重仓。两次逆周期押注(ATL→消费电子爆发，CATL→电动车爆发)均踩在行业势能最低点。</p>
+
+  <div class="sec-title">资产负债表优势</div>
+  <p>应付账款167.9天 vs 应收账款59.7天 = 对上游账期是对下游的<strong>2.8倍</strong>。宁德本质上是产业链的"准金融机构"——这种定价权需要资产负债表绝对健康作为信用背书。</p>
+  <div class="src">来源：PBL框架 §问题4 · 2025年年报 · SNE Research</div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 逻辑层 4：商业模式进化 ⚠️ 关键变量 -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="layer warn" id="l4">
+<div class="head" onclick="toggle('l4')">
+  <div class="idx">L4</div>
+  <span class="status caution">关键变量</span>
+  <div class="body">
+    <h3>商业模式是否在进化？</h3>
+    <div class="oneliner">同一块电池，自持运营的全生命周期利润是纯制造的3.2倍。宁德正通过超换一体网络争夺电池标准定义权。但换电利用率是核心风险——日均低于70次则大面积亏损，这是当前最大的变量。</div>
+    <div class="metrics">
+      <div class="m"><div class="mv" style="color:var(--amber)" id="v_ops">14.5%</div><div class="ml">运营利润占比(2035基准)</div></div>
+      <div class="m"><div class="mv" style="color:var(--green)">3.2x</div><div class="ml">运营vs制造单电池利润</div></div>
+      <div class="m"><div class="mv" style="color:var(--amber)">70次/日</div><div class="ml">换电站盈亏平衡线</div></div>
+    </div>
+  </div>
+  <div class="arr">▼</div>
+</div>
+<div class="detail">
+  <div class="sec-title">为什么商业模式必须进化？</div>
+  <p><strong>三重威胁</strong>：①车企自研电池(比亚迪、特斯拉、广汽等) ②滑板底盘(CTC/CTB)将电池"焊死"在别人底盘里 ③超充爆发(比亚迪闪充5分钟10-70%)——如果只做"卖电池"，将退化为可替换的零部件供应商。</p>
+
+  <div class="sec-title">宁德的应对：超换一体网络</div>
+  <p>战略意图：通过换电站网络<strong>锁定电池标准</strong>（类比USB-C），从"零部件供应商"升级为"能源基础设施运营商"。</p>
+
+  <div class="sec-title">运营业务利润测算（三情景2035年）</div>
+  <table>
+    <tr><th>子项</th><th>悲观</th><th>基准</th><th>乐观</th><th>计算方式</th></tr>
+    <tr><td>超换一体站(亿)</td><td>~19</td><td>167</td><td>380</td><td>站数 × 单站利润 × 利用率</td></tr>
+    <tr><td>储能电站运营(亿)</td><td>~48</td><td>152</td><td>180</td><td>容量 × 0.20元/Wh服务费</td></tr>
+    <tr><td><strong>运营合计(亿)</strong></td><td><strong>67</strong></td><td id="t4_ops"><strong>319</strong></td><td><strong>560</strong></td><td></td></tr>
+    <tr><td>制造业务(亿)</td><td>358</td><td>1,633</td><td>2,300</td><td>动力+储能+消费+回收</td></tr>
+    <tr><td>生态投资(亿)</td><td>10</td><td>248</td><td>340</td><td>CVC+矿权+合资</td></tr>
+    <tr><td style="color:var(--accent);font-weight:700">归母合计(亿)</td><td style="color:var(--accent);font-weight:700">435</td><td style="color:var(--accent);font-weight:700" id="t4_tot">2,200</td><td style="color:var(--accent);font-weight:700">3,200</td><td></td></tr>
+    <tr><td style="color:var(--amber)">运营占比</td><td style="color:var(--amber)">15.4%</td><td style="color:var(--amber)" id="t4_ratio">14.5%</td><td style="color:var(--amber)">17.5%</td><td></td></tr>
+  </table>
+
+  <div class="calc-step">换电站基准：10,000座 × 166.9万/座/年利润 = 167亿</div>
+  <div class="calc-step">储能运营基准：758.5GWh × 0.20元/Wh年服务费 = 152亿</div>
+  <div class="calc-step">制造四板块合计基准：动力813 + 储能307 + 消费电子244 + 回收270 = 1,633亿</div>
+  <div class="calc-step">运营占比 = 319 ÷ (1,633+319+248) = 14.5%</div>
+
+  <p style="margin-top:8px"><strong>为什么运营占比不到20%？</strong>因为分母是全口径——动力电池制造贡献813亿(37%)、储能制造307亿(14%)、消费电子244亿(11%)、回收270亿(12%)。制造四板块的增长被旧模型严重低估。运营的319亿绝对值不小，但制造基数太大。</p>
+
+  <div class="sec-title">最大风险：换电站利用率</div>
+  <p>单站盈亏平衡点约 <strong>70次/日</strong>(纯换电模式)。当前重庆试点日均换电约100-120次(中石化合作站)。但全国铺开后，部分站点可能降至40-50次——大面积亏损风险真实存在。</p>
+  <p><strong>验证节点</strong>：2026年底4,000座站建成后，观察日均换电频次。若全国均值≥90次 → 商业模式跑通；若<70次 → 需重新评估。</p>
+
+  <div class="sec-title">换电站建设节奏</div>
+  <table>
+    <tr><th>时间</th><th>站数</th><th>状态</th></tr>
+    <tr><td>2025(实际)</td><td>520座</td><td>运营中</td></tr>
+    <tr><td>2026E</td><td>1,200座</td><td>建设中</td></tr>
+    <tr><td>2027E</td><td>2,500座</td><td>加速</td></tr>
+    <tr><td>2028E</td><td>4,000座</td><td>自持站到位</td></tr>
+    <tr><td>2031E</td><td>10,000座</td><td>网络效应形成</td></tr>
+  </table>
+  <div class="src">来源：答复.md 模块四/五 · 超换一体总纲 · model.html 分项测算 · 业务分布.md §7.1.1.1 · <a href="业务/资产运营/model.html" target="_blank">打开完整财务模型→</a></div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 逻辑层 5：估值体系 ⚠️ 关键变量 -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="layer warn" id="l5">
+<div class="head" onclick="toggle('l5')">
+  <div class="idx">L5</div>
+  <span class="status caution">关键变量</span>
+  <div class="body">
+    <h3>资本市场怎么定价？</h3>
+    <div class="oneliner">当前PE~25x(制造业逻辑)。运营利润占比突破10%后，市场将被迫引入双轨估值(制造PE + 运营P/AUM)。这个切换一旦发生，估值中枢将系统性抬升。切换窗口在2029-2031年。</div>
+    <div class="metrics">
+      <div class="m"><div class="mv" style="color:var(--accent)" id="v_pe">~25x</div><div class="ml">当前TTM PE(制造逻辑)</div></div>
+      <div class="m"><div class="mv" style="color:var(--green)" id="v_sw">2029-2031</div><div class="ml">估值切换触发窗口</div></div>
+      <div class="m"><div class="mv" style="color:var(--green)">3.55万亿</div><div class="ml">2035基准市值</div></div>
+    </div>
+  </div>
+  <div class="arr">▼</div>
+</div>
+<div class="detail">
+  <div class="sec-title">估值切换的逻辑</div>
+  <p><strong>当前</strong>：市场按制造业PE给宁德定价（TTM PE ~25x，隐含对技术溢价的认可）。</p>
+  <p><strong>未来</strong>：当运营利润占比突破10%且单独披露业务数据时，市场将被迫引入<strong>双轨估值</strong>——制造部分给PE，运营部分给P/AUM倍数。制造PE从25x缓慢降至17x(基准情景)，但运营PE可达20-30x。</p>
+
+  <div class="sec-title">两次估值阶跃</div>
+  <table>
+    <tr><th>阶跃</th><th>触发条件</th><th>时间</th><th>估值变化</th></tr>
+    <tr><td>第一次</td><td>运营利润占比>10% + 独立披露 + REITs发行</td><td>2029</td><td>纯制造PE → 制造PE+AUM倍数</td></tr>
+    <tr><td>第二次</td><td>运营利润占比>15% + AUM>万亿 + REITs全面跑通</td><td>2031</td><td>双轨 → 成熟期重定价</td></tr>
+  </table>
+
+  <div class="sec-title">市值轨迹（2026-2035，万亿RMB）</div>
+  <table>
+    <tr><th>年份</th><th>悲观</th><th>基准</th><th>乐观</th><th>基准PE(隐含)</th></tr>
+    <tr><td>2026</td><td>2.03</td><td>2.03</td><td>2.03</td><td>25x</td></tr>
+    <tr><td>2028</td><td>1.65</td><td>2.12</td><td>2.80</td><td>22x</td></tr>
+    <tr><td>2030</td><td>1.25</td><td>2.58</td><td>4.00</td><td>20x(双轨)</td></tr>
+    <tr><td>2032</td><td>0.85</td><td>3.10</td><td>5.69</td><td>19x(双轨)</td></tr>
+    <tr><td>2035</td><td>0.44</td><td id="t5_mc">3.55</td><td>7.04</td><td>17x(稳态)</td></tr>
+  </table>
+
+  <div class="sec-title">回报拆解（基准情景，2035年）</div>
+  <table>
+    <tr><th>回报来源</th><th>数值</th><th>说明</th></tr>
+    <tr><td>资本利得</td><td style="color:var(--green)">1.75x</td><td>(3.55-2.03)/2.03，年化5.8%</td></tr>
+    <tr><td>累计分红</td><td>0.27x</td><td>10年累计归母净利润13,750亿 × 40% / 2.03万亿</td></tr>
+    <tr><td style="color:var(--accent);font-weight:700">总回报</td><td style="color:var(--accent);font-weight:700">2.02x</td><td>年化7.3%</td></tr>
+  </table>
+
+  <div class="calc-step">分红估算：全口径归母利润轨迹 800→2,200亿 × 40% 分红率 → 10年累计分5,500亿</div>
+
+  <div class="sec-title">共振框架视角</div>
+  <p>实体场（宁德）正在从制造商向运营商转型，资本场（市场）仍在用制造业PE定价 → <strong>双场存在错位</strong> → 这可能是α的来源。当市场意识到运营业务的价值时，估值切换本身就构成向上的催化剂。</p>
+  <div class="src">来源：答复.md 模块四/五 · 业务分布.md §7 · 共振投资框架 §L3 · <a href="业务/资产运营/model.html" target="_blank">打开完整财务模型→</a></div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 逻辑层 6：储能深研（第二增长曲线） -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="layer pass" id="l6">
+<div class="head" onclick="toggle('l6')">
+  <div class="idx">L6</div>
+  <span class="status ok">增量确定性</span>
+  <div class="body">
+    <h3>储能：集中式+分布式双轨的"第二增长曲线"</h3>
+    <div class="oneliner">储能业务与换电是同源业务（都是电化学×电力系统解耦），但走的是另一条路：外供电池给电站（卖货）→ 自营集中式储能（重资产）→ 工商业微网（分布式）→ V2G（想象力）。宁德在双轨上同时跑通，制造与运营比例 85:15 → 70:30 演化。</div>
+    <div class="metrics">
+      <div class="m"><div class="mv" style="color:var(--green)">758.5 GWh</div><div class="ml">2035年宁德储能运营规模</div></div>
+      <div class="m"><div class="mv" style="color:var(--green)">152亿</div><div class="ml">2035年储能运营年利润</div></div>
+      <div class="m"><div class="mv" style="color:var(--amber)">双轨</div><div class="ml">集中式+分布式</div></div>
+    </div>
+  </div>
+  <div class="arr">▼</div>
+</div>
+<div class="detail">
+
+  <div class="sec-title">图示+方法+实例</div>
+  <div class="triple">
+    <div class="tk">
+      <div class="tk-l">图示</div>
+      <div class="tk-c">宁德储能业务"四象限"：<br>① <b>外供</b>：电池卖给电力央国企（占比~70%，纯制造）<br>② <b>自营集中式</b>：独立储能电站（重资产，2025起加速）<br>③ <b>分布式微网</b>：零碳园区+工商业储能（自建为主）<br>④ <b>V2G</b>：换电网络开放为VPP（2026下半年）</div>
+    </div>
+    <div class="tk method">
+      <div class="tk-l">方法</div>
+      <div class="tk-c">共振框架的"行-Q"——能力圈检验：<br>宁德是否具备从"卖货"到"运营"的全能力？<br>答案：是的，电化学底层×电力电子×能源管理三栈能力闭环</div>
+    </div>
+    <div class="tk instance">
+      <div class="tk-l">实例</div>
+      <div class="tk-c">零碳园区模式：宁德在宜宾/宁德/溧阳等地自建电池+储能+光伏一体化园区，<b>边供电边验证商业模式</b>，是工商业微网的"样板工程"</div>
+    </div>
+  </div>
+
+  <div class="sec-title">集中式储能：外供为主，自营加速</div>
+  <p>全球储能市场正在爆发，但宁德的打法是<b>"先外供后自营"</b>：</p>
+  <table>
+    <tr><th>模式</th><th>占比</th><th>利润水平</th><th>CAPEX承担方</th></tr>
+    <tr><td>外供电池（卖给电力央国企）</td><td>~70%</td><td>毛利率18-22%（制造逻辑）</td><td>买方承担</td></tr>
+    <tr><td>自营独立储能电站</td><td>~20%</td><td>IRR 8-12%（运营逻辑）</td><td>宁德承担</td></tr>
+    <tr><td>自建微网（零碳园区）</td><td>~10%</td><td>IRR 10-15%（综合能源）</td><td>宁德承担</td></tr>
+  </table>
+  <p>外供模式优点：轻资产、快周转、风险低。缺点：定价权弱、毛利薄。</p>
+  <p>自营模式优点：高定价权（0.2元/Wh服务费 × 长协）、长协稳定、估值倍数高。缺点：重资产、回收期长。</p>
+  <p><b>战略意图</b>：用外供模式积累产品口碑→用自营模式捕获运营溢价。两条线不冲突，互为补充。</p>
+
+  <div class="sec-title">分布式储能：零碳园区的样板工程</div>
+  <p>宁德在宜宾、宁德本部、溧阳等地已建多个"源网荷储"一体化零碳园区，<b>用电负荷 + 光伏发电 + 储能调节</b>三件套打包。这不是单纯卖电池，而是卖<b>一体化能源解决方案</b>——利润率比纯电池销售高3-5倍。</p>
+  <div class="nest">
+    <div class="nl">方法论：为什么分布式要先"自建"再"输出"？</div>
+    <div class="nc">任何To B的能源运营方案都需要<b>实证样板</b>。宁德先用自己的园区做示范工程，跑通后再向其他工业园区输出。这是"自己先吃自己的狗粮"的方法论，与SaaS行业的"自用→输出"路径同源。</div>
+  </div>
+
+  <div class="sec-title">电化学vs其他储能手段：物理层面的不可替代性</div>
+  <table>
+    <tr><th>储能手段</th><th>能量密度</th><th>成本</th><th>分布式友好度</th><th>微网适用性</th></tr>
+    <tr><td style="color:var(--green);font-weight:700">电化学(锂电)</td><td>高（200-300 Wh/kg）</td><td>中（持续降本）</td><td><b>★★★★★</b></td><td><b>★★★★★</b></td></tr>
+    <tr><td>飞轮储能</td><td>中（5-50 Wh/kg）</td><td>高</td><td>★</td><td>★</td></tr>
+    <tr><td>超级电容</td><td>低（5-10 Wh/kg）</td><td>极高</td><td>★★</td><td>★★</td></tr>
+    <tr><td>压缩空气</td><td>中</td><td>低</td><td>×（需大型洞穴）</td><td>×</td></tr>
+    <tr><td>重力储能</td><td>低</td><td>中</td><td>×（需高层建筑）</td><td>×</td></tr>
+    <tr><td>氢储能</td><td>极高（质量能量密度）</td><td>高</td><td>★★（需配套基础设施）</td><td>★</td></tr>
+  </table>
+  <p><b>结论</b>：电化学（锂电）是<b>唯一同时具备高能量密度+低成本+分布式友好+微网适用</b>的储能手段。其他手段各有致命短板，无法构成对锂电的替代威胁。这一物理事实直接锁定了宁德在储能领域的"底层基础设施"地位。</p>
+
+  <div class="sec-title">双层批判追问</div>
+  <div class="critique">
+    <div class="cq self">
+      <div class="cl">核心假设批判</div>
+      我假设"电化学不可替代"——最脆弱的点是<b>氢储能</b>。如果绿氢制造成本2030年后降到与锂电平价，分布式储能格局可能被重塑。但目前绿氢LCOH约15-20元/kg，距平价还需3-5倍成本下降。
+    </div>
+    <div class="cq oppo">
+      <div class="cl">反方立场批判</div>
+      反方会说"你高估了分布式储能的市场——大型集中式电站+特高压输电才是中国电力系统的终局"。反驳：分布式不是要替代集中式，而是<b>补充</b>集中式无法解决的"源荷不匹配+末端灵活性"问题。
+    </div>
+  </div>
+  <div class="src">来源：超换一体_总纲.md §4 · 业务分布.md §储能板块 · 宁德时代2025年报</div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 逻辑层 7：V2G与虚拟电厂（分布式储能的想象力） -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="layer pass" id="l7">
+<div class="head" onclick="toggle('l7')">
+  <div class="idx">L7</div>
+  <span class="status methodo">第二性思维</span>
+  <div class="body">
+    <h3>V2G与虚拟电厂：分布式储能的"终极想象力"</h3>
+    <div class="oneliner">2026年下半年起，巧克力换电用户可在电价峰值时段反向售电给换电站，电池从"花钱的消耗品"变成"赚钱的资产"。换电网络天然成为全国最大的分布式VPP——这是任何集中式电站都做不到的，因为没有C端粘性。</div>
+    <div class="metrics">
+      <div class="m"><div class="mv" style="color:var(--green)">100万次/日</div><div class="ml">2028年10万座日换电次数</div></div>
+      <div class="m"><div class="mv" style="color:var(--green)">~2 GWh</div><div class="ml">网络储备电池总容量</div></div>
+      <div class="m"><div class="mv" style="color:var(--amber)">几十元/日</div><div class="ml">C端用户V2G收益</div></div>
+    </div>
+  </div>
+  <div class="arr">▼</div>
+</div>
+<div class="detail">
+
+  <div class="sec-title">图示+方法+实例</div>
+  <div class="triple">
+    <div class="tk">
+      <div class="tk-l">图示</div>
+      <div class="tk-c"><b>三层架构</b>：<br>① <b>末端</b>：10万座换电站 × 2-30块电池 = 海量分布式储能<br>② <b>中间</b>：CATL能源管理平台聚合 + 响应电网调度<br>③ <b>顶端</b>：与南方电网/国家电网调度中心对接，作为VPP</div>
+    </div>
+    <div class="tk method">
+      <div class="tk-l">方法</div>
+      <div class="tk-c">第一性原理：储能解决电力系统<b>时间+空间</b>的供需解耦。集中式储能解决<b>时间</b>错配，分布式VPP同时解决<b>时间+空间</b>错配——分布式必赢</div>
+    </div>
+    <div class="tk instance">
+      <div class="tk-l">实例</div>
+      <div class="tk-c">黄仁勋为解AI算力的电力问题，正在动员各家各户开放闲置电力给AI公司。CATL天然站在这个"分布式电力池"的供给端——<b>类比逻辑</b>完全成立</div>
+    </div>
+  </div>
+
+  <div class="sec-title">为什么换电网络天然是VPP？</div>
+  <p>虚拟电厂（VPP）的三大要素：<b>可控资源 + 双向通信 + 商业结算</b>。换电网络全部具备：</p>
+  <table>
+    <tr><th>VPP要素</th><th>换电网络的对应</th><th>完成度</th></tr>
+    <tr><td>可控资源</td><td>10万座 × 20块电池 = 200万块标准化电池</td><td>★★★★★</td></tr>
+    <tr><td>双向通信</td><td>每块电池BMS实时上传SOC/SOH/温度</td><td>★★★★★</td></tr>
+    <tr><td>商业结算</td><td>峰谷电价差 + 调度服务费 + 容量电费</td><td>★★★★</td></tr>
+  </table>
+  <p>而且换电网络还具备集中式电站没有的优势：<b>不需要额外建储能设施</b>——换电站本身就是储能，且有<b>自带C端用户粘性</b>（每日换电产生高频交互数据）。</p>
+
+  <div class="sec-title">C端V2G的商业闭环</div>
+  <p>用户视角：买了支持V2G的电动车 → 平时接家充（晚间谷电）→ 白天峰值时段反向售电给换电站或电网 → 每天赚几十元。</p>
+  <p>用户为什么愿意？三个动机：<br>① <b>赚钱动机</b>：每天几十元收益（年化1-2万元）<br>② <b>科技体验</b>：手机App实时查看交易流水<br>③ <b>环保叙事</b>：参与碳中和的"具象化行动"</p>
+  <p>换电站为什么愿意？三个动机：<br>① <b>资产周转</b>：电池在V2G中循环充放，提升电池健康度（避免长期满电存放衰减）<br>② <b>峰谷套利</b>：谷电时段充，峰电时段卖，价差0.5-1元/度<br>③ <b>网络效应</b>：更多C端用户接入 → 网络粘性更强</p>
+
+  <div class="sec-title">对标：黄仁勋的"分布式AI电力"逻辑</div>
+  <p>黄仁勋（Jensen Huang）2024年起开始公开呼吁：<b>每个家庭都应成为"分布式AI电厂"</b>——把自己闲置的屋顶光伏+储能电池+电动车电池打包成VPP，卖电给AI算力中心。这是NVIDIA对电力问题的解法。</p>
+  <p>这与CATL的V2G逻辑<b>完全同构</b>：</p>
+  <table>
+    <tr><th>维度</th><th>NVIDIA（AI算力侧）</th><th>CATL（能源供给侧）</th></tr>
+    <tr><td>痛点</td><td>AI算力需要巨量电力</td><td>电力系统需要分布式灵活性</td></tr>
+    <tr><td>解法</td><td>动员C端家庭开放闲置电力</td><td>动员C端电动车+换电网络</td></tr>
+    <tr><td>资产端</td><td>屋顶光伏+储能电池+电动车</td><td>标准化电池+换电网络+能源管理平台</td></tr>
+    <tr><td>结算端</td><td>电费 + 算力服务费</td><td>峰谷价差 + 调度服务费</td></tr>
+  </table>
+  <p>CATL的<b>先发优势</b>：换电网络是<b>已建成的</b>分布式电力池——不需要从零动员用户，已有现成的标准化电池、BMS通信、调度系统。这是NVIDIA想做但做不到的。</p>
+
+  <div class="sec-title">信号灯：V2G的当前进展</div>
+  <div class="signal">
+    <span class="sg on">政策放开（2025）</span>
+    <span class="sg on">技术验证（重庆试点）</span>
+    <span class="sg on">宁德宣布（2026.4科技日）</span>
+    <span class="sg off">C端用户大规模接入</span>
+    <span class="sg off">跨省调度</span>
+    <span class="sg off">VPP聚合资质</span>
+  </div>
+  <p><b>解读</b>：政策、技术、产品三件套已就位，但<b>规模化的"飞轮"尚未启动</b>。这是未来3-5年的关键观察窗口。</p>
+
+  <div class="sec-title">双层批判追问</div>
+  <div class="critique">
+    <div class="cq self">
+      <div class="cl">核心假设批判</div>
+      我假设"用户会为了每天几十元而改变行为"——脆弱点是<b>行为摩擦</b>。实际上用户需要每天插拔充电枪、查看App、做决策——摩擦大于收益，用户会放弃。需要<b>全自动</b>（车网通信自动调度，无需用户介入）才能普及。
+    </div>
+    <div class="cq oppo">
+      <div class="cl">反方立场批判</div>
+      反方会说"分布式VPP是PPT概念，实际电网调度需要<b>毫秒级响应</b>，C端电动车做不到"。反驳：响应时间分为秒级（调频）、分钟级（调峰）、小时级（套利）——后两者C端完全可以承担，前者由专业储能承担。
+    </div>
+  </div>
+  <div class="src">来源：超换一体_总纲.md §2.1 · V2B反向售电机制.md · 2026.4超级科技日杨峻讲话</div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 逻辑层 8：业务相变识别 ⭐ 核心创新章节 -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="layer critical" id="l8">
+<div class="head" onclick="toggle('l8')">
+  <div class="idx">L8</div>
+  <span class="status critical">⭐ 核心论点</span>
+  <div class="body">
+    <h3>业务相变识别：从"电池制造商"到"能源基础设施运营商"</h3>
+    <div class="oneliner">宁德正在经历一场"业务相变"——从原子销售（卖电池）转向比特运营（卖能源服务）。相变有三个可观测的信号：①运营利润占比突破10% ②独立披露业务数据 ③REITs成功发行。当三个信号同时亮起，估值范式必须从"制造业PE"切换到"制造PE+REITs倍数"。</div>
+    <div class="metrics">
+      <div class="m"><div class="mv" style="color:var(--red)">2026</div><div class="ml">当前：相变前夜</div></div>
+      <div class="m"><div class="mv" style="color:var(--amber)">2029</div><div class="ml">第一次估值阶跃窗口</div></div>
+      <div class="m"><div class="mv" style="color:var(--green)">2031</div><div class="ml">成熟期重定价</div></div>
+    </div>
+  </div>
+  <div class="arr">▼</div>
+</div>
+<div class="detail">
+
+  <div class="sec-title">图示+方法+实例</div>
+  <div class="triple">
+    <div class="tk">
+      <div class="tk-l">图示</div>
+      <div class="tk-c"><b>相变曲线</b>：<br>2025前：纯制造（>90%利润）<br>2025-2028：相变前夜（双线并行）<br>2029：第一次阶跃（运营>10%）<br>2031：第二次阶跃（运营>15%）<br>2035：成熟期（制造30% + 运营70%）</div>
+    </div>
+    <div class="tk method">
+      <div class="tk-l">方法</div>
+      <div class="tk-c">采用 <b>Q6 要素重构推演 + 双层批判追问</b>：<br>① Q6 拆解：制造与运营是<b>两个独立业务</b>，估值逻辑不同<br>② 批判：识别"相变失败"vs"相变成功"的边界条件</div>
+    </div>
+    <div class="tk instance">
+      <div class="tk-l">实例</div>
+      <div class="tk-c">曾毓群对外讲"我这么做恰恰证明我的电池好"——<b>刻意淡化</b>"相变"叙事，避免引发"宁德是不是不务正业"的质疑。但战略动作已经全部到位（详见 §L4-L7）</div>
+    </div>
+  </div>
+
+  <div class="sec-title">一、什么是"业务相变"？</div>
+  <p><b>物理学类比</b>：水加热到100℃前是液态（连续升温），到达100℃时相变（突变），100℃以上是气态。相变前后是<b>两种不同性质</b>的"东西"——不能简单外推。</p>
+  <p><b>类比到宁德</b>：</p>
+  <table>
+    <tr><th>类比</th><th>相变前（水）</th><th>相变后（气）</th></tr>
+    <tr><td>宁德业务</td><td>电池制造商</td><td>能源基础设施运营商</td></tr>
+    <tr><td>收入模式</td><td>一次性销售</td><td>持续性服务（BaaS租金+储能运营+调度费）</tr>
+    <tr><td>客户关系</td><td>B2B交易</td><td>直接触达终端用户</td></tr>
+    <tr><td>竞争壁垒</td><td>技术领先（易被超越）</td><td>网络效应（越用越强）</tr>
+    <tr><td>估值逻辑</td><td>制造业PE（15-25x）</td><td>基础设施REITs（资本循环）+ 双轨估值</tr>
+  </table>
+
+  <div class="sec-title">二、相变的三个信号（观测窗口）</div>
+  <p>相变不是"渐变"——它有<b>明确的临界点</b>。以下是三个可观测的信号：</p>
+
+  <table>
+    <tr><th>信号</th><th>定义</th><th>当前状态</th><th>触发条件</th><th>预计时间</th></tr>
+  <tr><td><b>信号A：业务结构</b></td><td>运营利润占比</td><td><span class="signal"><span class="sg off">~3%</span></span></td><td>≥10%（第一次阶跃）<br>≥15%（第二次阶跃）</td><td>2029<br>2031</td></tr>
+  <tr><td><b>信号B：信息披露</b></td><td>独立披露业务数据</td><td><span class="signal"><span class="sg off">未独立</span></span></td><td>运营业务独立披露+管理层单独KPI</td><td>2028-2029</td></tr>
+  <tr><td><b>信号C：退出通道</b></td><td>REITs成功发行</td><td><span class="signal"><span class="sg watch">蔚能已发</span></span></td><td>CATL自有资产包REITs首期发行</td><td>2029</td></tr>
+  </table>
+
+  <div class="signal" style="margin-top:10px">
+    <span class="sg off">信号A：运营占比<3%</span>
+    <span class="sg off">信号B：未独立披露</span>
+    <span class="sg watch">信号C：蔚能REITs已发(参考)</span>
+    <span class="sg on">信号D：换电网络规模化(1470座→2028年10万座)</span>
+  </div>
+
+  <div class="sec-title">三、相变的边界条件（什么时候会失败？）</div>
+  <p>采用 <b>双层批判追问</b> 识别"相变失败"的条件：</p>
+
+  <div class="critique">
+    <div class="cq self">
+      <div class="cl">核心假设批判</div>
+      我假设"换电网络会按计划建成10万座"——脆弱点是<b>单站利用率</b>。如果全国均值低于70次/日，单站亏损，10万座目标大概率推迟。则相变时间从2029推迟到2032+。
+    </div>
+    <div class="cq oppo">
+      <div class="cl">反方立场批判</div>
+      反方会说"宁德的相变是<b>被迫的</b>——纯制造业务被价格战+车厂自研+CTC技术侵蚀，<b>不得不</b>转型"。这个论据是<b>支持</b>相变（不是反对）——因为"被迫"意味着转型决心更强、执行更坚决。
+    </div>
+  </div>
+
+  <div class="nest">
+    <div class="nl">Q6方法论：相变的"前提条件清单"</div>
+    <div class="nc">相变要成功，必须同时满足以下前提：<br>
+    ① <b>基础设施</b>：10万座换电网络建成（2028）<br>
+    ② <b>用户规模</b>：BaaS签约率≥15%乘用车市场（2030）<br>
+    ③ <b>经济模型</b>：电池银行IRR ≥ WACC+200bp（永久）<br>
+    ④ <b>市场认知</b>：卖方分析师开始用双轨估值（2029）<br>
+    ⑤ <b>政策支持</b>：V2G/VPP商业化路径明确（已具备）<br>
+    ⑥ <b>竞争壁垒</b>：巧克力换电标准成为事实标准（2027关键年）<br>
+    任何一项不满足，相变都会被延迟。详见 <a href="#appendixA" style="color:var(--accent)">附录A 嵌套课题A/B/C</a>。
+  </div>
+
+  <div class="sec-title">四、为什么这个时点判断"相变前夜"？</div>
+  <p>2025-2026年是<b>关键观察期</b>，理由如下：</p>
+  <table>
+    <tr><th>维度</th><th>2025-2026关键事件</th><th>对相变的影响</th></tr>
+    <tr><td>基础设施</td><td>1470座→2026年3000+座</td><td>规模化网络初现</td></tr>
+    <tr><td>产品矩阵</td><td>26#换电块(2026.4)·神行超充</td><td>中高端车型覆盖完成</td></tr>
+    <tr><td>合作生态</td><td>中石化·长安·奇瑞·国家电网</td><td>跨产业联盟成型</td></tr>
+    <tr><td>技术标准</td><td>T/CSAE 499—2025发布</td><td>行业标准锁定</td></tr>
+    <tr><td>商业模式</td><td>V2G反向售电2026下半年开放</td><td>C端VPP商业闭环</td></tr>
+    <tr><td>财务表现</td><td>2026Q3首批REITs筹备</td><td>退出通道即将打通</td></tr>
+  </table>
+  <p>所有关键变量都在2025-2026年<b>同时启动</b>，这是判断"相变前夜"的核心依据。</p>
+
+  <div class="sec-title">五、对标：曾毓群在"刻意低调"什么？</div>
+  <p>曾毓群对外的公开叙事："<b>我这么做恰恰证明我的电池好</b>"——刻意回避"战略转型"措辞。这种低调的策略含义：</p>
+  <ul style="font-size:13px;color:var(--m2);line-height:1.8;margin:8px 0 8px 24px">
+    <li><b>避免估值预期提前透支</b>：不主动喊"我们要做运营商" → 避免市场用REITs倍数定价（避免过早触发"利好出尽"）</li>
+    <li><b>避免车企过度防御</b>：不说"我要抢你的底盘" → 车企更愿意合作（避免触发车企加速自研电池）</li>
+    <li><b>对标历史</b>：左晖推真房源时slogan是"对客户好·对员工好"——左晖也没说"我要做中国MLS"。但底层战略动作（建立房源数据库+ACN网络+真房源承诺）全部到位</li>
+  </ul>
+  <p>这是<b>非常老练的公关策略</b>——把战略意图藏在"产品好"的叙事下，用<b>行动</b>而非<b>口号</b>说话。</p>
+  <div class="src">来源：业务分布.md §7 · 换电业务相变与估值影响.md · Q6_要素重构推演 · 超换一体_总纲.md §1.1</div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 逻辑层 9：估值重估（双轨 + 三情景） -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="layer critical" id="l9">
+<div class="head" onclick="toggle('l9')">
+  <div class="idx">L9</div>
+  <span class="status critical">⭐ 投资结论</span>
+  <div class="body">
+    <h3>估值重估：双轨估值切换是最大Alpha</h3>
+    <div class="oneliner">当L8的三个信号亮起，市场将被迫引入双轨估值：制造PE从25x缓慢降至17x（基准），但运营P/AUM可达20-30x。基准情景下，2035年市值3.55万亿（vs当前2.03万亿），总回报2.02x，年化7.3%。切换窗口在2029-2031年——这是未来5年最大Alpha。</div>
+    <div class="metrics">
+      <div class="m"><div class="mv" style="color:var(--accent)">2.02x</div><div class="ml">基准总回报(2035)</div></div>
+      <div class="m"><div class="mv" style="color:var(--green)">7.3%</div><div class="ml">年化回报</div></div>
+      <div class="m"><div class="mv" style="color:var(--green)">3.55万亿</div><div class="ml">2035市值(基准)</div></div>
+    </div>
+  </div>
+  <div class="arr">▼</div>
+</div>
+<div class="detail">
+
+  <div class="sec-title">图示+方法+实例</div>
+  <div class="triple">
+    <div class="tk">
+      <div class="tk-l">图示</div>
+      <div class="tk-c"><b>双轨估值示意</b>：<br>当前：100% × 25x = 25x<br>2030：70%制造×20x + 30%运营×28x = 22.4x<br>2035：30%制造×17x + 70%运营×25x = 22.6x<br><b>切换后</b>：估值中枢从单一PE → 双轨加权</div>
+    </div>
+    <div class="tk method">
+      <div class="tk-l">方法</div>
+      <div class="tk-c">采用 <b>分部估值法（SOTP）</b>：<br>制造业务用PE（对标台积电17-22x）<br>运营业务用P/AUM（对标REITs 25-30x）<br>两者按利润占比加权</div>
+    </div>
+    <div class="tk instance">
+      <div class="tk-l">实例</div>
+      <div class="tk-c">蔚能REITs案例：作为国内首单电池资产证券化，估值参照公募REITs体系（25-30x P/AUM）。这是宁德"自营资产包"未来发行的<b>估值锚</b></div>
+    </div>
+  </div>
+
+  <div class="sec-title">一、当前估值状态（2026年6月）</div>
+  <table>
+    <tr><th>指标</th><th>数值</th><th>含义</th></tr>
+    <tr><td>市值</td><td>~2.03万亿</td><td>当前A股+港股市值合计</td></tr>
+    <tr><td>TTM PE</td><td>~25x</td><td>制造业逻辑定价</td></tr>
+    <tr><td>归母净利润(2025)</td><td>~720亿</td><td>2025年报</td></tr>
+    <tr><td>PB</td><td>~4.2x</td><td>对标台积电(5-6x)、比亚迪(3-4x)</td></tr>
+    <tr><td>DCF隐含增速</td><td>~12%</td><td>未来10年净利润复合增速假设</td></tr>
+  </table>
+  <p>市场目前把宁德当作<b>"技术领先的电池制造企业"</b>，没有给予运营业务的估值溢价。</p>
+
+  <div class="sec-title">二、第一次估值阶跃：制造PE + 运营P/AUM 双轨</div>
+  <p><b>触发条件</b>（详见L8）：</p>
+  <ul style="font-size:13px;color:var(--m2);line-height:1.8;margin:8px 0 8px 24px">
+    <li>运营利润占比 ≥ 10%</li>
+    <li>独立披露业务数据</li>
+    <li>CATL自有资产包REITs首期发行</li>
+  </ul>
+  <p><b>估值变化</b>（基准情景，2030年）：</p>
+  <table>
+    <tr><th>板块</th><th>占比</th><th>估值倍数</th><th>估值贡献</th></tr>
+    <tr><td>动力电池制造</td><td>45%</td><td>20x PE</td><td>9.0x</td></tr>
+    <tr><td>储能电池制造</td><td>15%</td><td>22x PE</td><td>3.3x</td></tr>
+    <tr><td>消费+回收</td><td>10%</td><td>18x PE</td><td>1.8x</td></tr>
+    <tr><td>换电运营</td><td>20%</td><td>28x P/AUM</td><td>5.6x</td></tr>
+    <tr><td>储能运营</td><td>10%</td><td>25x P/AUM</td><td>2.5x</td></tr>
+    <tr><td style="color:var(--accent);font-weight:700">加权PE</td><td>—</td><td>—</td><td style="color:var(--accent);font-weight:700">22.2x</td></tr>
+  </table>
+  <p>注：双轨估值下，运营业务的部分用<b>P/AUM</b>（类似REITs），倍数与PE不同口径。表中已统一折算为PE等价。</p>
+
+  <div class="sec-title">三、第二次估值阶跃：成熟期重定价</div>
+  <p>当运营业务进一步成熟（占比>15%，AUM>万亿，REITs全面跑通），估值倍数<b>二次抬升</b>：</p>
+  <table>
+    <tr><th>板块</th><th>2031占比</th><th>估值倍数</th><th>估值贡献</th></tr>
+    <tr><td>制造业务（合计）</td><td>60%</td><td>19x PE</td><td>11.4x</td></tr>
+    <tr><td>运营业务（合计）</td><td>40%</td><td>30x P/AUM</td><td>12.0x</td></tr>
+    <tr><td style="color:var(--accent);font-weight:700">加权PE</td><td>—</td><td>—</td><td style="color:var(--accent);font-weight:700">23.4x</td></tr>
+  </table>
+  <p>关键变化：运营业务的P/AUM倍数从25x提升到30x（伴随规模化与REITs市场成熟），制造PE继续缓慢下降（17x稳态），整体加权PE反而<b>略有抬升</b>。</p>
+
+  <div class="sec-title">四、三情景市值轨迹</div>
+  <table>
+    <tr><th>年份</th><th>悲观</th><th>基准</th><th>乐观</th><th>基准PE(隐含)</th></tr>
+    <tr><td>2026</td><td>2.03</td><td>2.03</td><td>2.03</td><td>25x（纯制造）</td></tr>
+    <tr><td>2028</td><td>1.65</td><td>2.12</td><td>2.80</td><td>22x（双轨启动）</td></tr>
+    <tr><td>2030</td><td>1.25</td><td>2.58</td><td>4.00</td><td>20x（双轨中段）</td></tr>
+    <tr><td>2032</td><td>0.85</td><td>3.10</td><td>5.69</td><td>19x（双轨成熟）</td></tr>
+    <tr><td>2035</td><td>0.44</td><td>3.55</td><td>7.04</td><td>17x（稳态）</td></tr>
+  </table>
+
+  <div class="sec-title">五、回报拆解（基准情景，2035年）</div>
+  <table>
+    <tr><th>回报来源</th><th>数值</th><th>说明</th></tr>
+    <tr><td>资本利得</td><td style="color:var(--green)">1.75x</td><td>(3.55-2.03)/2.03，年化5.8%</td></tr>
+    <tr><td>累计分红</td><td>0.27x</td><td>10年累计归母净利润13,750亿 × 40% / 2.03万亿</td></tr>
+    <tr><td style="color:var(--accent);font-weight:700">总回报</td><td style="color:var(--accent);font-weight:700">2.02x</td><td>年化7.3%</td></tr>
+  </table>
+  <div class="calc-step">分红估算：全口径归母利润轨迹 800→2,200亿 × 40% 分红率 → 10年累计分5,500亿</div>
+
+  <div class="sec-title">六、为什么是"7.3%年化"而不是"翻倍"？</div>
+  <p>对长期投资者来说，7.3%年化是非常稳健的回报——这不是"短期翻倍"的故事，而是<b>"10年2倍"</b>的复利故事。回报驱动因素分解：</p>
+  <ul style="font-size:13px;color:var(--m2);line-height:1.8;margin:8px 0 8px 24px">
+    <li>净利润增长贡献：~5.5%/年（制造4%+运营8%的加权）</li>
+    <li>估值切换贡献：~1.0%/年（25x→17x再回到22-23x双轨的复杂过程）</li>
+    <li>分红再投贡献：~0.8%/年</li>
+  </ul>
+  <p><b>关键洞察</b>：估值切换的贡献只有1%/年——意味着<b>即使估值完全不切换（永远25x），光靠净利润增长也能贡献5.5%/年</b>。这是一个"安全边际很高"的投资标的：核心是判断"宁德能否持续创造利润增长"，而不是"市场会不会给双轨估值"。</p>
+
+  <div class="sec-title">七、信号灯：估值切换的当前进展</div>
+  <div class="signal">
+    <span class="sg on">卖方开始讨论双轨</span>
+    <span class="sg off">运营业务独立披露</span>
+    <span class="sg watch">REITs首期筹备(2026Q3)</span>
+    <span class="sg off">运营利润占比≥10%</span>
+    <span class="sg on">换电规模化(1470座运行)</span>
+  </div>
+  <div class="src">来源：换电业务相变与估值影响.md · 蔚能REITs案例分析.md · 业务分布.md §7 · <a href="业务/资产运营/model.html" target="_blank">打开完整财务模型→</a></div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 逻辑层 10：竞争与护城河（升级版） -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="layer pass" id="l10">
+<div class="head" onclick="toggle('l10')">
+  <div class="idx">L10</div>
+  <span class="status ok">结构化优势</span>
+  <div class="body">
+    <h3>竞争与护城河：四层壁垒的"系统优势"</h3>
+    <div class="oneliner">宁德的护城河不是单一优势，而是"技术+规模+网络+标准"四层叠加。比亚迪有技术但缺网络，蔚来有网络但缺规模，华为有规模但缺标准。二线企业从任何单一维度进攻，都会撞上至少两层防线。</div>
+    <div class="metrics">
+      <div class="m"><div class="mv" style="color:var(--green)">4层</div><div class="ml">壁垒层级</div></div>
+      <div class="m"><div class="mv" style="color:var(--green)">39.2%</div><div class="ml">全球动力市占率</div></div>
+      <div class="m"><div class="mv" style="color:var(--green)">6家</div><div class="ml">首批加入车企</div></div>
+    </div>
+  </div>
+  <div class="arr">▼</div>
+</div>
+<div class="detail">
+
+  <div class="sec-title">图示+方法+实例</div>
+  <div class="triple">
+    <div class="tk">
+      <div class="tk-l">图示</div>
+      <div class="tk-c"><b>四层壁垒同心圆</b>：<br>① 中心：技术（全路线覆盖）<br>② 内圈：规模（39.2%市占率）<br>③ 中圈：网络（10万座目标）<br>④ 外圈：标准（T/CSAE 499）<br>最外层：生态（数据+金融+碳）</div>
+    </div>
+    <div class="tk method">
+      <div class="tk-l">方法</div>
+      <div class="tk-c">用 <b>五力模型 + 价值网</b> 替代单一维度分析。<br>看对手"缺什么"比"有什么"更能识别护城河</div>
+    </div>
+    <div class="tk instance">
+      <div class="tk-l">实例</div>
+      <div class="tk-c">蔚来NIO Power：3683座换电站但<b>仅服务蔚来品牌</b>——缺"网络"维度的开放性。华为超充联盟：11家车企但缺<b>电池标准</b>——只能卖充电桩不卖电池</div>
+    </div>
+  </div>
+
+  <div class="sec-title">一、四层壁垒详解</div>
+
+  <table>
+    <tr><th>层级</th><th>壁垒内容</th><th>构建时间</th><th>对手差距</th></tr>
+    <tr><td><b>① 技术</b></td><td>LFP/NMC/钠电/凝聚态/固态/M3P全路线</td><td>10年+</td><td>比亚迪仅LFP+刀片，LG仅三元</td></tr>
+    <tr><td><b>② 规模</b></td><td>39.2%全球动力市占率+~4000亿现金</td><td>8年</td><td>二线企业毛利率低5-10pct</td></tr>
+    <tr><td><b>③ 网络</b></td><td>10万座超换一体站(2028目标)</td><td>3年</td><td>蔚来3683座(封闭)、华为未定</td></tr>
+    <tr><td><b>④ 标准</b></td><td>T/CSAE 499—2025 + 巧克力标准</td><td>1年</td><td>无对标标准</td></tr>
+  </table>
+
+  <div class="sec-title">二、主要竞争对手对比</div>
+
+  <table>
+    <tr><th>竞争对手</th><th>电池</th><th>换电</th><th>超充</th><th>对宁德威胁</th><th>核心差距</th></tr>
+    <tr><td><b>比亚迪</b></td><td>✓ 刀片电池</td><td>△ 有储备未规模</td><td>✓ 闪充技术</td><td><b>中</b></td><td>垂直整合但缺开放网络</td></tr>
+    <tr><td><b>蔚来NIO Power</b></td><td>外购宁德为主</td><td>✓ 3683座(封闭)</td><td>—</td><td><b>低</b></td><td>封闭生态，蔚能已是宁德参股</td></tr>
+    <tr><td><b>华为超充联盟</b></td><td>—</td><td>—</td><td>✓ 1.44MW(重卡为主)</td><td><b>低</b></td><td>互补>竞争；华为智选车OEM均在宁德合作中</td></tr>
+    <tr><td><b>特斯拉</b></td><td>✓ 自研4680</td><td>—</td><td>✓ 6.7万座超充</td><td><b>低</b></td><td>封闭生态，不参与中国开放标准</td></tr>
+    <tr><td><b>中创新航/国轩/蜂巢</b></td><td>✓ 有产品</td><td>—</td><td>—</td><td><b>低-中</b></td><td>技术积累+资金实力差距大</td></tr>
+  </table>
+
+  <div class="sec-title">三、为什么比亚迪最值得警惕？</div>
+  <p>比亚迪是唯一在"电池+车+补能"全链路上都具备能力的对手。当前聚焦超充，未做换电，但<b>技术储备完整</b>。</p>
+  <p>如果2028-2030年比亚迪全力切入换电赛道，可能的方式：</p>
+  <ul style="font-size:13px;color:var(--m2);line-height:1.8;margin:8px 0 8px 24px">
+    <li>用<b>刀片电池+车电分离</b>做自家换电网络（服务比亚迪+部分外部车型）</li>
+    <li>用<b>垂直整合成本优势</b>打价格战（电池比外采便宜15-25%）</li>
+    <li>用<b>整车销量优势</b>快速铺网（比亚迪月销30万+ vs 宁德依赖合作车企）</li>
+  </ul>
+  <p>但比亚迪切换换电的概率只有<b>15-20%</b>：因为其超充路线已经投入大量资源（闪充技术全国铺开），切换成本巨大。</p>
+
+  <div class="sec-title">四、为什么华为"不构成威胁"？</div>
+  <p>华为补能联盟（2025年成立，11家车企59款车，2026年目标100+款）专注<b>兆瓦级超充</b>，主打重卡场景。这与宁德的<b>乘用车换电</b>形成：</p>
+  <table>
+    <tr><th>维度</th><th>华为</th><th>宁德</th><th>关系</th></tr>
+    <tr><td>主战场</td><td>重卡超充（1.44MW）</td><td>乘用车换电（巧克力+骐骥）</td><td>错位</td></tr>
+    <tr><td>核心能力</td><td>电力电子+通信</td><td>电池+能源管理</td><td>互补</td></tr>
+    <tr><td>车企关系</td><td>智选车OEM合作</td><td>电池+换电联盟</td><td>重叠客户</td></tr>
+    <tr><td>战略意图</td><td>卖充电桩+解决方案</td><td>卖电池+运营换电</td><td>差异</td></tr>
+  </table>
+  <p>关键洞察：<b>华为智选车生态的OEM厂商（赛力斯、奇瑞、北汽、江淮）全部在宁德合作方中</b>。也就是说华为和宁德是<b>同一条价值链上的"上下游"</b>，不是竞争者。这是非常聪明的卡位。</p>
+
+  <div class="sec-title">五、与左晖"真房源"战略的类比</div>
+  <p>链家推真房源（2008-2011）的战略逻辑与宁德做换电惊人地相似：</p>
+  <table>
+    <tr><th>维度</th><th>左晖·链家</th><th>曾毓群·CATL</th></tr>
+    <tr><td>痛点</td><td>房产中介普遍假房源</td><td>电池市场内卷+车厂自研</td></tr>
+    <tr><td>解法</td><td>建立房源数据库+ACN网络</td><td>建立换电网络+巧克力标准</td></tr>
+    <tr><td>对外叙事</td><td>"对客户好·对员工好"</td><td>"我这么做恰恰证明电池好"</td></tr>
+    <tr><td>底层动作</td><td>重新理顺业务流程+IT系统</td><td>换电站建设+10万座目标</td></tr>
+    <tr><td>终局判断</td><td>成为行业第一（市占率提升）</td><td>从制造商→运营商（相变）</td></tr>
+    <tr><td>公关策略</td><td>不强调"我要打败对手"</td><td>不强调"我要转型运营商"</td></tr>
+  </table>
+  <p>左晖用10年（2008-2018）把链家做成行业第一，然后2018-2021年推动贝壳上市，估值从制造业逻辑切到<b>科技股逻辑</b>。宁德正在走类似的路径：先把网络做成行业第一（2028-2030），然后推动估值范式切换（2029-2031）。</p>
+
+  <div class="sec-title">六、双层批判追问</div>
+  <div class="critique">
+    <div class="cq self">
+      <div class="cl">核心假设批判</div>
+      我假设"四层壁垒难以被超越"——脆弱点是<b>第③层网络</b>。10万座是2028年目标，如果建成速度不及预期，第③层护城河会延迟3-5年。在此窗口内，比亚迪/华为可能建立替代网络。
+    </div>
+    <div class="cq oppo">
+      <div class="cl">反方立场批判</div>
+      反方会说"四层壁垒都需要资金+时间，新进入者可以收购——比如美的收购库卡"。反驳：换电网络的<b>网络效应</b>是<b>不可收购的</b>，必须自建。用户信任+换电习惯+数据沉淀是10年级别的积累。
+    </div>
+  </div>
+  <div class="src">来源：超换一体_总纲.md §2.5 · 补能竞争格局_完整推演.md · 补能竞争_宁德vs华为.md · 业务分布.md §6</div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 风险与先行指标 -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="risks">
+  <h4>核心风险与先行观测指标</h4>
+  <div class="risk-grid">
+    <div class="rk-item"><strong>换电站利用率</strong><br>日均换电<70次则大面积亏损。概率25-35%。<span style="color:var(--amber)">最大单一风险。</span></div>
+    <div class="rk-item"><strong>CTC/CTB路线</strong><br>滑板底盘将电池"焊死"，侵蚀换电车型渗透率。概率15-20%。</div>
+    <div class="rk-item"><strong>固态电池提前量产</strong><br>若全固态2030年前投产，重构竞争格局。概率5-10%。</div>
+    <div class="rk-item"><strong>地缘政治</strong><br>海外资产被没收/强制退出风险。关注中美欧监管动态。</div>
+  </div>
+  <div class="monitor">
+    <b>先行观测指标</b>：换电站日均换电次数(月度) · BaaS用户净增(月度) · 换电车型上市数量(季度) · 运营利润占比(年度) · 运营业务独立披露节点
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 财务模型互动（嵌入完整可调参数模型） -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="appendix" id="financialModel">
+  <h2>互动财务模型 · 完整可调参数</h2>
+  <p class="ap-desc">下面嵌入的是包含 100+ 可调参数的完整一体化财务模型（电池银行 + 规模测算 + CATL 收益）。可以直接在 iframe 内调参，看 IRR / 单站利润 / 累计回报 随参数变化。可与上方"基准/悲观/乐观"三情景的归母利润轨迹交叉验证。</p>
+  <iframe src="业务/资产运营/model.html" style="height:1400px" loading="lazy"></iframe>
+  <p class="ap-desc" style="margin-top:8px"><b>模型说明</b>：包含 4 大模块——①<b>换电站建设节奏</b>（站数×CAPEX×OPEX）②<b>电池银行</b>（电池持有×BaaS月租×资产周转）③<b>CATL收益</b>（电池销售+换电服务+调度费）④<b>退出通道</b>（REITs分层）。详见 <a href="业务/资产运营/宁德时代_超换一体站_财务模型_修正版.md" target="_blank">模型说明.md</a></p>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 附录 A：方法论 -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="appendix" id="appendixA">
+  <h2>附录 A · 方法论：图示×方法×实例 三层框架</h2>
+  <p class="ap-desc">本报告的方法论是三套独立框架的拼接，按"主分析 + 嵌套追问 + 双层批判"的方式展开。</p>
+
+  <div class="ap-tabs">
+    <button data-ap="a1" class="active">A1 共振决策</button>
+    <button data-ap="a2">A2 Q6 要素重构</button>
+    <button data-ap="a3">A3 嵌套课题</button>
+  </div>
+
+  <div class="ap-content active" id="ap-a1">
+    <h4 style="font-size:13px;color:var(--accent);margin:6px 0">A1 · 共振决策框架（V9.0）</h4>
+    <p style="font-size:12px;color:var(--m2);line-height:1.7;margin-bottom:8px">
+    <b>核心命题</b>：所有决定本质都是投资。只有当"客观大场"和"主观小场"产生共振，资源才能发挥最大作用。
+    </p>
+    <table>
+      <tr><th>层级</th><th>定义</th><th>在本报告对应</th></tr>
+      <tr><td><b>客观大场</b></td><td>独立于主观意识的底层规律，呈钟摆式周期运动</td><td>动力电池市场 × 能源转型大趋势</td></tr>
+      <tr><td><b>知</b></td><td>信息×意识耦合（带宽+偏差校准+反馈接收）</td><td>L0-L3 物理-化学-市场基础</td></tr>
+      <tr><td><b>行</b></td><td>物质×力耦合（运营共振 + 战略失谐）</td><td>L4-L7 商业模式-储能-V2G</td></tr>
+      <tr><td><b>合</b></td><td>跨界耦合涌现，E² = (mc²)² + (pc)²</td><td>L8-L9 相变识别 + 估值重估</td></tr>
+      <tr><td><b>一</b></td><td>整个知→行→合→知循环持续运转的状态</td><td>三情景切换 + 监测指标更新</td></tr>
+    </table>
+    <p style="font-size:12px;color:var(--m2);line-height:1.7;margin-top:8px">
+    <b>关键认知</b>：<b>信息流</b>让循环更聪明（知→行 + 合→知），<b>能量流</b>让循环改变世界（行→合 + 合→客观大场）。"一"不是任何一条线，而是整个循环持续运转的状态。
+    </p>
+    <p style="font-size:12px;color:var(--dim);margin-top:6px">来源：<a href="业务/资产运营/共振决策分析框架_双视角七步法_V9.0.md" target="_blank">共振决策分析框架_V9.0.md</a>（方法论篇 + 宁德换电应用篇）</p>
+  </div>
+
+  <div class="ap-content" id="ap-a2">
+    <h4 style="font-size:13px;color:var(--accent);margin:6px 0">A2 · Q6 要素重构推演</h4>
+    <p style="font-size:12px;color:var(--m2);line-height:1.7;margin-bottom:8px">
+    <b>核心命题</b>：车电分离后，需求结构会发生什么变化？Q6 用六层追问把"需求变化"推导到"需要什么来满足"。
+    </p>
+    <table>
+      <tr><th>追问</th><th>核心问题</th><th>本报告对应</th></tr>
+      <tr><td>Q1 溯源与分层</td><td>用户买的是"什么东西"？</td><td>营运车/私家车/年轻人 三类分层</td></tr>
+      <tr><td>Q2 拆解</td><td>产品由哪些核心要素构成？</td><td>电池 vs 车身的寿命错配</td></tr>
+      <tr><td>Q3 排查</td><td>耦合 vs 解耦？</td><td>电池×车身耦合 / 补能×车辆解耦</td></tr>
+      <tr><td>Q4 错配识别</td><td>耦合是否造成错配？</td><td>折旧曲线不同步</td></tr>
+      <tr><td>Q5 错配性质</td><td>持续多久？机会多大？</td><td>结构性 vs 暂时性区分</td></tr>
+      <tr><td>Q6 要素重构</td><td>需求结构变化后需要什么？</td><td>电池银行+超换一体站+统一标准</td></tr>
+    </table>
+    <p style="font-size:12px;color:var(--m2);line-height:1.7;margin-top:8px">
+    <b>关键区分</b>：资产错配是<b>结构性</b>的（赌车电分离/BaaS），补能焦虑是<b>暂时性</b>的（赌超充是错的）——这是换电赌注的真正底层。
+    </p>
+    <p style="font-size:12px;color:var(--dim);margin-top:6px">来源：<a href="业务/资产运营/Q6_要素重构推演_需求结构变化.md" target="_blank">Q6_要素重构推演_需求结构变化.md</a></p>
+  </div>
+
+  <div class="ap-content" id="ap-a3">
+    <h4 style="font-size:13px;color:var(--accent);margin:6px 0">A3 · 三个嵌套课题</h4>
+    <p style="font-size:12px;color:var(--m2);line-height:1.7;margin-bottom:8px">
+    Q6 推演中标记的三个待独立验证的课题，按 C→B→A 顺序递进验证：
+    </p>
+    <table>
+      <tr><th>课题</th><th>核心问题</th><th>结论</th><th>对本报告的影响</th></tr>
+      <tr><td><b>C 补能自由</b></td><td>用户是否真的需要"既能充又能换"？</td><td><b style="color:var(--green)">成立</b>（宁德+蔚来均已实现）</td><td>支持 L4 商业模式设计</td></tr>
+      <tr><td><b>B 网络密度</b></td><td>用户密度是否足以撑住换电网络？</td><td><b style="color:var(--amber)">部分成立</b>（需多用户群体）</td><td>单站利用率风险真实存在</td></tr>
+      <tr><td><b>A 电池银行</b></td><td>电池银行经济模型是否成立？</td><td><b style="color:var(--amber)">敏感于融资成本</b></td><td>L5 估值假设的关键约束</td></tr>
+    </table>
+    <p style="font-size:12px;color:var(--m2);line-height:1.7;margin-top:8px">
+    <b>本报告的处理</b>：C 视为已成立（行业已有实践），B 和 A 都已纳入 L4 的"70次/日盈亏平衡"风险点。如果 B/A 边界条件被证伪，整个相变时点会推迟 3-5 年。
+    </p>
+    <p style="font-size:12px;color:var(--dim);margin-top:6px">来源：<a href="业务/资产运营/ttemp.md" target="_blank">ttemp.md §嵌套课题A/B/C</a></p>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 附录 B：数据源 -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="appendix" id="appendixB">
+  <h2>附录 B · 数据源与关键测算口径</h2>
+  <p class="ap-desc">本报告所有定量结论均标注原始来源。优先使用一手数据（公司公告、监管文件），辅以权威第三方（SNE Research、BNEF、IEA、GGII）。</p>
+  <table>
+    <tr><th>数据维度</th><th>口径</th><th>数据源</th><th>更新时间</th></tr>
+    <tr><td>全球动力电池市占率</td><td>动力电池装机量 GWh</td><td>SNE Research 季度报告</td><td>2026Q1</td></tr>
+    <tr><td>公司财务</td><td>营收/归母/资产负债表</td><td>宁德时代 2024/2025 年报 + 港股招股书</td><td>2026-04</td></tr>
+    <tr><td>超换一体站</td><td>已建成/在建/规划</td><td>宁德时代 2026.4.21 超级科技日发布</td><td>2026-04-21</td></tr>
+    <tr><td>换电车型矩阵</td><td>已上市/规划车型</td><td>26#换电块+车企合作公告</td><td>2026-06</td></tr>
+    <tr><td>换电站单站模型</td><td>CAPEX/OPEX/利用率/单次服务费</td><td>蔚能募集说明书 + model.html 模型</td><td>2026-03</td></tr>
+    <tr><td>REITs估值锚</td><td>P/AUM倍数</td><td>武汉蔚能2022ABN + 公募REITs市场</td><td>2025-12</td></tr>
+    <tr><td>行业标准</td><td>T/CSAE 499-2025</td><td>中国汽车工程学会</td><td>2025-09</td></tr>
+    <tr><td>曾毓群叙事</td><td>公开讲话/采访</td><td>彭博 / 挪威主权基金 / 时代电服采访</td><td>2024-2026</td></tr>
+    <tr><td>三情景关键变量</td><td>需求/份额/运营占比/PE</td><td>PBL框架 + 业务分布.md 测算</td><td>2026-03</td></tr>
+  </table>
+  <p style="font-size:12px;color:var(--m2);line-height:1.7;margin-top:10px">
+  <b>口径说明</b>：① "归母净利润"指全口径（制造+运营+生态投资），非传统制造分类；② "运营占比"包括换电运营+储能运营；③ "市值"=A股+港股市值合计（按 2026-06 汇率折算）。详细测算过程见<a href="业务/资产运营/超换一体_总纲.md" target="_blank">超换一体_总纲.md</a> 和 <a href="业务/资产运营/超换一体_资金拼图与融资渠道.md" target="_blank">超换一体_资金拼图与融资渠道.md</a>。
+  </p>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 附录 C：术语表 -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="appendix" id="appendixC">
+  <h2>附录 C · 术语表</h2>
+  <p class="ap-desc">按 L0-L10 章节顺序排列，方便快速查阅。</p>
+  <div class="glossary-grid">
+    <div class="gt"><b>电磁力</b>四种基本力中唯一可精准控制的力，电池产业的物理基础</div>
+    <div class="gt"><b>电磁力可控性</b>电压/电流/频率任意调节，是电气化的物理终点</div>
+    <div class="gt"><b>CTC/CTB</b>Cell-to-Chassis / Cell-to-Body，将电池集成进车身的滑板底盘技术</div>
+    <div class="gt"><b>V2G</b>Vehicle-to-Grid，车辆电池向电网反向放电</div>
+    <div class="gt"><b>V2B</b>Vehicle-to-Building，车辆电池向建筑反向放电</div>
+    <div class="gt"><b>VPP</b>Virtual Power Plant，虚拟电厂，聚合分布式资源参与电网调度</div>
+    <div class="gt"><b>BaaS</b>Battery as a Service，车电分离后电池以月租方式提供</div>
+    <div class="gt"><b>电池银行</b>集中持有电池资产，全生命周期管理+租赁服务的实体</div>
+    <div class="gt"><b>超换一体站</b>换电+超充共站，共享箱变+充电模块+电网接入</div>
+    <div class="gt"><b>巧克力换电块</b>宁德标准化乘用车换电块，2025量产+2026.4升级26#</div>
+    <div class="gt"><b>骐骥换电</b>宁德重卡换电解决方案</div>
+    <div class="gt"><b>REITs</b>Real Estate Investment Trusts，资产证券化退出通道</div>
+    <div class="gt"><b>ABN</b>Asset-Backed Notes，资产支持票据（蔚能 2022 案例）</div>
+    <div class="gt"><b>P/AUM</b>Price-to-AUM，运营业务的估值倍数（类似 REITs）</div>
+    <div class="gt"><b>SOTP</b>Sum-of-the-Parts，分部估值法</div>
+    <div class="gt"><b>业务相变</b>业务性质从制造→运营的非线性转变，触发估值范式切换</div>
+    <div class="gt"><b>第二层思维</b>Second-Level Thinking，霍华德·马克斯提出，思考市场共识之外</div>
+    <div class="gt"><b>第一性原理</b>First Principles，回到最基础事实的推理方式</div>
+    <div class="gt"><b>七步法</b>解码大场→拆解→排查→错配→错配性质→要素重构→挑战路径</div>
+    <div class="gt"><b>钟摆</b>霍华德·马克斯周期观，资产价格在极端之间摆动</div>
+    <div class="gt"><b>反脆弱</b>塔勒布提出，从波动和无序中获益的能力</div>
+    <div class="gt"><b>OODA</b>Observe-Orient-Decide-Act，博伊德提出的快速决策循环</div>
+  </div>
+</div>
+
+</div>
+
+<script>
+var S = {
+  pessimistic: {name:'悲观',label:'换电失败·市占率降·盈利压缩',demand:4.92,share:'30%',opShare:'15.4%',opProfit:67,mfgProfit:358,ecoProfit:10,totProfit:435,peNow:'~25→10x',peSwitch:'不触发',years:'5-8',rx:'0.34x',cg:'-10.2%',mcEnd:'0.44万亿',mcNow:'2.03万亿',desc:'换电利用率低于临界限 → 大面积亏损 → 回归纯制造商估值 + 市占率侵蚀'},
+  baseline:     {name:'基准',label:'换电渗透15%·市占率稳·估值逐步切换',demand:6.78,share:'39.2%',opShare:'14.5%',opProfit:319,mfgProfit:1633,ecoProfit:248,totProfit:2200,peNow:'~25→17x',peSwitch:'2029-2031',years:'8-10',rx:'2.02x',cg:'7.3%',mcEnd:'3.55万亿',mcNow:'2.03万亿',desc:'制造四板块稳健增长+换电运营突破临界触发估值切换+储能出货CAGR 25%'},
+  optimistic:   {name:'乐观',label:'换电25%渗透·运营占比17%·估值切换提前',demand:9.20,share:'42%',opShare:'17.5%',opProfit:560,mfgProfit:2300,ecoProfit:340,totProfit:3200,peNow:'~25→22x',peSwitch:'2028-2030',years:'10-12',rx:'3.8x',cg:'14.4%',mcEnd:'7.0万亿',mcNow:'2.03万亿',desc:'换电网络效应形成→估值切换完成→制造四板块超基线40%→利润PE自洽'}
+};
+var cur = 'baseline';
+
+function init(){
+  document.querySelectorAll('#tabs button').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('#tabs button').forEach(function(x){x.classList.remove('active')});
+      this.classList.add('active');
+      cur = this.dataset.s;
+      refresh();
+    });
+  });
+  // 附录标签切换
+  document.querySelectorAll('.ap-tabs button').forEach(function(b){
+    b.addEventListener('click',function(){
+      var ap = this.dataset.ap;
+      var root = this.closest('.appendix');
+      root.querySelectorAll('.ap-tabs button').forEach(function(x){x.classList.remove('active')});
+      this.classList.add('active');
+      root.querySelectorAll('.ap-content').forEach(function(c){c.classList.remove('active')});
+      root.querySelector('#ap-'+ap).classList.add('active');
+    });
+  });
+  // L4/L5/L6 等表中的数字同步到场景
+  refresh();
+}
+
+function refresh(){
+  var s = S[cur];
+  document.getElementById('h_yr').textContent = s.years;
+  document.getElementById('h_rx').textContent = s.rx;
+  document.getElementById('h_cg').textContent = s.cg;
+  document.getElementById('h_mc').textContent = s.mcEnd;
+  // 同步更新三情景概览卡的高亮
+  document.querySelectorAll('.ov-card').forEach(function(c){
+    if(c.dataset.s === cur){ c.classList.add('hl'); }
+    else { c.classList.remove('hl'); }
+  });
+  // 同步关键表格中的数字（t1/t4/t5 系列）
+  var t1 = document.getElementById('t1_ev');
+  var t1es = document.getElementById('t1_es');
+  var t1tot = document.getElementById('t1_tot');
+  var t4ops = document.getElementById('t4_ops');
+  var t4tot = document.getElementById('t4_tot');
+  var t4ratio = document.getElementById('t4_ratio');
+  var t5mc = document.getElementById('t5_mc');
+  if(t1) t1.textContent = cur==='pessimistic' ? '2.54' : (cur==='optimistic' ? '4.78' : '3.50');
+  if(t1es) t1es.textContent = cur==='pessimistic' ? '1.34' : (cur==='optimistic' ? '2.52' : '1.85');
+  if(t1tot) t1tot.textContent = cur==='pessimistic' ? '4.92' : (cur==='optimistic' ? '9.20' : '6.78');
+  if(t4ops) t4ops.textContent = cur==='pessimistic' ? '67' : (cur==='optimistic' ? '560' : '319');
+  if(t4tot) t4tot.textContent = cur==='pessimistic' ? '435' : (cur==='optimistic' ? '3,200' : '2,200');
+  if(t4ratio) t4ratio.textContent = cur==='pessimistic' ? '15.4%' : (cur==='optimistic' ? '17.5%' : '14.5%');
+  if(t5mc) t5mc.textContent = cur==='pessimistic' ? '0.44' : (cur==='optimistic' ? '7.04' : '3.55');
+  // 顶栏品牌色按场景切换
+  var brand = document.querySelector('.topbar .brand');
+  brand.style.color = cur==='pessimistic' ? 'var(--red)' : (cur==='optimistic' ? 'var(--green)' : 'var(--accent)');
+}
+
+function toggle(id){
+  var el = document.getElementById(id);
+  if(el) el.classList.toggle('open');
+}
+
+init();
+</script>
+</body>
+</html>

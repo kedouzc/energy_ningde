@@ -1,0 +1,860 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+</head><body>
+<title>从参数到判断</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#EFF0F3;
+  --surface:#FBFBFC;
+  --sunken:#E5E7EC;
+  --border:#D5D9E0;
+  --hair:#E2E5EA;
+  --ink:#13171D;
+  --muted:#5B636F;
+  --faint:#858D99;
+  --accent:#A82438;
+  --accent-soft:#F2DDE0;
+  --steel:#37587E;
+  --steel-soft:#DEE6F0;
+  --pass:#2C6B4C;
+  --pass-soft:#DAE9E0;
+  --warn:#8E6318;
+  --warn-soft:#F1E6D0;
+  --shadow:0 1px 2px rgba(19,23,29,.05), 0 8px 24px -16px rgba(19,23,29,.28);
+
+  --serif:"Source Serif 4","Noto Serif SC",Georgia,"Songti SC",serif;
+  --sans:"Noto Sans SC",-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+
+  --col:70ch;
+  --wide:min(1120px,100%);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#131519;
+    --surface:#1A1D23;
+    --sunken:#0E1013;
+    --border:#2B2F37;
+    --hair:#23272E;
+    --ink:#E6E8EC;
+    --muted:#98A0AC;
+    --faint:#727A87;
+    --accent:#E4657A;
+    --accent-soft:#332026;
+    --steel:#8CADD6;
+    --steel-soft:#1D2733;
+    --pass:#5FBA8B;
+    --pass-soft:#16261E;
+    --warn:#D2A257;
+    --warn-soft:#2A2317;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -20px rgba(0,0,0,.9);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#131519;
+  --surface:#1A1D23;
+  --sunken:#0E1013;
+  --border:#2B2F37;
+  --hair:#23272E;
+  --ink:#E6E8EC;
+  --muted:#98A0AC;
+  --faint:#727A87;
+  --accent:#E4657A;
+  --accent-soft:#332026;
+  --steel:#8CADD6;
+  --steel-soft:#1D2733;
+  --pass:#5FBA8B;
+  --pass-soft:#16261E;
+  --warn:#D2A257;
+  --warn-soft:#2A2317;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -20px rgba(0,0,0,.9);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-weight:400;
+  font-size:15.5px;
+  line-height:1.78;
+  -webkit-font-smoothing:antialiased;
+}
+::selection{background:var(--accent-soft);color:var(--ink)}
+
+/* ── shell ───────────────────────────────────────── */
+.shell{max-width:var(--wide);margin:0 auto;padding:0 24px 120px}
+@media(min-width:1180px){
+  .shell{display:grid;grid-template-columns:200px minmax(0,1fr);gap:56px;max-width:1220px;align-items:start}
+}
+
+/* ── rail ────────────────────────────────────────── */
+.rail{display:none}
+@media(min-width:1180px){
+  .rail{display:block;position:sticky;top:0;padding-top:64px;font-family:var(--mono);font-size:11.5px;line-height:1.5}
+  .rail-label{text-transform:uppercase;letter-spacing:.14em;color:var(--faint);font-size:10px;padding-bottom:12px;border-bottom:1px solid var(--hair);margin-bottom:14px}
+  .rail a{display:flex;gap:10px;color:var(--muted);text-decoration:none;padding:6px 0;border-left:2px solid transparent;padding-left:0;transition:color .16s}
+  .rail a:hover{color:var(--accent)}
+  .rail a .n{color:var(--faint);min-width:1.4em;font-variant-numeric:tabular-nums}
+  .rail a:hover .n{color:var(--accent)}
+}
+
+/* ── masthead ────────────────────────────────────── */
+.masthead{padding:72px 0 40px;border-bottom:1px solid var(--border)}
+.eyebrow{
+  font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--accent);display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:22px;
+}
+.eyebrow::after{content:"";flex:1;height:1px;background:var(--hair);min-width:20px}
+h1{
+  font-family:var(--serif);font-weight:600;font-size:clamp(34px,5.6vw,50px);line-height:1.16;
+  margin:0 0 20px;letter-spacing:-.012em;text-wrap:balance;
+}
+.standfirst{font-size:17px;line-height:1.72;color:var(--muted);max-width:62ch;margin:0}
+.standfirst strong{color:var(--ink);font-weight:500}
+.meta{
+  display:flex;gap:28px;flex-wrap:wrap;margin-top:30px;
+  font-family:var(--mono);font-size:11.5px;color:var(--faint);
+}
+.meta b{display:block;color:var(--muted);font-weight:500;letter-spacing:.02em}
+
+/* ── sections ────────────────────────────────────── */
+section{padding-top:64px;scroll-margin-top:20px}
+.sec-head{display:flex;gap:16px;align-items:baseline;margin-bottom:8px}
+.sec-num{
+  font-family:var(--mono);font-size:12px;color:var(--accent);letter-spacing:.08em;
+  padding-top:.35em;flex:none;font-variant-numeric:tabular-nums;
+}
+h2{
+  font-family:var(--serif);font-weight:600;font-size:clamp(23px,3vw,30px);line-height:1.3;
+  margin:0;letter-spacing:-.008em;text-wrap:balance;
+}
+.sec-sub{color:var(--muted);font-size:14.5px;margin:0 0 30px 40px;max-width:var(--col)}
+@media(max-width:640px){.sec-sub{margin-left:0}}
+h3{
+  font-family:var(--serif);font-weight:600;font-size:19px;line-height:1.4;
+  margin:38px 0 10px;letter-spacing:-.004em;
+}
+h4{
+  font-family:var(--mono);font-weight:500;font-size:11.5px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--faint);margin:30px 0 10px;
+}
+p{margin:0 0 16px;max-width:var(--col)}
+ul,ol{margin:0 0 18px;padding-left:20px;max-width:var(--col)}
+li{margin-bottom:7px}
+li::marker{color:var(--faint)}
+strong{font-weight:500;color:var(--ink)}
+em{font-style:normal;color:var(--accent);font-weight:500}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:2.5px}
+code,.mono{font-family:var(--mono);font-size:.885em;font-variant-numeric:tabular-nums}
+p code,li code,td code{background:var(--sunken);padding:.1em .38em;border-radius:3px;color:var(--steel)}
+hr{border:0;border-top:1px solid var(--hair);margin:44px 0}
+
+/* ── callouts ────────────────────────────────────── */
+.lede{
+  border-left:2px solid var(--accent);padding:2px 0 2px 20px;margin:0 0 28px;
+  font-family:var(--serif);font-size:18.5px;line-height:1.62;max-width:64ch;
+}
+.note{
+  background:var(--surface);border:1px solid var(--border);border-radius:6px;
+  padding:18px 22px;margin:24px 0;max-width:var(--col);box-shadow:var(--shadow);
+}
+.note p:last-child{margin-bottom:0}
+.note-k{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--steel);display:block;margin-bottom:8px;
+}
+
+/* ── finding cards ───────────────────────────────── */
+.findings{display:flex;flex-direction:column;gap:18px;margin:28px 0}
+.finding{
+  background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  overflow:hidden;box-shadow:var(--shadow);
+}
+.finding-top{display:flex;gap:14px;align-items:flex-start;padding:20px 24px 0}
+.sev{
+  font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  padding:3px 8px;border-radius:3px;flex:none;margin-top:4px;white-space:nowrap;
+}
+.sev.hi{background:var(--accent-soft);color:var(--accent)}
+.sev.mid{background:var(--warn-soft);color:var(--warn)}
+.sev.lo{background:var(--steel-soft);color:var(--steel)}
+.finding h3{margin:0;font-size:18px}
+.finding-body{padding:12px 24px 22px}
+.finding-body p{margin-bottom:12px}
+.finding-body p:last-child{margin-bottom:0}
+p.rev{
+  background:var(--steel-soft);border-left:2px solid var(--steel);
+  padding:12px 16px;border-radius:0 4px 4px 0;font-size:14px;line-height:1.72;
+}
+p.rev b{
+  font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--steel);display:block;margin-bottom:6px;font-weight:500;
+}
+
+/* ── numeric evidence strip ──────────────────────── */
+.strip{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));
+  gap:1px;background:var(--border);border:1px solid var(--border);border-radius:6px;
+  overflow:hidden;margin:18px 0 20px;
+}
+.strip div{background:var(--surface);padding:13px 15px}
+.strip .k{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--faint);text-transform:uppercase;display:block;margin-bottom:5px}
+.strip .v{font-family:var(--mono);font-size:18px;font-weight:500;font-variant-numeric:tabular-nums;letter-spacing:-.01em;display:block;line-height:1.25}
+.strip .v.a{color:var(--accent)}
+.strip .v.s{color:var(--steel)}
+.strip .u{font-size:11px;color:var(--faint);font-weight:400}
+
+/* ── tables ──────────────────────────────────────── */
+.tw{overflow-x:auto;margin:22px 0;border:1px solid var(--border);border-radius:6px;background:var(--surface);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:560px}
+th,td{text-align:left;padding:11px 16px;border-bottom:1px solid var(--hair);vertical-align:top;line-height:1.6}
+th{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--faint);font-weight:500;background:var(--sunken);white-space:nowrap;
+}
+tbody tr:last-child td{border-bottom:0}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+td.lbl{font-weight:500;white-space:nowrap}
+.chip{
+  font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:2px 7px;border-radius:3px;
+  white-space:nowrap;display:inline-block;
+}
+.chip.new{background:var(--accent-soft);color:var(--accent)}
+.chip.has{background:var(--pass-soft);color:var(--pass)}
+.chip.part{background:var(--warn-soft);color:var(--warn)}
+
+/* ── pipeline diagram ────────────────────────────── */
+.pipe{
+  margin:30px 0;border:1px solid var(--border);border-radius:8px;background:var(--surface);
+  padding:26px 24px;box-shadow:var(--shadow);overflow-x:auto;
+}
+.pipe-row{display:grid;gap:14px;grid-template-columns:repeat(5,minmax(148px,1fr));min-width:800px;align-items:stretch}
+.node{
+  border:1px solid var(--border);border-radius:6px;padding:14px 15px;background:var(--ground);
+  position:relative;display:flex;flex-direction:column;gap:6px;
+}
+.node .lv{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase}
+.node .nm{font-weight:500;font-size:14px;line-height:1.35}
+.node .de{font-size:12px;color:var(--muted);line-height:1.55}
+.node .fl{font-family:var(--mono);font-size:11px;color:var(--steel);word-break:break-all;line-height:1.45}
+.node.hot{border-color:var(--accent);background:var(--accent-soft)}
+.node.hot .lv{color:var(--accent)}
+.node::after{
+  content:"";position:absolute;right:-14px;top:50%;width:14px;height:1px;background:var(--border);z-index:1;
+}
+.node:last-child::after{display:none}
+.pipe-rule{
+  margin-top:20px;padding:14px 16px;border:1px dashed var(--accent);border-radius:6px;
+  background:var(--accent-soft);font-size:13.5px;line-height:1.6;
+}
+.pipe-rule b{font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:5px}
+
+/* ── branch tree ─────────────────────────────────── */
+.tree{
+  margin:26px 0;display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+}
+.branch{border:1px solid var(--border);border-radius:8px;background:var(--surface);padding:18px 20px;box-shadow:var(--shadow)}
+.branch .tag{font-family:var(--mono);font-size:11px;letter-spacing:.1em;margin-bottom:9px;display:block}
+.branch.a .tag{color:var(--pass)}
+.branch.b .tag{color:var(--steel)}
+.branch.c{border-color:var(--accent);border-style:dashed}
+.branch.c .tag{color:var(--accent)}
+.branch .h{font-weight:500;font-size:15px;margin-bottom:7px;line-height:1.4}
+.branch .d{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:10px}
+.branch .val{font-family:var(--mono);font-size:15px;font-variant-numeric:tabular-nums;padding-top:9px;border-top:1px solid var(--hair)}
+.branch .val small{display:block;font-family:var(--sans);font-size:11px;color:var(--faint);margin-top:2px;letter-spacing:0}
+
+/* ── option cards ────────────────────────────────── */
+.opts{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));margin:24px 0}
+.opt{border:1px solid var(--border);border-radius:8px;background:var(--surface);padding:18px 20px;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.opt.pick{border-color:var(--accent)}
+.opt .ot{font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--faint);margin-bottom:8px;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.opt.pick .ot{color:var(--accent)}
+.opt .oh{font-weight:500;font-size:15.5px;margin-bottom:8px;line-height:1.4}
+.opt .od{font-size:13px;color:var(--muted);line-height:1.62;flex:1}
+.opt .om{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:12px;padding-top:11px;border-top:1px solid var(--hair);line-height:1.6}
+
+/* ── steps ───────────────────────────────────────── */
+.steps{counter-reset:st;margin:26px 0;display:flex;flex-direction:column;gap:0}
+.step{
+  display:grid;grid-template-columns:44px minmax(0,1fr);gap:18px;
+  padding:20px 0;border-top:1px solid var(--hair);
+}
+.step:last-child{border-bottom:1px solid var(--hair)}
+.step .sn{
+  counter-increment:st;font-family:var(--mono);font-size:12px;color:var(--accent);
+  font-variant-numeric:tabular-nums;padding-top:2px;
+}
+.step .sn::before{content:counter(st,decimal-leading-zero)}
+.step h3{margin:0 0 6px;font-size:16.5px}
+.step p{margin-bottom:8px;font-size:14px}
+.step .ac{font-family:var(--mono);font-size:11.5px;color:var(--steel);line-height:1.6}
+.step .ac b{color:var(--faint);font-weight:400}
+
+/* ── ask block ───────────────────────────────────── */
+.asks{display:flex;flex-direction:column;gap:14px;margin:26px 0}
+.ask{border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;background:var(--surface);padding:18px 22px;box-shadow:var(--shadow)}
+.ask .q{font-weight:500;font-size:15.5px;margin-bottom:9px;line-height:1.5}
+.ask .o{font-size:13.5px;color:var(--muted);line-height:1.72}
+.ask .o b{color:var(--ink);font-weight:500}
+.ask .rec{font-family:var(--mono);font-size:11px;color:var(--accent);margin-top:9px;letter-spacing:.03em}
+
+footer{margin-top:80px;padding-top:26px;border-top:1px solid var(--border);font-family:var(--mono);font-size:11.5px;color:var(--faint);line-height:1.8}
+.rev-tag{display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;color:var(--accent);background:var(--accent-soft);padding:1px 6px;border-radius:3px;margin-right:5px;vertical-align:1px;font-weight:500}
+</style>
+
+<div class="shell">
+
+<nav class="rail" aria-label="目录">
+  <div class="rail-label">目录</div>
+  <a href="#f"><span class="n">01</span><span>三处先决问题</span></a>
+  <a href="#r"><span class="n">02</span><span>报告长什么样</span></a>
+  <a href="#p"><span class="n">03</span><span>流水线架构</span></a>
+  <a href="#m"><span class="n">04</span><span>MANIFEST 拆分</span></a>
+  <a href="#i"><span class="n">05</span><span>交互沙盘</span></a>
+  <a href="#y"><span class="n">06</span><span>五年期</span></a>
+  <a href="#s"><span class="n">07</span><span>沉淀成什么</span></a>
+  <a href="#o"><span class="n">08</span><span>实施顺序</span></a>
+  <a href="#d"><span class="n">09</span><span>需要你拍板</span></a>
+</nav>
+
+<main>
+
+<div class="note" style="margin:0 0 30px;border-left:3px solid var(--accent);background:var(--accent-soft)">
+  <span class="note-k" style="color:var(--accent)">2026-09-02 复核 · 本页现在是「架构提案」，不是「当前状态」</span>
+  <p>第 02／03／04／05／07 节的<strong>架构主张全部仍然成立</strong>，是本页的持续价值所在。
+  但第 01 节的三处发现、以及全文出现的数字，<strong>已被 2026-09-02 的三轮修复推翻或刷新</strong>——
+  当日查出并修复了两个真 bug（折旧分子用错、资本底座混年份）。
+  <b>当前状态与全部最新数字，以仓库为准</b>：<span class="mono">换电战略决策模型_v4_3/交接.md</span>（状态）
+  与 <span class="mono">DECISIONS.md</span>（过程与纠错全记录）。本页已就地标注 <b class="rev-tag">已更新</b>。</p>
+</div>
+
+<header class="masthead">
+  <div class="eyebrow"><span>宁德时代 · 换电 · 框架提案</span></div>
+  <h1>从参数到判断</h1>
+  <p class="standfirst">把 <span class="mono">换电战略决策模型_v4_3</span> 的计算结果，自动变成一份投资人视角的换电分析报告。<strong>零件基本都造好了，问题在接缝。</strong>这份提案先指出三处必须在动手前决定的事，再给出四层流水线、报告骨架、交互沙盘和沉淀方案。</p>
+  <div class="meta">
+    <div><b>读的是</b>v4_3 全部源码 + 5 份基准文件 + 快照</div>
+    <div><b>当前进度</b>封口／审计／决策树／DCF 已完成；交接见仓库 <span class="mono">交接.md</span></div>
+    <div><b>基准快照</b>2026-08-29 中枢情景</div>
+  </div>
+</header>
+
+<!-- ══════════════ 01 ══════════════ -->
+<section id="f">
+  <div class="sec-head"><span class="sec-num">01</span><h2>三处必须先解决的问题</h2></div>
+  <p class="sec-sub">这三处不解决，自动化只会把现有的问题跑得更快、更整齐。第一处会改变报告的核心结论，第二处会决定报告能不能真正回答"必要性"，第三处是自动化本身要治的病。</p>
+
+  <div class="findings">
+
+    <article class="finding">
+      <div class="finding-top">
+        <span class="sev hi">已定性为 BUG</span>
+        <h3>估值主口径：EV/EBITDA 18× 与 EBIT≈0 之间没有和解</h3>
+      </div>
+      <div class="finding-body">
+        <p class="rev"><b>已更新 2026-09-02</b>本条当初判断为"两个口径之间的张力，需要正面论证"。
+        <em>后来查明：EBIT≈0 根本不是一个需要论证的现象，而是 <code>capex.py</code> 的折旧分子写错了。</em>
+        原式 <code>initial × (capital_multiplier − residual) / life</code> 把「15 年全周期要花多少钱」的
+        PV 倍数除以「单代电池寿命」，等于把 15 年要买的 5 代电池压进第一代的 2.94 年里摊完——
+        15 年累计折旧 12,752 亿，而名义实际支出只有 5,605 亿，<b>2.28 倍</b>。
+        修正后：折旧 850.2 → <b>342.4 亿</b>，EBIT 0.25 → <b>508.0 亿</b>，
+        项目净利 −104.3 → <b>+332.6 亿</b>。<b>「换电项目在亏钱」是 bug 的产物，不是事实。</b>
+        详见 <span class="mono">DECISIONS.md</span> 2026-09-02 与 09-02c 两条。下面保留当时的原始记录。</p>
+        <p>快照里这一组数字是同一门生意的同一年：</p>
+        <div class="strip">
+          <div><span class="k">EBITDA</span><span class="v">850.4<span class="u"> 亿</span></span></div>
+          <div><span class="k">折旧</span><span class="v">850.2<span class="u"> 亿</span></span></div>
+          <div><span class="k">EBIT</span><span class="v a">0.25<span class="u"> 亿</span></span></div>
+          <div><span class="k">项目净利</span><span class="v a">−104.3<span class="u"> 亿</span></span></div>
+          <div><span class="k">企业价值</span><span class="v s">15,307<span class="u"> 亿</span></span></div>
+        </div>
+        <p>15,307 亿 = 850.4 × 18。也就是说，<em>运营侧 5,092 亿的归属价值，全部由那个 18 倍撑着</em>——而被乘的 EBITDA，几乎全额要用来补电池更新（模型自己算出的全周期年资本要求是 644.6 亿）。同一个模型里还有一句更克制的话：EBITDA 覆盖倍数 1.48 倍，也就是"比要求的回报好一点，但不多"。</p>
+        <p>这两句话在讲同一件事，却没有互相校验：<strong>覆盖倍数说这是一个刚过线的项目，估值说这是一个 18 倍的网络资产。</strong>谁都可能对，但报告必须正面回答"凭什么"，否则这是全篇最容易被一句话打穿的地方——问的人只需要问："你用 EBITDA 的 18 倍估值，那 EV/EBIT 是多少倍？"</p>
+        <p class="rev"><b>已更新</b>建议的方向（DCF 为主、倍数降级为交叉验证、把差额显性化）<em>被后续工作证实且已实施</em>，
+        但结论数字全变了：现金流支持倍数 6.67× → <b>5.67×</b>，与 18× 的溢价 2.70× → <b>3.17×</b>，
+        押注部分 3,855 → <b>4,194 亿</b>。而且发现了一处更要紧的东西——
+        <b>覆盖倍数从 1.476× 掉到 1.14×</b>：虚增的折旧原本制造了大额虚假税盾，把门槛 EBITDA 压低了。
+        <b>第 3 章「经济门」的真实余量只有 14%，不是 48%。</b></p>
+        <p>我的建议不是把数字改小，而是<em>换主口径</em>：把项目自由现金流的 DCF 作为主算法（模型里 <code>forward_fcff</code>、<code>required_fcff</code> 已经在算了），EV/EBITDA 降级为交叉验证，并且明确写出"DCF 隐含的倍数是 X 倍，我用 18 倍，差额是我对基础设施网络溢价的判断"。<strong>那个差额恰恰就是你要的非共识——把它显性化，比把它藏在乘数里有说服力得多。</strong></p>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="finding-top">
+        <span class="sev hi">改论证</span>
+        <h3>"必要性"要量化，但补"对手做成了"这一支不是解法</h3>
+      </div>
+      <div class="finding-body">
+        <p class="rev"><b>已修正</b>初稿在这里提议补一条 C 分支（我不做、对手做成了）。这个提法在本案不成立：<em>换电圈内没有够格的对手</em>——启源芯动力第一大股东已是 CATL，奥动、协鑫等体量不足；<em>快充阵营和换电是错位竞争</em>——华为超充与比亚迪闪充目前主攻私家车，换电的基本盘是营运车。"对手"这个变量定义不出来。<strong>C 分支取消。</strong></p>
+        <p>必要性的真正形态是<em>防守反击</em>：动力电池线的市占与净利率都在被挤压，而 CATL 靠这条线起家，没道理也不应该放弃它——所以它无论如何要打一仗。问题只是<strong>从哪里着力</strong>。可选的路有三条，按"作用在谁身上"排开，答案就出来了：</p>
+        <div class="tw"><table>
+          <thead><tr><th>着力点</th><th>性质</th><th>作用对象</th><th>对存量盘</th></tr></thead>
+          <tbody>
+            <tr><td class="lbl">固态电池等新技术</td><td>技术迭代 · 开源</td><td>新产品</td><td>弱——新产品救不了老盘，且能支撑到什么程度还不确定</td></tr>
+            <tr><td class="lbl">圈矿降本</td><td>节流</td><td>成本端</td><td>提净利率，<em>但不带量</em></td></tr>
+            <tr><td class="lbl">换电</td><td><strong>新商业打法 · 开源</strong></td><td><strong>成熟产品</strong></td><td><strong>锁量 ＋ 护价，两者都落在存量盘上</strong></td></tr>
+          </tbody>
+        </table></div>
+        <p><strong>开源永远比节流重要</strong>——成本降得再多，货铺不出去也没用。在新技术还不确定的窗口里，老盘不能丢，就必须在成熟产品上换一种商业打法打出去。<em>换电是三条路里唯一一条既是开源、又直接作用在存量盘上的。</em>这就是必要性，不需要任何假想敌。</p>
+        <p>模型对这条论证其实已经有数了，只是位置不对：制造侧的<em>锁定订单效应</em>和<em>净利率保护效应</em>正是"锁量"与"护价"，现在藏在估值分解里，该提到第 2 章当主证。</p>
+        <h4>次一级：窗口期</h4>
+        <p>有了上面这条，才轮到问窗口——<strong>如果建设期整体往后排，快充那条线会不会把能做换电的窗口彻底挤掉。</strong>做法是排期后推重跑，同时下调期间可达的换电渗透率上限（不只是折现晚了，是天花板被压低了）。快充阵营在这里出场，作为窗口的压缩者，而不是必要性的假想敌。</p>
+        <h4>最弱：资金与市值管理，而且要挪位置</h4>
+        <p>"同样的钱去回购只有约 5% 隐含回报"这条比想象中弱：账上近 4,000 亿现金，回购才用了 400 亿，本来就是上市公司做市值管理的常规操作（全球大市值公司普遍如此），并不构成"不做回购就该做换电"的对立。<strong>两者目的根本不同</strong>——回购是给股价托底，换电是稳业务线，财务回报好只是顺带。</p>
+        <p>所以这条应该<em>从第 2 章挪到第 3 章可行性的资金门</em>，改成一句财务纪律检验：<strong>换电的回报不低于常规资金用途，因此它不需要靠战略理由豁免财务标准。</strong>这才是它该干的活。</p>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="finding-top">
+        <span class="sev mid">已发生</span>
+        <h3>同一个结论，三份文档里是三个数</h3>
+      </div>
+      <div class="finding-body">
+        <p>"可归因换电增量价值"这一个指标：</p>
+        <div class="tw"><table>
+          <thead><tr><th>文档</th><th>数值</th><th>占市值</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td class="lbl">decision_snapshot（真值）</td><td class="num">5,698.3 亿</td><td class="num">28.5%</td><td><span class="chip has">当前</span></td></tr>
+            <tr><td class="lbl">骨架报告 v4.3</td><td class="num">5,698.3 亿</td><td class="num">28.5%</td><td><span class="chip has">一致</span></td></tr>
+            <tr><td class="lbl">MANIFEST 快速导读</td><td class="num">6,724.5 亿</td><td class="num">33.6%</td><td><span class="chip part">已过时</span></td></tr>
+            <tr><td class="lbl">叙述报告 v4.3</td><td class="num">8,026.4 亿</td><td class="num">40.1%</td><td><span class="chip part">已过时且拆法不同</span></td></tr>
+          </tbody>
+        </table></div>
+        <p>而且叙述报告把增量拆成三块（运营 + 护价 + 锁量），MANIFEST 和骨架报告拆成两块——<strong>不只是数字旧了，口径本身也分了叉</strong>。<code>backscan.py</code> 是对的设计，但它只在你想起来的时候跑，而且靠字符串比对，改一次格式就漏一次。</p>
+        <p>这不是纪律问题，是架构问题：只要叙述层允许出现字面数字，漂移就一定会回来。第 03 节的那条硬规则就是冲着它去的。</p>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="finding-top">
+        <span class="sev lo">埋雷</span>
+        <h3>三套计算引擎并存</h3>
+      </div>
+      <div class="finding-body">
+        <p><span class="mono">v4_3/src/*.py</span>（Python，权威）、<span class="mono">报告/换电重估_engine.js</span>（JS，给 V3.0 报告用）、<span class="mono">model_html/engine/*.js</span>（JS，给沙盘用）。三套算的是重叠的东西，谁也不知道现在谁跟谁一致。</p>
+        <p>建议明确一句话：<em>Python 是唯一引擎，JS 只做展示</em>。第 05 节给出交互层怎么在不复制逻辑的前提下做到实时。</p>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="finding-top">
+        <span class="sev hi">2026-09-02 新增</span>
+        <h3>定性与定量在讲两个故事：制造侧净贡献只有 10.6%</h3>
+      </div>
+      <div class="finding-body">
+        <p>已定的必要性论证是"换电作用在<em>存量盘</em>上、锁量＋护价"。但 <code>ledger</code> 实跑分解说的是另一件事：</p>
+        <div class="tw"><table>
+          <thead><tr><th>分项</th><th>价值（亿）</th></tr></thead>
+          <tbody>
+            <tr><td class="lbl">换电运营自身（18× 撑起）</td><td class="num">5,091.6</td></tr>
+            <tr><td class="lbl">制造侧 · 锁定订单（锁量）</td><td class="num">+1,075.5</td></tr>
+            <tr><td class="lbl">制造侧 · 充电份额流失</td><td class="num">−1,153.0</td></tr>
+            <tr><td class="lbl">制造侧 · 净利率保护（护价）</td><td class="num">+684.2</td></tr>
+            <tr><td class="lbl">制造侧 · 销量份额</td><td class="num">−77.5</td></tr>
+            <tr><td class="lbl"><strong>制造侧净贡献合计</strong></td><td class="num"><strong>+606.7（10.6%）</strong></td></tr>
+          </tbody>
+        </table></div>
+        <p><strong>89.4% 的价值来自换电运营网络自身那个最难辩护的 18× 倍数</strong>，而必要性论证赖以成立的锁量／护价，
+        净贡献只有 606.7 亿——锁量 +1,075 几乎被充电份额流失 −1,153 全额抵消（该项是否与锁量重复计提，口径待查）。</p>
+        <p><strong>解药：把战略溢价从倍数里拿出来，放回它真正落地的地方。</strong>
+        v3.2 §4.1③ 自己写了"payoff 主要落在动力电池基本盘，而非换电自身的现金流与估值"——
+        既然如此，就不该把这份 payoff 表达成<em>换电运营线的更高倍数</em>。换电运营用基建区间的诚实倍数
+        （再投资强度 EAC/EBITDA ≈ 76%，在基建族里属极高，应锚<b>下沿</b>）；战略价值用已有的锁量／护价，
+        作用在制造侧、用制造侧 PE 计价。<strong>每块价值用自己盘子的倍数，"溢价"这个词就不需要了。</strong></p>
+        <p>顺带一处逻辑缺口：v3.2 §4.1 说"锚 6.7–14× ＋ 温和战略溢价 → 18× 取上限附近的中枢"，
+        但 <b>18 比区间上限 14 高 29%</b>、比中值 10.35 高 74%，根本不在区间内。"温和"两个字承担了太多。</p>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<!-- ══════════════ 02 ══════════════ -->
+<section id="r">
+  <div class="sec-head"><span class="sec-num">02</span><h2>目标报告长什么样</h2></div>
+  <p class="sec-sub">你要的不是"模型结果的说明书"，是一份投资人拿去做五年决策的报告。所以骨架不按模型的层（车辆/站点/运营/财务）走，按<strong>决策的问题</strong>走——每一章都必须由一个算出来的数来收口，否则那章就是散文。</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>章</th><th>回答什么</th><th>必须由计算收口的东西</th><th>模型现状</th></tr></thead>
+    <tbody>
+      <tr><td class="lbl">0 决策卡</td><td>买不买、赔率多少、时间窗多长、什么会证伪</td><td>三情景下的 5 年回报区间 + 证伪阈值清单</td><td><span class="chip new">需新增</span></td></tr>
+      <tr><td class="lbl">1 非共识在哪</td><td>控制参量（真实投入）已经走了多远，序参量（市场定价框架）还没动多少</td><td>共识锚：卖方一致预期 EPS / PE，与我的预测的差</td><td><span class="chip new">需新增</span></td></tr>
+      <tr><td class="lbl">2 必要性</td><td>动力线在缩水，防守反击从哪里着力——为什么是换电，不是固态、不是矿</td><td>换电锁住多少 GWh、护住多少净利率；晚做两年天花板压低多少</td><td><span class="chip part">锁量护价模型已有，需提到主证位置；窗口成本需新增</span></td></tr>
+      <tr><td class="lbl">3 可行性</td><td>四道门：物理能不能建、经济能不能过线、钱够不够、车企配不配合</td><td>门槛清单，每道门一个通过/不通过 + 余量</td><td><span class="chip part">物理与资金已有，经济与博弈缺</span></td></tr>
+      <tr><td class="lbl">4 业绩影响</td><td>2026–2031 逐年，对合并报表的收入/净利/EPS 贡献多少</td><td>年度化的并表贡献表（含权益法与并表口径差异）</td><td><span class="chip part">只有 2030 单点</span></td></tr>
+      <tr><td class="lbl">5 市值与重估</td><td>ΔE（利润变多少）× Δ倍数（框架换不换）的二维分解</td><td>重估触发条件 + 隐含倍数与 DCF 倍数的差</td><td><span class="chip new">需新增</span></td></tr>
+      <tr><td class="lbl">6 五年判断</td><td>赔率表、催化剂日历、中检点、退出信号</td><td>先行指标与验证指标的收敛度</td><td><span class="chip part">V3.0 报告有指标库，未接模型</span></td></tr>
+      <tr><td class="lbl">7 诚实清单</td><td>这套测算最可能错在哪，错了影响多大</td><td>弹性排名前 10 的参数 + 各自的翻盘阈值</td><td><span class="chip has">lab.py scan 已有</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>为什么这个骨架比参考文件（1）（2）（3）更好</h3>
+  <p><span class="mono">重构版</span>和 <span class="mono">V3.0</span> 的定性很强，但它们的定量是附在结尾的一章；<span class="mono">v3.2 折扣链</span>的定量很细，但它的定性是"为什么这么算"而不是"这值不值得买"。两边都缺同一样东西：<em>把定性结论翻译成一个可以证伪的数，再把这个数放回决策里</em>。</p>
+  <p>上面这张表的每一行，右边那列都是一把锁。0 章的赔率区间锁住"值不值得"，2 章的 B−C 锁住"必要性"，3 章的门槛清单锁住"可行性"，5 章的倍数差锁住"重估"。<strong>定性负责论证锁该锁在哪，定量负责给出锁的读数。</strong>这也是为什么第 01 节那两处必须先改——没有 C 分支，第 2 章只能继续写断言；没有 DCF 主口径，第 5 章的重估就是自我循环（用倍数论证倍数）。</p>
+
+  <div class="note">
+    <span class="note-k">关于"非共识"这个主题</span>
+    <p>你的投资主题是非共识机会，那么报告里必须有一个地方是<strong>可以和市场逐条对账的</strong>：市场现在的 2030 年 EPS 预期是多少、给多少倍、隐含了换电贡献几乎为零——这三句话都要有出处。没有这个锚，"非共识"就只是我方的自述。这就是第 1 章"共识锚"要新增的原因，它是整篇报告里唯一一个必须从外部（卖方一致预期）取的数。</p>
+  </div>
+</section>
+
+<!-- ══════════════ 03 ══════════════ -->
+<section id="p">
+  <div class="sec-head"><span class="sec-num">03</span><h2>流水线架构：四层 + 一条硬规则</h2></div>
+  <p class="sec-sub">你的直觉是对的——HTML 只做组装、逻辑住在 MD、计算住在程序。下面把这个直觉补成一条能自动跑通的链，关键在中间多一层"事实包"，以及一条听起来极端但能一劳永逸的规则。</p>
+
+  <div class="pipe">
+    <div class="pipe-row">
+      <div class="node"><span class="lv">L0 参数</span><span class="nm">base.toml</span><span class="de">212 个参数，每个带一行理由和锚点。人改的只有这里。</span><span class="fl">已有</span></div>
+      <div class="node"><span class="lv">L1 计算</span><span class="nm">src/ + chain_table</span><span class="de">Python 唯一引擎。产出快照与全链条表。</span><span class="fl">已有 · 需补 C 分支 / DCF / 年度化</span></div>
+      <div class="node hot"><span class="lv">L2 事实包</span><span class="nm">facts.json</span><span class="de">给叙述层用的命名事实字典。每条自带取值路径、单位、格式、复核阈值。</span><span class="fl">新增（核心）</span></div>
+      <div class="node"><span class="lv">L3 叙述</span><span class="nm">章节 MD</span><span class="de">七章正文。只写论证与判断，数字一律写占位符。</span><span class="fl">LLM 起草 · 你终审</span></div>
+      <div class="node"><span class="lv">L4 装配</span><span class="nm">report.html</span><span class="de">替换占位符、渲染 MD、挂交互沙盘。不含任何业务文字与公式。</span><span class="fl">薄容器</span></div>
+    </div>
+    <div class="pipe-rule">
+      <b>硬规则</b>叙述层的 MD 里不允许出现任何字面数字（年份等白名单除外）。所有数字只能写成 <code>{{val.total_increment}}</code> 这样的占位符，由装配时从事实包注入。
+    </div>
+  </div>
+
+  <h3>为什么这条规则值得那么硬</h3>
+  <p>现在的 <code>backscan.py</code> 是"写完之后去查有没有对上"，属于事后抽检——所以会有 6,724 和 8,026 这两个漏网的。改成占位符之后，检查从"字符串比对"变成"文件里还有没有裸数字"，这是一个正则就能穷尽的检查，<em>不可能漏</em>。副作用更重要：改一个参数重跑，叙述报告里所有数字自动更新，不需要 LLM 重写一遍，也不需要你重读一遍。</p>
+
+  <h4>事实包长这样</h4>
+  <div class="tw"><table>
+    <thead><tr><th>字段</th><th>作用</th><th>例</th></tr></thead>
+    <tbody>
+      <tr><td class="lbl mono">from</td><td>快照里的取值路径。数字永远不是手打的</td><td class="mono">ledger.total_swap_increment_value_yi</td></tr>
+      <tr><td class="lbl mono">v / unit / fmt</td><td>值、单位、格式化方式（千分位与小数位统一在这里定）</td><td class="mono">5698.3 / 亿元 / #,##0.0</td></tr>
+      <tr><td class="lbl mono">watch</td><td>复核阈值。重跑后变动超过它，引用它的段落自动标"待复核"</td><td class="mono">0.05</td></tr>
+      <tr><td class="lbl mono">gate</td><td>若是门槛类事实，写判定条件，装配时渲染成通过/不通过的标记</td><td class="mono">&gt;= 1.0</td></tr>
+      <tr><td class="lbl mono">src</td><td>信源。直接从 base.toml 注释和信源审计台账继承</td><td class="mono">§4.2.4 三路径核验</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>增量重生成：数字自动更新，判断需要复核</h4>
+  <p>每段叙述记录它引用了哪些占位符。重跑之后：占位符变了但都在 <code>watch</code> 阈值内 → 静默更新；有占位符越了阈值，或者某道门的通过/不通过翻转了 → 这一段被标成待复核，交给 LLM 只重写这一段，你只看被标记的段落。<strong>这解决了"改一个参数要重读全文"的问题，也是"全流程自动化"里最难但最值钱的一环。</strong></p>
+
+  <div class="note">
+    <span class="note-k">一条命令</span>
+    <p><code>python src/build.py</code> 依次做：跑模型 → 出快照 → 出全链条表 → 生成事实包 → 校验叙述层无裸数字 → 检查待复核段落 → 注入并渲染 HTML。任何一步失败就停在那里并说清哪一步、为什么。你平时只需要记这一条命令。</p>
+  </div>
+</section>
+
+<!-- ══════════════ 04 ══════════════ -->
+<section id="m">
+  <div class="sec-head"><span class="sec-num">04</span><h2>MANIFEST 为什么难读，怎么拆</h2></div>
+  <p class="sec-sub">"语言太僵化、看不懂、调起来费劲"不是文笔问题。根因是这一份文档同时在服务三个完全不同的读者，被迫用一种谁都不舒服的语言写。</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>现在混在一起的三件事</th><th>读者</th><th>天然的语言</th><th>拆到哪里</th></tr></thead>
+    <tbody>
+      <tr><td class="lbl">论点：为什么必做、为什么这么判断</td><td>你和读报告的人</td><td>你自己的话，有主张有取舍</td><td>叙述层七章 MD（第 02 节）</td></tr>
+      <tr><td class="lbl">口径：每个参数怎么取的、信源是什么</td><td>核查的人（也是未来的你）</td><td>台账体，机器感是对的</td><td>base.toml 注释 + 信源审计台账（已有，保持）</td></tr>
+      <tr><td class="lbl">链路：这个数由哪些数算出来</td><td>想追一个数的人</td><td><em>不该是文字</em>，该是表</td><td>chain_table 的输出</td></tr>
+    </tbody>
+  </table></div>
+
+  <p>第三件事是关键。<strong>用散文描述算术，一定会写成你现在看到的那种句子</strong>——"终局装机由车辆数乘装车电量再加站内周转推得，其中站内周转由……"。这种句子写起来累、读起来更累、改一个口径要重写一整段。<code>chain_table.py</code> 的方向完全正确，但它现在还没做到你想要的那件事。</p>
+
+  <h3>chain_table 为什么还不是"以终为始"</h3>
+  <p>我把行定义逐段读了一遍。三处是结构性的，不是 bug：</p>
+  <div class="tw"><table>
+    <thead><tr><th>问题</th><th>现在是怎样</th><th>后果</th></tr></thead>
+    <tbody>
+      <tr><td class="lbl">根节点不是决策</td><td>整表按 A 车辆 → B 运营 → C 站数 → D 电池 CAPEX → E 收入成本 → F 估值 排列；A 段的根是"换电车辆（万辆）"</td><td>这是<em>模型的计算顺序</em>（自底向上），不是<em>决策的分解顺序</em>。真正的以终为始，根该是"这笔投资值不值得做"，往下才轮到车辆</td></tr>
+      <tr><td class="lbl">树是假的</td><td>层级靠 <code>↳ / ↳↳ / ↳↳↳</code> 字符串前缀表示，底层是一个扁平行列表</td><td>不能折叠、不能从任意节点下钻、<strong>更关键——没法做"父＝f(子)"的递归校验</strong></td></tr>
+      <tr><td class="lbl">公式与代码只是弱绑定</td><td>公式列是手写中文，靠每行一个可选的 <code>check</code> lambda 兜底</td><td>配了 check 的行会报错，<em>没配的静默错下去</em>——这大概就是"错误挺多"的来源</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>值得保留的两个设计</h4>
+  <ul>
+    <li><strong>公式与数值分离</strong>：数值一律模型实跑，公式只写中文名运算、绝不写具体数字。这条纪律是对的，继续用。</li>
+    <li><strong>自校验的思路</strong>：公式和模型对不上就当场报错，比写注释可靠得多。要保留，但从"每行一个"升级成"每个节点递归"。</li>
+  </ul>
+
+  <h4>重建成什么样</h4>
+  <p>把树声明成<em>递归节点</em>，而不是带前缀的行。每个非叶节点带一个可执行的 <code>combine</code>，程序拿子节点的值算一遍，和模型实跑的值比对——<strong>对不上就在那个节点当场失败，并指出是哪一层断的</strong>。叶节点就是 <code>base.toml</code> 里的参数，挂信源和实测弹性。</p>
+  <div class="pipe">
+    <div class="pipe-rule" style="margin-top:0">
+      <b>不变量</b>对树里每一个非叶节点：<code>combine(子节点值) == 模型实跑值</code>。这一条成立，树才是"活的"——模型改了公式而树没跟上，重跑会当场失败，而不是悄悄给出一张错表。
+    </div>
+  </div>
+  <p>产出是一份递归的 <code>tree.json</code>（每节点带 值／公式／单位／信源／弹性／子节点），三个地方消费它：报告正文的下钻、HTML 沙盘、Excel 导出。<strong>验收标准很具体——从"换电值不值得做"点三下能点到 base.toml 里的某一个参数，中间每一步都有公式、值、信源和弹性。</strong></p>
+  <p>MANIFEST 则瘦身成一份两页的地图（这个模型回答什么问题、分几层、每层的口径入口在哪），原来第 2 到第 6 章那些描述算术的段落，全部由树接管。</p>
+</section>
+
+<!-- ══════════════ 05 ══════════════ -->
+<section id="i">
+  <div class="sec-head"><span class="sec-num">05</span><h2>交互沙盘：把"可行性验证"从单站升到集团</h2></div>
+  <p class="sec-sub">你在 model.html 里做的那个"第一步敏感性分析 / 第二步自动优化"是整个仓库里交互设计最好的部分——它不是让人乱拖滑块，而是<strong>先给目标，再问要调什么才够得着</strong>。这个模式应该原样搬到新报告，但对象从单站 IRR 换成集团层面的四个结论。</p>
+
+  <h3>沙盘的三个动作</h3>
+  <ol>
+    <li><strong>勾选调整项</strong>：不是 212 个参数全给。只给弹性实测排名前 12 的（电池价格、重卡保有与纯电占比、价格平台期结束年、服务费、换电渗透率、估值倍数、WACC……），每个带一行"它为什么重要"和当前信源。</li>
+    <li><strong>看关键结果实时变</strong>：五个终端读数——增量价值、占市值比、保险价值（B−C）、峰值资金占 CFO、EBITDA 覆盖倍数。变化用箭头和百分比标出来。</li>
+    <li><strong>看结论翻没翻</strong>：这一条是新的，也是最有用的。四道门（物理/经济/资金/博弈）各自一个通过标记，参数一调，哪道门先红，一眼看到。<em>投资影响关键变量与结果的关系，最直观的表达不是曲线，是"调到什么程度，结论会翻"。</em></li>
+  </ol>
+  <p>再加一个反向按钮，就是 model.html 那个"第一步"的升级版：<strong>给定目标（比如"增量价值要够 8,000 亿"或"覆盖倍数要到 2.0"），反解出需要哪几个参数各动多少</strong>——并且直接告诉你这些参数当前的信源是外部核验还是经验假设，也就是"这个目标要成立，你得先去把哪几个数攻研掉"。</p>
+
+  <h3>技术路线三选一</h3>
+  <div class="opts">
+    <div class="opt">
+      <div class="ot"><span>甲 · 轻</span><span>≈60KB</span></div>
+      <div class="oh">弹性外推</div>
+      <div class="od"><code>lab.py scan</code> 已经实测出 212×37 的弹性矩阵，直接导成 JSON。滑块一动，浏览器做一阶线性外推。</div>
+      <div class="om">优 · 页面极轻、瞬时响应、零依赖<br>劣 · 只在 ±10% 内可信；看不到硬约束触发这类断崖</div>
+    </div>
+    <div class="opt pick">
+      <div class="ot"><span>乙 · 真 · 建议</span><span>≈8MB 首载</span></div>
+      <div class="oh">Pyodide 跑真程序</div>
+      <div class="od">v4_3 的核心链只依赖标准库（我逐个查过 import：math / dataclasses / typing / collections），可以直接在浏览器里跑同一套 Python。</div>
+      <div class="om">优 · 数字和报告永远一致，硬约束照样生效，字面实现了"逻辑来自程序"<br>劣 · 首次加载 5–8 秒；需打包源码进页面</div>
+    </div>
+    <div class="opt">
+      <div class="ot"><span>丙 · 查表</span><span>大</span></div>
+      <div class="oh">预算情景网格</div>
+      <div class="od">离线把前 6 个参数各 5 档全组合跑完，页面纯查表。</div>
+      <div class="om">优 · 精确且瞬时<br>劣 · 组合爆炸，只能给档位不能给任意值</div>
+    </div>
+  </div>
+  <p>我建议<em>甲 + 乙 渐进增强</em>：页面打开先用弹性矩阵给即时反馈（顶上标一行"估算模式"），Pyodide 在后台加载完成后自动切成精确模式并重算一次。这样既没有等待，也没有长期的双引擎漂移——JS 端始终只有插值，没有业务逻辑。</p>
+
+  <div class="note">
+    <span class="note-k">关于 HTML 该有多重</span>
+    <p>你的判断是对的，而且可以说得更死一点：<strong>HTML 里不允许出现任何业务数字、任何公式、任何口径判断</strong>。它只做四件事——加载 MD、替换占位符、画图表、挂沙盘。判断这件事有没有做到，有个很简单的检验：把 HTML 删掉重写一遍，报告的结论应该一个字都不会变。</p>
+  </div>
+</section>
+
+<!-- ══════════════ 06 ══════════════ -->
+<section id="y">
+  <div class="sec-head"><span class="sec-num">06</span><h2>关于五年期</h2></div>
+  <p class="sec-sub">你问有没有更合理的建议。我的答案是：五年在这个案子上是对的，但你现在给的理由（太短看不清、太长也看不清）撑不住它——换个理由，它会硬很多，而且能顺便给出中途的判断点。</p>
+
+  <p class="rev"><b>已更新 2026-09-02</b>本节当初把"十五五规划周期"当作五年期的主要理由。
+  <em>后来纠正：主因不是规划周期，是竞争格局倒逼的硬死线。</em>正确的因果是——
+  <b>竞争格局激烈（与华为、比亚迪角逐补能路线）→ 倒逼 2028 必须建成 → 建成后爬坡两年 →
+  2030 第一次能观察到成熟期读数</b>。十五五口径（权威预测节点落在 2030/2035）是佐证，不是主因。
+  另需澄清：曾一度把"2030 可发 REITs、形成投入—回收闭环"当成终局理由，这也不对——
+  <b>发不发 REITs 只是 CATL 的一个选择，那是「能力」不是「目的」</b>，
+  它降级为第 5 章桶③「现金流合同化」的一个可选验证指标：发了是强证据，不发不证伪。
+  「2028 的紧迫性」则提到第 2 章必要性的窗口期一节，与"快充会不会挤掉窗口"合并。</p>
+
+  <h3>口径佐证：十五五 2026–2030，模型算到 2030</h3>
+  <p class="rev"><b>已修正</b>初稿建议把测算延到 2031（今天＋五年）。更好的锚是<em>十五五规划周期本身</em>：2026–2030 含首尾正好五年。三个理由——公开权威预测的节点普遍落在 2030/2035，做 2031 要插值、平白引入误差；企业按五年规划配资源，序参量翻转大概率在规划周期末被确认；模型终局年本来就是 2030，不必改动。<strong>五年因此不是"今天＋5"这个任意整数，而是一个真实存在的周期。</strong></p>
+  <p>另外两个理由仍然成立，而且和十五五这个锚咬得更紧：</p>
+  <p><strong>一，这正好是这门生意跑完一个完整资产周转的时间。</strong>四个电池池的寿命是 2–5 年，站网 2030 达峰。要到 2030 年前后，才第一次能观察到"建站 → 运营 → 电池到期更换 → 残值回收"这个闭环的真实读数。在那之前，任何"复利生意"的说法都还是推演。</p>
+  <p><strong>二，它覆盖了序参量翻转的窗口。</strong>控制参量（资本开支、时代电服、团队）已经在动，序参量（市场用制造业还是运营业给它定价）还卡着。翻转要等验证指标兑现——多城盈利、时代电服独立融资、券商开始单独给换电估值。不可逆点在 2028、站网达峰在 2030。</p>
+
+  <div class="note">
+    <span class="note-k">重估兑现那一年怎么处理</span>
+    <p>不进模型。<strong>模型只负责控制参量（业绩算到 2030），序参量（倍数）用情景表达</strong>——重估是市场行为，不是能预测出来的经营数据。第 5 章把它写成"倍数从阶梯的哪一档走到哪一档"，第 6 章把它写成退出信号。这样业绩和重估两件事干净分开，正好对应控制参量与序参量的区分，也省掉了 2031 那一年的插值。</p>
+  </div>
+
+  <h3>把五年切成有判断点的三段</h3>
+  <p>持有期不是一段无差别的等待，报告输出<strong>三个刻度</strong>：</p>
+  <div class="tw"><table>
+    <thead><tr><th>时点</th><th>该看到什么</th><th>看不到就意味着</th></tr></thead>
+    <tbody>
+      <tr><td class="lbl">2027 中检</td><td>站数达到计划的七成以上；重卡换电渗透在按 S 曲线走；服务费没有塌到 0.2 元以下</td><td>需求侧假设错了，规模要下修，但论点还在</td></tr>
+      <tr><td class="lbl">2028 决断</td><td>时代电服独立融资或分拆；至少一个区域市场跑出正的项目净利；标准之争出结果</td><td><em>论点被证伪，该走</em>——这一年是硬止损点，与价格无关</td></tr>
+      <tr><td class="lbl">2029–2030 兑现</td><td>卖方开始单独给换电估值；估值框架从纯制造 PE 切换</td><td>相变没发生，价值不会被定价，收益只剩业绩那一半</td></tr>
+    </tbody>
+  </table></div>
+  <p>顺带一句关于"更长"：如果把固态电池算进来，十五五之后还有第二个相变。但那是<em>另一个课题的另一次判断</em>，不该混进这次的五年里——不然退出信号会被搅浑。更稳妥的写法是"一个规划周期 + 续期条件"：到 2030 年重估兑现时，重新跑一遍入口层，决定要不要为固态电池续投。</p>
+</section>
+
+<!-- ══════════════ 07 ══════════════ -->
+<section id="s">
+  <div class="sec-head"><span class="sec-num">07</span><h2>沉淀成什么：三个 skill，一个红队</h2></div>
+  <p class="sec-sub">你问要不要沉淀成 skill 和 agent。我的看法是：<strong>skill 要，九个 agent 不要</strong>——至少现在不要。</p>
+
+  <p>你在《研究思考链路》里拆的九个模块（场解码器、需求识别器、业绩测算器……）作为<em>概念地图</em>是清楚的，但作为<em>运行架构</em>会放大你现在正难受的那个毛病。每个 agent 冷启动、各自重新推一遍上下文、交接处产生接缝——你现在感觉到的"割裂感"，正是模块之间交接留下的痕迹。九个 agent 会把这些接缝制度化。</p>
+  <p>skill 不一样。skill 是<strong>一个 agent 在正确的时刻读到的一份检查表和提问链</strong>，不产生交接，也不丢上下文。你要沉淀的东西——客观大场定位诊断那四步、相变六步、四条铁律、参数信源绑定纪律——本质上全是"提问的顺序"和"不许做的事"，正好是 skill 这个容器最擅长装的。</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>skill</th><th>装什么</th><th>迁移时改什么</th></tr></thead>
+    <tbody>
+      <tr><td class="lbl">非共识标的诊断</td><td>入口层：PBL 五问 → 人物校验 → 客观大场定位四步诊断 → 相变六步（买前 4 步 / 买后 2 步）。产出"值不值得研究 / 非共识在哪 / 窗口多大"。</td><td>几乎不改。这一层是 domain-general 的——换成研究一家餐饮连锁也能用</td></tr>
+      <tr><td class="lbl">反事实定量建模</td><td>A/B/C 三分支设计、分母必须外部独立、参数与信源绑定、门槛清单、弹性实测法、快照单一事实源。附一份可复制的工程骨架（config / engine / snapshot / chain_table / facts / backscan）。</td><td>改"载体本质"和四类客户的拆法；骨架不改</td></tr>
+      <tr><td class="lbl">研报装配</td><td>七章骨架、占位符纪律、事实包结构、待复核机制、HTML 薄容器与高亮标注规范（沿用你已写好的 HTML-MD 映射范式）。</td><td>不改</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>唯一值得单独开一个 subagent 的角色：反方审稿</h3>
+  <p>读完成稿 + 快照，专门找刀口：EV/EBITDA 与 EBIT 打不打架、乘数有没有循环论证、四层增量有没有重复计算、分母是不是在自证、哪个结论其实只靠一个未核验的经验假设撑着。<strong>这是唯一一个"冷启动、没有上下文"反而是优势的角色</strong>——因为它要模拟的就是一个不了解你思路的怀疑者。第 01 节那三处发现，就是这个角色跑出来的东西。</p>
+
+  <div class="note">
+    <span class="note-k">泛化的边界，值得先写进 skill 里</span>
+    <p>"电池和芯片底层都是电子有序流动"这个同构，物理层是硬的；但由它推出的"信息侧集中、能量侧标准化"是经济学结论，不是物理结论——它真正的依据是复制的边际成本，而不是电子。所以泛化时要分层给置信度：<em>方法论（回到载体本质 → 识别真需求 → 反事实增量 → 参数信源绑定）几乎不需要这个前提就能迁移</em>；需要这个前提的，只有那条具体的经验规律。把这句话写进 skill 的开头，可以防止未来某次泛化时把它当公理用。</p>
+  </div>
+</section>
+
+<!-- ══════════════ 08 ══════════════ -->
+<section id="o">
+  <div class="sec-head"><span class="sec-num">08</span><h2>接下来怎么走</h2></div>
+  <p class="sec-sub">目标只有一个：产出第 02 节那份八章报告。下面每一步都写清楚<strong>我交付什么、你要做什么、在哪里对齐</strong>。任何一步做完你都可以喊停或调头。</p>
+
+  <div class="note" style="border-left:3px solid var(--pass);border-radius:0 6px 6px 0">
+    <span class="note-k" style="color:var(--pass)">已完成 · 封口层</span>
+    <p><code>src/facts.py</code> / <code>inject.py</code> / <code>build.py</code> ＋ <code>narrative/</code> 目录已落地并跑通：叙述层不许出现字面数字、只写占位符，改参数重跑全文数字自动刷新、越阈值的段落自动标"待复核"。<strong>这套机制是八章正文的地基，留着用；被浪费的只是"把旧叙述报告 token 化"那半天——那份报告本来就要淘汰。</strong></p>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="sn"></div>
+      <div>
+        <h3>链路审计 <span class="chip has" style="vertical-align:2px">已完成</span></h3>
+        <p><code>src/tree.py</code>：把从"决策"到"参数"的每一步声明成递归树，跑「父＝f(子)」全量校验。<em>只读，未改动 base.toml 与任何原有源码。</em></p>
+        <p><strong>结果：主干是对的。</strong>38 个可校验的内部节点全部闭合。chain_table 的问题在于组织方式，不是模型算错了——后面补的年度化和 DCF 不会建在沙上。</p>
+        <p>查出两类问题：<em>辅助服务三项不能相加</em>（容量补偿＋孰高(需求响应,调频)，三项直接相加会高 29%，但字段名看不出来）；<em>七个参数没有取值依据</em>，其中 <code>swap_ev_ebitda</code> 18×、<code>capital_recovery_factor</code> 0.15、<code>manufacturing_pe</code> 20× 恰是杠杆最大的三个。<span class="rev-tag">已更新</span>后半句是<em>错误推断</em>：CRF 0.15 用的是期望收益率（10–15% 中值，隐含约 12.4%，依据 v3.2 §1.2.2），
+        不是 WACC 口径，拿 0.1133 去比是比错了对象——"没写出来的安全垫"这个说法不成立。
+        前半句（七个参数缺取值依据）成立，已补齐。<b>教训：审计要分清「抓到了问题」（机械事实）和「对问题的推断」（判断）。</b></p>
+        <div class="ac">
+          <b>已交付 ·</b> <span class="mono">audit/链路审计_第0步.md</span>　<span class="mono">src/tree.py</span>　<span class="mono">outputs/tree.json</span><br>
+          <b>覆盖 ·</b> 105 节点／66 叶，其中 22 个已直达 base.toml 参数；车辆漏斗、站数反推、电池寿命曲线是下一刀的工作面
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="sn"></div>
+      <div>
+        <h3>补齐报告必需的四块计算 <span class="chip part" style="vertical-align:2px">部分完成</span></h3>
+        <p><b>① 年度化并表贡献 2026–2030（最大缺口）</b>——模型现在只有 2030 一个终局点，而五年投资判断要的是逐年 EPS 贡献和估值切换时点。站网的年度排期已经有了，把损益和估值也铺开。口径锚在十五五，不做 2031 插值。</p>
+        <p><b>② DCF 主口径＋隐含倍数</b> <span class="chip has" style="vertical-align:1px">已完成</span>——结果是这一步最有价值的发现：</p>
+        <div class="strip">
+          <div><span class="k">现金流支持</span><span class="v a">5.67<span class="u">×</span></span></div>
+          <div><span class="k">覆盖倍数</span><span class="v a">1.14<span class="u">×</span></span></div>
+          <div><span class="k">模型在用</span><span class="v s">18.00<span class="u">×</span></span></div>
+          <div><span class="k">战略溢价</span><span class="v a">3.17<span class="u"> 倍</span></span></div>
+          <div><span class="k">项目 NPV</span><span class="v">+1,098<span class="u"> 亿</span></span></div>
+        </div>
+        <p class="rev"><b>已更新 2026-09-02</b>上面这组是修完两个 bug 之后的数。当初的 6.67× 建在错误的折旧上——
+        虚增折旧制造了大额虚假税盾，把 FCFF 抬高了。修正后现金流只支持 <b>5.67×</b>，
+        溢价扩大到 <b>3.17 倍</b>，押注部分 <b>4,194 亿</b>。
+        <em>那个"6.67× 恰好落在 Brookfield 6.7×"的巧合不再成立</em>——真实倍数更低，
+        论证要靠可比阶梯本身，不能靠这个巧合。</p>
+        <p><strong>当初的判断：6.67× 几乎正好落在 v3.2 §4.1 自己引用的 Brookfield 6.7× 上</strong>——也就是它认定的"重资产基建运营族"的底部。项目 NPV 为正，所以结论不是"这生意不成立"，而是<em>它跑赢了自设门槛，但跑赢的幅度对应 6.67× 而不是 18×</em>。拆到 CATL 归属（<b class="rev-tag">修正后</b>）：现金流口径 <b>1,035.1 亿</b> ＋
+        <strong>押注的部分 4,193.9 亿</strong> ＝ 倍数法的 5,091.6 亿。</p>
+        <p>这给第 5 章一个干净的三段式，也正好对上相变框架：<em>控制参量（业绩）给出 <b>1,035 亿</b>，序参量（倍数跳变）给出 <b>4,194 亿</b>。</em></p>
+        <p><b>③ 门槛清单</b>——物理／经济／资金／被快充替代 四道门，各输出通过与否、余量、翻转阈值。回购对照作为资金门里的财务纪律检验，从必要性挪进来。</p>
+        <p><b>④ 窗口成本</b>——排期后推重跑，同时下调期间可达的换电渗透率上限（不只是折现晚了，是天花板被压低了），给必要性的第二支点一个数。</p>
+        <p><b>⑤ 顺手修</b>——辅助服务字段加"是否计入"标记；四个运营参数补注释。半小时的事，但让"每个叶参数都有信源"这条纪律不留缺口。</p>
+        <div class="ac">
+          <b>我交付 ·</b> 新快照字段 ＋ 一页《新增了哪些数、各是多少、结论有没有变》<br>
+          <b>你要做 ·</b> 看 DCF 那个数<br>
+          <b>对齐点 ·</b> <em>这是最重要的一次对齐</em>——DCF 出来后结论量级可能变，第 5 章怎么写取决于你怎么看这个数
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="sn"></div>
+      <div>
+        <h3>把树打通到底 <span class="chip new" style="vertical-align:2px">待做</span></h3>
+        <p>第 0 步立起了骨架（105 节点，22 个叶子已直达参数）。这一步补完最深的几条：<em>车辆漏斗</em>（保有量÷更新周期×NEV渗透×纯电占比×换电渗透×CATL份额）、<em>站数反推</em>、<em>电池寿命与 590 折扣链</em>、<em>制造侧的锁量与虹吸</em>。带取整的地方显式声明容差和理由，不假装闭合。每个叶子挂信源与链接，再挂上 <code>lab.py scan</code> 实测的弹性。</p>
+        <div class="ac">
+          <b>我交付 ·</b> 打通到底的 <span class="mono">tree.json</span> ＋ 一个可折叠下钻的树页面<br>
+          <b>你要做 ·</b> 确认根节点和前两层的分法是不是你想的那个"以终为始"<br>
+          <b>验收 ·</b> 从"值不值得做"点三下能点到某一个参数，中间每步都有公式、值、信源链接、弹性；换成 MD 或 Excel 导出，这四样一个都不少
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="sn"></div>
+      <div>
+        <h3>写八章正文 <span class="chip new" style="vertical-align:2px">待做</span></h3>
+        <p>全部用占位符，一个手写数字都没有。<strong>逐章交付，不一次给八章</strong>——先给第 0 章决策卡和第 2 章必要性，这两章定调，你认了再往下写。</p>
+        <p>需要外部取数的两处由我去找并标注来源与日期：卖方一致预期（EPS 与目标 PE，用来做第 1 章的共识锚）、可比倍数阶梯（加油站／铁塔／IDC／REITs／充电运营商的公开 EV/EBITDA，用来给第 5 章的 18× 定位）。</p>
+        <div class="ac">
+          <b>我交付 ·</b> 八份 <span class="mono">.src.md</span>，逐章给<br>
+          <b>你要做 ·</b> 改语气和判断——<em>数字不用你管，那是程序的事</em><br>
+          <b>对齐点 ·</b> 每章一次，你可以随时叫停重写
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="sn"></div>
+      <div>
+        <h3>装配＋沙盘</h3>
+        <p>薄 HTML 容器：加载 MD、替换占位符、画图、挂沙盘。树可下钻、四道门实时判定、勾选调整项看结论翻不翻。先弹性外推给即时反馈，Pyodide 加载完切精确模式。</p>
+        <div class="ac">
+          <b>我交付 ·</b> 一份完整的交互报告<br>
+          <b>验收 ·</b> 把 HTML 删掉重写，报告结论一个字不变
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="sn"></div>
+      <div>
+        <h3>沉淀三个 skill <span class="chip new" style="vertical-align:2px">待做</span></h3>
+        <p>等这一遍真跑通了再写。skill 要从跑通的流程里长出来，不能反过来。</p>
+        <div class="ac"><b>验收 ·</b> 拿储能或 AIDC 试跑入口层那个 skill，看它问出来的问题是不是你自己会问的</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note" style="border-left:3px solid var(--pass);border-radius:0 6px 6px 0;margin-top:30px">
+    <span class="note-k" style="color:var(--pass)">2026-09-02 实际进度</span>
+    <p><b>已完成</b>叙述层封口 · 决策树 <span class="mono">tree.py</span>（105 节点全闭合）· 参数信源补齐 ·
+    辅助服务字段治理 · DCF 交叉验证 · <b>折旧与资本口径三轮大修</b>（折旧按代展开、
+    估值资本统一折到 2026、折旧会计恒等式按构造成立且两条独立代码路径互校偏差 −0.0033%）·
+    <span class="mono">DECISIONS.md</span> 过程日志 · 协作协议（改代码先贴 diff 再落盘）。</p>
+    <p><b>下一步</b><span class="mono">base.toml</span> 情景元数据（<code>role</code>／<code>driver</code>／<code>[drivers]</code> 段）
+    ＋ <span class="mono">run.py</span> 按驱动因子整体重跑——现在的"三情景"只有私家车渗透率在动（±9%），
+    <em>那不是投资风险区间</em>。四道门必须三情景都判：<b>覆盖倍数 1.14× 的余量在悲观情景下会不会翻，
+    是第 3 章最关键的一个事实。</b></p>
+    <p><b>当前状态与全部数字以仓库为准</b>：<span class="mono">交接.md</span>（状态）／
+    <span class="mono">DECISIONS.md</span>（过程与纠错）／<span class="mono">CHANGES_*.diff</span>（逐行改动）。</p>
+  </div>
+</section>
+
+<!-- ══════════════ 09 ══════════════ -->
+<section id="d">
+  <div class="sec-head"><span class="sec-num">09</span><h2>已定的与还开着的</h2></div>
+
+  <h4>已定</h4>
+  <div class="tw"><table>
+    <thead><tr><th>议题</th><th>结论</th></tr></thead>
+    <tbody>
+      <tr><td class="lbl">估值主口径</td><td>先做 DCF，做完再看怎么和相对估值体系挂钩——桥是<em>隐含倍数 ＋ 可比阶梯</em>（第 05 节）</td></tr>
+      <tr><td class="lbl">必要性的论证结构</td><td>防守反击：动力线在缩水 → 三条路里只有换电既开源又作用在存量盘 → 其次窗口期 → 回购对照挪进第 3 章资金门</td></tr>
+      <tr><td class="lbl">测算期</td><td><b class="rev-tag">已更新</b>2026–2030。<b>主因是竞争倒逼的 2028 硬死线 ＋ 两年爬坡</b>，十五五是佐证；不做 2031 插值；重估兑现用情景表达，不进模型</td></tr>
+      <tr><td class="lbl">报告形态</td><td>一份长报告，可折叠、可下钻</td></tr>
+      <tr><td class="lbl">树的信源要求</td><td>每个叶参数必须带信源与链接，导出成 HTML／MD／Excel 时都要能看到完整链路与取数依据</td></tr>
+      <tr><td class="lbl">共识锚</td><td>由我从公开研报整理，逐条标来源与日期</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4 style="margin-top:34px">2026-09-02 新定的（原「还开着的」两问已答）</h4>
+  <div class="tw"><table>
+    <thead><tr><th>议题</th><th>结论</th></tr></thead>
+    <tbody>
+      <tr><td class="lbl">第 5 章怎么处理那 3.17 倍溢价</td><td><strong>四桶分解 ＋ 双峰赔率</strong>（取代原甲／乙／丙）。为什么付 18× 而不是 5.67×，只可能是四件事之一：① 预测期外还在长（新品类被验证）；② 基准外期权（V2G／储能／数据／REITs）；③ 风险低于 WACC 假设（现金流合同化）；④ 纯重估押注。<strong>只有 ④ 是赌</strong>，而"新品类／马太效应／垄断性"这些论据其实属于 ①②③——把它们挪过去，论点就从"信念"变成"可以算的东西"。<br>双峰赔率：倍数不会平滑漂移，它贴着制造业锚不动直到跳变，所以<em>不报期望值</em>，报四行——世界 A（未相变）＝地板／世界 B（相变）＝天花板／从 A 到 B 要看到什么／今天价格离 A 多远＝亏损上限。</td></tr>
+      <tr><td class="lbl">非共识 vs 自欺的判据</td><td><strong>你的论点必须能被市场之外的东西证伪。</strong>若论点是"市场会给 18 倍"，唯一的证伪方式就是市场不给——要等 5 年，期间没有任何中间信息，<em>那不是非共识，是不可证伪的信仰</em>。若论点是"这门生意会跑出 A／B／C 三个特征，而具备这三个特征的资产历史上都拿到十几倍"，A／B／C 每一个都能在 2027–2028 单独观察。<strong>非共识是「你比市场早看到 A、B、C」，不是「你比市场更相信 18 这个数字」。</strong>而且 2028 就知道输赢，不用等到 2030。</td></tr>
+      <tr><td class="lbl">"特征"与既有框架的挂接</td><td>四桶里 ①②③ 的"特征"就是共振框架里的<strong>先行指标</strong>（②的 V2G／储能接入容量、③的长约占比与 REITs／ABS 发行、①的营运车渗透 S 曲线）；桶④<strong>没有先行指标</strong>——这正是它是赌的原因。"先行指标与验证指标的收敛度"作为退出信号，至此有了具体挂载点。</td></tr>
+      <tr><td class="lbl">带爬坡的逐年 DCF 出来后倍数会更低</td><td>仍然成立且方向不变：现在两条口径都用<em>成熟期</em> FCFF 资本化、未扣建设期爬坡，都偏乐观。年度化做完后以逐年 DCF 为准，成熟期口径降为附录对照。</td></tr>
+      <tr><td class="lbl">建模粒度（毛估估 vs 精算）</td><td><strong>精度 ≠ 假设数量</strong>：区别不在程序算多少步，而在你要拍多少个数。电池价格路径由 5 个参数生成 20 年的价格——逐年算<em>新增假设数为 0</em>。定为<strong>让程序算细、让报告读粗</strong>，中间明细是可下钻的证据不是要读的内容；<strong>标定一次、用很多次</strong>（实测：全部批次按一个标准年处理，代价仅 0.9%，而服务费不确定度是 ±33%）。标准年取 <b>2026</b>＝决策时点＝估值基年。</td></tr>
+    </tbody>
+  </table></div>
+  </section>
+
+<footer>
+  框架提案（2026-09-02 复核更新）· 架构主张仍成立，数字与第 01 节发现已被仓库取代 · 基于 v4_3 源码、configs/base.toml、decision_snapshot（2026-08-29 中枢）、MANIFEST.md、chain_table.py、model.html、宁德时代_V3.0.html、CATL换电业务_重构版.md、换电毛估估_折扣链与总表_v3.2.md 通读<br>
+  文中所有数字取自 decision_snapshot_v4_3.json 与三份文档原文，未作任何再计算
+</footer>
+
+</main>
+</div>
+</body></html>

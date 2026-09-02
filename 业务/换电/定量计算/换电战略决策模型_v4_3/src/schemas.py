@@ -171,6 +171,8 @@ class CapexResult:
     interim_residual_yi: float
     terminal_residual_yi: float
     capital_consumed_yi: float
+    cumulative_depreciation_yi: float
+    capex_path_drift: float
     lifecycle_crf: float
     annual_capital_requirement_yi: float
     mature_annual_depreciation_yi: float

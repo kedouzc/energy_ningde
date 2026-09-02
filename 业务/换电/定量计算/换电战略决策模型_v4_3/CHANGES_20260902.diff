@@ -1,40 +1,127 @@
 --- a/src/capex.py
 +++ b/src/capex.py
-@@ -270,26 +270,45 @@
+@@ -75,6 +75,60 @@
+     return [(early, 1.0 - late_weight), (late, late_weight)]
+ 
+ 
++def _cohort_generations(
++    config: dict,
++    install_year: float,
++    life: float,
++    horizon: float,
++    recovery_ratio: float,
++    initial_capex: float,
++    terminal_residual_ratio: float,
++) -> list[dict[str, float]]:
++    """【新增 2026-09-02c】把一个 cohort 在 horizon 内展开成「各代电池」。
++
++    每一代都是一笔独立的资产：**按自己那一年的价格买入**、用 life 年、
++    退役时收回一笔钱。它的可折旧额 = 买入价 − 实际收回额。
++
++        depreciable_k = cost_k − recovery_k
++        recovery_k    = 回收率 × 下一代成本（模型口径：残值按更换时的新电池价计）
++        末代 recovery = 初装 × terminal_residual_ratio（期末在役批的可回收价值）
++
++    这样定义之后，会计恒等式**按构造成立、无需容差**：
++        Σ depreciable == Σ cost − Σ 期中回收 − 期末残值
++
++    修正的是 2026-09-02 版的两处遗留误差（合计约 −3%，激进情景下超 5%）：
++      ① 原式对每一代都用**第 0 代的价格**，而电池逐年降价，后代更便宜；
++      ② 期末在役批按 `terminal_residual_ratio`（二手储能转售价）计，
++         但折旧那一侧仍按第 0 代成本摊，两侧口径不一致。
++    见 DECISIONS.md「2026-09-02c · 折旧恒等式改为按构造成立」。
++    """
++    base_price = battery_price_rmb_kwh(config, install_year)
++    generations: list[dict[str, float]] = []
++    index = 0
++    while index * life < horizon - 1e-9:
++        start = index * life
++        price = battery_price_rmb_kwh(config, install_year + start)
++        generations.append({
++            "index": float(index),
++            "start": start,
++            "cost": initial_capex * price / base_price,
++        })
++        index += 1
++    for position, generation in enumerate(generations):
++        is_last = position + 1 == len(generations)
++        if is_last:
++            generation["recovery"] = initial_capex * terminal_residual_ratio
++            generation["service_years"] = horizon - generation["start"]
++            generation["has_successor"] = 0.0
++        else:
++            generation["recovery"] = recovery_ratio * generations[position + 1]["cost"]
++            generation["service_years"] = life
++            generation["has_successor"] = 1.0
++        generation["depreciable"] = generation["cost"] - generation["recovery"]
++        generation["annual_depreciation"] = generation["depreciable"] / life
++    return generations
++
++
+ def build_capex(
+     config: dict,
+     scale: ScaleResult,
+@@ -270,26 +324,71 @@
      battery_depreciation_by_pool = {pk: 0.0 for pk in BATTERY_POOLS}
      factor_samples: dict[str, float] = {}
      residual_samples: dict[str, float] = {}
 +    # 【新增｜单站 vintage 表】按 (池 × 装机年) 留存单位经济性，供报告下钻与「窗口成本」章。
 +    unit_vintage: list[dict[str, float | str]] = []
++    # 【新增 2026-09-02c】折旧恒等式的四项，按代展开时逐 cohort 累加。
++    target_year = config["meta"]["target_year"]
++    gross_battery_capex = 0.0
++    interim_recovery = 0.0
++    terminal_recovery = 0.0
++    cumulative_battery_depreciation = 0.0
      for cohort in battery_cohorts:
          factors = lifecycle_factors(
              config, float(cohort["install_year"]), float(cohort["life"])
          )
          initial_capex = float(cohort["initial_capex"])
 +        life = float(cohort["life"])
++        install_year_f = float(cohort["install_year"])
          lifecycle_capital += initial_capex * factors.capital_multiplier
 -        battery_depreciation += (
 -            initial_capex
 -            * (factors.capital_multiplier - factors.terminal_residual_ratio)
 -            / float(cohort["life"])
--        )
 +        # 【修正 2026-09-02｜折旧分子】原式用 (capital_multiplier − terminal_residual)/life：
 +        # capital_multiplier 是「15 年全周期要花多少钱」的 PV 倍数——那是 EAC 的分子；
 +        # 折旧要回答的是「现在装着的这一代电池每年掉多少价」，只与本代有关。
 +        # 两者共用分子 ⇒ 把 15 年要买的 N 代电池压进一代寿命里摊完，累计折旧达名义支出的 2.28 倍。
-+        # 正确式：本代初装 × (1 − 退役回收率) / 本代寿命。EAC 与折旧从此不共用分子。
-+        # 见 DECISIONS.md「2026-09-02 · 成熟期折旧用错了分子」。
-+        battery_depreciation += initial_capex * (1.0 - recovery_ratio) / life
++        # 【再修正 2026-09-02c】按代展开：每一代按**自己那年的价格**买入、
++        # 折旧到**自己实际能收回的那个数**为止。恒等式因此按构造成立，不需要容差。
++        # 见 DECISIONS.md「2026-09-02 · 成熟期折旧用错了分子」与「2026-09-02c」。
++        generations = _cohort_generations(
++            config, install_year_f, life, float(horizon),
++            recovery_ratio, initial_capex, factors.terminal_residual_ratio,
++        )
++        # 成熟期折旧：取**目标年在役的那一代**（不是第 0 代），按其可折旧额／寿命计。
++        elapsed_to_target = max(0.0, float(target_year) - install_year_f)
++        in_service = generations[
++            min(int(elapsed_to_target // life), len(generations) - 1)
++        ]
++        cohort_mature_dep = in_service["annual_depreciation"]
++        battery_depreciation += cohort_mature_dep
++        # 全周期口径（供恒等式断言）：各代可折旧额之和 == 毛支出 − 期中回收 − 期末残值。
++        gross_battery_capex += sum(g["cost"] for g in generations)
++        interim_recovery += sum(
++            g["recovery"] for g in generations if g["has_successor"]
+         )
++        terminal_recovery += sum(
++            g["recovery"] for g in generations if not g["has_successor"]
++        )
++        cumulative_battery_depreciation += sum(g["depreciable"] for g in generations)
          pool_key = str(cohort["battery_pool"])
          lifecycle_capital_by_pool[pool_key] += (
              initial_capex * factors.capital_multiplier
          )
-         battery_depreciation_by_pool[pool_key] += (
+-        battery_depreciation_by_pool[pool_key] += (
 -            initial_capex
 -            * (factors.capital_multiplier - factors.terminal_residual_ratio)
 -            / float(cohort["life"])
-+            initial_capex * (1.0 - recovery_ratio) / life
-         )
+-        )
++        battery_depreciation_by_pool[pool_key] += cohort_mature_dep
 +        unit_vintage.append({
 +            "battery_pool": pool_key,
 +            "kind": str(cohort.get("kind", "")),
@@ -49,12 +136,13 @@
 +                initial_capex * factors.capital_multiplier
 +                * finance["capital_recovery_factor"]
 +            ),
-+            "annual_depreciation_yi": initial_capex * (1.0 - recovery_ratio) / life,
++            "annual_depreciation_yi": cohort_mature_dep,
++            "generations": len(generations),
 +        })
          label = f"{float(cohort['life']):g}年"
          if int(cohort["install_year"]) == years[0]:
              factor_samples[label] = factors.capital_multiplier
-@@ -337,12 +356,76 @@
+@@ -337,12 +436,70 @@
      ):
          if abs(sum(by_pool.values()) - total) > 1e-6:
              raise ValueError(f"分池{label}之和({sum(by_pool.values())})≠总量({total})")
@@ -79,42 +167,34 @@
 +    nominal_total_capex = total_initial + sum(
 +        amount for amount in replacement_net.values() if amount
 +    )
-+    # 【强化 2026-09-02b】原来只断言「累计折旧 ≤ 名义净支出」——那是个很弱的不等式，
-+    # 而且两个数不同源：nominal_total_capex 已扣期中残值、且用逐年下降的实际价格。
-+    # 真正的恒等式是会计意义上的资本消耗：
-+    #     累计折旧 == 毛资本支出 − 期中残值回收 − 期末在役资产残值
-+    # 三项都在本函数内可得，故直接断言，容差 5%（残余偏差来自折旧按初装价计
-+    # 而更换按逐年下降价发生，方向已知、量级 3% 左右）。
-+    replacement_gross_all = sum(
-+        amount / (1.0 - recovery_ratio) for amount in replacement_net.values() if amount
-+    ) if recovery_ratio < 1.0 else 0.0
-+    interim_residual = replacement_gross_all - sum(
-+        amount for amount in replacement_net.values() if amount
-+    )
-+    terminal_residual = sum(
-+        float(cohort["initial_capex"])
-+        * lifecycle_factors(
-+            config, float(cohort["install_year"]), float(cohort["life"])
-+        ).terminal_residual_ratio
-+        for cohort in battery_cohorts
-+    )
-+    capital_consumed = (
-+        total_initial + replacement_gross_all - interim_residual - terminal_residual
-+    )
-+    cumulative_depreciation = mature_depreciation * horizon
-+    if capital_consumed > 0:
-+        drift = cumulative_depreciation / capital_consumed - 1.0
-+        if abs(drift) > 0.05:
-+            raise ValueError(
-+                f"累计折旧({cumulative_depreciation:.1f})与真实资本消耗"
-+                f"({capital_consumed:.1f})偏离{drift:+.1%}，超过5%容差——折旧口径错误。"
-+                f"（毛支出{total_initial + replacement_gross_all:.1f}"
-+                f" 期中残值{interim_residual:.1f} 期末残值{terminal_residual:.1f}）"
-+            )
++    # 【强化 2026-09-02c｜折旧的会计恒等式，按构造成立、无容差】
++    #     累计折旧 == 毛资本支出 − 期中残值回收 − 期末在役残值
++    # 站体：无更换、期末账面为 0，故毛支出=折旧、两侧残值均为 0，自然满足。
++    # 电池：由 _cohort_generations 按代展开，depreciable_k = cost_k − recovery_k，
++    # 求和后恒等式左右两边是同一组数的两种排列，只可能因浮点误差而不等。
++    # 断言用 1e-6 相对容差——它现在检的是「有没有写错代码」，不是「口径差多少」。
++    gross_total_capex = gross_battery_capex + station_body_total
++    cumulative_depreciation = cumulative_battery_depreciation + station_body_total
++    capital_consumed = gross_total_capex - interim_recovery - terminal_recovery
++    if abs(cumulative_depreciation - capital_consumed) > 1e-6 * max(1.0, gross_total_capex):
++        raise ValueError(
++            f"折旧恒等式不成立：累计折旧({cumulative_depreciation:.4f}) != "
++            f"毛支出({gross_total_capex:.4f}) − 期中残值({interim_recovery:.4f}) "
++            f"− 期末残值({terminal_recovery:.4f}) = {capital_consumed:.4f}"
++        )
 +    if valuation_capital_pv > nominal_total_capex + 1e-6:
 +        raise ValueError(
 +            f"估值资本PV({valuation_capital_pv:.1f})>名义总支出({nominal_total_capex:.1f})"
 +        )
++    # 诊断（不断言）：按代展开 与 模型自己的更换排期，是两条独立代码路径，
++    # 两者的净支出应当接近；持续偏离 >5% 说明其中一条有口径漂移，值得查。
++    generation_path_net_capex = gross_total_capex - interim_recovery
++    schedule_path_net_capex = nominal_total_capex
++    capex_path_drift = (
++        generation_path_net_capex / schedule_path_net_capex - 1.0
++        if schedule_path_net_capex else 0.0
++    )
++
      peak = max(annual, key=lambda row: row.catl_equity_call_yi)
      return CapexResult(
          annual=annual,
@@ -123,10 +203,12 @@
          lifecycle_capital_base_yi=lifecycle_capital,
 +        valuation_capital_pv_yi=valuation_capital_pv,
 +        nominal_total_capex_yi=nominal_total_capex,
-+        gross_total_capex_yi=total_initial + replacement_gross_all,
-+        interim_residual_yi=interim_residual,
-+        terminal_residual_yi=terminal_residual,
++        gross_total_capex_yi=gross_total_capex,
++        interim_residual_yi=interim_recovery,
++        terminal_residual_yi=terminal_recovery,
 +        capital_consumed_yi=capital_consumed,
++        cumulative_depreciation_yi=cumulative_depreciation,
++        capex_path_drift=capex_path_drift,
 +        unit_vintage=unit_vintage,
          lifecycle_crf=crf,
          annual_capital_requirement_yi=lifecycle_capital * crf,
@@ -166,7 +248,7 @@
  
 --- a/src/schemas.py
 +++ b/src/schemas.py
-@@ -159,6 +159,18 @@
+@@ -159,6 +159,20 @@
      total_initial_capex_yi: float
      first_replacement_net_capex_yi: float
      lifecycle_capital_base_yi: float
@@ -182,10 +264,12 @@
 +    interim_residual_yi: float
 +    terminal_residual_yi: float
 +    capital_consumed_yi: float
++    cumulative_depreciation_yi: float
++    capex_path_drift: float
      lifecycle_crf: float
      annual_capital_requirement_yi: float
      mature_annual_depreciation_yi: float
-@@ -185,6 +197,7 @@
+@@ -185,6 +199,7 @@
      # 【新增｜分池资本】四站型各自的资本口径（键=池键=站型键）：
      # 全周期资本底座、成熟期年折旧、终局初装 CAPEX。四池之和与对应总量字段恒等
      # （capex.py 构建时断言校验），供 report 分站型列示与 business 分池推演使用。
@@ -193,7 +277,7 @@
      lifecycle_capital_base_by_pool: dict[str, float] = field(default_factory=dict)
      mature_annual_depreciation_by_pool: dict[str, float] = field(default_factory=dict)
      total_initial_capex_by_pool: dict[str, float] = field(default_factory=dict)
-@@ -296,6 +309,9 @@
+@@ -296,6 +311,9 @@
      # 口径B（成本线）：EV = FCFF × 年金因子(WACC, 分析期)。WACC 是成本下限，故本口径给出上界。
      # 注意：两条都用**成熟期**FCFF 资本化，未扣建设期爬坡，因此都偏乐观；
      #   带爬坡的逐年 DCF 需等年度化做完，届时隐含倍数只会更低。

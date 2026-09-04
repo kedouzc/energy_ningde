@@ -450,11 +450,18 @@ rapid_decline_end_year = 2033
 rapid_annual_decline_rate = 0.04
 slow_annual_decline_rate = 0.0275
 # 储能/动力 Pack 价格比 0.917：内部折扣链（储能 Pack ÷ 动力 Pack 含税价，比值恒定推导）
+# 仅用于 retirement_recovery_ratio()——期中更换时"退役换电电池降级转卖储能二手市场"的回收率
+# 不适用于期末在役批残值：那批电池在模型horizon 结束时仍是换电电池、仍在役，
+# 没有发生"降级去做储能"这个具体转换，不该背储能/动力价格比
 storage_to_power_price_ratio = 0.917
 # 退役 SOH 80%：GB/T 31484-2015（循环 1000 次不低于 80%）+ GB/T 46991.1-2025 耐久性国标
 retirement_soh = 0.80
 # LFP 年衰减 2%：超换一体 §2.1 + v3.2 L132（外部交叉待补）
 annual_soh_decline_rate = 0.02
+# 二手转售折价 0.60：期中回收（retirement_recovery_ratio，退役电池转售储能二手市场）与
+# 期末在役批残值（terminal_residual_details，作为 DCF 终值/Salvage Value 计入 NPV 的
+# 变现假设）**均适用**——两个场景都是"把一块非全新电池按变现价计入现金流"，都该打
+# 二手市场的流动性折价，只是期末批不再叠加 storage_to_power_price_ratio（它不降级储能）。
 secondary_market_discount = 0.60
 
 # ----------------------运营层（MANIFEST §4）-----------------------------

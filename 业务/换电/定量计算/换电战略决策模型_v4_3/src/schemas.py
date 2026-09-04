@@ -170,6 +170,11 @@ class CapexResult:
     gross_total_capex_yi: float
     interim_residual_yi: float
     terminal_residual_yi: float
+    # 【2026-09-03】terminal_residual_yi 是税前名义口径的加总，各 cohort 终值发生的绝对年份
+    # 不同，不能直接喂给 DCF。terminal_residual_pv_yi 是把每个 cohort 终值**先按 tax_rate
+    # 计税、再折回 base_year**后的加总——已税后、已折现，是唯一可以直接计入 NPV 的一条
+    # （见 business._dcf_cross_check）。
+    terminal_residual_pv_yi: float
     capital_consumed_yi: float
     cumulative_depreciation_yi: float
     capex_path_drift: float
@@ -203,6 +208,13 @@ class CapexResult:
     lifecycle_capital_base_by_pool: dict[str, float] = field(default_factory=dict)
     mature_annual_depreciation_by_pool: dict[str, float] = field(default_factory=dict)
     total_initial_capex_by_pool: dict[str, float] = field(default_factory=dict)
+    # 【新增 2026-09-04】稳态debt：2030年在役资产（含站体）的历史成本×债务比例——
+    # 资产负债表快照口径，不是 lifecycle_capital_base_yi（跨批次锚不同t0，不对应任何
+    # 单一时点），也不是 valuation_capital_pv_yi×债务比（含2030年以后才发生的未来
+    # 更新）。倍数法与DCF法统一使用这一个数（business.py 的 debt_by_pool 与
+    # _dcf_cross_check 的 debt 均改用此字段）。见 capex_debt_估值公式链.md 第3-4节。
+    steady_state_debt_yi: float = 0.0
+    steady_state_debt_by_pool_yi: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass
@@ -314,14 +326,37 @@ class SwapBusinessResult:
     dcf_valuation_capital_pv_yi: float = 0.0
     dcf_valuation_debt_yi: float = 0.0
     dcf_legacy_debt_yi: float = 0.0
+    # 【2026-09-03，经用户复核后新增，同日按用户指正补税】期末在役电池残值
+    # （Terminal/Salvage Value），已按 tax_rate 计税、折回 base_year 后作为期末
+    # 税后现金流入计入口径A的 NPV/归属价值——见 DECISIONS.md「2026-09-03 · 末代残值不再降级储能」。
+    dcf_terminal_residual_pv_yi: float = 0.0
     dcf_ev_at_crf_yi: float = 0.0
     dcf_ev_at_wacc_yi: float = 0.0
     dcf_implied_multiple_at_crf: float = 0.0
     dcf_implied_multiple_at_wacc: float = 0.0
     dcf_multiple_premium: float = 0.0          # 拍的倍数 ÷ 口径A隐含倍数
-    dcf_npv_at_crf_yi: float = 0.0             # 口径A EV − 全周期资本底座
+    dcf_npv_at_crf_yi: float = 0.0             # 口径A EV − 全周期资本底座 ＋ 期末残值PV
     dcf_catl_value_at_crf_yi: float = 0.0      # 口径A 下 CATL 归属权益价值
-    dcf_catl_value_gap_yi: float = 0.0         # 倍数法归属 − 口径A归属 ＝ 押注的那部分
+    dcf_catl_value_gap_yi: float = 0.0         # 倍数法归属 − 真实DCF归属 ＝ 押注的那部分
+    # 【新增 2026-09-04，见 capex_debt_估值公式链.md 第二轮】三处同步修正：
+    #   ① debt 统一为 steady_state_debt_yi（不再是A/B/C三个互不相同的数，T3已解决）；
+    #   ② terminal_residual_pv / valuation_capital 精确移到 target_year(2030)——
+    #      对单一固定利率wacc折现出来的现值总额，移动基准年只需乘(1+wacc)^Δt，
+    #      是折现定义本身的精确性质，不是近似（推导见公式链文档第5.1-5.3节）；
+    #   ③ 新增 dcf_ev_true_yi：forward_fcff 本身没有扣任何资本性支出，此前直接
+    #      ÷CRF当EV，隐含"更新支出已经靠CRF这个及格线除数暗中扣掉了"——但CRF的
+    #      本职是把CAPEX折成年度门槛，反向用它給实际FCFF"倒算EV"不保证真的扣对了
+    #      未来更新的钱。这里改为老实逐年扣掉真实更新净支出（capex已按cohort算好），
+    #      按wacc折现，不再借用CRF。dcf_ev_at_crf_yi/dcf_ev_at_wacc_yi 两条捷径保留
+    #      作对照，不再是主口径；dcf_npv_at_crf_yi/dcf_catl_value_at_crf_yi 只修正了
+    #      ①②（debt+时点），EV仍是CRF捷径；dcf_*_true_yi 三处全部修正。
+    dcf_valuation_capital_pv_at_target_yi: float = 0.0
+    dcf_terminal_residual_pv_at_target_yi: float = 0.0
+    dcf_ev_true_yi: float = 0.0
+    dcf_implied_multiple_true: float = 0.0
+    dcf_multiple_premium_true: float = 0.0
+    dcf_npv_true_yi: float = 0.0
+    dcf_catl_value_true_yi: float = 0.0
     # v4.3 新增：电池银行侧费率三项（蔚能四项成本对照框架补齐）
     battery_asset_yi: float = 0.0
     equipment_asset_yi: float = 0.0

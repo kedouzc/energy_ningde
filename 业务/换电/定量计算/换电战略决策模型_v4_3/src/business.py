@@ -186,51 +186,112 @@ def build_pool_ancillary_revenue(
 
 
 def _dcf_cross_check(
-    config: dict, capex: CapexResult, ebitda: float, forward_fcff: float, ownership: float
+    config: dict,
+    capex: CapexResult,
+    ebitda: float,
+    forward_fcff: float,
+    ownership: float,
+    catl_attributable_value: float,
 ) -> dict[str, float]:
     """DCF 交叉验证：项目自己的现金流支持多少倍 EV/EBITDA？
 
     不改变任何主链结论，只多产出一组对照数——用来回答报告第 5 章那个绕不开的问题：
     「你用 EBITDA 的 18 倍估值，那这门生意的现金流本身支持几倍？」
 
-    两条口径（都用成熟期 FCFF，未扣建设期爬坡，故均偏乐观）：
+    两条捷径口径（都用成熟期 FCFF，未扣建设期爬坡，且未扣任何资本性支出，保留作对照，
+    不再是主口径）：
       A 与门槛同源：EV = FCFF ÷ CRF。CRF 即设 required_ebitda 用的期望收益率年金因子，
-        所以本口径与覆盖倍数完全同源，是模型内部最自洽的一条。
+        所以本口径与覆盖倍数完全同源，是模型内部最自洽的一条捷径。
       B 成本线上界：EV = FCFF × 年金因子(WACC, 分析期)。WACC 只是成本下限，故给出上界。
+
+    【2026-09-04 大修，见 capex_debt_估值公式链.md 第二轮，本条同时解决 debt 口径
+    分裂与 P7（forward_fcff 未扣资本性支出）两个问题】三处同步修正：
+      ① debt 统一为 capex.steady_state_debt_yi（2030年在役批次历史成本×债务比），
+         倍数法（debt_by_pool）与本函数从此共用同一个数，三份"倍数法归属"合并为一份
+         （T3 已解决，见 dcf_catl_value_gap_yi 的新公式）。
+      ② terminal_residual_pv / valuation_capital 此前锚在 base_year(2026)，与
+         ev_crf(2030) 混算跨时点相减——现在精确移到 target_year(2030)：对"用单一
+         固定利率 wacc 折现出来的现值总额"，移动基准年只需乘 (1+wacc)^(target_year
+         −base_year)，这是折现定义本身的精确性质（不是近似，Σ_t CF_t/(1+r)^(t−B2)
+         = (1+r)^(B1−B2) × Σ_t CF_t/(1+r)^(t−B1) 对任意现金流分布恒成立），不需要
+         逐笔重算。推导见 capex_debt_估值公式链.md 第5.1-5.3节。
+      ③ 新增 dcf_ev_true_yi：forward_fcff = EBITDA×(1−税)+折旧×税，代数上等于
+         EBIT×(1−税)+折旧，即标准FCFF公式里只做到"折旧加回"、完全没有"−资本性支出"
+         这一项。此前直接 ÷CRF 当EV，隐含"未来更新支出已经靠CRF这个及格线除数暗中
+         扣掉了"——但CRF的本职是把CAPEX折成年度门槛（CAPEX×CRF=门槛FCFF），反过来
+         拿实际FCFF去除它，不保证真的扣对了未来真实的更新支出。这里改为老实逐年
+         扣掉 capex.lifecycle_replacement_schedule_yi 里 target_year 之后的真实更新
+         净支出（capex.py 已按cohort逐年算好），按 wacc 折现到 target_year，不再
+         借用CRF。covers 2031–2045（final_schedule_year = 2030+15）。
     """
     finance = config["finance"]
     crf = finance["capital_recovery_factor"]
     wacc = finance["wacc"]
     horizon = finance["model_horizon_years"]
-    debt_ratio = finance["debt_ratio"]
     multiple = finance["swap_ev_ebitda"]
+    target_year = config["meta"]["target_year"]
+    years = config["construction"]["years"]
+    base_year = years[0]
+    final_schedule_year = years[-1] + horizon
 
+    # 两条捷径EV，保留作对照（不再是主口径）。
     annuity_wacc = (1 - (1 + wacc) ** -horizon) / wacc
     ev_crf = forward_fcff / crf if crf else 0.0
     ev_wacc = forward_fcff * annuity_wacc
-    # 【修正 2026-09-02｜估值口径统一时点】NPV 与股权价值是「同一时点两笔钱相减」，
-    # 必须用 valuation_capital_pv_yi（全部 CAPEX 折到基年），不能用 lifecycle_capital_base_yi
-    # （那是各批次锚在自身 t=0 的 PV 之和，是**门槛口径**，加总时混了年份）。
-    # 门槛口径仍留给 annual_capital_requirement / 覆盖倍数——那是无量纲比值，不受年份影响。
-    # 见 DECISIONS.md「2026-09-02 · EAC 的资本底座混了年份」。
-    valuation_capital = capex.valuation_capital_pv_yi
-    debt = valuation_capital * debt_ratio
-    debt_legacy = capex.lifecycle_capital_base_yi * debt_ratio
-    catl_value_crf = max(0.0, ev_crf - debt) * ownership
-    catl_value_multiple = max(0.0, ebitda * multiple - debt) * ownership
+
+    # ③ 真实DCF：forward_fcff（税后息前折旧前利润−税）老实逐年扣掉真实更新净支出，
+    # 按wacc折现到target_year——不再借用CRF这个"及格线"除数暗中处理资本性支出。
+    replacement_schedule = capex.lifecycle_replacement_schedule_yi
+    ev_true = sum(
+        (forward_fcff - replacement_schedule.get(year, 0.0)) / (1.0 + wacc) ** (year - target_year)
+        for year in range(target_year + 1, final_schedule_year + 1)
+    )
+
+    # ① debt 统一为稳态（target_year在役资产）历史成本口径，倍数法与DCF法共用同一个数。
+    debt = capex.steady_state_debt_yi
+    # 对照：更早一版口径（门槛底座×债务比）。留作诊断，确认无误后删。
+    debt_legacy = capex.lifecycle_capital_base_yi * finance["debt_ratio"]
+
+    # ② 残值PV、投入现值 精确移到 target_year（原地是 base_year）。
+    rebase_to_target = (1.0 + wacc) ** (target_year - base_year)
+    terminal_residual_pv_base = capex.terminal_residual_pv_yi
+    valuation_capital_base = capex.valuation_capital_pv_yi
+    terminal_residual_pv_target = terminal_residual_pv_base * rebase_to_target
+    valuation_capital_target = valuation_capital_base * rebase_to_target
+
     implied_crf = ev_crf / ebitda if ebitda else 0.0
+    implied_true = ev_true / ebitda if ebitda else 0.0
+
+    # CRF捷径EV，但debt与时点已修正（仍标"_at_crf"，如实反映EV仍是CRF年金捷径算出的）。
+    npv_at_crf = ev_crf + terminal_residual_pv_target - valuation_capital_target
+    catl_value_at_crf = max(0.0, ev_crf + terminal_residual_pv_target - debt) * ownership
+
+    # 真实DCF：EV、时点、debt 三处全部修正后的最终版本。
+    npv_true = ev_true + terminal_residual_pv_target - valuation_capital_target
+    catl_value_true = max(0.0, ev_true + terminal_residual_pv_target - debt) * ownership
+
     return {
         "dcf_ev_at_crf_yi": ev_crf,
         "dcf_ev_at_wacc_yi": ev_wacc,
+        "dcf_ev_true_yi": ev_true,
         "dcf_implied_multiple_at_crf": implied_crf,
         "dcf_implied_multiple_at_wacc": ev_wacc / ebitda if ebitda else 0.0,
+        "dcf_implied_multiple_true": implied_true,
         "dcf_multiple_premium": multiple / implied_crf if implied_crf else 0.0,
-        "dcf_npv_at_crf_yi": ev_crf - valuation_capital,
-        "dcf_catl_value_at_crf_yi": catl_value_crf,
-        "dcf_catl_value_gap_yi": catl_value_multiple - catl_value_crf,
-        "dcf_valuation_capital_pv_yi": valuation_capital,
+        "dcf_multiple_premium_true": multiple / implied_true if implied_true else 0.0,
+        "dcf_npv_at_crf_yi": npv_at_crf,
+        "dcf_npv_true_yi": npv_true,
+        "dcf_catl_value_at_crf_yi": catl_value_at_crf,
+        "dcf_catl_value_true_yi": catl_value_true,
+        # 【2026-09-04】此前这里用内部现算的"倍数法归属"（第三个、从未暴露的debt版本，
+        # 见 DECISIONS「2026-09-03b」）——debt统一后，直接用真正的倍数法headline数字
+        # catl_attributable_value 相减，三份"倍数法归属"合并为一份（T3已解决）。
+        "dcf_catl_value_gap_yi": catl_attributable_value - catl_value_true,
+        "dcf_valuation_capital_pv_yi": valuation_capital_base,
+        "dcf_valuation_capital_pv_at_target_yi": valuation_capital_target,
         "dcf_valuation_debt_yi": debt,
-        # 对照：旧口径债务（门槛底座×债务比）。留一轮供核对，确认后删。
+        "dcf_terminal_residual_pv_yi": terminal_residual_pv_base,
+        "dcf_terminal_residual_pv_at_target_yi": terminal_residual_pv_target,
         "dcf_legacy_debt_yi": debt_legacy,
     }
 
@@ -317,7 +378,13 @@ def build_swap_business(config: dict, scale: ScaleResult, capex: CapexResult) ->
     lifecycle_by_pool = capex.lifecycle_capital_base_by_pool
     dep_by_pool = capex.mature_annual_depreciation_by_pool
     initial_by_pool = capex.total_initial_capex_by_pool
-    debt_by_pool = {pk: lifecycle_by_pool[pk] * finance["debt_ratio"] for pk in BATTERY_POOLS}
+    # 【修正 2026-09-04｜debt统一为稳态口径】此前用 lifecycle_by_pool×债务比——
+    # lifecycle_by_pool 是"各批次锚在自身t0的PV之和"，跨年份加总，不对应2030这一个
+    # 时点的负债余额（本职是给下面 capreq_by_pool 这个门槛口径用的）。改用
+    # capex.steady_state_debt_by_pool_yi（2030年在役批次的历史成本×债务比），
+    # 与DCF线（_dcf_cross_check）共用同一个debt，两条线口径统一（T3已解决）。
+    # 见 capex_debt_估值公式链.md 第3-4节。
+    debt_by_pool = capex.steady_state_debt_by_pool_yi
     capreq_by_pool = {pk: lifecycle_by_pool[pk] * crf for pk in BATTERY_POOLS}
 
     # ---- ⑦ 逐池推演经营链与现金回报。
@@ -489,7 +556,7 @@ def build_swap_business(config: dict, scale: ScaleResult, capex: CapexResult) ->
         project_interest_yi=interest,
         required_fcff_yi=capex.annual_capital_requirement_yi,
         forward_fcff_yi=forward_fcff,
-        **_dcf_cross_check(config, capex, ebitda, forward_fcff, ownership),
+        **_dcf_cross_check(config, capex, ebitda, forward_fcff, ownership, catl_value),
         minimum_distributable_cash_yi=minimum_distributable,
         catl_minimum_distributable_cash_yi=catl_minimum_distributable,
         forward_distributable_cash_yi=forward_distributable,

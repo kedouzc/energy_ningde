@@ -1267,13 +1267,16 @@ def render_report(
             _p(details.horizon_price_ratio),
             _n(details.terminal_batch_age_years, 1),
             _p(details.terminal_batch_soh),
-            f"{details.storage_to_power_price_ratio:.3f}×{_p(details.secondary_market_discount,0)}",
+            _p(details.secondary_market_discount, 0),
             _p(details.terminal_residual_ratio),
         ))
+    # 【2026-09-03，经用户复核后修正】末代残值不再降级储能（不适用储能/动力价格比 0.917），
+    # 但作为 DCF 期末资产残值（Terminal/Salvage Value）计入 NPV，仍打二手交易折价——
+    # 期末在役批可回收价值/初装 = 第15年共同价格折 × 末批SOH × 二手交易折价。
     capital_factor_table = _table(
         [
             "池归属", "电池寿命", "全周期资本倍数", "第15年共同价格折", "末批在役年龄",
-            "末批SOH", "储能价格比×二手折价", "期末在役批可回收价值/初装",
+            "末批SOH", "二手交易折价", "期末在役批可回收价值/初装",
         ],
         capital_factor_rows,
     )

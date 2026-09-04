@@ -91,16 +91,19 @@ def _cohort_generations(
 
         depreciable_k = cost_k − recovery_k
         recovery_k    = 回收率 × 下一代成本（模型口径：残值按更换时的新电池价计）
-        末代 recovery = 初装 × terminal_residual_ratio（期末在役批的可回收价值）
+        末代 recovery = 初装 × terminal_residual_ratio（期末在役批的残值：DCF终值假设，
+                         按实际SOH折算、打二手交易折价，但不降级储能——
+                         见 derived.terminal_residual_details）
 
     这样定义之后，会计恒等式**按构造成立、无需容差**：
         Σ depreciable == Σ cost − Σ 期中回收 − 期末残值
 
     修正的是 2026-09-02 版的两处遗留误差（合计约 −3%，激进情景下超 5%）：
       ① 原式对每一代都用**第 0 代的价格**，而电池逐年降价，后代更便宜；
-      ② 期末在役批按 `terminal_residual_ratio`（二手储能转售价）计，
-         但折旧那一侧仍按第 0 代成本摊，两侧口径不一致。
-    见 DECISIONS.md「2026-09-02c · 折旧恒等式改为按构造成立」。
+      ② 期末在役批按 `terminal_residual_ratio` 计，但折旧那一侧仍按第 0 代成本摊，
+         两侧口径不一致。
+    见 DECISIONS.md「2026-09-02c · 折旧恒等式改为按构造成立」与
+    「2026-09-03 · 末代残值不再降级储能」（terminal_residual_ratio 本身的口径修正）。
     """
     base_price = battery_price_rmb_kwh(config, install_year)
     generations: list[dict[str, float]] = []
@@ -322,6 +325,15 @@ def build_capex(
     # 【新增｜分池资本】全周期资本底座/电池折旧按池累计（cohort 已带 battery_pool 归属）。
     lifecycle_capital_by_pool = {pk: 0.0 for pk in BATTERY_POOLS}
     battery_depreciation_by_pool = {pk: 0.0 for pk in BATTERY_POOLS}
+    # 【新增 2026-09-04｜稳态debt】target_year(2030)在役批次的历史成本，供倍数法与
+    # DCF法统一使用同一个债务口径——不是 lifecycle_capital_base（各批次锚在自身t0，
+    # 跨年份加总不对应任何单一时点），也不是 valuation_capital_pv（含2030年以后才
+    # 发生的未来更新，混进了还没借的钱）。这是资产负债表快照口径："2030这一刻账上
+    # 实际欠多少"。见 capex_debt_估值公式链.md 第3-4节，debt_by_pool 的 in_service
+    # 变量本来就在给折旧用，这里只是多读一次同一个数。站体不重置、全部在建设期
+    # (2026-2030)建成，2030年全额在役，在循环外单独加总（下方 station_body_total）。
+    steady_state_debt_base = 0.0
+    steady_state_debt_base_by_pool = {pk: 0.0 for pk in BATTERY_POOLS}
     factor_samples: dict[str, float] = {}
     residual_samples: dict[str, float] = {}
     # 【新增｜单站 vintage 表】按 (池 × 装机年) 留存单位经济性，供报告下钻与「窗口成本」章。
@@ -332,6 +344,24 @@ def build_capex(
     interim_recovery = 0.0
     terminal_recovery = 0.0
     cumulative_battery_depreciation = 0.0
+    # 【新增 2026-09-03，经用户复核后补】期末残值的估值(DCF)口径：每个 cohort 的终值发生在
+    # 「自己的装机年 + horizon」这一年——不同 cohort 装机年不同，终值发生的绝对年份也不同，
+    # 不能像 terminal_recovery（记账口径，不折现）那样直接相加。这里把每个 cohort 的终值
+    # 折回统一的 base_year，才能作为 DCF 的期末现金流入项使用。同类问题与修法见
+    # DECISIONS.md「2026-09-02 · EAC 的资本底座混了年份」。
+    #
+    # 【税｜2026-09-03 第二次修正，经用户指出后补】这笔钱在 DCF 里是一笔期末处置收益，
+    # 依常规财务处理该按 tax_rate 缴税，不能税前直接计入 NPV。
+    # 简化（已知比精确处理保守，即多计税）：按残值全额视为应税处置收益计税
+    # ATSV = 残值 ×(1 − tax_rate)，而不是更精确的"残值 − 账面净值"差额计税
+    # ——本模型的折旧排布是"按构造成立"以恒等式为目的反推的（depreciable = cost − recovery），
+    # 并非独立追踪的税务账面净值，若用它做净值口径，处置当期几乎恒等于零损益，
+    # 会把税额算成 0，明显与"处置价高于账面残值、理应产生应税收益"的常识不符。
+    # 全额计税是保守方向（多计税、压低 NPV），留作后续精化项（接入独立的税务账面净值追踪）。
+    base_year = years[0]
+    wacc = finance["wacc"]
+    tax_rate = finance["tax_rate"]
+    terminal_recovery_pv = 0.0
     for cohort in battery_cohorts:
         factors = lifecycle_factors(
             config, float(cohort["install_year"]), float(cohort["life"])
@@ -367,11 +397,24 @@ def build_capex(
             g["recovery"] for g in generations if not g["has_successor"]
         )
         cumulative_battery_depreciation += sum(g["depreciable"] for g in generations)
+        # 【2026-09-03】本 cohort 的终值发生在 install_year_f + horizon 这一年，
+        # 先按 tax_rate 计税（全额视为应税处置收益，保守简化见上方说明），
+        # 税后现金流再折回 base_year。
+        terminal_recovery_pv += sum(
+            g["recovery"] * (1.0 - tax_rate)
+            / (1.0 + wacc) ** (install_year_f + horizon - base_year)
+            for g in generations if not g["has_successor"]
+        )
         pool_key = str(cohort["battery_pool"])
         lifecycle_capital_by_pool[pool_key] += (
             initial_capex * factors.capital_multiplier
         )
         battery_depreciation_by_pool[pool_key] += cohort_mature_dep
+        # 【新增 2026-09-04】in_service 是"target_year(2030)在役的那一代"，其 cost
+        # 就是那一代按自己vintage价格买入的历史成本——这正是稳态debt要的"在役成本"，
+        # 复用折旧已经算好的这个数，不新写遍历逻辑。
+        steady_state_debt_base += in_service["cost"]
+        steady_state_debt_base_by_pool[pool_key] += in_service["cost"]
         unit_vintage.append({
             "battery_pool": pool_key,
             "kind": str(cohort.get("kind", "")),
@@ -411,6 +454,14 @@ def build_capex(
         pk: lifecycle_capital_by_pool[pk] + station_body_total_by_pool[pk]
         for pk in BATTERY_POOLS
     }
+    # 【新增 2026-09-04】站体无重置、全部在2026-2030建成，2030年全额在役——
+    # 按原值（非净值）计入稳态debt基数，与电池"在役代按其vintage价格"的口径一致
+    # （debt跟踪的是"当前在服役资产的原始融资额"，不是账面折旧后的净值）。
+    steady_state_debt_base += station_body_total
+    steady_state_debt_base_by_pool = {
+        pk: steady_state_debt_base_by_pool[pk] + station_body_total_by_pool[pk]
+        for pk in BATTERY_POOLS
+    }
     mature_depreciation = battery_depreciation + station_body_total / horizon
     mature_depreciation_by_pool = {
         pk: battery_depreciation_by_pool[pk] + station_body_total_by_pool[pk] / horizon
@@ -433,6 +484,7 @@ def build_capex(
         ("全周期资本底座", lifecycle_capital_by_pool, lifecycle_capital),
         ("成熟期折旧", mature_depreciation_by_pool, mature_depreciation),
         ("终局初装CAPEX", total_initial_by_pool, total_initial),
+        ("稳态debt基数", steady_state_debt_base_by_pool, steady_state_debt_base),
     ):
         if abs(sum(by_pool.values()) - total) > 1e-6:
             raise ValueError(f"分池{label}之和({sum(by_pool.values())})≠总量({total})")
@@ -442,8 +494,7 @@ def build_capex(
     # 比值无量纲，跨年份加总不影响它），不是估值口径。估值要的是同一时点的钱，
     # 所以这里单独算一条：全部 CAPEX 折到 base_year。NPV 只能用这一条。
     # 见 DECISIONS.md「2026-09-02 · EAC 的资本底座混了年份」。
-    base_year = years[0]
-    wacc = finance["wacc"]
+    # （base_year/wacc 已在上方 cohort 循环前定义，供 terminal_recovery_pv 复用。）
     valuation_capital_pv = preperiod_station_initial_capex + sum(
         sum(initial_components[year].values()) / (1.0 + wacc) ** (year - base_year)
         for year in years
@@ -486,6 +537,10 @@ def build_capex(
     )
 
     peak = max(annual, key=lambda row: row.catl_equity_call_yi)
+    steady_state_debt = steady_state_debt_base * finance["debt_ratio"]
+    steady_state_debt_by_pool = {
+        pk: steady_state_debt_base_by_pool[pk] * finance["debt_ratio"] for pk in BATTERY_POOLS
+    }
     return CapexResult(
         annual=annual,
         total_initial_capex_yi=total_initial,
@@ -496,6 +551,7 @@ def build_capex(
         gross_total_capex_yi=gross_total_capex,
         interim_residual_yi=interim_recovery,
         terminal_residual_yi=terminal_recovery,
+        terminal_residual_pv_yi=terminal_recovery_pv,
         capital_consumed_yi=capital_consumed,
         cumulative_depreciation_yi=cumulative_depreciation,
         capex_path_drift=capex_path_drift,
@@ -535,4 +591,6 @@ def build_capex(
         lifecycle_capital_base_by_pool=dict(lifecycle_capital_by_pool),
         mature_annual_depreciation_by_pool=dict(mature_depreciation_by_pool),
         total_initial_capex_by_pool=dict(total_initial_by_pool),
+        steady_state_debt_yi=steady_state_debt,
+        steady_state_debt_by_pool_yi=steady_state_debt_by_pool,
     )

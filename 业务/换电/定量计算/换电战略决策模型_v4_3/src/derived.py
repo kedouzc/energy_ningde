@@ -27,7 +27,6 @@ class TerminalResidualDetails:
     horizon_price_ratio: float
     terminal_batch_age_years: float
     terminal_batch_soh: float
-    storage_to_power_price_ratio: float
     secondary_market_discount: float
     terminal_residual_ratio: float
 
@@ -69,7 +68,21 @@ def retirement_recovery_ratio(config: dict) -> float:
 def terminal_residual_details(
     config: dict, install_year: float, life_years: float
 ) -> TerminalResidualDetails:
-    """拆出15年末共同价格因子与末批在役年龄/SOH，避免把二者混为一谈。"""
+    """拆出15年末共同价格因子与末批在役年龄/SOH，避免把二者混为一谈。
+
+    【2026-09-03，经用户复核后修正】末代批次在模型horizon结束时仍在役、仍是换电电池，
+    没有发生退役、没有转去做储能——因此不适用 storage_to_power_price_ratio
+    （储能/动力价格比 0.917）：那一项只描述"退役电池降级卖给储能市场"这一具体转换，
+    对应公式见 retirement_recovery_ratio()，专供期中更换回收使用，末代不适用。
+
+    但 secondary_market_discount（二手转售折价）适用，理由与"是否发生真实交易"无关：
+    这是 DCF 的期末资产残值（Terminal/Salvage Value）——项目分析期结束时，这批仍在役的
+    换电电池对于「接盘方」或「二手市场」具有公允价值，理应作为期末现金流入计入 NPV
+    （标准项目财务处理，不需要真的完成一次处置动作才能确认）。既然这份价值最终要以
+    "变现假设"计入现金流，就该背上二手市场的流动性折价——买方不会按新电池同等价格
+    收一批旧电池。公式：残值 = 期末同代新换电电池价（重置成本）× 实际SOH × 二手交易折扣。
+    见 DECISIONS.md「2026-09-03 · 末代残值不再降级储能」。
+    """
     horizon = config["finance"]["model_horizon_years"]
     horizon_year = install_year + horizon
     completed_cycles = math.floor((horizon - 1e-9) / life_years)
@@ -84,18 +97,13 @@ def terminal_residual_details(
         battery_price_rmb_kwh(config, horizon_year)
         / battery_price_rmb_kwh(config, install_year)
     )
-    residual = (
-        price_ratio
-        * curve["storage_to_power_price_ratio"]
-        * soh
-        * curve["secondary_market_discount"]
-    )
+    discount = curve["secondary_market_discount"]
+    residual = price_ratio * soh * discount
     return TerminalResidualDetails(
         horizon_price_ratio=price_ratio,
         terminal_batch_age_years=age,
         terminal_batch_soh=soh,
-        storage_to_power_price_ratio=curve["storage_to_power_price_ratio"],
-        secondary_market_discount=curve["secondary_market_discount"],
+        secondary_market_discount=discount,
         terminal_residual_ratio=residual,
     )
 

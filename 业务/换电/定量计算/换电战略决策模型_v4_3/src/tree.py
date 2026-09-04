@@ -446,10 +446,10 @@ def build_tree(c: Ctx) -> Node:
     equity = N(
         "val.equity", "运营侧项目权益价值", "亿元",
         lambda c: c.m("swap_business.project_equity_value_yi"),
-        "EV − 项目债务（分池计算，单池权益不为负）",
+        "EV − 稳态debt（分池计算，单池权益不为负）",
         combine=lambda ev_, d: ev_ - d,
-        children=[ev, N("cap.debt_ref", "项目债务", "亿元",
-                        lambda c: c.m("capex.project_debt_yi"), "同上（引用）")],
+        children=[ev, N("cap.debt_ref", "稳态debt（2030在役资产历史成本×债务比）", "亿元",
+                        lambda c: c.m("capex.steady_state_debt_yi"), "同上（引用）")],
     )
 
     op_value = N(
@@ -622,11 +622,178 @@ def build_tree(c: Ctx) -> Node:
         ],
     )
 
+    # ── 估值层：NPV / 两条归属价值 / 押注 ──────────
+    # 【新增 2026-09-03b】此前树只覆盖到「体检：过不过线」（覆盖倍数、隐含倍数），
+    # 报告最终要用的三个数——NPV、CATL归属（DCF口径）、CATL归属（倍数法口径）——
+    # 全都不在树里，这正是这次 debt 口径分裂能在两次 09-02 修复之后还漏到现在的原因。
+    # 见 DECISIONS.md「2026-09-03b · 倍数法与DCF的debt口径分裂，暴露出一个更深的缺口」。
+    valuation_capital_ref = N(
+        "val.capital_pv", "估值资本PV（折到基年，DCF专用）", "亿元",
+        lambda c: c.m("capex.valuation_capital_pv_yi"),
+        "全部CAPEX统一折到base_year——与「做透的代价」分支的门槛口径 lifecycle_capital_base 不共用",
+    )
+
+    def _rebase_factor(c: "Ctx") -> float:
+        return (1.0 + c.p("finance.wacc")) ** (
+            c.p("meta.target_year") - c.p("construction.years")[0]
+        )
+
+    # 【新增 2026-09-04】把 base_year(2026) 的现值精确移到 target_year(2030)：
+    # 对单一固定利率折现出的现值总额，乘 (1+wacc)^(target_year−base_year) 是精确
+    # 操作、不是近似（推导见 capex_debt_估值公式链.md 第5.1-5.3节），树在这里
+    # 自己重算一遍这个乘法，等于每次跑都在验证这条代数性质仍然成立。
+    valuation_capital_target_ref = N(
+        "val.capital_pv_target", "估值资本PV（移到target_year，DCF专用）", "亿元",
+        lambda c: c.m("swap_business.dcf_valuation_capital_pv_at_target_yi"),
+        "估值资本PV(base_year) × (1+WACC)^(target_year−base_year)——精确操作，非近似",
+        combine=lambda base, factor: base * factor,
+        children=[
+            valuation_capital_ref,
+            N("fin.rebase_factor", "移到target_year的复利因子", "", _rebase_factor,
+              "(1+WACC)^(target_year−base_year)"),
+        ],
+    )
+
+    terminal_residual_target_ref = N(
+        "val.residual_pv_target", "期末残值现值（税后，移到target_year）", "亿元",
+        lambda c: c.m("swap_business.dcf_terminal_residual_pv_at_target_yi"),
+        "期末残值现值(base_year,税后) × (1+WACC)^(target_year−base_year)——精确操作，非近似",
+        combine=lambda base, factor: base * factor,
+        children=[
+            N("val.residual_ref_base", "期末残值现值（税后，base_year）", "亿元",
+              lambda c: c.m("swap_business.dcf_terminal_residual_pv_yi"),
+              "各cohort期末残值按tax_rate计税、折回base_year后加总——"
+              "见 DECISIONS「2026-09-03 · 末代残值不再降级储能」"),
+            N("fin.rebase_factor2", "移到target_year的复利因子", "", _rebase_factor,
+              "同上（引用）"),
+        ],
+    )
+
+    # 【新增 2026-09-04】稳态debt本身按约58条cohort逐批计算（每条cohort取
+    # target_year在役那一代的历史成本），不是两个既有节点的简单乘积，本节点
+    # 不做递归自校验；一致性校验在 capex.py 构建时以「分池汇总=总量」的断言方式
+    # 进行（steady_state_debt_base_by_pool 之和 == steady_state_debt_base）。
+    dcf_debt = N(
+        "val.dcf_debt", "稳态debt（2030在役资产历史成本×债务比，倍数法与DCF共用）", "亿元",
+        lambda c: c.m("swap_business.dcf_valuation_debt_yi"),
+        "Σ_cohort( target_year在役那一代的历史成本，含站体 ) × 债务比例——"
+        "倍数法（val.catl_multiple）与DCF法在此共用同一个数，T3已解决",
+    )
+
+    npv = N(
+        "val.npv", "项目NPV（DCF，CRF捷径EV，仅作对照）", "亿元",
+        lambda c: c.m("swap_business.dcf_npv_at_crf_yi"),
+        "DCF企业价值(CRF年金捷径) ＋ 期末残值现值(target_year) − 估值资本PV(target_year)",
+        combine=lambda ev_, res, cap: ev_ + res - cap,
+        children=[
+            N("val.ev_ref", "DCF企业价值(CRF捷径)·与门槛同源", "亿元",
+              lambda c: c.m("swap_business.dcf_ev_at_crf_yi"), "同上（引用）"),
+            terminal_residual_target_ref,
+            valuation_capital_target_ref,
+        ],
+    )
+
+    catl_dcf = N(
+        "val.catl_dcf", "CATL归属价值（DCF口径，CRF捷径EV，仅作对照）", "亿元",
+        lambda c: c.m("swap_business.dcf_catl_value_at_crf_yi"),
+        "max(0, DCF企业价值(CRF捷径) ＋ 期末残值现值(target_year) − 稳态debt) × 持股比例",
+        combine=lambda ev_, res, d, own: max(0.0, ev_ + res - d) * own,
+        children=[
+            N("val.ev_ref2", "DCF企业价值(CRF捷径)", "亿元",
+              lambda c: c.m("swap_business.dcf_ev_at_crf_yi"), "同上（引用）"),
+            terminal_residual_target_ref,
+            dcf_debt,
+            P("fin.own_ref2", "CATL建站持股比例", "", "finance.construction_ownership"),
+        ],
+    )
+
+    # 【新增 2026-09-04，本轮新主口径，解决 P7】forward_fcff 代数上等于
+    # EBIT×(1−税)+折旧，标准FCFF公式里只做了"折旧加回"、完全没有"−资本性支出"，
+    # 此前直接÷CRF当EV，隐含"更新支出已经靠CRF这个及格线除数暗中扣掉了"——但CRF
+    # 本职是把CAPEX折成年度门槛，反向用它给实际FCFF"倒算EV"不保证真的扣对了未来
+    # 更新的钱。这里老实逐年扣掉真实更新净支出，按WACC折现，不再借用CRF。
+    ev_true = N(
+        "val.ev_true", "DCF企业价值（真实口径，扣真实更新支出）", "亿元",
+        lambda c: c.m("swap_business.dcf_ev_true_yi"),
+        "Σ_{target_year+1..final_schedule_year}[ (成熟期FCFF − 当年真实更新净支出) "
+        "÷(1+WACC)^(年−target_year) ]——逐年现金流求和，结构复杂，本节点不做"
+        "递归自校验，由 business.py 单元逻辑保证；用的是capex已按cohort算好的"
+        "真实更新排期（lifecycle_replacement_schedule_yi），不是拍的",
+    )
+
+    npv_true = N(
+        "val.npv_true", "项目NPV（DCF，真实口径）", "亿元",
+        lambda c: c.m("swap_business.dcf_npv_true_yi"),
+        "真实DCF企业价值 ＋ 期末残值现值(target_year) − 估值资本PV(target_year)",
+        combine=lambda ev_, res, cap: ev_ + res - cap,
+        children=[ev_true, terminal_residual_target_ref, valuation_capital_target_ref],
+    )
+
+    catl_dcf_true = N(
+        "val.catl_dcf_true", "CATL归属价值（DCF口径，真实版，本轮新主口径）", "亿元",
+        lambda c: c.m("swap_business.dcf_catl_value_true_yi"),
+        "max(0, 真实DCF企业价值 ＋ 期末残值现值(target_year) − 稳态debt) × 持股比例",
+        combine=lambda ev_, res, d, own: max(0.0, ev_ + res - d) * own,
+        children=[ev_true, terminal_residual_target_ref, dcf_debt,
+                  P("fin.own_ref2b", "CATL建站持股比例", "", "finance.construction_ownership")],
+    )
+
+    catl_multiple = N(
+        "val.catl_multiple", "CATL归属价值（倍数法口径）", "亿元",
+        lambda c: c.m("swap_business.catl_attributable_value_yi"),
+        "max(0, EBITDA×拍定倍数 − 稳态debt) × 持股比例（分池计算，单池权益不为负；"
+        "此处聚合层重算未做分池取0下限，与逐池加总可能有微小差异，属已知近似，"
+        "见待办清单#12）",
+        combine=lambda ebitda_, mult, d, own: max(0.0, ebitda_ * mult - d) * own,
+        children=[
+            N("ops.ebitda_ref4", "EBITDA", "亿元",
+              lambda c: c.m("swap_business.ebitda_yi"), "同上（引用）"),
+            P("fin.ev_mult_ref2", "运营EV/EBITDA倍数", "×", "finance.swap_ev_ebitda"),
+            N("val.legacy_debt", "稳态debt（同DCF线，2026-09-04起统一）", "亿元",
+              lambda c: c.m("capex.steady_state_debt_yi"),
+              "2030年在役资产历史成本×债务比例——与DCF线共用同一个数（T3已解决）"),
+            P("fin.own_ref3", "CATL建站持股比例", "", "finance.construction_ownership"),
+        ],
+    )
+
+    debt_drift = N(
+        "chk.debt_basis_drift", "稳态debt相对旧口径（门槛底座×债务比）改变了多少", "",
+        lambda c: (
+            (c.m("capex.steady_state_debt_yi") - c.m("swap_business.dcf_legacy_debt_yi"))
+            / c.m("swap_business.dcf_legacy_debt_yi")
+        ),
+        "(新稳态debt − 旧门槛底座债务) ÷ 旧门槛底座债务——纯诊断：2026-09-04 起"
+        "两条估值线已统一使用稳态debt，不再是「两条线口径分裂」（那个问题已解决），"
+        "此节点只记录这次口径修正把debt改变了多少，见 DECISIONS「2026-09-03b」「2026-09-04」",
+    )
+
+    bet = N(
+        "val.bet", "押注部分（结构性差值）", "亿元",
+        lambda c: c.m("swap_business.dcf_catl_value_gap_yi"),
+        "倍数法归属 − DCF归属(真实口径)　"
+        "【2026-09-04：debt统一后，两条线现在真的在问同一个问题、用同一个debt，"
+        "此前藏着的第三份「倍数法归属」（_dcf_cross_check内部现算、从未暴露的版本，"
+        "见 DECISIONS「2026-09-03b」）已删除，三份合并为一份（T3已解决），此处直接用"
+        "真正的倍数法headline数字相减】",
+        combine=lambda m, d: m - d,
+        children=[catl_multiple, catl_dcf_true],
+    )
+
+    valuation = N(
+        "branch.valuation", "估值：这门生意最终值多少钱", "亿元",
+        lambda c: c.m("swap_business.catl_attributable_value_yi"),
+        "见下——倍数法与DCF两套独立口径（DCF区分CRF捷径对照版 npv/catl_dcf 与"
+        "真实版 npv_true/catl_dcf_true），「押注」是倍数法与DCF真实版的结构性差值；"
+        "debt_basis_drift 只诊断、不参与本节点校验",
+        combine=lambda npv_, catl_dcf_, npv_t_, catl_dcf_t_, catl_mult_, bet_, drift_: catl_mult_,
+        children=[npv, catl_dcf, npv_true, catl_dcf_true, catl_multiple, bet, debt_drift],
+    )
+
     # ── 根 ────────────────────────────────────
     return N(
         "root", "换电这笔投资值不值得做", "",
         lambda c: 0.0,
-        "由「换回的价值 / 做透的代价 / 资金从容度 / 体检」四支共同回答，不是一个数",
+        "由「换回的价值 / 做透的代价 / 体检过不过线 / 估值最终值多少」四支共同回答，不是一个数",
         children=[
             N("branch.value", "换回的价值", "亿元",
               lambda c: c.m("ledger.total_swap_increment_value_yi"),
@@ -643,6 +810,7 @@ def build_tree(c: Ctx) -> Node:
               "见下",
               combine=lambda cov, ebit_, dcf_, prem: cov,
               children=[coverage, ebit, dcf, premium]),
+            valuation,
         ],
     )
 

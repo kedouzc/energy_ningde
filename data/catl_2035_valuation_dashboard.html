@@ -1,0 +1,294 @@
+<h2 class="sr-only">CATL 2026–2035 full-scope valuation dashboard v3: manufacturing PE 17× (base, gradual decline from 25×), ops PE 20×, three-scenario unified profit-trajectory calculation, Blackstone 3-4× premium. Baseline 2.03万亿 A-share.</h2>
+
+<style>
+.sec{margin:1.5rem 0 0.6rem;font-size:12px;font-weight:500;color:var(--color-text-secondary);border-bottom:0.5px solid var(--color-border-tertiary);padding-bottom:5px;letter-spacing:.03em}
+.mcards{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:1rem 0 1.5rem}
+.mcard{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:.75rem .875rem}
+.mlabel{font-size:11px;color:var(--color-text-tertiary);margin-bottom:3px}
+.mval{font-size:20px;font-weight:500}
+.msub{font-size:10px;color:var(--color-text-tertiary);margin-top:2px}
+.leg{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:8px;font-size:11px;color:var(--color-text-secondary)}
+.li{display:flex;align-items:center;gap:5px}
+.dot{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+.events{display:grid;gap:10px;margin-top:.75rem}
+.ev{display:grid;grid-template-columns:90px 1fr;gap:8px;align-items:start}
+.eyr{font-size:11px;font-weight:500;color:var(--color-text-secondary);padding-top:2px}
+.chip{display:inline-block;font-size:10px;padding:2px 7px;border-radius:9999px;font-weight:500;margin-bottom:4px}
+.edesc{font-size:11px;color:var(--color-text-secondary);line-height:1.5}
+.akards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:.75rem}
+.acard{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:.625rem .75rem}
+.al{font-size:10px;color:var(--color-text-tertiary)}
+.av{font-size:14px;font-weight:500;color:var(--color-text-primary);margin:2px 0}
+.as{font-size:10px;color:var(--color-text-tertiary)}
+.retgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:.75rem}
+.retcard{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:.75rem .875rem;text-align:center}
+.retlabel{font-size:10px;color:var(--color-text-tertiary);margin-bottom:2px}
+.retval{font-size:16px;font-weight:500}
+.retsub{font-size:10px;color:var(--color-text-tertiary);margin-top:1px}
+.note{font-size:10px;color:var(--color-text-tertiary);margin-top:.5rem;line-height:1.5}
+</style>
+
+<div class="sec">2035 terminal return — capital gain + cumulative dividends (baseline 2.03万亿 A-share, 40% payout)</div>
+<div class="mcards">
+  <div class="mcard"><div class="mlabel">Bear / 悲观</div><div class="mval" style="color:#d85a30">0.34×</div><div class="msub">资本0.22× + 分红0.12× · CAGR -10.2%</div></div>
+  <div class="mcard"><div class="mlabel">Base / 基准</div><div class="mval" style="color:#1d9e75">2.02×</div><div class="msub">资本1.75× + 分红0.27× · CAGR 7.3%</div></div>
+  <div class="mcard"><div class="mlabel">Bull / 乐观</div><div class="mval" style="color:#378add">5.88×</div><div class="msub">资本5.38× + 分红0.49× · CAGR 19.4%</div></div>
+  <div class="mcard"><div class="mlabel">Current A-share baseline</div><div class="mval">2.03</div><div class="msub">万亿 RMB · 2026.5</div></div>
+</div>
+
+<div class="sec">Profit decomposition 2026–2035 — base scenario, full scope (亿 RMB)</div>
+<div class="leg">
+  <span class="li"><span class="dot" style="background:#1d9e75"></span>动力电池制造</span>
+  <span class="li"><span class="dot" style="background:#378add"></span>储能电池制造</span>
+  <span class="li"><span class="dot" style="background:#9b59b6"></span>消费电子/中型电池</span>
+  <span class="li"><span class="dot" style="background:#e67e22"></span>电池回收</span>
+  <span class="li"><span class="dot" style="background:#2ecc71"></span>运营业务</span>
+  <span class="li"><span class="dot" style="background:#95a5a6"></span>生态投资+其他</span>
+</div>
+<div style="position:relative;width:100%;height:240px">
+  <canvas id="c1" role="img" aria-label="Stacked bar chart: full-scope profit decomposition 2026-2035, total grows from 800 to 2200 亿 RMB">Full-scope profit decomposition, base scenario, 2026-2035.</canvas>
+</div>
+
+<div class="sec">2035 profit breakdown — base scenario (亿 RMB, 归母净利润合计 2,200亿)</div>
+<div class="retgrid">
+  <div class="retcard"><div class="retlabel">动力电池制造</div><div class="retval" style="color:#1d9e75">813</div><div class="retsub">36.9% · PE 17× → 1.38万亿</div></div>
+  <div class="retcard"><div class="retlabel">储能电池制造</div><div class="retval" style="color:#378add">307</div><div class="retsub">13.9% · PE 17× → 0.52万亿</div></div>
+  <div class="retcard"><div class="retlabel">消费电子/中型电池</div><div class="retval" style="color:#9b59b6">244</div><div class="retsub">11.1% · PE 17× → 0.41万亿</div></div>
+  <div class="retcard"><div class="retlabel">电池回收</div><div class="retval" style="color:#e67e22">270</div><div class="retsub">12.3% · PE 17× → 0.46万亿</div></div>
+  <div class="retcard"><div class="retlabel">运营业务</div><div class="retval" style="color:#2ecc71">319</div><div class="retsub">14.5% · PE 20× → 0.64万亿</div></div>
+  <div class="retcard"><div class="retlabel">生态投资+其他</div><div class="retval" style="color:#95a5a6">248</div><div class="retsub">11.3% · 综合 → 0.13万亿</div></div>
+</div>
+<div class="note">制造板块PE从旧版15×上调至17×（基准情景），反映技术底色支撑的估值韧性。运营PE维持20×。分部加总市值≈3.55万亿（vs旧版3.22万亿）。</div>
+
+<div class="sec">Operations profit as % of total — three scenarios, all calculated from profit trajectories</div>
+<div class="leg">
+  <span class="li"><span class="dot" style="background:#d85a30"></span>Bear (ops/tot)</span>
+  <span class="li"><span class="dot" style="background:#1d9e75"></span>Base (ops/tot)</span>
+  <span class="li"><span class="dot" style="background:#378add"></span>Bull (ops/tot)</span>
+  <span class="li"><span class="dot" style="background:#ba7517;border-radius:0;height:2px;width:14px"></span>Threshold 10%/15%/20%</span>
+</div>
+<div style="position:relative;width:100%;height:200px">
+  <canvas id="c2" role="img" aria-label="Line chart: ops profit ratio, all three scenarios calculated from profit trajectories. Bear rises to 15.4%, Base peaks at 16.8% then settles at 14.5%, Bull rises to 16.1%.">Operations profit ratio 2026-2035, three scenarios unified calculation.</canvas>
+</div>
+<div class="note">三情景ops占比均由各自六板块利润轨迹统一公式计算（ops/tot），不再手工设定。悲观情景制造萎缩→运营被动占比上升至15.4%；基准情景制造四板块爆发→运营占比2032年见顶后回落至14.5%；乐观情景制造与运营同步高增→运营占比稳定在14-16%。</div>
+
+<div class="sec">Market cap trajectory 2026–2035 (万亿 RMB, baseline 2.03)</div>
+<div class="leg">
+  <span class="li"><span class="dot" style="background:#d85a30"></span>Bear (→0.44, PE→10×)</span>
+  <span class="li"><span class="dot" style="background:#1d9e75"></span>Base (→3.55, PE→16×)</span>
+  <span class="li"><span class="dot" style="background:#378add"></span>Bull (→10.93, PE→22×)</span>
+</div>
+<div style="position:relative;width:100%;height:220px">
+  <canvas id="c3" role="img" aria-label="Line chart: bear declines to 0.44, base rises to 3.55, bull rises to 10.93 万亿 by 2035. PE paths: bear 28→10, base 25→16, bull 23→22.">Market cap trajectory three scenarios with gradual PE compression.</canvas>
+</div>
+<div class="note">基准情景PE从2026年25.4×缓慢降至2035年16.1×（10年仅降9个点），反映技术壁垒保护下的估值韧性。悲观情景PE加速压缩至10×（技术落后→沦为普通制造业）。乐观情景PE维持22×（技术垄断→台积电级估值）。</div>
+
+<div class="sec">Total investment return — split: capital gain + cumulative dividends (from 2.03万亿 baseline)</div>
+<div class="leg">
+  <span class="li"><span class="dot" style="background:#d85a30"></span>Bear total</span>
+  <span class="li"><span class="dot" style="background:#1d9e75"></span>Base total</span>
+  <span class="li"><span class="dot" style="background:#378add"></span>Bull total</span>
+  <span class="li"><span class="dot" style="background:#d85a30;opacity:0.35"></span>Bear capital only</span>
+  <span class="li"><span class="dot" style="background:#1d9e75;opacity:0.35"></span>Base capital only</span>
+  <span class="li"><span class="dot" style="background:#378add;opacity:0.35"></span>Bull capital only</span>
+</div>
+<div style="position:relative;width:100%;height:200px">
+  <canvas id="c4" role="img" aria-label="Line chart: total return (capital + dividends) and capital-only return for three scenarios. Base total 2.02×, Bull total 5.88×.">Total return including dividends vs capital-only.</canvas>
+</div>
+
+<div class="sec">Implied PE trajectory — three scenarios (blended PE = MC / total profit)</div>
+<div class="leg">
+  <span class="li"><span class="dot" style="background:#d85a30"></span>Bear PE</span>
+  <span class="li"><span class="dot" style="background:#1d9e75"></span>Base PE</span>
+  <span class="li"><span class="dot" style="background:#378add"></span>Bull PE</span>
+</div>
+<div style="position:relative;width:100%;height:180px">
+  <canvas id="c5" role="img" aria-label="Line chart: implied PE trajectories. Bear 28→10, Base 25→16, Bull 23→22.">Implied PE trajectory three scenarios.</canvas>
+</div>
+
+<div class="sec">Phase transition & valuation switch timeline (updated PE assumptions)</div>
+<div class="events">
+  <div class="ev">
+    <div class="eyr">2026–2028</div>
+    <div>
+      <span class="chip" style="background:var(--color-background-secondary);color:var(--color-text-secondary)">Phase 1: 技术溢价期</span>
+      <div class="edesc">ops利润占比&lt;7%（base）。制造四板块贡献93%+利润。市场按技术领先型制造PE（18-25×）定价，远高于一般制造业（12-15×）。Q1 2026机构增持确认技术底色。换电站建设期，REITs尚未发行。</div>
+    </div>
+  </div>
+  <div class="ev">
+    <div class="eyr">2029–2030</div>
+    <div>
+      <span class="chip" style="background:var(--color-background-info);color:var(--color-text-info)">相变触发信号</span>
+      <div class="edesc">ops占比突破10%（base），首单换电站REITs发行。储能+消费电子+回收三大新引擎放量，制造从"动力单极"转向"四轮驱动"。制造PE缓慢降至20-22×。部分分析师开始双轨建模。</div>
+    </div>
+  </div>
+  <div class="ev">
+    <div class="eyr">2031–2032</div>
+    <div>
+      <span class="chip" style="background:var(--color-background-warning);color:var(--color-text-warning)">Phase 2: 双轨估值过渡</span>
+      <div class="edesc">ops占比达15%（base），双轨PE+AUM估值成主流。制造板块PE 17-19×（四板块综合，技术代差维持），运营板块20-25×。零碳园区首批旗舰项目验证。资管AUM市值比12-16%（黑石3-4×溢价）。</div>
+    </div>
+  </div>
+  <div class="ev">
+    <div class="eyr">2033–2035</div>
+    <div>
+      <span class="chip" style="background:var(--color-background-success);color:var(--color-text-success)">Phase 3: 成熟期重定价</span>
+      <div class="edesc">ops占比14.5%（base）/16.1%（bull）。制造PE 17×（base，台积电下沿）/22×（bull，台积电上沿）。运营PE 20×（base）/25-30×（bull，REITs全面跑通）。制造四板块合计1,633亿利润仍是估值主力，运营319亿提供估值倍数放大器。</div>
+    </div>
+  </div>
+</div>
+
+<div class="sec">Key assumptions — 2035 base scenario (full scope, aligned with 业务分布.md)</div>
+<div class="akards">
+  <div class="acard"><div class="al">动力电池制造</div><div class="av">813亿</div><div class="as">9029GWh × 9%净利率 · PE 17×</div></div>
+  <div class="acard"><div class="al">储能电池制造</div><div class="av">307亿</div><div class="as">2786GWh × 11%净利率 · PE 17×</div></div>
+  <div class="acard"><div class="al">消费电子/中型电池</div><div class="av">244亿</div><div class="as">814GWh × 15%净利率 · PE 17×</div></div>
+  <div class="acard"><div class="al">电池回收</div><div class="av">270亿</div><div class="as">450GWh × 0.6亿/GWh · PE 17×</div></div>
+  <div class="acard"><div class="al">运营业务</div><div class="av">319亿</div><div class="as">换电167+储能152 · PE 20×</div></div>
+  <div class="acard"><div class="al">生态投资+其他</div><div class="av">248亿</div><div class="as">CVC 60+矿权12+合资176 · 综合0.13万亿</div></div>
+</div>
+
+<div class="sec">PE assumption comparison — old vs new</div>
+<div class="akards">
+  <div class="acard"><div class="al">制造PE（悲观）</div><div class="av" style="color:var(--color-text-secondary)">12× → 10×</div><div class="as">技术落后→普通制造业</div></div>
+  <div class="acard"><div class="al">制造PE（基准）</div><div class="av" style="color:#1d9e75">15× → 17×</div><div class="as">技术领先→台积电下沿</div></div>
+  <div class="acard"><div class="al">制造PE（乐观）</div><div class="av" style="color:#378add">18× → 22×</div><div class="as">技术垄断→台积电上沿</div></div>
+  <div class="acard"><div class="al">运营PE（基准）</div><div class="av">20×（不变）</div><div class="as">自持+管理双轮驱动</div></div>
+  <div class="acard"><div class="al">运营PE（乐观）</div><div class="av" style="color:#378add">25-30×</div><div class="as">REITs全面跑通</div></div>
+  <div class="acard"><div class="al">资管AUM市值比</div><div class="av" style="color:#378add">8-11%→12-16%</div><div class="as">黑石3-4×溢价</div></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const yrs = ['2026','2027','2028','2029','2030','2031','2032','2033','2034','2035'];
+
+// === BASE SCENARIO PROFIT TRAJECTORIES (亿 RMB) ===
+const pwrB = [650, 670, 680, 700, 720, 740, 760, 780, 800, 813];
+const essB = [ 50,  60,  70,  90, 120, 160, 200, 240, 280, 307];
+const ceB  = [ 20,  25,  30,  40,  60,  90, 120, 150, 200, 244];
+const recB = [ 30,  25,  20,  20,  50,  60,  70,  80, 120, 270];
+const opsB = [  8,  25,  60, 105, 160, 215, 268, 288, 305, 319];
+const ecoB = [ 42,  45,  40,  45,  90, 135, 182, 250, 275, 248];
+const totB = [800, 850, 900,1000,1200,1400,1600,1800,2000,2200];
+
+// === BEAR SCENARIO PROFIT TRAJECTORIES (亿 RMB) ===
+const pwrBear = [600, 580, 550, 500, 450, 400, 350, 300, 250, 200];
+const essBear = [ 40,  45,  50,  55,  60,  65,  70,  75,  78,  80];
+const ceBear  = [ 15,  18,  20,  22,  25,  28,  30,  32,  35,  38];
+const recBear = [ 25,  20,  15,  15,  20,  25,  30,  35,  38,  40];
+const opsBear = [  5,  12,  20,  30,  40,  50,  58,  62,  65,  67];
+const ecoBear = [ 30,  28,  25,  22,  20,  18,  16,  14,  12,  10];
+const totBear = [715, 703, 680, 644, 615, 586, 554, 518, 478, 435];
+
+// === BULL SCENARIO PROFIT TRAJECTORIES (亿 RMB) ===
+const pwrBull = [700, 780, 880,1000,1150,1300,1450,1550,1620,1680];
+const essBull = [ 60,  80, 110, 160, 230, 320, 440, 580, 750, 950];
+const ceBull  = [ 25,  35,  50,  75, 110, 160, 220, 300, 400, 520];
+const recBull = [ 35,  40,  55,  80, 120, 170, 230, 310, 400, 520];
+const opsBull = [ 10,  35,  80, 140, 220, 320, 430, 550, 680, 800];
+const ecoBull = [ 50,  60,  75, 100, 140, 190, 250, 320, 400, 500];
+const totBull = [880,1030,1250,1555,1970,2460,3020,3610,4250,4970];
+
+// === OPS RATIO (%) — all three calculated from profit trajectories ===
+const ratBear = opsBear.map((v,i) => +(v / totBear[i] * 100).toFixed(1));
+const ratBase = opsB.map((v,i) => +(v / totB[i] * 100).toFixed(1));
+const ratBull = opsBull.map((v,i) => +(v / totBull[i] * 100).toFixed(1));
+
+// === MARKET CAP TRAJECTORY (万亿 RMB, baseline 2.03) ===
+// PE paths: bear 28→10, base 25→16, bull 23→22
+const mcBear = [2.03, 1.85, 1.65, 1.45, 1.25, 1.05, 0.85, 0.65, 0.52, 0.44];
+const mcBase = [2.03, 2.08, 2.12, 2.25, 2.58, 2.87, 3.12, 3.33, 3.50, 3.55];
+const mcBull = [2.03, 2.45, 3.00, 3.70, 4.61, 5.71, 7.01, 8.41, 9.61,10.93];
+
+// === IMPLIED PE (blended) ===
+const peBear = mcBear.map((v,i) => +(v * 10000 / totBear[i]).toFixed(1));
+const peBase = mcBase.map((v,i) => +(v * 10000 / totB[i]).toFixed(1));
+const peBull = mcBull.map((v,i) => +(v * 10000 / totBull[i]).toFixed(1));
+
+// === CAPITAL GAIN MULTIPLE (from 2.03 baseline) ===
+const capBear = mcBear.map(v => +(v / 2.03).toFixed(2));
+const capBase = mcBase.map(v => +(v / 2.03).toFixed(2));
+const capBull = mcBull.map(v => +(v / 2.03).toFixed(2));
+
+// === CUMULATIVE DIVIDEND MULTIPLE (profit × 40% payout / 20300亿 baseline) ===
+function cumDiv(profitArr) {
+  let cum = 0;
+  return profitArr.map(p => {
+    cum += p;
+    return +(cum * 0.4 / 20300).toFixed(3);
+  });
+}
+const divBear = cumDiv(totBear);
+const divBase = cumDiv(totB);
+const divBull = cumDiv(totBull);
+
+// === TOTAL RETURN (capital + dividend) ===
+const retBear = capBear.map((c,i) => +(c + divBear[i]).toFixed(2));
+const retBase = capBase.map((c,i) => +(c + divBase[i]).toFixed(2));
+const retBull = capBull.map((c,i) => +(c + divBull[i]).toFixed(2));
+
+const gridColor = 'rgba(128,128,128,0.15)';
+const tickColor = 'rgba(128,128,128,0.7)';
+const baseOpts = {responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{color:gridColor}, ticks:{color:tickColor, font:{size:10}}}, y:{grid:{color:gridColor}, ticks:{color:tickColor, font:{size:10}}}}};
+
+// Chart 1: Full-scope profit decomposition (stacked bar, 6 segments)
+new Chart(document.getElementById('c1'), {
+  type:'bar',
+  data:{labels:yrs, datasets:[
+    {label:'动力电池', data:pwrB, backgroundColor:'#1d9e75', borderSkipped:false},
+    {label:'储能电池', data:essB, backgroundColor:'#378add', borderSkipped:false},
+    {label:'消费电子', data:ceB,  backgroundColor:'#9b59b6', borderSkipped:false},
+    {label:'电池回收', data:recB, backgroundColor:'#e67e22', borderSkipped:false},
+    {label:'运营业务', data:opsB, backgroundColor:'#2ecc71', borderSkipped:false},
+    {label:'生态+其他', data:ecoB, backgroundColor:'#95a5a6', borderSkipped:false}
+  ]},
+  options:{...baseOpts, plugins:{...baseOpts.plugins, tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y+'亿'}}}, scales:{...baseOpts.scales, x:{...baseOpts.scales.x, stacked:true}, y:{...baseOpts.scales.y, stacked:true, ticks:{...baseOpts.scales.y.ticks, callback:v=>v+'亿'}}}}
+});
+
+// Chart 2: Operations profit ratio (all three calculated from trajectories)
+new Chart(document.getElementById('c2'), {
+  type:'line',
+  data:{labels:yrs, datasets:[
+    {label:'Bear', data:ratBear, borderColor:'#d85a30', backgroundColor:'rgba(216,90,48,0.06)', borderWidth:2, pointRadius:3, tension:.3, fill:false, borderDash:[4,3]},
+    {label:'Base', data:ratBase, borderColor:'#1d9e75', backgroundColor:'rgba(29,158,117,0.08)', borderWidth:2.5, pointRadius:3, tension:.3, fill:false},
+    {label:'Bull', data:ratBull, borderColor:'#378add', backgroundColor:'rgba(55,138,221,0.08)', borderWidth:2, pointRadius:3, tension:.3, fill:false, borderDash:[2,2]}
+  ]},
+  options:{...baseOpts, scales:{...baseOpts.scales, y:{...baseOpts.scales.y, min:0, max:22, ticks:{...baseOpts.scales.y.ticks, callback:v=>v+'%'}}}}
+});
+
+// Chart 3: Market cap trajectory
+new Chart(document.getElementById('c3'), {
+  type:'line',
+  data:{labels:yrs, datasets:[
+    {label:'Bear', data:mcBear, borderColor:'#d85a30', borderWidth:2, pointRadius:3, tension:.3, fill:false, borderDash:[4,3]},
+    {label:'Base', data:mcBase, borderColor:'#1d9e75', borderWidth:2.5, pointRadius:3, tension:.3, fill:false},
+    {label:'Bull', data:mcBull, borderColor:'#378add', borderWidth:2, pointRadius:3, tension:.3, fill:false, borderDash:[2,2]}
+  ]},
+  options:{...baseOpts, scales:{...baseOpts.scales, y:{...baseOpts.scales.y, min:0, ticks:{...baseOpts.scales.y.ticks, callback:v=>v.toFixed(1)+'万亿'}}}}
+});
+
+// Chart 4: Total return (capital + dividends) with capital-only reference lines
+new Chart(document.getElementById('c4'), {
+  type:'line',
+  data:{labels:yrs, datasets:[
+    {label:'Bear total', data:retBear, borderColor:'#d85a30', borderWidth:2.5, pointRadius:3, tension:.3, fill:false},
+    {label:'Base total', data:retBase, borderColor:'#1d9e75', borderWidth:3, pointRadius:3, tension:.3, fill:false},
+    {label:'Bull total', data:retBull, borderColor:'#378add', borderWidth:2.5, pointRadius:3, tension:.3, fill:false},
+    {label:'Bear capital', data:capBear, borderColor:'#d85a30', borderWidth:1, pointRadius:0, tension:.3, fill:false, borderDash:[2,2]},
+    {label:'Base capital', data:capBase, borderColor:'#1d9e75', borderWidth:1, pointRadius:0, tension:.3, fill:false, borderDash:[2,2]},
+    {label:'Bull capital', data:capBull, borderColor:'#378add', borderWidth:1, pointRadius:0, tension:.3, fill:false, borderDash:[2,2]}
+  ]},
+  options:{...baseOpts, scales:{...baseOpts.scales, y:{...baseOpts.scales.y, min:0, ticks:{...baseOpts.scales.y.ticks, callback:v=>v.toFixed(1)+'×'}}}}
+});
+
+// Chart 5: Implied PE trajectory
+new Chart(document.getElementById('c5'), {
+  type:'line',
+  data:{labels:yrs, datasets:[
+    {label:'Bear PE', data:peBear, borderColor:'#d85a30', borderWidth:2, pointRadius:3, tension:.3, fill:false, borderDash:[4,3]},
+    {label:'Base PE', data:peBase, borderColor:'#1d9e75', borderWidth:2.5, pointRadius:3, tension:.3, fill:false},
+    {label:'Bull PE', data:peBull, borderColor:'#378add', borderWidth:2, pointRadius:3, tension:.3, fill:false, borderDash:[2,2]}
+  ]},
+  options:{...baseOpts, scales:{...baseOpts.scales, y:{...baseOpts.scales.y, min:0, max:32, ticks:{...baseOpts.scales.y.ticks, callback:v=>v.toFixed(0)+'×'}}}}
+});
+</script>

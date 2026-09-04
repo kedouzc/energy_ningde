@@ -1,0 +1,707 @@
+[meta]
+model_name = "换电战略决策模型_v4.2"
+model_version = "4.2"
+version_date = "2026-08-27"
+reference_year = 2026
+target_year = 2030
+currency = "亿元人民币"
+base_scenario = "中性"
+# 参数溯源纪律：每个根本外生参数后附 source_url 注释；若为经验假设（非外部信源）须显式标注。
+# 车辆全链路根本参数来源：_archive/重卡与城配物流换电规模测算_合并对比.py（v2）及
+#   《换电毛估估_折扣链与总表_v3.2》L330-344（里程池→活跃车反推法）。
+
+[modeling.rounding]
+# “毛估估”只在自然业务节点取整，避免旧版在中间层反复取整形成复合偏差：
+# 终局车型车辆数与该车型加权频次各保留1位小数后再反推站数；金额在报告中保留1位。
+# 年度批次、折现和税盾内部仍保留精度，防止五年累计因逐行取整被系统性放大或缩小。
+terminal_vehicle_decimals = 1
+terminal_frequency_decimals = 1
+report_money_decimals = 1
+
+# ----------------------财务数据-----------------------------
+
+[finance]
+wacc = 0.075   # 蔚来ABS评估数据
+capital_recovery_factor = 0.15
+required_return_range = [0.10, 0.15]
+tax_rate = 0.25
+debt_ratio = 0.60   # 经验假设，类固收项目可以做到1:1.5杠杆
+debt_interest_rate = 0.025 # CATL和蔚来在2026年发行的绿债利率
+construction_ownership = 0.40   #  参考蔚来电池银行持股比例
+manufacturing_pe = 20.0   # CATL目前估值
+swap_ev_ebitda = 18.0   # 经验假设
+manager_fee_rate = 0.010   # 轻资产管理费率，先设定，本次计算不涉及
+manager_net_margin = 0.40   # 轻资产管理净利率，先设定，本次计算不涉及
+manager_pe = 25.0   # 轻资产管理PE，先设定，本次计算不涉及
+transaction_cost_rate = 0.020
+model_horizon_years = 15   # 换电业务分析期，与蔚来电池银行ABS评估年限一致
+
+[financial_2025a]
+group_revenue_yi = 4237.01834
+group_net_profit_yi = 722.01
+group_cfo_yi = 1332.0
+cash_and_trading_assets_yi = 3925.0
+power_battery_revenue_yi = 3165.06369
+power_battery_gross_margin = 0.2384
+storage_revenue_yi = 624.39820
+
+[financial_2026h1]
+group_revenue_yi = 2769.16580
+group_net_profit_yi = 432.84
+group_cfo_yi = 602.17
+group_gross_margin = 0.2393
+power_battery_revenue_yi = 1921.24890
+power_battery_revenue_yoy = 0.4602
+power_battery_gross_margin = 0.2063
+storage_revenue_yi = 532.60967
+storage_gross_margin = 0.2396
+cash_yi = 3720.53
+trading_assets_yi = 681.58
+
+[financial_2026e]
+group_net_profit_consensus_yi = 1000.0
+group_market_cap_ah_yi = 20000.0
+power_battery_shipments_gwh = 644.0
+allocation_method = "2026H1动力毛利润占集团毛利润"
+
+# ----------------------车辆数据-----------------------------
+# 车辆运营年限：私家车无，网约车8年退役/60万公里报废([网络预约出租汽车经营服务管理暂行办法39条](https://xxgk.mot.gov.cn/2020/jigou/fgs/202212/t20221205_3719525.html?utm_source=chatgpt.com))，出租车8年、货车15年([机动车强制报废标准规定第5条](https://www.mee.gov.cn/gkml/hbb/gwy/201301/t20130115_245171.htm))
+# 老质保法规：乘用车8年/12万公里、商用车5年/20万公里（[关于2016—2020年新能源汽车推广应用财政支持政策的通知 二（三）](https://www.miit.gov.cn/jgsj/zbys/wjfb/art/2020/art_0c6ec8f41f614a3086c62f3851a9591d.html?utm_source=chatgpt.com)）
+# 电池寿命：没有强制退役规定，国标SOH=80%([GB/T 31484-2015 电动汽车用动力蓄电池循环寿命要求及试验方法 第5.2条](https://openstd.samr.gov.cn/bzgk/std/newGbInfo?hcno=44ECF0443BD82A81A512FB05092677EE&utm_source=chatgpt.com))
+
+[vehicles.heavy]
+label = "重卡"
+station_group = "heavy"
+battery_kwh = 500.0              # 增量单车带电量 kWh：JPM英中对照（长续航趋势），存量口径420kWh（GGII）
+stock_wan = 900.0               # 2030重卡保有 万辆：行业重卡电动化基准
+replacement_cycle_years = 9.0    # 重卡更新周期 年
+# 2025新能源重卡销量 233,206辆（同比+181.91%，交强险实销不含军车出口），LNG/柴油重卡不属于NEV；
+# 其中纯电224,759辆占96.38%、燃料电池7,282(3.12%)、插混1,165(0.50%)；
+# 纯电：充电157,137(67.38%)、换电67,622(29.00%)。
+# 信源：[新浪/看点资讯引第一商用车网](https://cj.sina.com.cn/articles/view/7829375716/1d2aacae400101sfj8)
+# NEV渗透率斜率（先快后慢S型）：2025全年28%（12月破半但全年综合不足30%）→
+# 2026上半年综合33%、6月峰值44%、下半年再上→2026全年35%（较2025多7个点）→其后四年摊15点
+# 信源：[第一商用车网月度渗透](https://www.cvworld.cn/news/Onedata/250628/230405.html)
+nev_rates = [0.35, 0.43, 0.46, 0.48, 0.50]
+pure_electric_share = 1.0        # 重卡换电均发生在纯电车型（纯电含换电占NEV 96.38%，近似取1）
+no_swap_catl_share = 0.35        # 无换电情景下CATL在重卡动力电池市占率
+# 2025年已经进入CATL换电体系的重卡存量，v3.2约0.7万辆；并入2026批次参与累计车辆、装机与CAPEX。
+# 来源：[盐田港案例](https://www.yict.com.cn/article/detail/12754.html)
+existing_catl_swap_stock_wan = 0.7
+
+[[vehicles.heavy.scenes]]
+name = "短途"
+weight = 0.38                    # 短途销量占比（JPM续航表）
+# 换电渗透率30% = 2025实测自然选择基线（钢厂/港口/矿山场景）：[百度号成本革命2026-8](https://baijiahao.baidu.com/s?id=1872927453560932324)（已确认基线）
+# 政策刺激峰值曾达50%+（2021-2022唐山/包头试点）：[电动重卡狂飙2026-6](https://baijiahao.baidu.com/s?id=1868770572631070105)（已确认历史峰）
+# 短途换电:充电自然比约30:70（充电桩集中配套，2025-10充电占纯电70%），非5:5
+# （5:5为政策刺激瞬时峰值）：[交强险2025-10月度数据](https://baijiahao.baidu.com/s?id=1849988492870258539)
+swap_penetration = 0.30
+# 宁德市占30%/启源70%（三七开）：短途属启源传统优势（建站市占71%、交付55%），宁德为小头，[启源方案](https://chejiahao.autohome.com.cn/info/25447198)
+catl_swap_share = 0.30
+daily_km = 130.0
+onboard_battery_kwh = 342.0
+energy_consumption_kwh_km = 1.50
+
+[[vehicles.heavy.scenes]]
+name = "中途"
+weight = 0.50                    # 中途销量占比 50%（JPM续航表 表13）
+# 换电渗透率50%：介于短途30%/长途70%之间，符合效率敏感梯度；快递调拨+钢厂/煤炭固定线路
+# 天然偏好换电，2022年换电曾占55:45：[汽车之家2026-7奥动原话](https://chejiahao.autohome.com.cn/info/25909400)（已确认取50%）
+swap_penetration = 0.50
+catl_swap_share = 0.30           # 宁德30%/启源70%（三七开，用户拍板）：中途属启源传统优势
+daily_km = 400.0
+onboard_battery_kwh = 513.0
+energy_consumption_kwh_km = 1.70
+
+[[vehicles.heavy.scenes]]
+name = "长途"
+weight = 0.12                    # 长途销量占比 12%（4M26，FY25为6%）（JPM续航表 表13）
+# 换电渗透率70%（取60-80%中位，刚性但分母小）：干线渗透<1% 但换电为王
+# [汽车之家](https://chejiahao.autohome.com.cn/info/25909400)（已确认取70%）
+swap_penetration = 0.70
+# 宁德70%/启源30%：长途属宁德底盘式主阵地（极兔5000台验证），启源背包式亏吨不适干线靠存量外溢
+#：[同花顺极兔订单](https://m.10jqka.com.cn/20260702/c677904714.shtml)（已确认长途宁德7成）
+catl_swap_share = 0.70
+daily_km = 650.0
+onboard_battery_kwh = 513.0      # 长途背电 kWh：3块叠至513kWh
+energy_consumption_kwh_km = 1.70 # 长途电耗 kWh/km：山区上探2.0+
+
+[vehicles.city]
+label = "城配物流"
+station_group = "choco"
+battery_kwh = 80.0               # 城配换电包 80kWh：主流轻卡80kWh [太平洋汽车](https://www.pcauto.com.cn/ask/3397635.html) 实际运营续航~250km
+stock_wan = 1500.0              # 城配场景车保有量 万辆（运联研究院[中国城配行业发展报告](https://news.qq.com/rain/a/20240122A031JG00)，保有量恒定不增长）
+# 商用车总保有（2023基准[能链研究院/界面新闻2023-3](https://www.jiemian.com/article/9115697.html)）：约4000万
+# 轻商车：约3000万 = 商用车4000−重卡900−公交大客100
+# 轻商分类：轻卡占57%≈2280万、轻客>300万、微卡/皮卡各<100万）
+# 城配2022为1459万（[前瞻产业研究院2023分车型](https://x.qianzhan.com/xcharts/detail/d52164dd330ce52d.html)）
+# 城配1500万车型构成：城配轻卡784万(54%) + 交叉型商乘两用车/面包车/VAN 454万(31%) + 微卡/依维柯(轻客)约262万(15%)。
+# **口径陷阱（必须澄清）**：[中物联《2026中国公路运力发展报告》](http://new.chinawuliu.com.cn/lhhzq/202607/12/667535.shtml)
+# 称2025年底"营运载货汽车"1168.9万辆（同比+1.1%），该口径只统计行驶证标注"营运"、以盈利为目的的货车，
+# 剔除了大量非营运蓝牌轻卡（个体户拉自家货/单位自用车/"私家车化"轻卡），与4000万/3000万全保有量差一个量级。
+# 总量趋势：城配属营运生产资料，靠老车更新维持、总量不增长（营运载货汽车同比仅+1.1%；城配2022→2023仅+3%），
+# 与网约车/出租车演化一致 → 保有量恒定，年销量=年更新量，无净增。
+replacement_cycle_years = 8.0    # 更新周期 年：1500/8≈187.5→取整190万/年=电车资源实测193.7万/年(十万级)
+# NEV渗透率S曲线(2026→2030)：基准2025物流车整体32.4%（全量193.7万/NEV 62.8万，电车资源保险上险口径）；
+# 其后类比出租车/网约车S曲线(2018:33%→2023:87%→2025:≈100%)外推至2030≈95%，留5%给极寒/重载边缘场景。
+# 基准年分车型渗透率（电车资源2025）：中面96.6%/大面59.4%/轻卡31.3%/小卡23.9%/微面22.3%/微卡9.0%/中卡6.4%
+# （面系VAN已近饱和，卡系里轻卡>小卡>微卡>中卡）；不可按分车型求和替代整体口径。
+# 信源：[电车资源《31省市渗透率》](https://www.evpartner.com/news/262/detail-82448.html)；
+#      [电车资源行业研究院季度报](http://newcarschannel.cn/life/202606231524292429.html)（2026Q1渗透率30%、同比+7pct）
+# 交叉校验（不采用，仅口径参照）：第一商用车网轻卡(GVW 3.5-6T交强险)2025渗透25.97%
+#      [2025轻卡年终盘点](https://m.cvworld.cn/news.aspx?newsid=236056)、2026-05达33.51%
+#      [2026前5月轻卡](https://truck.cvworld.cn/news/Onedata/260614/238847.html)；
+#      方得网(轻卡GVW 1.8-6T)2025全年22.3% [方得网](https://www.163.com/dy/article/KN41S45N0527RT9S.html)。
+#      → 三家因GVW边界与"总量"定义不同而异；为保证与本文Part3内部自洽，本模型统一采用**电车资源**口径。
+nev_rates = [0.50, 0.65, 0.80, 0.90, 0.95]
+pure_electric_share = 1.0
+daily_km = 300.0                # 城配高频子集日均里程 km：程序定义高频>250km，取300 [卡车之家城配运营](http://www.360che.com/news/250109/194497.html)
+energy_consumption_kwh_km = 0.27 # 城配电耗 kWh/km：电动轻卡百公里25-40kWh，取0.27 [汽车之家2026-06](https://chejiahao.autohome.com.cn/info/25837705)
+no_swap_catl_share = 0.35        # 无换电情景下CATL在城配动力电池市占率
+
+# —— 城配「存量单列不并入」结构（补回自 _archive/重卡与城配物流换电规模测算_合并对比.py v2）——
+# 城配换电2025才起步，存量层基数用 2025 单年 NEV销量(62.8万) 即可，但换电渗透率极低(2%)；
+# 此前8%/累计180万口径偏乐观。该存量层高不确定性，单列输出、不并入 headline 增量。
+city_existing_nev_stock_wan = 62.8   # 2025单年城配NEV销量 万辆（存量层基准）：[城配NEV销量统计](https://www.qijiswap.com/)
+city_stock_swap_penetration = 0.02
+city_stock_catl_share = 0.80
+
+[[vehicles.city.scenes]]
+name = "高频"
+weight = 0.30
+swap_penetration = 0.50
+catl_swap_share = 0.80           # 城配换电走巧克力标准+无对手竞争(≠重卡有启源芯动力) → 80% [江淮巧克力联调](https://www.qijiswap.com/)
+[[vehicles.city.scenes]]
+name = "低频"
+weight = 0.70
+swap_penetration = 0.00
+catl_swap_share = 0.00
+
+[vehicles.taxi]
+label = "出租车"
+station_group = "choco"
+stock_source = "taxi"
+replacement_cycle_years = 8.0     # 网约车报废新规（总表 L140）：[网约车报废新规](https://www.gov.cn/lianbo/202606/content_7072829.htm)
+battery_kwh = 56.0
+nev_rates = [0.92, 0.94, 0.96, 0.98, 1.00]   # NEV渗透率(2026→2030)：营运车电动化近饱和（北京出租99%/深圳100%）：[出租电动化率](https://www.199it.com/archives/1593726.html)
+pure_electric_share = 1.0
+daily_km = 450.0                 # 出租双班日均里程 km：[出租双班实测](http://jt.zs.gov.cn/gkmlpt/content/2/2589/post_2589487.html)
+energy_consumption_kwh_km = 0.15 # 出租电耗 kWh/km：全国一般城市均值0.15(区间14-16中值) [2026-07实测汇总](https://baijiahao.baidu.com/s?id=1869952654019338746)
+no_swap_catl_share = 0.35
+
+[[vehicles.taxi.scenes]]
+name = "出租车"
+weight = 1.0
+swap_penetration = 0.50
+catl_swap_share = 0.50
+
+[vehicles.ridehail]
+label = "网约车"
+station_group = "choco"
+stock_source = "ridehail"        # 残差 = 有人活跃车(253万) − 出租(139万) − Robotaxi(50万)
+replacement_cycle_years = 8.0    # 同出租报废新规
+battery_kwh = 56.0
+nev_rates = [0.92, 0.94, 0.96, 0.98, 1.00]   # 同出租NEV渗透路径
+pure_electric_share = 1.0
+daily_km = 342.0                 # 网约日均里程 km：[官方监测](https://news.qq.com/rain/a/20250526A06P2100)
+energy_consumption_kwh_km = 0.15 # 同出租电耗
+no_swap_catl_share = 0.35
+
+[[vehicles.ridehail.scenes]]
+name = "网约车"
+weight = 1.0
+swap_penetration = 0.50
+catl_swap_share = 0.50
+
+[vehicles.robotaxi]
+label = "Robotaxi"
+station_group = "choco"
+battery_kwh = 56.0
+annual_net_additions_wan = [0.0, 0.0, 5.0, 15.0, 30.0]   # 逐年净增，5年累计50万：[高盛/东吴/巴克莱30-50万共识](https://www.toutiao.com/article/7535654361658130959/)
+pure_electric_share = 1.0
+daily_km = 450.0                 # 保守取450（终局7×24应更高）：[小马盈利转正](https://finance.sina.com.cn/tech/digi/2026-03-02/doc-inhpqeeu8315476.shtml)
+energy_consumption_kwh_km = 0.15 # 同标准块电耗
+no_swap_catl_share = 0.35
+
+[[vehicles.robotaxi.scenes]]
+name = "Robotaxi"
+weight = 1.0
+swap_penetration = 1.0
+catl_swap_share = 1.0
+
+[operating_demand]
+# 用于乘用营运车数量推算，从需求里程池起算，背景：
+# 现状牌照约450万（网约320万运输证 + 出租139万）含大量低活跃"睡眠车"，直接采用会高估；
+# 且 Robotaxi 到2030会吃掉一部分有人车运力，故先估里程池再反推真实活跃车数。
+passenger_trips_2025_yi = 344.82      # 2025出租汽车客运量(巡游+网约) 亿人次/年 [2025交通运输部统计公报](https://www.thepaper.cn/newsDetail_forward_32501028)
+average_trip_km = 9.0                 # 单次平均运距 km/单；行业普遍 8–10km（[武汉 Robotaxi 每单约 10km 参考](https://finance.sina.cn/2024-07-22/detail-inceyhum1612221.d.html)
+# T₀里程池 = 344.82亿 × 9 ≈ 3,100亿车·km；按出行需求年增3%外推5年至2030
+# 依据：网约车GMV 17.5% CAGR，但里程池增速远低于GMV，取3%保守 [网约车GMV参考](https://www.sohu.com/a/943333317_120244537)
+pool_2030_yi_km = 3500.0              # 2030有人+Robotaxi总里程池 亿车·km/年（已含3%年增外推）
+robotaxi_fleet_wan = 50.0             # 2030 Robotaxi保有 万辆：[高盛](https://baijiahao.baidu.com/s?id=1831537924018727671)/[东吴](https://blog.csdn.net/lmj1689120/article/details/153782397)/[巴克莱30-50万](https://www.toutiao.com/article/7535654361658130959/)
+robotaxi_daily_km = 350.0             # Robotaxi日均里程 km：终局7×24无疲劳趋近有人车，早期武汉实测仅300km [未来智库](https://www.vzkoo.com/read/20240827c2c38a58f7a41f69419f2e15.html)；小马日均订单15→26单 [新浪](https://finance.sina.com.cn/tech/digi/2026-03-02/doc-inhpqeeu8315476.shtml)
+robotaxi_days = 330.0                 # Robotaxi年运营天数
+human_daily_km = 350.0                # 有人车等效日均里程 km：出租双班450km [中山经验](http://jt.zs.gov.cn/gkmlpt/content/2/2589/post_2589487.html) 与 网约342km [官方监测](https://news.qq.com/rain/a/20250526A06P2100) 折中
+human_days = 330.0                    # 有人车年运营天数
+taxi_stock_wan = 139.0                # 全国巡游出租刚性保有 万辆：[中国汽车流通协会](https://www.199it.com/archives/1593726.html) / [国务院2026-06](https://www.gov.cn/lianbo/202606/content_7072829.htm)；供给刚性、走势平稳
+
+[vehicles.private]
+label = "私家车"                 # 用累计保有净增法：私家车换电基数≈0，1 年销量不足以形成规模，须算2026–2030 累计；且渗透率受价格带决定（低端受 CTC/CTB 架构压制），必须分档。
+station_group = "choco"
+battery_kwh = 56.0
+annual_net_additions_wan = [1200.0, 1300.0, 1600.0, 2000.0, 2300.0]   # 逐年净增，5年累计8400万 = 2030(11400 [IEA私家车EV保有口径](https://www.iea.org/data-and-statistics/data-tools/global-ev-outlook))−2025(3000[公安部3022](https://www.mps.gov.cn/n2254314/n6409334/n9194010/c10558070/content.html))
+pure_electric_share = 1.0
+daily_km = 60.0                  # 私家车日均里程 km：月均2000km折算
+energy_consumption_kwh_km = 0.15 # 同标准块电耗
+no_swap_catl_share = 0.33        # 无换电情景下CATL在私家车动力电池市占率（特斯拉/比亚迪/华为不接第三方）
+
+# —— 私家车分档换电渗透率三情景（《换电毛估估_折扣链与总表_v3.2》L378-386；后续测算分3种情景）——
+# 分档逻辑：8万以下裸车已6-8万、对换电增本极敏感；8-15万属联盟可得份额（性价比不如零跑CTC）；
+# 15万以上主要蔚来（[CATL供其~93%电池](https://baijiahao.baidu.com/s?id=1863210961587335559)
+# +[战投25亿](https://www.catl.com/news/8329.html)），受比亚迪CTB/吉利GEA压制。
+# 下方 scenes[].swap_penetration 取**中枢**档作为默认单情景口径；
+# 分情景测算时由 build_scale(private_scenario=...) 按本表覆盖对应分档渗透率。
+[vehicles.private.scenario_swap_penetration]
+"保守" = { "8万元以下" = 0.00, "8至15万元" = 0.03, "15万元以上" = 0.00 }
+"中枢" = { "8万元以下" = 0.00, "8至15万元" = 0.05, "15万元以上" = 0.03 }
+"激进" = { "8万元以下" = 0.03, "8至15万元" = 0.08, "15万元以上" = 0.05 }
+
+[[vehicles.private.scenes]]
+name = "8万元以下"
+weight = 0.123                   # 价格带分档占比：[中汽协2025价格带占比](https://auto.cri.cn/20260211/89cb7bc0-d691-49c4-926b-fed73a9366fc.html)
+swap_penetration = 0.00          # 中枢档：裸车已6-8万极敏感→不计换电
+catl_swap_share = 0.50
+
+[[vehicles.private.scenes]]
+name = "8至15万元"
+weight = 0.404                   # 价格带分档占比：[中汽协2025价格带占比](https://auto.cri.cn/20260211/89cb7bc0-d691-49c4-926b-fed73a9366fc.html)
+swap_penetration = 0.05          # 中枢档：联盟可得份额有限
+catl_swap_share = 0.50           # 联盟可得份额 25–35%、但性价比不如零跑 CTC
+
+[[vehicles.private.scenes]]
+name = "15万元以上"
+weight = 0.473                   # 价格带分档占比：[中汽协2025价格带占比](https://auto.cri.cn/20260211/89cb7bc0-d691-49c4-926b-fed73a9366fc.html)
+swap_penetration = 0.03          # 中枢档：主要蔚来（[CATL 供其 ~93% 电池](https://baijiahao.baidu.com/s?id=1863210961587335559)+[战投 25 亿](https://www.catl.com/news/8329.html)），受比亚迪 CTB/吉利 GEA 压制
+catl_swap_share = 0.50
+
+[stations.heavy]
+label = "骐骥重卡站"
+# 站体本身（不含站内周转电池）的单座初装CAPEX；用于年度站体CAPEX。
+station_body_capex_wan = 500.0   # 骐骥重卡站单座初装（不含站内周转电池）
+# 单站周转库存：块数×单块电量决定站内电池GWh，进一步进入电池CAPEX、更新和折旧。
+inventory_blocks = 24.0          # 重卡站周转块数
+block_kwh = 171.0                # 重卡换电块电量 kWh
+# 站内周转电池寿命：不再硬编码，由 [battery_life_model] 按本组所服务车型的换电频次推算
+# （组内各车型寿命按CATL换电装机GWh加权），决定全周期重置次数与EAC式资本倍数。
+# 以下三项只用于校验单站物理上限：工位上限与充电能量上限取较小值。
+charging_power_kw = 4500.0       # 重卡站充电功率 kW：[孝感立项公示](https://xunbiaobao.baidu.com/biddingDetail?id=4ad55afa30fc25ec5a81279888a9b605d587a06f&source=seo)（4500kVA箱变）
+operating_hours_day = 16.0       # 重卡站运营小时：官方16小时口径 [骐骥运营](https://www.qijiswap.com/)
+swap_duration_seconds = 300.0    # 重卡换电耗时 秒：官方5分钟/车 [骐骥运营](https://www.qijiswap.com/)
+# 模型用于反推站数的外生规划能力。重卡192次/日有官方16小时、5分钟/车口径支撑。
+planning_daily_capacity = 192.0  # 重卡单站规划能力 次/日
+
+[stations.choco]
+label = "巧克力站"
+# 站体本身（不含站内周转电池）的单座初装CAPEX。
+station_body_capex_wan = 200.0   # 巧克力站单座初装（不含站内周转电池）
+# 官方披露单站14—30块，基准取下沿14块；与56kWh共同决定站内库存CAPEX。
+inventory_blocks = 14.0          # 巧克力站周转块数
+block_kwh = 56.0                 # 巧克力标准块 56kWh
+# 站内周转电池寿命：不再硬编码，由 [battery_life_model] 按本组所服务车型的换电频次推算
+# （组内各车型寿命按CATL换电装机GWh加权）。
+# 物理校验参数：可推出工位上限864次/日、能量上限约552次/日。
+charging_power_kw = 1120.0       # 巧克力站充电功率 kW：[丰台时报](https://www.bjft.gov.cn/fengtaishibao/html/2025-05/16/content_9500_18527651.htm)（总功率1120kW）/[西宁站1260kVA](https://post.m.smzdm.com/p/axkpexx4/)
+operating_hours_day = 24.0       # 巧克力站7×24运营：[CATL运营](https://www.qijiswap.com/)
+swap_duration_seconds = 100.0    # 巧克力换电耗时 秒：[CATL披露](https://www.qijiswap.com/)
+# 300次/日不是由“严格设计冗余度”推导的工程参数，而是v3.2沿用的规划拍值。
+# 它只作站数反推分母；程序同时校验300不得超过上述物理上限，不再倒算伪造1.84倍冗余。
+planning_daily_capacity = 300.0  # 巧克力站规划能力 次/日
+
+[construction]
+years = [2026, 2027, 2028, 2029, 2030]
+station_network_completion_year = 2028   # 站网建成目标年（规划拍值）：[v3.2总表](https://www.199it.com/archives/1593726.html) → **经验假设（非外部信源）**
+# 2025年底已经建成的站体。它们属于终局总资产的一部分，但不是2026年新增现金支出。
+opening_2025_stations = { heavy = 305, choco = 1020 }   # 2025年底已建成站数：[公司披露2025站数](https://www.qijiswap.com/) → **经验假设（非外部信源）**
+# 模型建设排期：2026累计达到约1000/3000座，剩余需求站数在2028前补齐。
+station_2026_cumulative_targets = { heavy = 1000, choco = 3000 }   # 模型建设排期（规划拍值）：[v3.2](https://www.199it.com/archives/1593726.html) → **经验假设（非外部信源）**
+# 公司公开规划原值，只用于报告披露对照，不直接替代需求反推站数。
+official_2026_station_plan = { heavy = 900, choco = 3000 }   # 公司公开规划：[CATL 2026换电站规划](https://www.qijiswap.com/) → **经验假设（非外部信源）**
+
+[construction.battery_price_curve]
+# 2026换电专用LFP Pack含税价格，是初装及后续更新电池CAPEX的价格起点。
+base_price_rmb_kwh = 590.0   # 2026换电专用LFP Pack含税价：[LFP Pack价格](https://www.qijiswap.com/) → **经验假设（非外部信源）**
+# 价格曲线三阶段：平台期保持基价；快速下降期；之后慢速下降期。
+platform_end_year = 2028     # 价格平台期截止年 → **经验假设（非外部信源）**
+rapid_decline_end_year = 2033   # 快速下降期截止年 → **经验假设（非外部信源）**
+rapid_annual_decline_rate = 0.04   # 快速下降期年降幅 → **经验假设（非外部信源）**
+slow_annual_decline_rate = 0.0275  # 慢速下降期年降幅 → **经验假设（非外部信源）**
+# 退役回收：储能Pack/动力Pack价格比×退役SOH×二手交易折价。
+# 这三项共同生成“退役回收率”，用于更新净CAPEX；不是直接输入期末残值率。
+storage_to_power_price_ratio = 0.917   # 储能/动力Pack价格比：[Pack价格比](https://www.qijiswap.com/) → **经验假设（非外部信源）**
+retirement_soh = 0.80   # 退役SOH阈值：8年/16万公里 75%、10年/20万公里70% SOCE (state of certified energy，20260701开始实施[GB/T 46991.1-2025 电动汽车车载动力电池耐久性要求及试验方法 第1部分:轻型汽车](https://openstd.samr.gov.cn/bzgk/std/newGbInfo?hcno=D0A1838047E3F5227AC4F7B5721B24FC)) [GB/T 31484-2015 电动汽车用动力蓄电池循环寿命要求及试验方法](https://openstd.samr.gov.cn/bzgk/std/showGb?type=online&hcno=44ECF0443BD82A81A512FB05092677EE&request_locale=zh)：明确循环1000次时不应低于80%
+# 观察期末仍在役电池按年衰减估算SOH；与届时价格共同派生期末残值率和折旧基数。
+annual_soh_decline_rate = 0.02   # LFP年衰减率2%：[LFP衰减曲线](https://www.qijiswap.com/) → **经验假设（非外部信源）**
+secondary_market_discount = 0.60   # 二手交易折价
+
+[swap_business]
+operating_days = 350.0   # 年营运天数（预留15天检修/极端天气，与峰谷套利"套利天数=350"一致）
+usable_energy_factor = 0.80   # 余电折扣：司机剩~20%余电补能→每次只消耗80%电量（频次推导用）
+service_fee_rmb_kwh = 0.40   # 换电服务费 元/kWh，与启源芯动力一致
+battery_rent_rmb_kwh_year = 120.0   # 电池租金 元/kWh·年，不按各车型月租分别算——本质由装车电池装机规模决定，取全市场可比口径：乘用车巧克力 8.8–8.9 元/kWh·月（CATL 369/499 档 ÷ 42/56kWh、蔚来728÷75=9.71）、重卡云南矿山[短倒纯租赁+协议充电](https://chejiahao.autohome.com.cn/info/25960875?isfrom=m) 13.3 元/kWh·月（其他短倒包电量做参考：[银川电量包套餐二](https://www.yoojia.com/article/10138959687614316498.html)），取综合 **~10 元/kWh·月 ≈ 120 元/kWh·年**（小车便宜大车贵）
+grid_spread_rmb_kwh = 0.40   # 峰谷价差 元/kWh
+rte = 0.92   # 换电站系统效率，充放往返效率
+auxiliary_power_rate = 0.02   # 厂用电率，辅助功耗率
+valley_power_price_rmb_kwh = 0.30   # 谷电价格 元/kWh
+site_rent_wan_year = 30.0   # 单站年租金 万元
+heavy_labor_rmb_swap = 30.0   # 重卡单换人工 元
+passenger_labor_rmb_swap = 13.0   # 乘用单换人工 元
+software_opex_yi_year = 20.0   # 软件年OPEX 亿元
+ancillary_revenue_yi_year = 5.15   # 广告等年辅收 亿元
+swap_battery_external_sales_share = 0.60   # 换电电池外售比例
+with_swap_manufacturing_net_margin = 0.15   # 有换电制造净利率
+no_swap_manufacturing_net_margin = 0.12   # 无换电制造净利率
+
+# ============================================================
+# 换电块寿命推算模型（替代各车型硬编码 battery_life_years）
+# ============================================================
+# 依据《超换一体.md》§2.1「为什么是8年？——基于2000次循环临界点的科学推演」：
+# 不以固定年份为切换点，而以 SOH 衰减的**物理临界点**为触发条件，再按各车型实际循环强度反推年限：
+#     life_years = min( critical_cycles ÷ (swap_frequency_per_day × operating_days), calendar_cap_years )
+# 之所以需要双轨（循环寿命 vs 日历封顶）：
+#   · 营运车辆（出租/网约/物流）日均换电1.5-2次 → 年循环548-730次 → **2.7-3.6年**即达2000次临界点
+#     → 由循环寿命主导（这解释了蔚来对营运车提供8年/80万公里质保的背面：营运电池仅约3年就需退出换电网络）
+#   · 家用车日均换电0.3-0.5次 → 年循环110-183次 → 理论需 10.9-18.2 年
+#     → 纯按循环推得过长，须叠加**日历寿命封顶**（LFP约8-10年，即便循环未到也因静置衰减/技术迭代退役）
+#     → 取 min(循环推算, 10) = 10 年，与超换一体「家用8-10年」结论一致
+# 信源：[超换一体.md §2.1](d:/AI/证券投资/投研/能源/宁德时代/业务/换电/定性分析/超换一体.md)
+#       （2000次循环≈82-85% SOH为用户体感临界点；营运2.7-3.6年 / 家用10.9-18.2年；
+#         最终基准8年=两种车型折中，但触发条件是循环次数而非固定年份）
+#       [2025换电站年终服务量报告](https://m.book118.com/html/2025/1218/6035215201012031.shtm)
+#       （出租/网约约占68%、日均换电1.5-2次；私家车占25%、日均约0.5次；物流车等占7%）
+# 国标锚点：[GB/T 31484-2015 电动汽车用动力蓄电池循环寿命要求及试验方法](https://openstd.samr.gov.cn/bzgk/std/showGb?type=online&hcno=44ECF0443BD82A81A512FB05092677EE&request_locale=zh)
+#       （循环1000次时容量不应低于80%，与2000次临界点同属SOH衰减口径）
+#       [GB/T 46991.1-2025 动力电池耐久性要求及试验方法](https://openstd.samr.gov.cn/bzgk/std/newGbInfo?hcno=D0A1838047E3F5227AC4F7B5721B24FC)
+[battery_life_model]
+critical_cycles = 2000.0   # 退出换电网络的循环临界点（SOH≈82-85%，用户体感临界点）
+calendar_cap_years = 10.0  # 日历寿命封顶（低频私家车取 min 后=10年；营运车由循环主导不受此限）
+# v3.2遗留硬编码寿命：不参与基准测算，仅供附录「新旧寿命口径对比」程序化重跑对照。
+# 它与模型自身频次参数并不自洽——重卡5.7年隐含日均换电1.00次而模型实算1.83次；
+# 巧克力站3.8年隐含1.50次而使用量加权实算0.87次。保留在此以便量化该口径差异的影响。
+legacy_v32_vehicle_life_years = { heavy = 5.7, city = 3.8, taxi = 3.8, ridehail = 3.8, robotaxi = 3.8, private = 10.0 }
+legacy_v32_station_life_years = { heavy = 5.7, choco = 3.8 }
+
+# ============================================================
+# 充电段CATL市占率（v4.2.2 重构：取消"份额提升实现率"，改为三档直接给份额）
+# ============================================================
+# 原设计缺陷：先设"目标提升幅度"再用"实现率"打折，绕了一道；且实现率=1.0等于
+# 把最乐观情形当基准，与全报告其它部分取中枢/保守的审慎原则不一致。现改为直接
+# 给出两档份额，中性档由程序取均值派生（不再手工拍值）：
+#     悲观 = 无换电保护、充分竞争下充电段跌到的份额
+#     乐观 = 换电标准锁定后充电段能保持的份额
+#     中性 = (悲观 + 乐观) ÷ 2
+#
+# 【悲观档为什么取 0.35 / 0.33】——宁德时代国内动力电池份额持续下滑：
+#   2021 年 52.1% → 2022 年 48.2% → 2024 年 45.08% → 2025 年 1-4 月 42.9%（同比 −4.77%）
+#   → 2025 年 4 月单月 39.44%（时隔 18 个月首次跌破 40%）→ 2025 年 1-8 月 37.1%。
+#   二线厂商（国轩高科、中创新航、亿纬锂能）持续分食，2026 年已分走约 36% 市场空间。
+#   故 0.35 是"竞争充分展开、换电未能提供保护"的合理下限；私家车取 0.33 更低，
+#   因特斯拉/比亚迪/华为不接入第三方体系、且比亚迪自供电池。
+#   信源：
+#     [上市以来营收首降（2025-03）2021/2022/2024份额](https://baijiahao.baidu.com/s?id=1826900714674000597)
+#     [铁王座不稳（2026-01）2025年1-4月42.9%、4月单月39.44%](https://baijiahao.baidu.com/s?id=1855101905343795125)
+#     [最新动力电池排行：跌破40%](https://www.toutiao.com/article/7504916999647085093/)
+#     [2025年1-8月37.1%](https://zhidao.baidu.com/question/503003842838987252.html)
+#     [二线厂商分食约36%（2026-08）](https://www.d1ev.com/newsflash/311723)
+#
+# 【乐观档的依据】——换电对充电段的保护分两层，只有第一层成立：
+#   ① 标准锁定（成立）：换电车辆适配CATL巧克力标准块的尺寸/接口/BMS协议，
+#      即便偶尔充电也装不了第三方标准块，故换电车辆自身被锁定在CATL。
+#   ② 数据反哺（不成立/无证据）：换电运营数据提升CATL整体产品力→抬高全市场充电份额。
+#      该链条最长、证据最弱，v4.2 已将其排除在可归因价值之外。
+#   因此乐观档只能反映①，不能外推到非换电车辆。
+#   · 重卡取 0.55（自原 0.70 下调）：宁德在重卡换电段市占率最高也只有 0.70（长途场景），
+#     充电段不应高于换电段；且重卡"一家独大格局松动"，亿纬锂能 2030 年在重卡锂电目标 20%。
+#     信源：[政策驱动重卡电动化加速，宁德份额趋松](https://xueqiu.com/7143384614/394666448)
+#   · 城配/出租/网约取 0.45（沿用原值）
+#   · 私家车取 0.40（沿用原值；换电保护弱，因私家车主要换电、充电场景少）
+#   · Robotaxi 取 0.00（全量换电，本无充电段）
+#
+# 【预测分歧提示】高盛 2026-07 大幅看多（国内 2025 年 46% → 2030 年 50%），
+# 与固态电池产业链预测的 2030 年 35%~40% 差异极大。本模型不采用任一端点，
+# 而以悲观/中性/乐观三档并列，由敏感性检验结论对该参数的依赖程度。
+#   信源：[高盛预测2030年市占率达五成](https://baijiahao.baidu.com/s?id=1870329164272602666)
+#         [固态电池产业链预测2030年35%-40%](https://baijiahao.baidu.com/s?id=1831624566960109673)
+# ============================================================
+[charge_share]
+scenario = "中性"   # 基准情景：悲观 / 中性 / 乐观（中性由程序取两档均值派生）
+
+[charge_share.heavy]
+pessimistic = 0.35   # 充分竞争、换电未提供保护
+optimistic = 0.55    # 换电标准锁定后能保持（自原0.70下调）
+
+[charge_share.city]
+pessimistic = 0.35
+optimistic = 0.45
+
+[charge_share.taxi]
+pessimistic = 0.35
+optimistic = 0.45
+
+[charge_share.ridehail]
+pessimistic = 0.35
+optimistic = 0.45
+
+[charge_share.robotaxi]
+pessimistic = 0.00
+optimistic = 0.00    # 全量换电，无充电段
+
+[charge_share.private]
+pessimistic = 0.33   # 低于营运车：特斯拉/比亚迪/华为不接第三方、比亚迪自供
+optimistic = 0.40
+
+# ----------------------现金规划----------------------
+
+[group_funding]
+initial_cash_and_trading_assets_yi = 4402.11   # 期初现金及交易性资产 亿元：CATL 2025年报
+minimum_liquidity_yi = 3000.0   # 最低流动性红线 亿元
+projected_group_net_profit_yi = [1000.0, 1160.0, 1320.0, 1500.0, 1700.0]   # 集团预测归母净利 亿元，券商一致预期
+projected_group_cfo_yi = [1450.0, 1600.0, 1800.0, 2000.0, 2250.0]   # 集团预测CFO 亿元
+reported_2026h1_cfo_yi = 602.17   # 2026H1实际CFO 亿元：CATL 2026中报
+dividend_payout_ratio = 0.50   # 分红率：公司分红政策
+buyback_yi = [400.0, 0.0, 0.0, 0.0, 0.0]   # 回购规划 亿元：A股回购方案
+# 2026年三项已识别并购合并口径：中恒电气现金29.03495亿＋世纪互联64.0亿；
+# 启源芯动力25.5566亿经并购情景(sourcing.cash_consideration_yi)在2026年追加，三项合计118.6亿。
+known_catl_direct_mna_cash_yi = [93.03495, 0.0, 0.0, 0.0, 0.0]   # 已识别并购现金支出 亿元：中恒电气/世纪互联公告
+buyback_disclosed_range_yi = [200.0, 400.0]   # 回购披露区间 亿元：A股回购方案
+interim_dividend_2026_yi = 64.93   # 2026中期分红 亿元：CATL 2026中报
+
+[historical_cash_conversion]
+# 合并口径；用于证明CFO不是净利润代理变量，而是独立预测的经营现金流。
+years = [2023, 2024, 2025]
+net_profit_yi = [441.21, 507.45, 722.01]   # 归母净利润 亿元
+cfo_yi = [928.26, 969.90, 1332.20]   # 经营现金流 亿元
+
+[[capital_commitments]]
+label = "2026年A股回购计划"
+headline_amount_yi = 400.0
+cash_in_model_yi = 400.0
+perimeter = "宁德时代合并口径"
+timing = "2026年，按已披露200—400亿元区间上限预留"
+note = "资金表采用上限，属于审慎压力口径。"
+source_url = "https://www1.hkexnews.hk/search/titlesearch.xhtml?category=0&market=SEHK&stockId=1000259940"
+
+[[capital_commitments]]
+label = "中恒电气交易"
+headline_amount_yi = 40.99859
+cash_in_model_yi = 29.03495
+perimeter = "宁德时代合并口径"
+timing = "2026年"
+note = "总对价含时代天源股权作价11.96364亿元；资金表只扣现金部分。"
+source_url = "https://static.cninfo.com.cn/finalpage/2026-04-09/1225083748.PDF"
+
+[[capital_commitments]]
+label = "启源芯动力交易"
+headline_amount_yi = 25.5566
+cash_in_model_yi = 25.5566
+perimeter = "宁德时代合并口径"
+timing = "2026年"
+note = "启源芯动力25%股权摘牌价；经并购基准情景进入2026年资金表，与中恒、世纪互联合并为三项已识别并购。"
+source_url = "https://www.chinapower.hk/sc/ir/announcements.php"
+
+[[capital_commitments]]
+label = "世纪互联交易"
+headline_amount_yi = 64.0
+cash_in_model_yi = 64.0
+perimeter = "买方为宁德时代关联投资主体，v4.2起按审慎口径计入资金表"
+timing = "2026年交易安排"
+note = "约9.42亿美元；v4.1曾因并表口径存疑而不扣减，v4.2按三项已识别并购合并计算，全部计入2026年现金。"
+source_url = "https://ir.vnet.com/static-files/848f4589-7db7-49db-8c1d-61202816a7dc"
+
+[[capital_commitments]]
+label = "矿产资源投资公司"
+headline_amount_yi = 300.0
+cash_in_model_yi = 0.0
+perimeter = "注册资本上限，现金与股权出资混合"
+timing = "实缴节奏未披露"
+note = "不得机械均摊至2026—2028年；作为承诺上限和资金预警项单列。"
+source_url = "https://static.cninfo.com.cn/finalpage/2026-04-16/1225107944.PDF"
+
+[strategic_exposure.solid_state]
+label = "固态电池新产线"
+full_newbuild_capex_yi = 1000.0
+assumed_reuse_rate = 0.25
+
+[strategic_exposure.storage_aidc]
+label = "储能与AIDC扩产"
+full_newbuild_capex_yi = 800.0
+assumed_reuse_rate = 0.60
+
+[strategic_exposure.additional_mining]
+label = "新增矿山投资"
+full_newbuild_capex_yi = 300.0
+assumed_reuse_rate = 0.00
+
+[strategic_exposure.software_ai]
+label = "软件与AI能力"
+full_newbuild_capex_yi = 200.0
+assumed_reuse_rate = 0.00
+
+[strategic_exposure.cvc]
+label = "CVC与内部孵化"
+full_newbuild_capex_yi = 200.0
+assumed_reuse_rate = 0.00
+
+[light_asset]
+terminal_ownership_options = [0.10, 0.20, 0.30, 0.40]
+data_control_required = true
+standard_control_required = true
+technology_validation_access_required = true
+accounting_consolidation_not_assumed = true
+# 基准不在交易当日确认“全量资产已进入资管平台”。只有实际滚动发行形成的AUM才计费、计值。
+recognized_manager_aum_yi = 0.0
+rolling_manager_aum_scenarios_yi = [0.0, 200.0, 500.0, 1000.0]
+current_abs_reits_capacity_range_yi = [500.0, 700.0]
+
+# ----------------------可比公司-----------------------------
+
+# 蔚能2026年2月全球首单电池持有型REITs与2026年4月储架ABS；证明换电电池资产
+# 可按租赁现金流向类固收市场证券化，是CATL成熟后资本循环的市场证据。
+
+[nio_reference]
+network_stations = 3790
+cumulative_swaps_yi = 1.0
+cumulative_energy_yi_kwh = 52.8
+battery_bank_operating_gwh = 42.0
+battery_bank_users_wan = 55.0
+battery_bank_total_assets_yi = 251.78
+battery_bank_total_liabilities_yi = 224.83
+battery_bank_reference_equity_value_yi = 100.0
+catl_existing_ownership = 0.0758
+abs_sample_battery_count = 5369
+abs_sample_capacity_gwh = 0.490221
+abs_sample_book_value_yi = 5.001394
+abs_sample_appraised_value_yi = 5.06
+abs_sample_occupancy = 0.92
+abs_rent_75kwh_rmb_month = 728.0
+abs_rent_100_102kwh_rmb_month = 1128.0
+network_replacement_cost_wan_per_station = 150.0
+
+[reits_reference]
+nio_battery_reits_issue_yi = 5.01
+nio_battery_reits_yield = 0.0468
+nio_battery_reits_tenor_years = 12
+nio_battery_reits_issue_month = "2026年2月"
+nio_battery_abs_shelf_size_yi = 50.0
+nio_battery_abs_shelf_a1_rate = 0.018
+nio_battery_abs_shelf_month = "2026年4月"
+
+# 启源芯动力2026-08摘牌交易的资产侧锚：100%股权评估值102.75亿（DCF收益法）、
+# 2025年净利3.56亿/营收95.25亿/账面权益46.90亿，资产负债率80.9%。
+[qiyuan_reference]
+equity_appraisal_yi = 102.75
+book_equity_yi = 46.898862
+net_profit_2025_yi = 3.56154
+revenue_2025_yi = 95.25
+liability_ratio = 0.809
+implied_pe = 28.9
+implied_pb = 2.18
+implied_ps = 1.08
+
+# ----------------或有并购：可比公司----------------
+
+[mna]
+base_scenario_name = "启源入股_不收蔚来"
+comparison_scenario_name = "纯自建_无并购参考"
+
+[[mna.scenarios]]
+name = "纯自建_无并购参考"
+label = "纯自建参考：不含启源与蔚来交易"
+purchase_price_yi = 0.0
+assumed_debt_yi = 0.0
+integration_cost_yi = 0.0
+heavy_catl_swap_share_uplift = 0.00
+passenger_catl_swap_share_uplift = 0.00
+physically_reusable_heavy_stations = 0
+physically_reusable_choco_stations = 0
+network_acceleration_years = 0.0
+acquired_network_stations = 0
+acquired_battery_bank_gwh = 0.0
+price_basis = "纯自建对照，不发生交易"
+price_status = "仅作资本对比基准"
+
+[[mna.scenarios]]
+name = "启源入股_不收蔚来"
+label = "启源股权收购已完成；暂不假设物理整合，不收购蔚来"
+purchase_price_yi = 25.5566
+assumed_debt_yi = 0.0
+integration_cost_yi = 0.0
+# 已入股但业务整合尚未发生：基准情景不提前确认市占率协同，因此不改变车辆数和站数。
+heavy_catl_swap_share_uplift = 0.00
+passenger_catl_swap_share_uplift = 0.00
+physically_reusable_heavy_stations = 0
+physically_reusable_choco_stations = 0
+network_acceleration_years = 0.25
+acquired_network_stations = 0
+acquired_battery_bank_gwh = 0.0
+price_basis = "启源芯动力25%股权摘牌价（评估值102.75亿×24.8726%）"
+price_status = "股权摘牌已发生；业务协同尚未发生"
+
+[[mna.scenarios]]
+name = "启源入股加蔚来全网络电池银行"
+label = "启源股权收购，加收购蔚来网络与电池银行"
+purchase_price_yi = 174.8266
+assumed_debt_yi = 224.83
+integration_cost_yi = 15.0
+heavy_catl_swap_share_uplift = 0.01
+passenger_catl_swap_share_uplift = 0.03
+physically_reusable_heavy_stations = 0
+physically_reusable_choco_stations = 0
+network_acceleration_years = 0.75
+acquired_network_stations = 3790
+acquired_battery_bank_gwh = 42.0
+price_basis = "启源25.56亿＋蔚能剩余权益约92.42亿＋3790站按150万元/站重置成本56.85亿"
+price_status = "蔚来交易未发生；权益与站网价格均为可调研究锚"
+
+[[mna.scenarios]]
+name = "启源入股加蔚来电池银行"
+label = "启源股权收购，加收购蔚来电池银行；站网由地方国资持有"
+purchase_price_yi = 117.9766
+assumed_debt_yi = 224.83
+integration_cost_yi = 10.0
+heavy_catl_swap_share_uplift = 0.01
+passenger_catl_swap_share_uplift = 0.02
+physically_reusable_heavy_stations = 0
+physically_reusable_choco_stations = 0
+network_acceleration_years = 0.60
+acquired_network_stations = 0
+acquired_battery_bank_gwh = 42.0
+price_basis = "启源25.56亿＋蔚能参考股权价值100亿扣除CATL现持7.58%后的约92.42亿"
+price_status = "蔚来交易未发生；蔚能权益估值与负债承担方式为可调研究锚"
+
+[decision_thresholds]
+max_peak_swap_cash_to_cfo = 0.15
+min_forward_to_required_ebitda = 1.00
+min_swap_value_creation_multiple = 3.00
+min_light_asset_value_retention = 0.80
+min_light_asset_recurring_profit_retention = 0.70
+max_funding_exposure_coverage_ratio = 1.00
+
+[sources]
+annual_report_2025 = "https://www.catl.com/uploads/1/file/public/202603/20260310105829_c5p2l3q9ll.pdf"
+annual_report_2025_summary = "https://www.catl.com/news/9654.html"
+interim_report_2026_hkex = "https://www1.hkexnews.hk/search/titlesearch.xhtml?category=0&market=SEHK&stockId=1000259940"
+consensus_reference = "https://basic.10jqka.com.cn/300750/worth.html"
+market_cap_note = "用户给定的2026-08约2万亿元A+H市值快照；仅作比较基准"
+qiyuan_transaction = "https://www.chinapower.hk/sc/ir/announcements.php"
+nio_catl_partnership = "https://www.nio.com/news/20250318001"
+catl_swap_plan_2026 = "https://www.catl.com/news/9516.html"
+nio_network_2026 = "https://www.nio.com/news/20260206001"
+dividend_habit = "https://www.catl.com/en/uploads/1/file/public/202603/20260310105310_46xjbwckvn.pdf"
+mineral_company_announcement = "https://static.cninfo.com.cn/finalpage/2026-04-16/1225107944.PDF"
+zhongheng_transaction = "https://static.cninfo.com.cn/finalpage/2026-04-09/1225083748.PDF"
+vnet_transaction = "https://ir.vnet.com/static-files/848f4589-7db7-49db-8c1d-61202816a7dc"
+nio_abs_appraisal_local = "../media/武汉蔚能电池资产有限公司2026年第一期ABS-世联资产评估报告.pdf"
+nio_reits_analysis_local = "../定性分析/蔚能REITs案例分析.md"
+wuhan_station_asset_transfer = "https://weibo.com/2/detail/5331153011610154"
+production_reuse_research = "../../产线复用与战略CAPEX_补充研究.md"

@@ -1,0 +1,1850 @@
+{
+ "key": "root",
+ "label": "换电这笔投资值不值得做",
+ "unit": "",
+ "value": 0.0,
+ "formula": "由「换回的价值 / 做透的代价 / 资金从容度 / 体检」四支共同回答，不是一个数",
+ "param": null,
+ "source": null,
+ "section": null,
+ "scenarios": {
+  "悲观": 0.0,
+  "中性": 0.0,
+  "乐观": 0.0
+ },
+ "children": [
+  {
+   "key": "branch.value",
+   "label": "换回的价值",
+   "unit": "亿元",
+   "value": 5698.285472618864,
+   "formula": "见下",
+   "param": null,
+   "source": null,
+   "section": null,
+   "scenarios": {
+    "悲观": 2433.0192596745146,
+    "中性": 5698.285472618864,
+    "乐观": 9559.369213725562
+   },
+   "children": [
+    {
+     "key": "val.increment",
+     "label": "可归因换电增量价值",
+     "unit": "亿元",
+     "value": 5698.285472618864,
+     "formula": "运营侧直接增量 ＋ 制造侧锁量锁价增量",
+     "param": null,
+     "source": null,
+     "section": null,
+     "scenarios": {
+      "悲观": 2433.0192596745146,
+      "中性": 5698.285472618864,
+      "乐观": 9559.369213725562
+     },
+     "children": [
+      {
+       "key": "val.op_increment",
+       "label": "运营侧直接增量（CATL归属）",
+       "unit": "亿元",
+       "value": 5091.6345764811385,
+       "formula": "项目权益价值 × CATL建站持股比例",
+       "param": null,
+       "source": null,
+       "section": null,
+       "scenarios": {
+        "悲观": 3632.8123775772046,
+        "中性": 5091.6345764811385,
+        "乐观": 6632.831692724078
+       },
+       "children": [
+        {
+         "key": "val.equity",
+         "label": "运营侧项目权益价值",
+         "unit": "亿元",
+         "value": 12729.086441202846,
+         "formula": "EV − 项目债务（分池计算，单池权益不为负）",
+         "param": null,
+         "source": null,
+         "section": null,
+         "scenarios": {
+          "悲观": 9082.030943943011,
+          "中性": 12729.086441202846,
+          "乐观": 16582.079231810196
+         },
+         "children": [
+          {
+           "key": "val.ev",
+           "label": "运营侧企业价值 EV",
+           "unit": "亿元",
+           "value": 15307.461439307832,
+           "formula": "EBITDA × 运营 EV/EBITDA 倍数",
+           "param": null,
+           "source": null,
+           "section": null,
+           "scenarios": {
+            "悲观": 11502.485379655658,
+            "中性": 15307.461439307832,
+            "乐观": 19394.553534681745
+           },
+           "children": [
+            {
+             "key": "ops.ebitda",
+             "label": "EBITDA（成熟期）",
+             "unit": "亿元",
+             "value": 850.4145244059907,
+             "formula": "换电业务年收入 − 运营 OPEX",
+             "param": null,
+             "source": null,
+             "section": null,
+             "scenarios": {
+              "悲观": 639.0269655364255,
+              "中性": 850.4145244059907,
+              "乐观": 1077.475196371208
+             },
+             "children": [
+              {
+               "key": "ops.revenue",
+               "label": "换电业务年收入（成熟期）",
+               "unit": "亿元",
+               "value": 939.5154187157143,
+               "formula": "服务费 ＋ 电池租金 ＋ 峰谷套利 ＋ 电网辅助服务",
+               "param": null,
+               "source": null,
+               "section": null,
+               "scenarios": {
+                "悲观": 725.7815627157142,
+                "中性": 939.5154187157143,
+                "乐观": 1169.2410827157144
+               },
+               "children": [
+                {
+                 "key": "ops.rev_service",
+                 "label": "服务费收入",
+                 "unit": "亿元",
+                 "value": 435.112608,
+                 "formula": "年换电交易电量 × 换电服务费单价",
+                 "param": null,
+                 "source": null,
+                 "section": null,
+                 "scenarios": {
+                  "悲观": 284.210752,
+                  "中性": 435.112608,
+                  "乐观": 593.4718720000001
+                 },
+                 "children": [
+                  {
+                   "key": "ops.energy",
+                   "label": "年换电交易电量（成熟期）",
+                   "unit": "亿kWh",
+                   "value": 1450.37536,
+                   "formula": "Σ_池( 日换电次数 × 池内加权装车电量 × 可用电量系数 × 运营天数 )",
+                   "param": null,
+                   "source": null,
+                   "section": null,
+                   "scenarios": {
+                    "悲观": 1421.05376,
+                    "中性": 1450.37536,
+                    "乐观": 1483.67968
+                   },
+                   "children": [
+                    {
+                     "key": "ops.daily_swaps",
+                     "label": "成熟期日换电次数",
+                     "unit": "次/日",
+                     "value": 3285700.0,
+                     "formula": "Σ_池( 池内换电车辆 × 池内加权换电频次 )",
+                     "param": null,
+                     "source": null,
+                     "section": null,
+                     "scenarios": {
+                      "悲观": 3098700.0,
+                      "中性": 3285700.0,
+                      "乐观": 3498100.0
+                     },
+                     "children": []
+                    },
+                    {
+                     "key": "ops.onboard_avg",
+                     "label": "全网加权装车电量（按换电次数）",
+                     "unit": "kWh",
+                     "value": 157.65018108774385,
+                     "formula": "由年电量反解的加权装车电量（各池装车电量按换电次数加权）",
+                     "param": null,
+                     "source": null,
+                     "section": null,
+                     "scenarios": {
+                      "悲观": 163.7845548133088,
+                      "中性": 157.65018108774385,
+                      "乐观": 151.47811669191847
+                     },
+                     "children": []
+                    },
+                    {
+                     "key": "ops.usable",
+                     "label": "可用电量系数",
+                     "unit": "",
+                     "value": 0.8,
+                     "formula": "",
+                     "param": "swap_business.usable_energy_factor",
+                     "source": "余电折扣 0.80 ← v3.2 §1.3.1／§2.3：司机剩约 20% 余电即换，每次只补 80% 电量—— / 这 20% 是行驶安全的带电量冗余，不是效率损失。同一系数也用于可用续航：",
+                     "section": "swap_business",
+                     "scenarios": {
+                      "悲观": 0.8,
+                      "中性": 0.8,
+                      "乐观": 0.8
+                     },
+                     "children": []
+                    },
+                    {
+                     "key": "ops.days",
+                     "label": "年运营天数",
+                     "unit": "天",
+                     "value": 350.0,
+                     "formula": "",
+                     "param": "swap_business.operating_days",
+                     "source": "年运营天数 350 天 ← v3.2 §1.3.1：营运车全年营运，留 15 天检修与极端天气停运",
+                     "section": "swap_business",
+                     "scenarios": {
+                      "悲观": 350.0,
+                      "中性": 350.0,
+                      "乐观": 350.0
+                     },
+                     "children": []
+                    }
+                   ]
+                  },
+                  {
+                   "key": "ops.fee",
+                   "label": "换电服务费单价",
+                   "unit": "元/kWh",
+                   "value": 0.3,
+                   "formula": "",
+                   "param": "swap_business.service_fee_rmb_kwh",
+                   "source": "换电服务费中枢 0.30 元/kWh（三档 0.2/0.3/0.4）。谱系：焦作商车邦实测 0.2（启源主导市场已打价格战） / → 齐鲁晚报行业 0.3–0.4 → 开源短倒 0.4。中枢 0.30 居中偏稳健；三档全做敏感性",
+                   "section": "swap_business",
+                   "scenarios": {
+                    "悲观": 0.2,
+                    "中性": 0.3,
+                    "乐观": 0.4
+                   },
+                   "children": []
+                  }
+                 ]
+                },
+                {
+                 "key": "ops.rev_rent",
+                 "label": "电池租金收入",
+                 "unit": "亿元",
+                 "value": 470.54480948571427,
+                 "formula": "计费装机 × 单位装机年租金",
+                 "param": null,
+                 "source": null,
+                 "section": null,
+                 "scenarios": {
+                  "悲观": 407.7128094857143,
+                  "中性": 470.54480948571427,
+                  "乐观": 541.9112094857144
+                 },
+                 "children": [
+                  {
+                   "key": "ops.rent_gwh",
+                   "label": "计费装机（可收租）",
+                   "unit": "GWh",
+                   "value": 392.1206745714286,
+                   "formula": "车端装机 ＋ 站内周转装机中归外部权益的部分",
+                   "param": null,
+                   "source": null,
+                   "section": null,
+                   "scenarios": {
+                    "悲观": 339.7606745714286,
+                    "中性": 392.1206745714286,
+                    "乐观": 451.5926745714286
+                   },
+                   "children": [
+                    {
+                     "key": "ops.veh_gwh",
+                     "label": "车端装机",
+                     "unit": "GWh",
+                     "value": 378.8709285714285,
+                     "formula": "Σ_池( 池内换电车辆 × 池内加权装车电量 )",
+                     "param": null,
+                     "source": null,
+                     "section": null,
+                     "scenarios": {
+                      "悲观": 326.51092857142856,
+                      "中性": 378.8709285714285,
+                      "乐观": 438.3429285714286
+                     },
+                     "children": []
+                    },
+                    {
+                     "key": "ops.ext_gwh",
+                     "label": "站内周转装机·外部权益部分",
+                     "unit": "GWh",
+                     "value": 13.249745999999998,
+                     "formula": "站内周转装机 × (1 − CATL建站持股比例)",
+                     "param": null,
+                     "source": null,
+                     "section": null,
+                     "scenarios": {
+                      "悲观": 13.249745999999998,
+                      "中性": 13.249745999999998,
+                      "乐观": 13.249745999999998
+                     },
+                     "children": [
+                      {
+                       "key": "ops.station_gwh",
+                       "label": "站内周转装机",
+                       "unit": "GWh",
+                       "value": 22.082910000000002,
+                       "formula": "Σ_池( 站数 × 站内周转电池块数 × 单块电量 )",
+                       "param": null,
+                       "source": null,
+                       "section": null,
+                       "scenarios": {
+                        "悲观": 22.082910000000002,
+                        "中性": 22.082910000000002,
+                        "乐观": 22.082910000000002
+                       },
+                       "children": []
+                      },
+                      {
+                       "key": "fin.ownership",
+                       "label": "CATL建站持股比例",
+                       "unit": "",
+                       "value": 0.4,
+                       "formula": "",
+                       "param": "finance.construction_ownership",
+                       "source": "建站持股比例 40%：假设值（保守档）。锚=蔚能案例：蔚来经天地资本增资后 27.8% 实控。 / 敏感性：0.278（蔚能锚）/ 0.30 / 0.40（保守）。v4.3 单一真相源——外部销售口径在代码中以 1-0.40 派生（原 external_sales_share 已删除）",
+                       "section": "finance",
+                       "scenarios": {
+                        "悲观": 0.4,
+                        "中性": 0.4,
+                        "乐观": 0.4
+                       },
+                       "children": []
+                      }
+                     ]
+                    }
+                   ]
+                  },
+                  {
+                   "key": "ops.rent_rate",
+                   "label": "单位装机年租金",
+                   "unit": "元/kWh·年",
+                   "value": 120.0,
+                   "formula": "",
+                   "param": "swap_business.battery_rent_rmb_kwh_year",
+                   "source": "电池租金 120 元/kWh·年 ≈ 10 元/kWh·月（全市场可比综合口径：小车 8.8–9.7/大车 13–17 元加权， / rlut 重卡月租 4500–6000 元佐证\"小车便宜大车贵\"）",
+                   "section": "swap_business",
+                   "scenarios": {
+                    "悲观": 120.0,
+                    "中性": 120.0,
+                    "乐观": 120.0
+                   },
+                   "children": []
+                  }
+                 ]
+                },
+                {
+                 "key": "ops.rev_arb",
+                 "label": "峰谷套利收入",
+                 "unit": "亿元",
+                 "value": 28.44278808,
+                 "formula": "站内周转装机 × 运营天数 × 峰谷价差 × 站效率",
+                 "param": null,
+                 "source": null,
+                 "section": null,
+                 "scenarios": {
+                  "悲观": 28.44278808,
+                  "中性": 28.44278808,
+                  "乐观": 28.44278808
+                 },
+                 "children": [
+                  {
+                   "key": "ops.station_gwh_ref",
+                   "label": "站内周转装机",
+                   "unit": "GWh",
+                   "value": 22.082910000000002,
+                   "formula": "同上（引用）",
+                   "param": null,
+                   "source": null,
+                   "section": null,
+                   "scenarios": {
+                    "悲观": 22.082910000000002,
+                    "中性": 22.082910000000002,
+                    "乐观": 22.082910000000002
+                   },
+                   "children": []
+                  },
+                  {
+                   "key": "ops.days_ref",
+                   "label": "年运营天数",
+                   "unit": "天",
+                   "value": 350.0,
+                   "formula": "",
+                   "param": "swap_business.operating_days",
+                   "source": "年运营天数 350 天 ← v3.2 §1.3.1：营运车全年营运，留 15 天检修与极端天气停运",
+                   "section": "swap_business",
+                   "scenarios": {
+                    "悲观": 350.0,
+                    "中性": 350.0,
+                    "乐观": 350.0
+                   },
+                   "children": []
+                  },
+                  {
+                   "key": "ops.spread",
+                   "label": "峰谷价差",
+                   "unit": "元/kWh",
+                   "value": 0.4,
+                   "formula": "",
+                   "param": "swap_business.grid_spread_rmb_kwh",
+                   "source": "峰谷价差：焦作实证 0.5 元保守取 0.4",
+                   "section": "swap_business",
+                   "scenarios": {
+                    "悲观": 0.4,
+                    "中性": 0.4,
+                    "乐观": 0.4
+                   },
+                   "children": []
+                  },
+                  {
+                   "key": "ops.rte",
+                   "label": "站内充放效率 RTE",
+                   "unit": "",
+                   "value": 0.92,
+                   "formula": "",
+                   "param": "swap_business.rte",
+                   "source": "往返效率 RTE 0.92 ← v3.2 §2.3／MANIFEST §5：LFP 系统充放往返效率 88–94% 区间中值（工程常识， / 信源审计台账已核为「保留」）。三处用到它，口径同一：① 充电电量 = 换电电量 ÷ RTE ×(1＋站用电率)；",
+                   "section": "swap_business",
+                   "scenarios": {
+                    "悲观": 0.92,
+                    "中性": 0.92,
+                    "乐观": 0.92
+                   },
+                   "children": []
+                  }
+                 ]
+                },
+                {
+                 "key": "ops.rev_anc",
+                 "label": "电网辅助服务收入",
+                 "unit": "亿元",
+                 "value": 5.4152131500000005,
+                 "formula": "容量补偿 ＋ 孰高( 需求响应, 调频 )　——容量补偿是站建成即可申报的「存在型」收益；后两项须实际提供服务才有收益，且争夺同一份可调容量，同一时段只能干一件事，故孰高取一、不可相加",
+                 "param": null,
+                 "source": null,
+                 "section": null,
+                 "scenarios": {
+                  "悲观": 5.4152131500000005,
+                  "中性": 5.4152131500000005,
+                  "乐观": 5.4152131500000005
+                 },
+                 "children": [
+                  {
+                   "key": "ops.anc_cap",
+                   "label": "容量补偿",
+                   "unit": "亿元",
+                   "value": 0.33246765,
+                   "formula": "Σ_池( 站数 × 单站申报容量 × 容量补偿价 )——站在即可申报，无条件计入",
+                   "param": null,
+                   "source": null,
+                   "section": null,
+                   "scenarios": {
+                    "悲观": 0.33246765,
+                    "中性": 0.33246765,
+                    "乐观": 0.33246765
+                   },
+                   "children": []
+                  },
+                  {
+                   "key": "ops.anc_dr",
+                   "label": "需求响应（候选·须实际提供服务）",
+                   "unit": "亿元",
+                   "value": 2.216451,
+                   "formula": "Σ_池( 站数 × 单站申报容量 × 年响应小时 × 响应价 )",
+                   "param": null,
+                   "source": null,
+                   "section": null,
+                   "scenarios": {
+                    "悲观": 2.216451,
+                    "中性": 2.216451,
+                    "乐观": 2.216451
+                   },
+                   "children": []
+                  },
+                  {
+                   "key": "ops.anc_fr",
+                   "label": "调频（候选·须实际提供服务）",
+                   "unit": "亿元",
+                   "value": 5.0827455,
+                   "formula": "Σ_池( 站数 × 单站调频容量 × 年调频小时 × 调频价 )",
+                   "param": null,
+                   "source": null,
+                   "section": null,
+                   "scenarios": {
+                    "悲观": 5.0827455,
+                    "中性": 5.0827455,
+                    "乐观": 5.0827455
+                   },
+                   "children": []
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "key": "ops.opex",
+               "label": "运营 OPEX",
+               "unit": "亿元",
+               "value": 89.10089430972361,
+               "formula": "电费 ＋ 场租 ＋ 人工 ＋ 软件调度 ＋ 保险 ＋ 池化维护 ＋ 仓储物流",
+               "param": null,
+               "source": null,
+               "section": null,
+               "scenarios": {
+                "悲观": 86.75459717928882,
+                "中性": 89.10089430972361,
+                "乐观": 91.76588634450623
+               },
+               "children": [
+                {
+                 "key": "ops.cost_energy",
+                 "label": "电费",
+                 "unit": "亿元",
+                 "value": 47.29484869565217,
+                 "formula": "( 充电电量 − 换电电量 ) × 谷电价",
+                 "param": null,
+                 "source": null,
+                 "section": null,
+                 "scenarios": {
+                  "悲观": 46.33870956521739,
+                  "中性": 47.29484869565217,
+                  "乐观": 48.380859130434786
+                 },
+                 "children": [
+                  {
+                   "key": "ops.charged_energy",
+                   "label": "年充电电量",
+                   "unit": "亿kWh",
+                   "value": 1608.024855652174,
+                   "formula": "换电电量 ÷ RTE × ( 1 ＋ 站用电率 )",
+                   "param": null,
+                   "source": null,
+                   "section": null,
+                   "scenarios": {
+                    "悲观": 1575.5161252173912,
+                    "中性": 1608.024855652174,
+                    "乐观": 1644.9492104347823
+                   },
+                   "children": [
+                    {
+                     "key": "ops.energy_ref",
+                     "label": "年换电交易电量",
+                     "unit": "亿kWh",
+                     "value": 1450.37536,
+                     "formula": "同上（引用）",
+                     "param": null,
+                     "source": null,
+                     "section": null,
+                     "scenarios": {
+                      "悲观": 1421.05376,
+                      "中性": 1450.37536,
+                      "乐观": 1483.67968
+                     },
+                     "children": []
+                    },
+                    {
+                     "key": "ops.rte_ref",
+                     "label": "站内充放效率 RTE",
+                     "unit": "",
+                     "value": 0.92,
+                     "formula": "",
+                     "param": "swap_business.rte",
+                     "source": "往返效率 RTE 0.92 ← v3.2 §2.3／MANIFEST §5：LFP 系统充放往返效率 88–94% 区间中值（工程常识， / 信源审计台账已核为「保留」）。三处用到它，口径同一：① 充电电量 = 换电电量 ÷ RTE ×(1＋站用电率)；",
+                     "section": "swap_business",
+                     "scenarios": {
+                      "悲观": 0.92,
+                      "中性": 0.92,
+                      "乐观": 0.92
+                     },
+                     "children": []
+                    },
+                    {
+                     "key": "ops.aux",
+                     "label": "站用电率",
+                     "unit": "",
+                     "value": 0.02,
+                     "formula": "",
+                     "param": "swap_business.auxiliary_power_rate",
+                     "source": "站用电率（厂用电率）2% ← v3.2 §1.3.2 成本端口径：用户换走的电量不计入充电成本， / 只有循环效率损失（1−RTE）与设备自用电两部分按谷电价计成本",
+                     "section": "swap_business",
+                     "scenarios": {
+                      "悲观": 0.02,
+                      "中性": 0.02,
+                      "乐观": 0.02
+                     },
+                     "children": []
+                    }
+                   ]
+                  },
+                  {
+                   "key": "ops.energy_ref2",
+                   "label": "年换电交易电量",
+                   "unit": "亿kWh",
+                   "value": 1450.37536,
+                   "formula": "同上（引用）",
+                   "param": null,
+                   "source": null,
+                   "section": null,
+                   "scenarios": {
+                    "悲观": 1421.05376,
+                    "中性": 1450.37536,
+                    "乐观": 1483.67968
+                   },
+                   "children": []
+                  },
+                  {
+                   "key": "ops.valley_price",
+                   "label": "谷段电价",
+                   "unit": "元/kWh",
+                   "value": 0.3,
+                   "formula": "",
+                   "param": "swap_business.valley_power_price_rmb_kwh",
+                   "source": "谷电：rlut\"低谷 0.3–0.4\"取下沿",
+                   "section": "swap_business",
+                   "scenarios": {
+                    "悲观": 0.3,
+                    "中性": 0.3,
+                    "乐观": 0.3
+                   },
+                   "children": []
+                  }
+                 ]
+                },
+                {
+                 "key": "ops.cost_rent",
+                 "label": "场地租金",
+                 "unit": "亿元",
+                 "value": 16.927500000000002,
+                 "formula": "Σ_池( 站数 ) × 单站年场租",
+                 "param": null,
+                 "source": null,
+                 "section": null,
+                 "scenarios": {
+                  "悲观": 16.927500000000002,
+                  "中性": 16.927500000000002,
+                  "乐观": 16.927500000000002
+                 },
+                 "children": [
+                  {
+                   "key": "st.total",
+                   "label": "站数合计",
+                   "unit": "座",
+                   "value": 11285.0,
+                   "formula": "四个站型的终局站数之和",
+                   "param": null,
+                   "source": null,
+                   "section": null,
+                   "scenarios": {
+                    "悲观": 11285.0,
+                    "中性": 11285.0,
+                    "乐观": 11285.0
+                   },
+                   "children": []
+                  },
+                  {
+                   "key": "ops.site_rent",
+                   "label": "单站年场租",
+                   "unit": "万元/年",
+                   "value": 15.0,
+                   "formula": "",
+                   "param": "swap_business.site_rent_wan_year",
+                   "source": "场租 15 万/站/年（统一不分站型）：200–300㎡×50 元/㎡/月×12 = 12–18 万取中。 / 巧克力核心区贵/重卡干线便宜，两者相抵；较蔚能二代站 10 万偏保守。不做敏感性",
+                   "section": "swap_business",
+                   "scenarios": {
+                    "悲观": 15.0,
+                    "中性": 15.0,
+                    "乐观": 15.0
+                   },
+                   "children": []
+                  }
+                 ]
+                },
+                {
+                 "key": "ops.cost_labor",
+                 "label": "人工",
+                 "unit": "亿元",
+                 "value": 11.732851199999999,
+                 "formula": "重卡站数 × 重卡单站年人工 ＋ 巧克力站数 × 巧克力单站年人工",
+                 "param": null,
+                 "source": null,
+                 "section": null,
+                 "scenarios": {
+                  "悲观": 11.732851199999999,
+                  "中性": 11.732851199999999,
+                  "乐观": 11.732851199999999
+                 },
+                 "children": [
+                  {
+                   "key": "st.heavy",
+                   "label": "重卡站数（终局）",
+                   "unit": "座",
+                   "value": 3596.0,
+                   "formula": "骐骥短途站 ＋ 骐骥干线站",
+                   "param": null,
+                   "source": null,
+                   "section": null,
+                   "scenarios": {
+                    "悲观": 3596.0,
+                    "中性": 3596.0,
+                    "乐观": 3596.0
+                   },
+                   "children": []
+                  },
+                  {
+                   "key": "ops.labor_heavy",
+                   "label": "重卡单站年人工",
+                   "unit": "万元/年",
+                   "value": 26.88,
+                   "formula": "",
+                   "param": "swap_business.heavy_station_labor_wan_year",
+                   "source": "重卡站人工 26.88 万/站/年：2 人×16h 双班倒×1.12 万/月×12（老模型精算口径回归）。 / v4.2 按次计价（30 元/次）废弃——隐含 4 人编制、高估 2 倍",
+                   "section": "swap_business",
+                   "scenarios": {
+                    "悲观": 26.88,
+                    "中性": 26.88,
+                    "乐观": 26.88
+                   },
+                   "children": []
+                  },
+                  {
+                   "key": "st.choco",
+                   "label": "巧克力站数（终局）",
+                   "unit": "座",
+                   "value": 7689.0,
+                   "formula": "巧克力乘用站 ＋ 巧克力城配站",
+                   "param": null,
+                   "source": null,
+                   "section": null,
+                   "scenarios": {
+                    "悲观": 7689.0,
+                    "中性": 7689.0,
+                    "乐观": 7689.0
+                   },
+                   "children": []
+                  },
+                  {
+                   "key": "ops.labor_choco",
+                   "label": "巧克力单站年人工",
+                   "unit": "万元/年",
+                   "value": 2.688,
+                   "formula": "",
+                   "param": "swap_business.passenger_station_labor_wan_year",
+                   "source": "巧克力站直接人工 0.2 人/站保守档（2026-08-29 拍板，v4.3 从 0 上调）：≈5 站共用 1 名巡检员 / （0.2 人×1.12 万/月×12 = 2.688 万/站/年）。覆盖逻辑：官方\"3 公里服务半径\"密度（厦门试点口径）下",
+                   "section": "swap_business",
+                   "scenarios": {
+                    "悲观": 2.688,
+                    "中性": 2.688,
+                    "乐观": 2.688
+                   },
+                   "children": []
+                  }
+                 ]
+                },
+                {
+                 "key": "ops.cost_software",
+                 "label": "软件调度",
+                 "unit": "亿元",
+                 "value": 2.0,
+                 "formula": "固定投入，按站数份额分池",
+                 "param": null,
+                 "source": null,
+                 "section": null,
+                 "scenarios": {
+                  "悲观": 2.0,
+                  "中性": 2.0,
+                  "乐观": 2.0
+                 },
+                 "children": []
+                },
+                {
+                 "key": "ops.cost_insurance",
+                 "label": "保险",
+                 "unit": "亿元",
+                 "value": 5.231625295142857,
+                 "formula": "电池资产 × 电池保险费率 ＋ 站体资产 × 设备保险费率",
+                 "param": null,
+                 "source": null,
+                 "section": null,
+                 "scenarios": {
+                  "悲观": 4.6137772951428575,
+                  "中性": 5.231625295142857,
+                  "乐观": 5.9333948951428575
+                 },
+                 "children": []
+                },
+                {
+                 "key": "ops.cost_pooling",
+                 "label": "池化维护",
+                 "unit": "亿元",
+                 "value": 4.731255295142857,
+                 "formula": "电池资产 × 池化维护费率",
+                 "param": null,
+                 "source": null,
+                 "section": null,
+                 "scenarios": {
+                  "悲观": 4.113407295142857,
+                  "中性": 4.731255295142857,
+                  "乐观": 5.433024895142857
+                 },
+                 "children": []
+                },
+                {
+                 "key": "ops.cost_warehouse",
+                 "label": "仓储物流",
+                 "unit": "亿元",
+                 "value": 1.1828138237857142,
+                 "formula": "电池资产 × 仓储物流费率",
+                 "param": null,
+                 "source": null,
+                 "section": null,
+                 "scenarios": {
+                  "悲观": 1.0283518237857143,
+                  "中性": 1.1828138237857142,
+                  "乐观": 1.3582562237857143
+                 },
+                 "children": []
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "key": "fin.ev_mult",
+             "label": "运营 EV/EBITDA 倍数",
+             "unit": "×",
+             "value": 18.0,
+             "formula": "",
+             "param": "finance.swap_ev_ebitda",
+             "source": "运营 EV/EBITDA 18× ← v3.2 §4.1「18× 是含战略溢价的基建运营倍数，不是 GP/科技资管倍数」。 / 三族对照（判断倍数看\"谁扛资产、谁赚什么钱\"，不能只看资产轻重）：",
+             "section": "finance",
+             "scenarios": {
+              "悲观": 18.0,
+              "中性": 18.0,
+              "乐观": 18.0
+             },
+             "children": []
+            }
+           ]
+          },
+          {
+           "key": "cap.debt_ref",
+           "label": "项目债务",
+           "unit": "亿元",
+           "value": 2578.374998104986,
+           "formula": "同上（引用）",
+           "param": null,
+           "source": null,
+           "section": null,
+           "scenarios": {
+            "悲观": 2420.4544357126474,
+            "中性": 2578.374998104986,
+            "乐观": 2812.4743028715507
+           },
+           "children": []
+          }
+         ]
+        },
+        {
+         "key": "fin.ownership_ref2",
+         "label": "CATL建站持股比例",
+         "unit": "",
+         "value": 0.4,
+         "formula": "",
+         "param": "finance.construction_ownership",
+         "source": "建站持股比例 40%：假设值（保守档）。锚=蔚能案例：蔚来经天地资本增资后 27.8% 实控。 / 敏感性：0.278（蔚能锚）/ 0.30 / 0.40（保守）。v4.3 单一真相源——外部销售口径在代码中以 1-0.40 派生（原 external_sales_share 已删除）",
+         "section": "finance",
+         "scenarios": {
+          "悲观": 0.4,
+          "中性": 0.4,
+          "乐观": 0.4
+         },
+         "children": []
+        }
+       ]
+      },
+      {
+       "key": "val.mfg_increment",
+       "label": "制造侧锁量锁价增量",
+       "unit": "亿元",
+       "value": 606.6508961377258,
+       "formula": "制造净利差 × 制造 PE",
+       "param": null,
+       "source": null,
+       "section": null,
+       "scenarios": {
+        "悲观": -1199.7931179026898,
+        "中性": 606.6508961377258,
+        "乐观": 2926.537521001485
+       },
+       "children": [
+        {
+         "key": "val.mfg_np_gap",
+         "label": "制造净利差（有换电 − 纯制造）",
+         "unit": "亿元",
+         "value": 30.33254480688629,
+         "formula": "量差效应 ＋ 换电段利润率效应 ＋ 其他段利润率效应",
+         "param": null,
+         "source": null,
+         "section": null,
+         "scenarios": {
+          "悲观": -59.98965589513449,
+          "中性": 30.33254480688629,
+          "乐观": 146.32687605007425
+         },
+         "children": [
+          {
+           "key": "val.mfg_volume",
+           "label": "量差效应",
+           "unit": "亿元",
+           "value": -3.8752478023780554,
+           "formula": "锁定订单效应 ＋ 充电段份额效应（虹吸，通常为负）",
+           "param": null,
+           "source": null,
+           "section": null,
+           "scenarios": {
+            "悲观": -59.98965589513449,
+            "中性": -3.8752478023780554,
+            "乐观": 50.02695413869827
+           },
+           "children": [
+            {
+             "key": "val.mfg_lock",
+             "label": "锁定订单效应",
+             "unit": "亿元",
+             "value": 53.77678070287282,
+             "formula": "换电锁定出货 × 单位售价 × 纯制造净利率",
+             "param": null,
+             "source": null,
+             "section": null,
+             "scenarios": {
+              "悲观": 47.92804730383281,
+              "中性": 53.77678070287282,
+              "乐观": 60.41339915791281
+             },
+             "children": []
+            },
+            {
+             "key": "val.mfg_charge",
+             "label": "充电段份额效应（虹吸）",
+             "unit": "亿元",
+             "value": -57.652028505250875,
+             "formula": "量差效应 − 锁定订单效应（换电对充电段的挤出）",
+             "param": null,
+             "source": null,
+             "section": null,
+             "scenarios": {
+              "悲观": -107.9177031989673,
+              "中性": -57.652028505250875,
+              "乐观": -10.386445019214534
+             },
+             "children": []
+            }
+           ]
+          },
+          {
+           "key": "val.mfg_margin_swap",
+           "label": "换电段利润率效应（护价）",
+           "unit": "亿元",
+           "value": 34.20779260926433,
+           "formula": "换电可覆盖收入 × 净利率差",
+           "param": null,
+           "source": null,
+           "section": null,
+           "scenarios": {
+            "悲观": 0.0,
+            "中性": 34.20779260926433,
+            "乐观": 96.299921911376
+           },
+           "children": [
+            {
+             "key": "val.mfg_swap_rev",
+             "label": "换电可覆盖收入",
+             "unit": "亿元",
+             "value": 3420.77926092643,
+             "formula": "",
+             "param": null,
+             "source": null,
+             "section": null,
+             "scenarios": {
+              "悲观": 2971.8639961843787,
+              "中性": 3420.77926092643,
+              "乐观": 3851.996876455041
+             },
+             "children": []
+            },
+            {
+             "key": "val.mfg_margin_delta",
+             "label": "净利率差（有换电 − 无换电）",
+             "unit": "",
+             "value": 0.010000000000000009,
+             "formula": "有换电制造净利率 − 无换电制造净利率",
+             "param": null,
+             "source": null,
+             "section": null,
+             "scenarios": {
+              "悲观": 0.0,
+              "中性": 0.010000000000000009,
+              "乐观": 0.024999999999999994
+             },
+             "children": [
+              {
+               "key": "val.margin_with",
+               "label": "有换电制造净利率",
+               "unit": "",
+               "value": 0.135,
+               "formula": "",
+               "param": null,
+               "source": null,
+               "section": null,
+               "scenarios": {
+                "悲观": 0.125,
+                "中性": 0.135,
+                "乐观": 0.15
+               },
+               "children": []
+              },
+              {
+               "key": "val.margin_no",
+               "label": "无换电制造净利率",
+               "unit": "",
+               "value": 0.125,
+               "formula": "",
+               "param": null,
+               "source": null,
+               "section": null,
+               "scenarios": {
+                "悲观": 0.125,
+                "中性": 0.125,
+                "乐观": 0.125
+               },
+               "children": []
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "key": "val.mfg_margin_other",
+           "label": "其他段利润率效应",
+           "unit": "亿元",
+           "value": 0.0,
+           "formula": "换电不可覆盖收入 × 净利率差",
+           "param": null,
+           "source": null,
+           "section": null,
+           "scenarios": {
+            "悲观": 0.0,
+            "中性": 0.0,
+            "乐观": 0.0
+           },
+           "children": []
+          }
+         ]
+        },
+        {
+         "key": "fin.mfg_pe",
+         "label": "制造 PE",
+         "unit": "×",
+         "value": 20.0,
+         "formula": "",
+         "param": "finance.manufacturing_pe",
+         "source": "制造 PE 20× ← v3.2 §6.6：延续当前估值水平，不做扩张假设。 / 校核：2026 动力净利拍 600 亿 × 20 = 12,000 亿；对照集团市值 18,250 亿、",
+         "section": "finance",
+         "scenarios": {
+          "悲观": 20.0,
+          "中性": 20.0,
+          "乐观": 20.0
+         },
+         "children": []
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "key": "val.increment_pct",
+     "label": "增量价值 ÷ 集团市值",
+     "unit": "",
+     "value": 0.28491427363094324,
+     "formula": "可归因换电增量价值 ÷ 集团市值基准",
+     "param": null,
+     "source": null,
+     "section": null,
+     "scenarios": {
+      "悲观": 0.12165096298372573,
+      "中性": 0.28491427363094324,
+      "乐观": 0.47796846068627813
+     },
+     "children": [
+      {
+       "key": "val.increment_ref",
+       "label": "可归因换电增量价值",
+       "unit": "亿元",
+       "value": 5698.285472618864,
+       "formula": "同上（引用）",
+       "param": null,
+       "source": null,
+       "section": null,
+       "scenarios": {
+        "悲观": 2433.0192596745146,
+        "中性": 5698.285472618864,
+        "乐观": 9559.369213725562
+       },
+       "children": []
+      },
+      {
+       "key": "base.mktcap",
+       "label": "集团市值基准（A+H）",
+       "unit": "亿元",
+       "value": 20000.0,
+       "formula": "",
+       "param": null,
+       "source": null,
+       "section": null,
+       "scenarios": {
+        "悲观": 20000.0,
+        "中性": 20000.0,
+        "乐观": 20000.0
+       },
+       "children": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "key": "branch.cost",
+   "label": "做透的代价",
+   "unit": "亿元",
+   "value": 687.5666661613297,
+   "formula": "见下",
+   "param": null,
+   "source": null,
+   "section": null,
+   "scenarios": {
+    "悲观": 645.4545161900394,
+    "中性": 687.5666661613297,
+    "乐观": 749.9931474324136
+   },
+   "children": [
+    {
+     "key": "cap.commitment",
+     "label": "CATL 全周期权益承诺",
+     "unit": "亿元",
+     "value": 687.5666661613297,
+     "formula": "全周期资本底座 × (1 − 债务比例) × CATL建站持股比例",
+     "param": null,
+     "source": null,
+     "section": null,
+     "scenarios": {
+      "悲观": 645.4545161900394,
+      "中性": 687.5666661613297,
+      "乐观": 749.9931474324136
+     },
+     "children": [
+      {
+       "key": "cap.lifecycle_ref",
+       "label": "全周期资本底座",
+       "unit": "亿元",
+       "value": 4297.29166350831,
+       "formula": "同上（引用）",
+       "param": null,
+       "source": null,
+       "section": null,
+       "scenarios": {
+        "悲观": 4034.0907261877455,
+        "中性": 4297.29166350831,
+        "乐观": 4687.457171452585
+       },
+       "children": []
+      },
+      {
+       "key": "fin.debt_ratio_ref",
+       "label": "项目债务比例",
+       "unit": "",
+       "value": 0.6,
+       "formula": "",
+       "param": "finance.debt_ratio",
+       "source": "债务比例 60%：经验假设（类固收项目可做到 1:1.5 杠杆）",
+       "section": "finance",
+       "scenarios": {
+        "悲观": 0.6,
+        "中性": 0.6,
+        "乐观": 0.6
+       },
+       "children": []
+      },
+      {
+       "key": "fin.ownership_ref",
+       "label": "CATL建站持股比例",
+       "unit": "",
+       "value": 0.4,
+       "formula": "",
+       "param": "finance.construction_ownership",
+       "source": "建站持股比例 40%：假设值（保守档）。锚=蔚能案例：蔚来经天地资本增资后 27.8% 实控。 / 敏感性：0.278（蔚能锚）/ 0.30 / 0.40（保守）。v4.3 单一真相源——外部销售口径在代码中以 1-0.40 派生（原 external_sales_share 已删除）",
+       "section": "finance",
+       "scenarios": {
+        "悲观": 0.4,
+        "中性": 0.4,
+        "乐观": 0.4
+       },
+       "children": []
+      }
+     ]
+    },
+    {
+     "key": "cap.lifecycle",
+     "label": "全周期资本底座（现值）",
+     "unit": "亿元",
+     "value": 4297.29166350831,
+     "formula": "初装 CAPEX ＋ 全周期电池更新净额（按届时价格、扣回收残值，折现）",
+     "param": null,
+     "source": null,
+     "section": null,
+     "scenarios": {
+      "悲观": 4034.0907261877455,
+      "中性": 4297.29166350831,
+      "乐观": 4687.457171452585
+     },
+     "children": [
+      {
+       "key": "cap.initial",
+       "label": "初装 CAPEX 合计",
+       "unit": "亿元",
+       "value": 2632.079559419369,
+       "formula": "期初存量站投入 ＋ Σ_年( 车端电池 ＋ 站内电池 ＋ 站体 )",
+       "param": null,
+       "source": null,
+       "section": null,
+       "scenarios": {
+        "悲观": 2332.6204066321693,
+        "中性": 2632.079559419369,
+        "乐观": 2971.8789662865693
+       },
+       "children": [
+        {
+         "key": "cap.preperiod",
+         "label": "期初存量站投入",
+         "unit": "亿元",
+         "value": 47.75326,
+         "formula": "2026 年之前已建成站的站体与站内电池",
+         "param": null,
+         "source": null,
+         "section": null,
+         "scenarios": {
+          "悲观": 47.75326,
+          "中性": 47.75326,
+          "乐观": 47.75326
+         },
+         "children": []
+        },
+        {
+         "key": "cap.veh_battery",
+         "label": "车端电池初装",
+         "unit": "亿元",
+         "value": 2168.2103904193696,
+         "formula": "Σ_年( 当年新增换电装车 GWh × 当年电池价格 )",
+         "param": null,
+         "source": null,
+         "section": null,
+         "scenarios": {
+          "悲观": 1868.7512376321692,
+          "中性": 2168.2103904193696,
+          "乐观": 2508.0097972865697
+         },
+         "children": []
+        },
+        {
+         "key": "cap.station_battery",
+         "label": "站内周转电池初装",
+         "unit": "亿元",
+         "value": 118.185909,
+         "formula": "Σ_年( 当年新增站数 × 站内周转块数 × 单块电量 × 当年电池价格 )",
+         "param": null,
+         "source": null,
+         "section": null,
+         "scenarios": {
+          "悲观": 118.185909,
+          "中性": 118.185909,
+          "乐观": 118.185909
+         },
+         "children": []
+        },
+        {
+         "key": "cap.station_body",
+         "label": "站体初装",
+         "unit": "亿元",
+         "value": 297.93,
+         "formula": "Σ_年Σ_池( 当年新增站数 × 该站型单站站体造价 )",
+         "param": null,
+         "source": null,
+         "section": null,
+         "scenarios": {
+          "悲观": 297.93,
+          "中性": 297.93,
+          "乐观": 297.93
+         },
+         "children": []
+        }
+       ]
+      },
+      {
+       "key": "cap.replacement",
+       "label": "全周期更新净额（现值）",
+       "unit": "亿元",
+       "value": 1665.212104088941,
+       "formula": "全周期资本底座 − 初装 CAPEX（差额即更新净投入）",
+       "param": null,
+       "source": null,
+       "section": null,
+       "scenarios": {
+        "悲观": 1701.4703195555762,
+        "中性": 1665.212104088941,
+        "乐观": 1715.5782051660153
+       },
+       "children": []
+      }
+     ]
+    },
+    {
+     "key": "cap.annual_req",
+     "label": "年资本要求",
+     "unit": "亿元",
+     "value": 644.5937495262465,
+     "formula": "全周期资本底座 × 资本回收系数 CRF",
+     "param": null,
+     "source": null,
+     "section": null,
+     "scenarios": {
+      "悲观": 605.1136089281619,
+      "中性": 644.5937495262465,
+      "乐观": 703.1185757178877
+     },
+     "children": [
+      {
+       "key": "cap.lifecycle_ref2",
+       "label": "全周期资本底座",
+       "unit": "亿元",
+       "value": 4297.29166350831,
+       "formula": "同上（引用）",
+       "param": null,
+       "source": null,
+       "section": null,
+       "scenarios": {
+        "悲观": 4034.0907261877455,
+        "中性": 4297.29166350831,
+        "乐观": 4687.457171452585
+       },
+       "children": []
+      },
+      {
+       "key": "fin.crf",
+       "label": "资本回收系数 CRF",
+       "unit": "",
+       "value": 0.15,
+       "formula": "",
+       "param": "finance.capital_recovery_factor",
+       "source": "CRF 0.15 ← v3.2 §1.2.2「从全生命 CAPEX 到年 FCFF：期望收益率，非成本线」。 / 关键区分：WACC 7.5% 只是\"必须收回成本的下限\"，估值要看期望收益率，必然高于成本线。",
+       "section": "finance",
+       "scenarios": {
+        "悲观": 0.15,
+        "中性": 0.15,
+        "乐观": 0.15
+       },
+       "children": []
+      }
+     ]
+    },
+    {
+     "key": "cap.debt",
+     "label": "项目债务",
+     "unit": "亿元",
+     "value": 2578.374998104986,
+     "formula": "全周期资本底座 × 债务比例",
+     "param": null,
+     "source": null,
+     "section": null,
+     "scenarios": {
+      "悲观": 2420.4544357126474,
+      "中性": 2578.374998104986,
+      "乐观": 2812.4743028715507
+     },
+     "children": [
+      {
+       "key": "cap.lifecycle",
+       "label": "全周期资本底座（现值）",
+       "unit": "亿元",
+       "value": 4297.29166350831,
+       "formula": "初装 CAPEX ＋ 全周期电池更新净额（按届时价格、扣回收残值，折现）",
+       "param": null,
+       "source": null,
+       "section": null,
+       "scenarios": {
+        "悲观": 4034.0907261877455,
+        "中性": 4297.29166350831,
+        "乐观": 4687.457171452585
+       },
+       "children": [
+        {
+         "key": "cap.initial",
+         "label": "初装 CAPEX 合计",
+         "unit": "亿元",
+         "value": 2632.079559419369,
+         "formula": "期初存量站投入 ＋ Σ_年( 车端电池 ＋ 站内电池 ＋ 站体 )",
+         "param": null,
+         "source": null,
+         "section": null,
+         "scenarios": {
+          "悲观": 2332.6204066321693,
+          "中性": 2632.079559419369,
+          "乐观": 2971.8789662865693
+         },
+         "children": [
+          {
+           "key": "cap.preperiod",
+           "label": "期初存量站投入",
+           "unit": "亿元",
+           "value": 47.75326,
+           "formula": "2026 年之前已建成站的站体与站内电池",
+           "param": null,
+           "source": null,
+           "section": null,
+           "scenarios": {
+            "悲观": 47.75326,
+            "中性": 47.75326,
+            "乐观": 47.75326
+           },
+           "children": []
+          },
+          {
+           "key": "cap.veh_battery",
+           "label": "车端电池初装",
+           "unit": "亿元",
+           "value": 2168.2103904193696,
+           "formula": "Σ_年( 当年新增换电装车 GWh × 当年电池价格 )",
+           "param": null,
+           "source": null,
+           "section": null,
+           "scenarios": {
+            "悲观": 1868.7512376321692,
+            "中性": 2168.2103904193696,
+            "乐观": 2508.0097972865697
+           },
+           "children": []
+          },
+          {
+           "key": "cap.station_battery",
+           "label": "站内周转电池初装",
+           "unit": "亿元",
+           "value": 118.185909,
+           "formula": "Σ_年( 当年新增站数 × 站内周转块数 × 单块电量 × 当年电池价格 )",
+           "param": null,
+           "source": null,
+           "section": null,
+           "scenarios": {
+            "悲观": 118.185909,
+            "中性": 118.185909,
+            "乐观": 118.185909
+           },
+           "children": []
+          },
+          {
+           "key": "cap.station_body",
+           "label": "站体初装",
+           "unit": "亿元",
+           "value": 297.93,
+           "formula": "Σ_年Σ_池( 当年新增站数 × 该站型单站站体造价 )",
+           "param": null,
+           "source": null,
+           "section": null,
+           "scenarios": {
+            "悲观": 297.93,
+            "中性": 297.93,
+            "乐观": 297.93
+           },
+           "children": []
+          }
+         ]
+        },
+        {
+         "key": "cap.replacement",
+         "label": "全周期更新净额（现值）",
+         "unit": "亿元",
+         "value": 1665.212104088941,
+         "formula": "全周期资本底座 − 初装 CAPEX（差额即更新净投入）",
+         "param": null,
+         "source": null,
+         "section": null,
+         "scenarios": {
+          "悲观": 1701.4703195555762,
+          "中性": 1665.212104088941,
+          "乐观": 1715.5782051660153
+         },
+         "children": []
+        }
+       ]
+      },
+      {
+       "key": "fin.debt_ratio",
+       "label": "项目债务比例",
+       "unit": "",
+       "value": 0.6,
+       "formula": "",
+       "param": "finance.debt_ratio",
+       "source": "债务比例 60%：经验假设（类固收项目可做到 1:1.5 杠杆）",
+       "section": "finance",
+       "scenarios": {
+        "悲观": 0.6,
+        "中性": 0.6,
+        "乐观": 0.6
+       },
+       "children": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "key": "branch.check",
+   "label": "体检：过不过线",
+   "unit": "",
+   "value": 1.476232382439413,
+   "formula": "见下",
+   "param": null,
+   "source": null,
+   "section": null,
+   "scenarios": {
+    "悲观": 1.2248594646465187,
+    "中性": 1.476232382439413,
+    "乐观": 1.6639529319346962
+   },
+   "children": [
+    {
+     "key": "chk.coverage",
+     "label": "EBITDA 覆盖倍数",
+     "unit": "×",
+     "value": 1.476232382439413,
+     "formula": "可交付 EBITDA ÷ 资本回报要求 EBITDA",
+     "param": null,
+     "source": null,
+     "section": null,
+     "scenarios": {
+      "悲观": 1.2248594646465187,
+      "中性": 1.476232382439413,
+      "乐观": 1.6639529319346962
+     },
+     "children": [
+      {
+       "key": "ops.ebitda_ref",
+       "label": "可交付 EBITDA",
+       "unit": "亿元",
+       "value": 850.4145244059907,
+       "formula": "同上（引用）",
+       "param": null,
+       "source": null,
+       "section": null,
+       "scenarios": {
+        "悲观": 639.0269655364255,
+        "中性": 850.4145244059907,
+        "乐观": 1077.475196371208
+       },
+       "children": []
+      },
+      {
+       "key": "chk.required_ebitda",
+       "label": "资本回报要求 EBITDA",
+       "unit": "亿元",
+       "value": 576.0709049077462,
+       "formula": "由年资本要求反推的门槛 EBITDA",
+       "param": null,
+       "source": null,
+       "section": null,
+       "scenarios": {
+        "悲观": 521.7145182617679,
+        "中性": 576.0709049077462,
+        "乐观": 647.539468029553
+       },
+       "children": []
+      }
+     ]
+    },
+    {
+     "key": "chk.ebit",
+     "label": "EBIT（账面）",
+     "unit": "亿元",
+     "value": 0.2522410242436308,
+     "formula": "EBITDA − 年折旧",
+     "param": null,
+     "source": null,
+     "section": null,
+     "scenarios": {
+      "悲观": -216.28391539091797,
+      "中性": 0.2522410242436308,
+      "乐观": 207.61929758831604
+     },
+     "children": [
+      {
+       "key": "ops.ebitda_ref2",
+       "label": "EBITDA",
+       "unit": "亿元",
+       "value": 850.4145244059907,
+       "formula": "同上（引用）",
+       "param": null,
+       "source": null,
+       "section": null,
+       "scenarios": {
+        "悲观": 639.0269655364255,
+        "中性": 850.4145244059907,
+        "乐观": 1077.475196371208
+       },
+       "children": []
+      },
+      {
+       "key": "cap.depreciation",
+       "label": "年折旧（成熟期）",
+       "unit": "亿元",
+       "value": 850.1622833817474,
+       "formula": "电池折旧（按各池电池寿命） ＋ 站体折旧（站体总初装 ÷ 分析期）",
+       "param": null,
+       "source": null,
+       "section": null,
+       "scenarios": {
+        "悲观": 855.3108809273438,
+        "中性": 850.1622833817474,
+        "乐观": 869.8558987828925
+       },
+       "children": [
+        {
+         "key": "cap.dep_battery",
+         "label": "电池折旧",
+         "unit": "亿元",
+         "value": 827.9236167150808,
+         "formula": "模型内按池 cohort 逐批计提：Σ_池( 池电池资本底座 ÷ 池电池寿命 )；此处由成熟期折旧扣站体折旧反解",
+         "param": null,
+         "source": null,
+         "section": null,
+         "scenarios": {
+          "悲观": 833.0722142606771,
+          "中性": 827.9236167150808,
+          "乐观": 847.6172321162259
+         },
+         "children": []
+        },
+        {
+         "key": "cap.body_total",
+         "label": "站体总初装（含期初存量站）",
+         "unit": "亿元",
+         "value": 333.58,
+         "formula": "Σ_年站体初装 ＋ 期初存量站数 × 该站型单站站体造价",
+         "param": null,
+         "source": null,
+         "section": null,
+         "scenarios": {
+          "悲观": 333.58,
+          "中性": 333.58,
+          "乐观": 333.58
+         },
+         "children": [
+          {
+           "key": "cap.body_sched",
+           "label": "建设期站体初装",
+           "unit": "亿元",
+           "value": 297.93,
+           "formula": "Σ_年Σ_池( 当年新增站数 × 单站站体造价 )",
+           "param": null,
+           "source": null,
+           "section": null,
+           "scenarios": {
+            "悲观": 297.93,
+            "中性": 297.93,
+            "乐观": 297.93
+           },
+           "children": []
+          },
+          {
+           "key": "cap.body_pre",
+           "label": "期初存量站站体",
+           "unit": "亿元",
+           "value": 35.65,
+           "formula": "Σ_池( 期初存量站数 × 单站站体造价 )",
+           "param": null,
+           "source": null,
+           "section": null,
+           "scenarios": {
+            "悲观": 35.65,
+            "中性": 35.65,
+            "乐观": 35.65
+           },
+           "children": []
+          }
+         ]
+        },
+        {
+         "key": "fin.horizon",
+         "label": "模型分析期",
+         "unit": "年",
+         "value": 15.0,
+         "formula": "",
+         "param": "finance.model_horizon_years",
+         "source": "分析期 15 年（2026–2040）：与世联评估预测收益期 2025.12–2040.12 对齐（非 REITs 12 年存续期）",
+         "section": "finance",
+         "scenarios": {
+          "悲观": 15.0,
+          "中性": 15.0,
+          "乐观": 15.0
+         },
+         "children": []
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "key": "chk.dcf",
+     "label": "现金流支持的倍数（对照 拍的倍数）",
+     "unit": "×",
+     "value": 6.666172317505161,
+     "formula": "DCF企业价值（与门槛同源口径）÷ EBITDA　——回答「你用 EBITDA 的倍数估值，那现金流本身支持几倍」",
+     "param": null,
+     "source": null,
+     "section": null,
+     "scenarios": {
+      "悲观": 7.230763663755986,
+      "中性": 6.666172317505161,
+      "乐观": 6.345515735478104
+     },
+     "children": [
+      {
+       "key": "chk.dcf_ev",
+       "label": "DCF企业价值·与门槛同源",
+       "unit": "亿元",
+       "value": 5669.009760999533,
+       "formula": "成熟期 FCFF ÷ CRF（CRF 即设门槛 EBITDA 用的期望收益率年金因子，两者同源）",
+       "param": null,
+       "source": null,
+       "section": null,
+       "scenarios": {
+        "悲观": 4620.652962561034,
+        "中性": 5669.009760999533,
+        "乐观": 6837.135813160861
+       },
+       "children": [
+        {
+         "key": "chk.fcff",
+         "label": "成熟期 FCFF",
+         "unit": "亿元",
+         "value": 850.3514641499298,
+         "formula": "EBITDA ×(1−税率) ＋ 折旧 × 税率（重置已由 CRF 年金化内含）",
+         "param": null,
+         "source": null,
+         "section": null,
+         "scenarios": {
+          "悲观": 693.097944384155,
+          "中性": 850.3514641499298,
+          "乐观": 1025.570371974129
+         },
+         "children": []
+        },
+        {
+         "key": "fin.crf_ref",
+         "label": "资本回收系数 CRF",
+         "unit": "",
+         "value": 0.15,
+         "formula": "",
+         "param": "finance.capital_recovery_factor",
+         "source": "CRF 0.15 ← v3.2 §1.2.2「从全生命 CAPEX 到年 FCFF：期望收益率，非成本线」。 / 关键区分：WACC 7.5% 只是\"必须收回成本的下限\"，估值要看期望收益率，必然高于成本线。",
+         "section": "finance",
+         "scenarios": {
+          "悲观": 0.15,
+          "中性": 0.15,
+          "乐观": 0.15
+         },
+         "children": []
+        }
+       ]
+      },
+      {
+       "key": "ops.ebitda_ref3",
+       "label": "EBITDA",
+       "unit": "亿元",
+       "value": 850.4145244059907,
+       "formula": "同上（引用）",
+       "param": null,
+       "source": null,
+       "section": null,
+       "scenarios": {
+        "悲观": 639.0269655364255,
+        "中性": 850.4145244059907,
+        "乐观": 1077.475196371208
+       },
+       "children": []
+      }
+     ]
+    },
+    {
+     "key": "chk.premium",
+     "label": "战略溢价倍数（押注的大小）",
+     "unit": "倍",
+     "value": 2.700200226257662,
+     "formula": "拍的 EV/EBITDA 倍数 ÷ 现金流支持的倍数　——这个数是判断不是计算，必须在报告正文里正面论证",
+     "param": null,
+     "source": null,
+     "section": null,
+     "scenarios": {
+      "悲观": 2.4893636187038624,
+      "中性": 2.700200226257662,
+      "乐观": 2.8366488636000184
+     },
+     "children": [
+      {
+       "key": "fin.ev_mult_ref",
+       "label": "运营 EV/EBITDA 倍数",
+       "unit": "×",
+       "value": 18.0,
+       "formula": "",
+       "param": "finance.swap_ev_ebitda",
+       "source": "运营 EV/EBITDA 18× ← v3.2 §4.1「18× 是含战略溢价的基建运营倍数，不是 GP/科技资管倍数」。 / 三族对照（判断倍数看\"谁扛资产、谁赚什么钱\"，不能只看资产轻重）：",
+       "section": "finance",
+       "scenarios": {
+        "悲观": 18.0,
+        "中性": 18.0,
+        "乐观": 18.0
+       },
+       "children": []
+      },
+      {
+       "key": "chk.dcf_ref",
+       "label": "现金流支持的倍数",
+       "unit": "×",
+       "value": 6.666172317505161,
+       "formula": "同上（引用）",
+       "param": null,
+       "source": null,
+       "section": null,
+       "scenarios": {
+        "悲观": 7.230763663755986,
+        "中性": 6.666172317505161,
+        "乐观": 6.345515735478104
+       },
+       "children": []
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

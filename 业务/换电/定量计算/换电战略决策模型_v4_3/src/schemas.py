@@ -357,6 +357,13 @@ class SwapBusinessResult:
     dcf_multiple_premium_true: float = 0.0
     dcf_npv_true_yi: float = 0.0
     dcf_catl_value_true_yi: float = 0.0
+    # 【2026-09-04，T5】框架L交叉验证：折现FCFE直接算股权价值，与框架U（EV−debt）对照。
+    # 详见 business.py::_dcf_cross_check 内注释——两者不精确相等是预期内的（debt口径
+    # 是资产历史成本快照，不是随剩余现金流摊销的目标杠杆），gap_pct量化偏离幅度。
+    dcf_ke_derived: float = 0.0
+    dcf_framework_l_equity_yi: float = 0.0
+    dcf_framework_u_equity_yi: float = 0.0
+    dcf_framework_ul_gap_pct: float = 0.0
     # v4.3 新增：电池银行侧费率三项（蔚能四项成本对照框架补齐）
     battery_asset_yi: float = 0.0
     equipment_asset_yi: float = 0.0

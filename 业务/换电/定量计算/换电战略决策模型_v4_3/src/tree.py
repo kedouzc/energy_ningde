@@ -715,10 +715,13 @@ def build_tree(c: Ctx) -> Node:
     ev_true = N(
         "val.ev_true", "DCF企业价值（真实口径，扣真实更新支出）", "亿元",
         lambda c: c.m("swap_business.dcf_ev_true_yi"),
-        "Σ_{target_year+1..final_schedule_year}[ (成熟期FCFF − 当年真实更新净支出) "
-        "÷(1+WACC)^(年−target_year) ]——逐年现金流求和，结构复杂，本节点不做"
-        "递归自校验，由 business.py 单元逻辑保证；用的是capex已按cohort算好的"
-        "真实更新排期（lifecycle_replacement_schedule_yi），不是拍的",
+        "(成熟期FCFF − 稳态年度折旧代理支出) × 15年WACC年金因子。"
+        "【2026-09-04二次修正】首版曾逐年扣cohort真实更新排期"
+        "（lifecycle_replacement_schedule_yi），但该排期在窗口末期人为衰减到0"
+        "（各cohort各自到期），与forward_fcff'永续不变'的假设不一致，导致ev_true"
+        "被高估约39%；改用同样'稳态永续'口径的 mature_annual_depreciation_yi 作"
+        "可持续资本性支出代理，与forward_fcff的处理口径一致，两项皆为常数，"
+        "现为封闭式解析解，非近似，见 DECISIONS「2026-09-04」",
     )
 
     npv_true = N(
@@ -767,6 +770,20 @@ def build_tree(c: Ctx) -> Node:
         "此节点只记录这次口径修正把debt改变了多少，见 DECISIONS「2026-09-03b」「2026-09-04」",
     )
 
+    framework_ul_gap = N(
+        "chk.framework_ul_gap", "框架L(折现FCFE)相对框架U(EV−debt)的偏离", "%",
+        lambda c: c.m("swap_business.dcf_framework_ul_gap_pct"),
+        "【T5，2026-09-04，纯诊断】(框架L股权价值 − 框架U股权价值) ÷ 框架U股权价值。"
+        "框架L：Ke=[WACC−债务比×债务利率×(1−税率)]÷(1−债务比) 折现FCFE"
+        "（FCFE=真实FCFF−税后利息，debt按steady_state_debt_yi固定不摊销、"
+        "净新增借款=0，与forward_fcff/sustaining_capex同样的'稳态不变'假设）。"
+        "两者不精确相等是预期内的：附录'情形C'证明U=L恒等式要求debt按"
+        "'债务比×剩余项目价值'逐期摊销到0（value降、debt跟着降）；本模型debt是"
+        "'target_year在役资产历史成本'快照，15年窗口内固定不变——这是两种不同的"
+        "'稳定杠杆'定义，有限期+终值截断场景下不再代数等价。此gap量化这一口径差异"
+        "的幅度，不参与上层校验、不代表程序错误",
+    )
+
     bet = N(
         "val.bet", "押注部分（结构性差值）", "亿元",
         lambda c: c.m("swap_business.dcf_catl_value_gap_yi"),
@@ -784,9 +801,9 @@ def build_tree(c: Ctx) -> Node:
         lambda c: c.m("swap_business.catl_attributable_value_yi"),
         "见下——倍数法与DCF两套独立口径（DCF区分CRF捷径对照版 npv/catl_dcf 与"
         "真实版 npv_true/catl_dcf_true），「押注」是倍数法与DCF真实版的结构性差值；"
-        "debt_basis_drift 只诊断、不参与本节点校验",
-        combine=lambda npv_, catl_dcf_, npv_t_, catl_dcf_t_, catl_mult_, bet_, drift_: catl_mult_,
-        children=[npv, catl_dcf, npv_true, catl_dcf_true, catl_multiple, bet, debt_drift],
+        "debt_basis_drift、framework_ul_gap 只诊断、不参与本节点校验",
+        combine=lambda npv_, catl_dcf_, npv_t_, catl_dcf_t_, catl_mult_, bet_, drift_, ul_gap_: catl_mult_,
+        children=[npv, catl_dcf, npv_true, catl_dcf_true, catl_multiple, bet, debt_drift, framework_ul_gap],
     )
 
     # ── 根 ────────────────────────────────────

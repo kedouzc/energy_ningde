@@ -1,3 +1,48 @@
+"""资本支出层：建站/电池的初装、更换、折旧、残值、稳态debt——全部从「批次」算起。
+
+【核心概念：cohort（批次）与 generation（代）】
+一个 cohort 是"同一年、同一池、同一种电池"的一批电池（站内电池或车载电池）；
+它在 horizon（15年）内会被更换若干次，每一次更换都开启新的一"代"（generation）。
+`_cohort_generations` 把一个 cohort 展开成它在 horizon 内的所有代，每一代都
+**按自己那一年的价格买入**（电池逐年降价，后代更便宜）、折旧到自己实际能收回
+的残值为止——这是本文件几乎所有下游计算（折旧、稳态debt、更换排期）共用的
+唯一"代"级明细来源，不要在别处重新拆分 cohort。
+
+【数据流：build_capex 是唯一入口，其余函数都是它的子步骤】
+    build_capex(config, scale, sourcing)
+      ├─ 站数排期：_station_schedule 把"2025存量→2026目标→2028终局"三个
+      │   拍定的里程碑，直算成每年新增站数（2029-2030不再新建）。
+      ├─ 登记 cohort：_append_station_pool_cohorts 把每个（池×年份×站数）
+      │   的站内电池批次登记进 battery_cohorts 列表；车辆电池批次在
+      │   build_capex 主循环里直接从 scale.rows 登记（不走这个函数，
+      │   因为车辆电池的 gwh 是 scale 已经算好的，不需要再乘 station 参数）。
+      ├─ 按代展开：对 battery_cohorts 里每一个 cohort 调 _cohort_generations，
+      │   拿到这个 cohort 在 horizon 内的完整"代"级明细（成本/折旧/残值）。
+      │   同时用 _event_year_weights 把非整数寿命的更换事件分摊到相邻两年，
+      │   算出 replacement_gwh/replacement_net（年度更换现金流排期）。
+      └─ 从"代"级明细聚合出 CapexResult 的各个字段——**关键的是，多个不同
+          用途的量都从同一份"代"级明细里取不同的切片，口径互相不通用**：
+            · lifecycle_capital_base_yi：各批次锚在**自己**t=0的PV之和
+              （门槛/EAC口径，不对应任何单一时点，不能当"投入"跟"值多少"相除）
+            · valuation_capital_pv_yi：全部CAPEX统一折到**base_year**
+              （估值/DCF口径，NPV只能用这个）
+            · steady_state_debt_yi：**target_year(2030)在役那一代**的历史
+              成本×债务比（资产负债表快照口径，倍数法与DCF法共用同一个数，
+              见 capex_debt_估值公式链.md 第3-4节）
+            · mature_annual_depreciation_yi：**target_year在役那一代**的
+              年折旧额（稳态永续口径，DCF真实主口径拿它当可持续资本性支出
+              的代理，见 business.py::_dcf_cross_check）
+          三个"债务/折旧/估值"字段看起来都从同一个cohort循环里的 in_service
+          变量算出，但分别回答"欠多少""每年掉价多少""折现值多少"三个不同
+          问题，改动其中一个前先确认清楚要改的是哪一个。
+
+【参数怎么传递】
+入参 config（base.toml解析出的dict）、scale（ScaleResult，车辆/站数/寿命
+已经算好）、sourcing（当前未使用，装机需求已经在scale里体现，保留参数位是
+为了跟其他 build_* 函数签名一致，方便 model.py 统一调用）。出参 CapexResult
+（schemas.py定义），是 business.py / capital_cycle.py / consolidation.py /
+tree.py 的公共上游——本文件不知道、也不需要知道下游怎么用这些数。
+"""
 from __future__ import annotations
 
 import math
@@ -137,6 +182,20 @@ def build_capex(
     scale: ScaleResult,
     sourcing: SourcingAdjustment,
 ) -> CapexResult:
+    """本文件唯一入口，五个阶段依次执行（各阶段用到的子函数见文件头）：
+
+    1. 站数排期（_station_schedule）：拆出每年新增站数，按池分摊。
+    2. 登记 battery_cohorts：存量站(2025年末)、每年新增车辆电池/站内电池，
+       各自记录 install_year/life/initial_capex/battery_pool。
+    3. 年度更换排期：对每个 cohort 展开出 horizon 内的更换事件年份与
+       weight（_event_year_weights），聚合成 replacement_gwh/replacement_net
+       等逐年字典，供 CapexRow.annual 与 lifecycle_replacement_schedule_yi。
+    4. 按代展开（_cohort_generations）主循环：对每个 cohort 算出它在
+       horizon 内的完整代际明细，从中取出 target_year 在役的那一代
+       （in_service），分别喂给折旧、稳态debt、终值PV三个不同用途的累加器；
+       同时做折旧会计恒等式（按构造成立）与分池汇总一致性两类断言。
+    5. 聚合成 CapexResult：从上面几步的累加器和字典组装最终返回值。
+    """
     del sourcing  # 物理复用已在scale的站数需求中反映。
     years = config["construction"]["years"]
     completion_year = config["construction"]["station_network_completion_year"]

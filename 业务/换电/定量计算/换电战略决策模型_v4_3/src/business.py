@@ -1,3 +1,37 @@
+"""经营与估值层：把 capex.py 算好的资本/折旧/debt，接上收入/成本，算出损益、
+现金流、两套独立估值（倍数法／DCF），逐池（四站型）算完再汇总成总量。
+
+【主入口只有一个：build_swap_business，其余函数分两类】
+    build_swap_business(config, scale, capex) -> SwapBusinessResult
+      是本文件唯一的"总装"函数，八个阶段（函数体内 ①…⑧ 注释对应）：
+      车端装机分池→站内装机分池→辅助服务分池→电池银行费率分池→软件OPEX
+      分池→资本口径分池（debt/折旧/门槛EAC，全部来自capex.py的分池字段）
+      →逐池推演损益与两套估值→按池求和汇总成总量。**逐池算、逐池套
+      max(0,·)下限、再求和，不是先总量算完再拆分**——这是"每站型独立
+      项目公司"这个建模假设本身要求的：亏损站型不能用税盾/负debt去
+      抵扣盈利站型，顺序颠倒会把独立项目公司的下限保护漏掉。
+    子函数分两类：
+      · build_pool_ancillary_revenue：build_swap_business ③会直接调用，
+        是分池经营链的必需上游。
+      · build_ancillary_revenue／build_battery_bank_rate_opex：**大类
+        口径（不分池）的独立实现**，分别在总量层重算一遍"辅助服务三项
+        分列"（供 SwapBusinessResult 的诊断字段）和"电池银行费率三项"
+        （build_swap_business ④ 内联重写了分池版，这个大类版函数目前
+        没有调用方，是历史遗留——数值口径应与分池版汇总一致，但没有
+        断言强制校验，改任何一边前先确认另一边要不要同步改）。
+      · build_2026_baseline：完全独立的口径，不吃 capex/scale，只算
+        "2026年动力电池业务在集团里的净利/市值占比"这一个比较锚，
+        供报告第1章"共识锚"用，跟换电经营链没有数据依赖。
+      · _dcf_cross_check：build_swap_business ⑧汇总完总量后，作为最后
+        一步被调用，是本文件里独立成篇、公式最复杂的一块，见其自身
+        docstring（三条主线：debt统一、时点rebase、真实DCF）。
+
+【参数怎么传递】
+入参 config（base.toml）、scale（ScaleResult，车辆装机已算好）、capex
+（CapexResult，资本/折旧/debt已按池算好——本文件不重新计算这些，只消费）。
+出参 SwapBusinessResult（含 pool_operations 逐池明细 + 总量字段），是
+consolidation.py／capital_cycle.py／tree.py 的上游。
+"""
 from __future__ import annotations
 
 from derived import battery_price_rmb_kwh
@@ -219,33 +253,54 @@ def _dcf_cross_check(
          EBIT×(1−税)+折旧，即标准FCFF公式里只做到"折旧加回"、完全没有"−资本性支出"
          这一项。此前直接 ÷CRF 当EV，隐含"未来更新支出已经靠CRF这个及格线除数暗中
          扣掉了"——但CRF的本职是把CAPEX折成年度门槛（CAPEX×CRF=门槛FCFF），反过来
-         拿实际FCFF去除它，不保证真的扣对了未来真实的更新支出。这里改为老实逐年
-         扣掉 capex.lifecycle_replacement_schedule_yi 里 target_year 之后的真实更新
-         净支出（capex.py 已按cohort逐年算好），按 wacc 折现到 target_year，不再
-         借用CRF。covers 2031–2045（final_schedule_year = 2030+15）。
+         拿实际FCFF去除它，不保证真的扣对了未来真实的更新支出。
+
+         【2026-09-04 二次修正，同日发现同日改】第一版曾逐年扣
+         capex.lifecycle_replacement_schedule_yi（按cohort算出的真实更新排期），
+         结果证明是错的：这份排期只覆盖每个cohort"自己装机年+15年"这个窗口——
+         2026-2030建成的cohort，排期会在2041-2045陆续"到期"（不是真的不再需要
+         更新电池，是capex.py本身只往每个cohort自己的horizon方向算了15年）。
+         用它逐年相减，等于一边假设forward_fcff代表的经营规模2031-2045年年不变
+         （业务一直开着），一边假设资本性支出到某年就不用花了（cohort排期到期）——
+         两个假设互相矛盾，会把ev_true算得偏高（实测：从合理值~3,363亿虚增到
+         ~4,680亿，虚增39%，接近ev_crf本身，完全抹平了这次修正原本要暴露的问题）。
+         改为用 mature_annual_depreciation_yi（target_year在役这代电池的稳态年
+         折旧）作为可持续资本性支出的代理，同样按"一直这样运营下去"的口径定义，
+         与forward_fcff的"稳态不变"假设内部自洽，按wacc折成15年年金。折旧比
+         真实未来更新支出略高（电池逐年降价，未来更新比历史成本便宜），方向保守
+         （略压低ev_true），比排期截断导致的虚高更安全。
+
+      ④ T5交叉验证（同日追加）：EV−debt（框架U）以外，另开一条"折现FCFE直接算
+         股权价值"（框架L）——Ke由WACC反推（[WACC−债务比×债务利率×(1−税率)]
+         ÷(1−债务比)），FCFE=真实FCFF−税后利息（debt同样按steady_state_debt_yi
+         固定不摊销、净新增借款=0，与forward_fcff/sustaining_capex一样"稳态不变"）。
+         两条线不会精确相等（实测差9.4%），原因见 capex_debt_估值公式链.md §3b：
+         M-M定理"U=L恒等"要求debt按"债务比×剩余项目价值"逐期摊销，本模型的debt是
+         固定不变的资产负债表快照，两种"恒定杠杆"定义在有限期截断下不代数等价，
+         这9.4%量化的是口径差异本身，不是bug。
     """
     finance = config["finance"]
     crf = finance["capital_recovery_factor"]
     wacc = finance["wacc"]
+    tax_rate = finance["tax_rate"]
+    debt_ratio = finance["debt_ratio"]
     horizon = finance["model_horizon_years"]
     multiple = finance["swap_ev_ebitda"]
     target_year = config["meta"]["target_year"]
     years = config["construction"]["years"]
     base_year = years[0]
-    final_schedule_year = years[-1] + horizon
 
     # 两条捷径EV，保留作对照（不再是主口径）。
     annuity_wacc = (1 - (1 + wacc) ** -horizon) / wacc
     ev_crf = forward_fcff / crf if crf else 0.0
     ev_wacc = forward_fcff * annuity_wacc
 
-    # ③ 真实DCF：forward_fcff（税后息前折旧前利润−税）老实逐年扣掉真实更新净支出，
-    # 按wacc折现到target_year——不再借用CRF这个"及格线"除数暗中处理资本性支出。
-    replacement_schedule = capex.lifecycle_replacement_schedule_yi
-    ev_true = sum(
-        (forward_fcff - replacement_schedule.get(year, 0.0)) / (1.0 + wacc) ** (year - target_year)
-        for year in range(target_year + 1, final_schedule_year + 1)
-    )
+    # ③ 真实DCF：forward_fcff（税后息前折旧前利润−税）扣掉可持续资本性支出，
+    # 按wacc折成15年年金——不再借用CRF这个"及格线"除数、也不再用会中途截断的
+    # cohort更新排期（见上方docstring），改用同样按"稳态永续"口径定义的
+    # mature_annual_depreciation 作代理，与forward_fcff的"稳态不变"假设一致。
+    sustaining_capex = capex.mature_annual_depreciation_yi
+    ev_true = (forward_fcff - sustaining_capex) * annuity_wacc
 
     # ① debt 统一为稳态（target_year在役资产）历史成本口径，倍数法与DCF法共用同一个数。
     debt = capex.steady_state_debt_yi
@@ -270,6 +325,33 @@ def _dcf_cross_check(
     npv_true = ev_true + terminal_residual_pv_target - valuation_capital_target
     catl_value_true = max(0.0, ev_true + terminal_residual_pv_target - debt) * ownership
 
+    # ④【T5，2026-09-04】框架L交叉验证：不走EV−debt（框架U），改走"折现股权自由
+    # 现金流(FCFE)"直接算股权价值，两条路互相印证。
+    #
+    # 沿用ev_true同样的"稳态、水平不变"假设：debt取当前debt快照
+    # （steady_state_debt_yi，与forward_fcff/sustaining_capex一样在15年窗口内保持
+    # 不变——这是本模型debt的既定口径：它是"target_year在役资产历史成本×债务比"这一
+    # 资产负债表事实，不是"按剩余现金流现值反推的目标杠杆"。因此debt在窗口内不摊销、
+    # 不随年份变化，每年净新增借款=0，FCFE=真实FCFF−税后利息，逐年水平。
+    #
+    # 关键提醒：这与 capex_debt_估值公式链.md 附录"情形C"证明的U=L恒等式，条件并不
+    # 完全相同——情形C里debt是按"债务比×剩余项目价值"逐期摊销到0（价值降、debt跟着
+    # 降），这里debt是按"资产历史成本"锁定的固定金额（15年窗口内不变）。两种"稳定杠杆"
+    # 定义在有限期、有终值截断的场景下不再代数等价（只有在debt随剩余现金流价值同步
+    # 摊销时，M-M下的WACC/Ke换算公式才精确成立）。因此下面算出的框架L不会与框架U
+    # 精确相等，几个百分点的差距是"预期内的"——它量化的是"debt=资产历史成本快照"这个
+    # 既定口径，相对"debt=剩余现金流价值的固定比例"这一教科书式稳定杠杆假设，偏离了
+    # 多少，不是程序错误，也不必强行调合到零差距。
+    ke_true = (wacc - debt_ratio * finance["debt_interest_rate"] * (1 - tax_rate)) / (1 - debt_ratio)
+    after_tax_interest = debt * finance["debt_interest_rate"] * (1 - tax_rate)
+    fcfe_true = (forward_fcff - sustaining_capex) - after_tax_interest
+    annuity_ke = (1 - (1 + ke_true) ** -horizon) / ke_true if ke_true else 0.0
+    framework_l_equity = fcfe_true * annuity_ke
+    framework_u_equity = ev_true - debt  # 框架U同口径下的股权价值（未乘ownership、未做0下限）
+    framework_ul_gap_pct = (
+        (framework_l_equity - framework_u_equity) / framework_u_equity if framework_u_equity else 0.0
+    )
+
     return {
         "dcf_ev_at_crf_yi": ev_crf,
         "dcf_ev_at_wacc_yi": ev_wacc,
@@ -293,6 +375,10 @@ def _dcf_cross_check(
         "dcf_terminal_residual_pv_yi": terminal_residual_pv_base,
         "dcf_terminal_residual_pv_at_target_yi": terminal_residual_pv_target,
         "dcf_legacy_debt_yi": debt_legacy,
+        "dcf_ke_derived": ke_true,
+        "dcf_framework_l_equity_yi": framework_l_equity,
+        "dcf_framework_u_equity_yi": framework_u_equity,
+        "dcf_framework_ul_gap_pct": framework_ul_gap_pct,
     }
 
 

@@ -319,10 +319,13 @@ def _dcf_cross_check(
         fcff_pool = pool_ops[pk].forward_fcff_yi
         debt_pool = capex.steady_state_debt_by_pool_yi[pk]
 
-        terminal_target_pool = (
-            capex.terminal_residual_pv_by_pool_yi[pk]
-            + capex.station_equipment_terminal_residual_pv_by_pool_yi[pk]
-        ) * rebase_to_target
+        # 【2026-09-05d，见 DECISIONS 同日条】站体设备不设期末残值——15年周期在
+        # 永续账里已经按"到期全额换新、不扣回收"处理（station_equipment_perpetual_pv），
+        # 这隐含"设备到期即视为耗尽"；有限期账若再给同一台设备一份期末残值，
+        # 等于两本账对同一资产的寿命终点持相互矛盾的假设。且换电行业没有设备二手
+        # 市场的真实数据支撑这个折价比例（不像电池有完整可查的回收价格链），
+        # 与其编一个数，不如维持"折旧到零=残值为零"这个更朴素、内部自洽的假设。
+        terminal_target_pool = capex.terminal_residual_pv_by_pool_yi[pk] * rebase_to_target
         valuation_target_pool = capex.valuation_capital_pv_by_pool_yi[pk] * rebase_to_target
 
         ev_base_pool = fcff_pool * annuity_wacc  # 毛现金流资本化，不重复扣减

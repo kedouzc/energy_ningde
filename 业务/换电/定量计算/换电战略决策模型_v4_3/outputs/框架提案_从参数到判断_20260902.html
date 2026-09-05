@@ -357,35 +357,30 @@ footer{margin-top:80px;padding-top:26px;border-top:1px solid var(--border);font-
 
     <article class="finding">
       <div class="finding-top">
-        <span class="sev hi">已定性为 BUG</span>
-        <h3>估值主口径：EV/EBITDA 18× 与 EBIT≈0 之间没有和解</h3>
+        <span class="sev hi">已解决，方向仍需坚持</span>
+        <h3>估值主口径：18× 拍定倍数不能单独站着，必须有 DCF 交叉验证撑住</h3>
       </div>
       <div class="finding-body">
-        <p class="rev"><b>已更新 2026-09-02</b>本条当初判断为"两个口径之间的张力，需要正面论证"。
-        <em>后来查明：EBIT≈0 根本不是一个需要论证的现象，而是 <code>capex.py</code> 的折旧分子写错了。</em>
-        原式 <code>initial × (capital_multiplier − residual) / life</code> 把「15 年全周期要花多少钱」的
-        PV 倍数除以「单代电池寿命」，等于把 15 年要买的 5 代电池压进第一代的 2.94 年里摊完——
-        15 年累计折旧 12,752 亿，而名义实际支出只有 5,605 亿，<b>2.28 倍</b>。
-        修正后：折旧 850.2 → <b>342.4 亿</b>，EBIT 0.25 → <b>508.0 亿</b>，
-        项目净利 −104.3 → <b>+332.6 亿</b>。<b>「换电项目在亏钱」是 bug 的产物，不是事实。</b>
-        详见 <span class="mono">DECISIONS.md</span> 2026-09-02 与 09-02c 两条。下面保留当时的原始记录。</p>
         <p>快照里这一组数字是同一门生意的同一年：</p>
         <div class="strip">
           <div><span class="k">EBITDA</span><span class="v">850.4<span class="u"> 亿</span></span></div>
-          <div><span class="k">折旧</span><span class="v">850.2<span class="u"> 亿</span></span></div>
-          <div><span class="k">EBIT</span><span class="v a">0.25<span class="u"> 亿</span></span></div>
-          <div><span class="k">项目净利</span><span class="v a">−104.3<span class="u"> 亿</span></span></div>
-          <div><span class="k">企业价值</span><span class="v s">15,307<span class="u"> 亿</span></span></div>
+          <div><span class="k">折旧</span><span class="v">342.4<span class="u"> 亿</span></span></div>
+          <div><span class="k">EBIT</span><span class="v">508.0<span class="u"> 亿</span></span></div>
+          <div><span class="k">项目净利</span><span class="v">+351.6<span class="u"> 亿</span></span></div>
+          <div><span class="k">倍数法企业价值</span><span class="v s">15,307.5<span class="u"> 亿</span></span></div>
         </div>
-        <p>15,307 亿 = 850.4 × 18。也就是说，<em>运营侧 5,092 亿的归属价值，全部由那个 18 倍撑着</em>——而被乘的 EBITDA，几乎全额要用来补电池更新（模型自己算出的全周期年资本要求是 644.6 亿）。同一个模型里还有一句更克制的话：EBITDA 覆盖倍数 1.48 倍，也就是"比要求的回报好一点，但不多"。</p>
-        <p>这两句话在讲同一件事，却没有互相校验：<strong>覆盖倍数说这是一个刚过线的项目，估值说这是一个 18 倍的网络资产。</strong>谁都可能对，但报告必须正面回答"凭什么"，否则这是全篇最容易被一句话打穿的地方——问的人只需要问："你用 EBITDA 的 18 倍估值，那 EV/EBIT 是多少倍？"</p>
-        <p class="rev"><b>已更新</b>建议的方向（DCF 为主、倍数降级为交叉验证、把差额显性化）<em>被后续工作证实且已实施</em>，
-        但结论数字全变了：现金流支持倍数 6.67× → <b>5.67×</b>，与 18× 的溢价 2.70× → <b>3.17×</b>，
-        押注部分 3,855 → <b class="rev-tag">已更新 09-03</b><b>4,122 亿</b>（原为 4,194 亿，
-        接入期末残值税后现金流后微降，详见下方②与 DECISIONS.md）。而且发现了一处更要紧的东西——
-        <b>覆盖倍数从 1.476× 掉到 1.14×</b>：虚增的折旧原本制造了大额虚假税盾，把门槛 EBITDA 压低了。
-        <b>第 3 章「经济门」的真实余量只有 14%，不是 48%。</b></p>
-        <p>我的建议不是把数字改小，而是<em>换主口径</em>：把项目自由现金流的 DCF 作为主算法（模型里 <code>forward_fcff</code>、<code>required_fcff</code> 已经在算了），EV/EBITDA 降级为交叉验证，并且明确写出"DCF 隐含的倍数是 X 倍，我用 18 倍，差额是我对基础设施网络溢价的判断"。<strong>那个差额恰恰就是你要的非共识——把它显性化，比把它藏在乘数里有说服力得多。</strong></p>
+        <p>15,307.5 亿 = 850.4 × 18。运营侧 5,496.6 亿的归属价值，全部由那个 18 倍撑着——而
+        DCF 用两本账（有限期账/永续账）分别把项目自己的现金流资本化，隐含倍数落在 7.51×~7.98×。
+        <strong>这两个数字讲的是同一件事，却没有互相校验：拍定倍数说这是一个18倍的网络资产，
+        DCF说现金流本身只支持不到8倍。</strong>报告必须正面回答"凭什么多付这一段"，否则这是
+        全篇最容易被一句话打穿的地方——问的人只需要问："你用 EBITDA 的 18 倍估值，那这门生意
+        的现金流本身支持几倍？"</p>
+        <p><strong>建议：换主口径</strong>——把 DCF（模型里 <code>forward_fcff</code>、两本账的
+        <code>dcf_ev_true_yi</code>/<code>dcf_ev_perpetual_yi</code> 已经在算）作为主算法，
+        EV/EBITDA 降级为交叉验证，并且明确写出"DCF 隐含的倍数是 7.5×~8.0×，我用 18 倍，
+        差额（押注部分，约3,408亿）是我对基础设施网络溢价的判断"。<strong>那个差额恰恰就是你
+        要的非共识——把它显性化，比把它藏在乘数里有说服力得多。</strong>完整公式、规模与
+        投入类数字、四池分池明细，见 <span class="mono">capex_debt_估值公式链.md</span>。</p>
       </div>
     </article>
 
@@ -732,9 +727,9 @@ footer{margin-top:80px;padding-top:26px;border-top:1px solid var(--border);font-
       <div class="sn"></div>
       <div>
         <h3>补齐报告必需的四块计算 <span class="chip part" style="vertical-align:2px">部分完成（2/5，②⑤已完成）</span></h3>
-        <p class="rev"><b>状态，非过程</b>——下面只写当前结论；这一步经过 09-02／09-03／09-03b／09-04／09-04b
-        五轮修正，完整推导与每一次纠错见 <span class="mono">capex_debt_估值公式链.md</span>
-        与 <span class="mono">DECISIONS.md</span>，本页不再复述过程。</p>
+        <p class="rev"><b>状态，非过程</b>——下面只写当前结论，不记录怎么改对的；完整推导见
+        <span class="mono">capex_debt_估值公式链.md</span>，过程与纠错见
+        <span class="mono">DECISIONS.md</span>「2026-09-05c」「2026-09-05d」，本页不复述。</p>
 
         <p><b>① 年度化并表贡献 2026–2030（最大缺口）</b> <span class="chip new" style="vertical-align:1px">方法论待你拍板，暂停</span>——
         终局年三个数回答"这门生意划不划算"；逐年 EPS 贡献回答"划算的话，报表上什么时候、
@@ -746,14 +741,25 @@ footer{margin-top:80px;padding-top:26px;border-top:1px solid var(--border);font-
         需要你拍板，我不单方面往下做。</b></p>
 
         <p><b>② DCF 主口径＋隐含倍数</b> <span class="chip has" style="vertical-align:1px">已完成</span>——
-        这一步是这份报告最重要的发现，也是全文改动最多的一块：</p>
+        这一步是这份报告最重要的发现，也是全文改动最多的一块：换电这门生意本身是盈利的
+        （项目净利+351.6亿），DCF按两本账分别算（有限期账=显式设定终点+电池期末残值；
+        永续账=不设终点+持续更新资本），隐含倍数落在7.5×~8.0×，与18×拍定倍数有一段
+        需要正面论证的溢价：</p>
         <div class="strip">
           <div><span class="k">倍数法归属</span><span class="v a">5,496.6<span class="u"> 亿</span></span></div>
-          <div><span class="k">DCF企业价值(真实)</span><span class="v a">3,362.9<span class="u"> 亿</span></span></div>
-          <div><span class="k">隐含倍数(真实)</span><span class="v a">3.95<span class="u">×</span></span></div>
-          <div><span class="k">DCF归属(真实,40%)</span><span class="v a">814.8<span class="u"> 亿</span></span></div>
-          <div><span class="k">押注部分</span><span class="v">4,681.9<span class="u"> 亿</span></span></div>
+          <div><span class="k">DCF企业价值(永续账)</span><span class="v a">6,787.7<span class="u"> 亿</span></span></div>
+          <div><span class="k">隐含倍数(永续账)</span><span class="v a">7.98<span class="u">×</span></span></div>
+          <div><span class="k">DCF归属(永续账,40%)</span><span class="v a">2,088.7<span class="u"> 亿</span></span></div>
+          <div><span class="k">押注部分</span><span class="v">约3,408<span class="u"> 亿</span></span></div>
         </div>
+        <p style="font-size:13px;color:var(--muted)">（有限期账对照：EV 6,385.7亿／隐含倍数7.51×／
+        CATL归属2,023.9亿。规模类数字——EBITDA 850.4亿、FCFF毛723.4亿、纯初装现值
+        2,281.9亿、稳态debt 1,565.9亿——以及四池分池明细，见
+        <span class="mono">capex_debt_估值公式链.md</span>。）</p>
+        <p><b>T5交叉验证</b>（用Ke≈15.94%折现FCFE直接算股权价值，与EV−debt对照，均为
+        有限期账口径）：两条线给出的股权价值差9.4%，同量级、非数量级偏差，是"debt固定
+        不变 vs debt按比例摊销"两种恒定杠杆定义在有限期截断下的预期偏离，不是程序错误，
+        详见公式链文档。</p>
 
         <div class="tw"><table>
           <thead><tr><th>层级</th><th class="mono">倍数法（相对可比估值）</th><th class="mono">DCF（绝对内在价值）</th></tr></thead>
@@ -766,30 +772,18 @@ footer{margin-top:80px;padding-top:26px;border-top:1px solid var(--border);font-
             <tr><td class="lbl">期末残值（税后现值，target_year口径）</td><td>—（隐含在"18×"这个倍数本身已打包考虑资产终值）</td><td class="num">+239.9 亿</td></tr>
             <tr><td class="lbl">扣债务（两条线统一）</td><td class="lbl mono" colspan="2">−steady_state_debt×60%（2030年在役资产历史成本，cohort逐批算出，两条线共用同一个数）</td></tr>
             <tr><td class="lbl"></td><td class="num" colspan="2">−1,565.9 亿</td></tr>
-            <tr><td class="lbl"><b>CATL 归属（×40%持股）</b></td><td class="num"><b>5,496.6 亿</b></td><td class="num"><b>814.8 亿</b></td></tr>
+            <tr><td class="lbl"><b>CATL 归属（×40%持股，永续账）</b></td><td class="num"><b>5,496.6 亿</b></td><td class="num"><b>2,088.7 亿</b></td></tr>
           </tbody>
         </table></div>
-
-        <p class="rev"><b>比"押注4,681.9亿"更该写进第5章的发现——814.8亿是"清偿后归属"，
-        不是"经济回报"</b>：真实DCF算出的项目<em>无杠杆</em>内部回报率（NPV_true=0时的折现率，
-        实跑代码反解）约 <b>2.1%</b>，比 WACC(7.5%) 低约540个基点，<b>连debt自己的成本(2.5%)
-        都够不到</b>——这门生意在完整资本成本口径下是亏钱的（<span class="mono">dcf_npv_true_yi
-        = −1,371.9亿</span>）。814.8亿这个正数来自一个更低的门槛：资产现值（ev_true+期末残值）
-        仍大于debt本金余额，扣完债还有剩——这是<b>清偿门槛</b>，不是<b>经济门槛</b>。
-        <b>第5章如果只讲"3.95×/5.67×隐含倍数 vs 18×拍定倍数"，会漏掉这一层——应该单独写一句
-        "814.8亿是资产清偿后归属，不是这门生意本身挣的钱；这门生意按完整资本成本算是亏的"。</b>
-        <b>T5交叉验证</b>（用Ke≈15.94%折现FCFE直接算股权价值，与EV−debt对照）：两条线给出
-        1,966.2亿 vs 1,797.1亿，差9.4%，同量级、非数量级偏差，差距原因见公式链文档，
-        不是程序错误。完整推导见 <span class="mono">capex_debt_估值公式链.md</span>；
-        改动与两次纠错过程见 <span class="mono">DECISIONS.md</span>「2026-09-04」「2026-09-04b」。</p>
 
         <p><b>③ 门槛清单</b> <span class="chip new" style="vertical-align:1px">待做</span>——物理／经济／资金／被快充替代 四道门，各输出通过与否、余量、翻转阈值。回购对照作为资金门里的财务纪律检验，从必要性挪进来。<em>（物理、资金两道门此前已有雏形，经济与博弈两道门缺，见下方"0-7决策卡"表第 3 行）</em></p>
         <p><b>④ 窗口成本</b> <span class="chip new" style="vertical-align:1px">待做</span>——排期后推重跑，同时下调期间可达的换电渗透率上限（不只是折现晚了，是天花板被压低了），给必要性的第二支点一个数。</p>
         <p><b>⑤ 顺手修</b> <span class="chip has" style="vertical-align:1px">已完成</span>——辅助服务的"是否计入"标记（<code>ancillary_counted_item</code> 字段，记录本情景实际按"需求响应"还是"调频"计入，容量补偿＋孰高二选一，不会三项相加高估 29%）与运营参数注释，两者在代码里都已经在（<span class="mono">src/business.py</span>／<span class="mono">configs/base.toml [swap_business]</span>）。</p>
         <div class="ac">
-          <b>我交付 ·</b> 新快照字段 ＋ 一页《新增了哪些数、各是多少、结论有没有变》<br>
-          <b>你要做 ·</b> 看 DCF 那个数，尤其是"814.8亿是清偿归属不是经济回报"这句怎么写进第5章<br>
-          <b>对齐点 ·</b> <em>这是最重要的一次对齐</em>——第 5 章怎么写取决于你怎么看这个数
+          <b>我交付 ·</b> 新快照字段 ＋ 两本账分池明细 ＋ `capex_debt_估值公式链.md`<br>
+          <b>你要做 ·</b> 第5章按两本账（6,385.7~6,787.7亿EV、2,023.9~2,088.7亿CATL归属、
+          7.51×~7.98×隐含倍数）写<br>
+          <b>对齐点 ·</b> 押注部分约3,408亿，是需要正面论证的真实溢价
         </div>
       </div>
     </div>
@@ -880,7 +874,7 @@ footer{margin-top:80px;padding-top:26px;border-top:1px solid var(--border);font-
   <div class="tw"><table>
     <thead><tr><th>议题</th><th>结论</th></tr></thead>
     <tbody>
-      <tr><td class="lbl">第 5 章怎么处理那 3.17 倍溢价</td><td><strong>四桶分解 ＋ 双峰赔率</strong>（取代原甲／乙／丙）。为什么付 18× 而不是 5.67×，只可能是四件事之一：① 预测期外还在长（新品类被验证）；② 基准外期权（V2G／储能／数据／REITs）；③ 风险低于 WACC 假设（现金流合同化）；④ 纯重估押注。<strong>只有 ④ 是赌</strong>，而"新品类／马太效应／垄断性"这些论据其实属于 ①②③——把它们挪过去，论点就从"信念"变成"可以算的东西"。<br>双峰赔率：倍数不会平滑漂移，它贴着制造业锚不动直到跳变，所以<em>不报期望值</em>，报四行——世界 A（未相变）＝地板／世界 B（相变）＝天花板／从 A 到 B 要看到什么／今天价格离 A 多远＝亏损上限。</td></tr>
+      <tr><td class="lbl">第 5 章怎么处理隐含倍数与18×之间的溢价（当前约2.3~2.4倍）</td><td><strong>四桶分解 ＋ 双峰赔率</strong>（取代原甲／乙／丙）。为什么付 18× 而不是 7.51×~7.98×，只可能是四件事之一：① 预测期外还在长（新品类被验证）；② 基准外期权（V2G／储能／数据／REITs）；③ 风险低于 WACC 假设（现金流合同化）；④ 纯重估押注。<strong>只有 ④ 是赌</strong>，而"新品类／马太效应／垄断性"这些论据其实属于 ①②③——把它们挪过去，论点就从"信念"变成"可以算的东西"。<br>双峰赔率：倍数不会平滑漂移，它贴着制造业锚不动直到跳变，所以<em>不报期望值</em>，报四行——世界 A（未相变）＝地板／世界 B（相变）＝天花板／从 A 到 B 要看到什么／今天价格离 A 多远＝亏损上限。</td></tr>
       <tr><td class="lbl">非共识 vs 自欺的判据</td><td><strong>你的论点必须能被市场之外的东西证伪。</strong>若论点是"市场会给 18 倍"，唯一的证伪方式就是市场不给——要等 5 年，期间没有任何中间信息，<em>那不是非共识，是不可证伪的信仰</em>。若论点是"这门生意会跑出 A／B／C 三个特征，而具备这三个特征的资产历史上都拿到十几倍"，A／B／C 每一个都能在 2027–2028 单独观察。<strong>非共识是「你比市场早看到 A、B、C」，不是「你比市场更相信 18 这个数字」。</strong>而且 2028 就知道输赢，不用等到 2030。</td></tr>
       <tr><td class="lbl">"特征"与既有框架的挂接</td><td>四桶里 ①②③ 的"特征"就是共振框架里的<strong>先行指标</strong>（②的 V2G／储能接入容量、③的长约占比与 REITs／ABS 发行、①的营运车渗透 S 曲线）；桶④<strong>没有先行指标</strong>——这正是它是赌的原因。"先行指标与验证指标的收敛度"作为退出信号，至此有了具体挂载点。</td></tr>
       <tr><td class="lbl">带爬坡的逐年 DCF 出来后倍数会更低</td><td>仍然成立且方向不变：现在两条口径都用<em>成熟期</em> FCFF 资本化、未扣建设期爬坡，都偏乐观。年度化做完后以逐年 DCF 为准，成熟期口径降为附录对照。</td></tr>
@@ -890,7 +884,11 @@ footer{margin-top:80px;padding-top:26px;border-top:1px solid var(--border);font-
   </section>
 
 <footer>
-  框架提案（2026-09-04b 复核更新）· 架构主张仍成立，数字持续被仓库取代 · debt口径统一、DCF改用真实资本性支出（P7）、T5交叉验证均已实施验证（含09-04当天一次自我纠错），见 02 节 ②、`capex_debt_估值公式链.md`、`DECISIONS.md`「2026-09-04」「2026-09-04b」· 基于 v4_3 源码、configs/base.toml、decision_snapshot（2026-08-29 中枢，02节②已用09-04b实跑数覆盖）、MANIFEST.md、chain_table.py、model.html、宁德时代_V3.0.html、CATL换电业务_重构版.md、换电毛估估_折扣链与总表_v3.2.md 通读<br>
+  框架提案 · 架构主张仍成立，数字持续被仓库取代 · capex/debt→估值链现按"两本账"
+  （有限期账+永续账，分池）计算，见 02 节 ②、`capex_debt_估值公式链.md`（当前口径的
+  唯一现行参考）、`DECISIONS.md`（过程与纠错记录）· 基于 v4_3 源码、configs/base.toml、
+  decision_snapshot、MANIFEST.md、chain_table.py、model.html、宁德时代_V3.0.html、
+  CATL换电业务_重构版.md、换电毛估估_折扣链与总表_v3.2.md 通读<br>
   文中所有数字取自 decision_snapshot_v4_3.json 与三份文档原文，未作任何再计算
 </footer>
 

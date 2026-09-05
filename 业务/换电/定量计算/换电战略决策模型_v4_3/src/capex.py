@@ -619,21 +619,15 @@ def build_capex(
         for pk in BATTERY_POOLS
     }
     steady_state_net_replacement = sum(steady_state_net_replacement_by_pool.values())
-    # ④ 站体设备（第四轮§4.6）：15年一次性整体更新，与折旧年限(model_horizon_years)
-    #   同步，不设独立参数。有限期账(基础账)补一条对称的期末设备残值（现状"无更换、
-    #   期末账面为0"，跟电池"期末在役批还值一点钱"处理不一致）；永续账补一条
-    #   "每horizon年一笔"的递归永续现值（标准年金公式：PV=L÷[(1+r)^N−1]）。
-    #   两条都没有设备价格趋势数据支撑，按原值(无价格曲线)处理，是有意的保守简化。
-    curve = config["construction"]["battery_price_curve"]
-    station_equipment_terminal_residual_pv = (
-        station_body_total * curve["secondary_market_discount"] * (1.0 - tax_rate)
-        / (1.0 + wacc) ** (target_year + horizon - base_year)
-    )
-    station_equipment_terminal_residual_pv_by_pool = {
-        pk: station_body_total_by_pool[pk] * curve["secondary_market_discount"] * (1.0 - tax_rate)
-        / (1.0 + wacc) ** (target_year + horizon - base_year)
-        for pk in BATTERY_POOLS
-    }
+    # ④ 站体设备（第四轮§4.6，2026-09-05d修正）：15年一次性整体更新，与折旧年限
+    #   (model_horizon_years)同步，不设独立参数。永续账按"每horizon年一笔"的
+    #   递归永续现值处理（标准年金公式：PV=L÷[(1+r)^N−1]，付**全额**，不扣任何
+    #   回收——这本身就隐含"设备到期视为耗尽"）。
+    #   【不设期末残值】有限期账不给这台设备补期末残值：既然永续账已经把它当"到期
+    #   全额换新、不扣回收"处理，有限期账若再给一份残值，等于对同一资产的寿命
+    #   终点持两套矛盾的假设（一边说耗尽要全款换、一边说没耗尽还值钱）；且换电
+    #   行业没有设备二手市场的真实数据支撑残值折价比例（不像电池有完整可查的
+    #   回收价格链）。维持"折旧到零=残值为零"这个更朴素、内部自洽的假设。
     station_equipment_perpetual_pv = station_body_total / ((1.0 + wacc) ** horizon - 1.0)
     station_equipment_perpetual_pv_by_pool = {
         pk: station_body_total_by_pool[pk] / ((1.0 + wacc) ** horizon - 1.0)
@@ -748,8 +742,4 @@ def build_capex(
         steady_state_net_replacement_by_pool_yi=dict(steady_state_net_replacement_by_pool),
         station_equipment_perpetual_pv_yi=station_equipment_perpetual_pv,
         station_equipment_perpetual_pv_by_pool_yi=dict(station_equipment_perpetual_pv_by_pool),
-        station_equipment_terminal_residual_pv_yi=station_equipment_terminal_residual_pv,
-        station_equipment_terminal_residual_pv_by_pool_yi=dict(
-            station_equipment_terminal_residual_pv_by_pool
-        ),
     )

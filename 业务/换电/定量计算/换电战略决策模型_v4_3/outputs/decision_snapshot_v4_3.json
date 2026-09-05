@@ -2375,13 +2375,6 @@
       "qiji75_trunk": 84.61479212176074,
       "choco25_passenger": 40.67635979645186,
       "choco35_city": 37.827789419140096
-    },
-    "station_equipment_terminal_residual_pv_yi": 37.98846079866514,
-    "station_equipment_terminal_residual_pv_by_pool_yi": {
-      "qiji75_short": 1.600029600759174,
-      "qiji75_trunk": 18.875794044543284,
-      "choco25_passenger": 9.074046874625694,
-      "choco35_city": 8.438590278736996
     }
   },
   "swap_business": {
@@ -2436,14 +2429,14 @@
     "dcf_multiple_premium": 3.1739676095781992,
     "dcf_npv_at_crf_yi": 88.01420378148396,
     "dcf_catl_value_at_crf_yi": 1398.712863626516,
-    "dcf_catl_value_gap_yi": 3452.467346422105,
+    "dcf_catl_value_gap_yi": 3472.760313260689,
     "dcf_valuation_capital_pv_at_target_yi": 4974.6263351946345,
     "dcf_terminal_residual_pv_at_target_yi": 239.82464346605136,
     "dcf_ev_true_yi": 6385.736012690057,
     "dcf_implied_multiple_true": 7.508968661077907,
     "dcf_multiple_premium_true": 2.3971334563295557,
-    "dcf_npv_true_yi": 1701.6667380579338,
-    "dcf_catl_value_true_yi": 2044.173877337096,
+    "dcf_npv_true_yi": 1650.934320961474,
+    "dcf_catl_value_true_yi": 2023.8809104985123,
     "dcf_ke_derived": 0.159375,
     "dcf_framework_l_equity_yi": 1966.178028008045,
     "dcf_framework_u_equity_yi": 4819.877632780228,
@@ -2460,16 +2453,16 @@
       "choco35_city": 1132.3165654375787
     },
     "dcf_npv_base_by_pool_yi": {
-      "qiji75_short": 108.13017470032935,
-      "qiji75_trunk": 794.4534381782996,
-      "choco25_passenger": 499.4974828521099,
-      "choco35_city": 299.58564232719493
+      "qiji75_short": 105.99338454442898,
+      "qiji75_trunk": 769.2453977270188,
+      "choco25_passenger": 487.37937327046257,
+      "choco35_city": 288.3161654195636
     },
     "dcf_catl_value_base_by_pool_yi": {
-      "qiji75_short": 99.4693232160219,
-      "qiji75_trunk": 1136.760924932074,
-      "choco25_passenger": 451.13126221171956,
-      "choco35_city": 356.8123669772806
+      "qiji75_short": 98.61460715366175,
+      "qiji75_trunk": 1126.6777087515618,
+      "choco25_passenger": 446.2840183790606,
+      "choco35_city": 352.30457621422806
     },
     "dcf_ev_perpetual_by_pool_yi": {
       "qiji75_short": 400.737828991131,
@@ -2739,14 +2732,14 @@
       "dcf_multiple_premium": 3.1739676095781992,
       "dcf_npv_at_crf_yi": 88.01420378148396,
       "dcf_catl_value_at_crf_yi": 1398.712863626516,
-      "dcf_catl_value_gap_yi": 3452.467346422105,
+      "dcf_catl_value_gap_yi": 3472.760313260689,
       "dcf_valuation_capital_pv_at_target_yi": 4974.6263351946345,
       "dcf_terminal_residual_pv_at_target_yi": 239.82464346605136,
       "dcf_ev_true_yi": 6385.736012690057,
       "dcf_implied_multiple_true": 7.508968661077907,
       "dcf_multiple_premium_true": 2.3971334563295557,
-      "dcf_npv_true_yi": 1701.6667380579338,
-      "dcf_catl_value_true_yi": 2044.173877337096,
+      "dcf_npv_true_yi": 1650.934320961474,
+      "dcf_catl_value_true_yi": 2023.8809104985123,
       "dcf_ke_derived": 0.159375,
       "dcf_framework_l_equity_yi": 1966.178028008045,
       "dcf_framework_u_equity_yi": 4819.877632780228,
@@ -2763,16 +2756,16 @@
         "choco35_city": 1132.3165654375787
       },
       "dcf_npv_base_by_pool_yi": {
-        "qiji75_short": 108.13017470032935,
-        "qiji75_trunk": 794.4534381782996,
-        "choco25_passenger": 499.4974828521099,
-        "choco35_city": 299.58564232719493
+        "qiji75_short": 105.99338454442898,
+        "qiji75_trunk": 769.2453977270188,
+        "choco25_passenger": 487.37937327046257,
+        "choco35_city": 288.3161654195636
       },
       "dcf_catl_value_base_by_pool_yi": {
-        "qiji75_short": 99.4693232160219,
-        "qiji75_trunk": 1136.760924932074,
-        "choco25_passenger": 451.13126221171956,
-        "choco35_city": 356.8123669772806
+        "qiji75_short": 98.61460715366175,
+        "qiji75_trunk": 1126.6777087515618,
+        "choco25_passenger": 446.2840183790606,
+        "choco35_city": 352.30457621422806
       },
       "dcf_ev_perpetual_by_pool_yi": {
         "qiji75_short": 400.737828991131,

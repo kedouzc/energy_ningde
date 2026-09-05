@@ -722,35 +722,26 @@ def build_tree(c: Ctx) -> Node:
         "不再重复扣减（此前用折旧代理再扣一次是bug，见 DECISIONS「2026-09-04c」）",
     )
 
-    station_equipment_residual_target_ref = N(
-        "val.equip_residual_pv_target", "站体设备期末残值现值（移到target_year）", "亿元",
-        lambda c: c.m("capex.station_equipment_terminal_residual_pv_yi") * _rebase_factor(c),
-        "站体设备总投入 × 二手折价 × (1−税率)，按horizon(=model_horizon_years，"
-        "毛估估与设备更新周期同步)折回base_year后移到target_year——跟电池期末残值"
-        "对称的一条：现状此前是'站体无更换、期末账面为0'，这里补上（见第四轮§4.6）",
-    )
-
     npv_true = N(
         "val.npv_true", "项目NPV（DCF，有限期账/基础账）", "亿元",
         lambda c: c.m("swap_business.dcf_npv_true_yi"),
-        "DCF企业价值(毛现金流) ＋ 期末残值现值(电池+站体设备,target_year) "
-        "− 估值资本PV(target_year，含真实更新排期)",
-        combine=lambda ev_, res, equip_res, cap: ev_ + res + equip_res - cap,
-        children=[
-            ev_true, terminal_residual_target_ref,
-            station_equipment_residual_target_ref, valuation_capital_target_ref,
-        ],
+        "DCF企业价值(毛现金流) ＋ 期末残值现值(电池,target_year) "
+        "− 估值资本PV(target_year，含真实更新排期)。【2026-09-05d】站体设备不设"
+        "期末残值——永续账已把它按'每15年到期全额换新、不扣回收'处理，隐含'到期"
+        "视为耗尽'，有限期账不能再给同一台设备一份残值（两套相反假设），且没有"
+        "设备二手市场数据支撑折价比例",
+        combine=lambda ev_, res, cap: ev_ + res - cap,
+        children=[ev_true, terminal_residual_target_ref, valuation_capital_target_ref],
     )
 
     catl_dcf_true = N(
         "val.catl_dcf_true", "CATL归属价值（DCF口径，有限期账/基础账，本轮新主口径）", "亿元",
         lambda c: c.m("swap_business.dcf_catl_value_true_yi"),
-        "max(0, DCF企业价值(毛现金流) ＋ 期末残值现值(电池+站体设备,target_year) "
-        "− 稳态debt) × 持股比例",
-        combine=lambda ev_, res, equip_res, d, own: max(0.0, ev_ + res + equip_res - d) * own,
+        "max(0, DCF企业价值(毛现金流) ＋ 期末残值现值(电池,target_year) "
+        "− 稳态debt) × 持股比例（站体设备不设期末残值，理由同val.npv_true）",
+        combine=lambda ev_, res, d, own: max(0.0, ev_ + res - d) * own,
         children=[
-            ev_true, terminal_residual_target_ref, station_equipment_residual_target_ref,
-            dcf_debt,
+            ev_true, terminal_residual_target_ref, dcf_debt,
             P("fin.own_ref2b", "CATL建站持股比例", "", "finance.construction_ownership"),
         ],
     )

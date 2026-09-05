@@ -224,8 +224,11 @@ class CapexResult:
     #   steady_state_net_replacement_yi —— 永续账的可持续资本性支出anchor，按
     #     更新理论第一性原理算（Σ_池 机队GWh÷池寿命 × target_year净单价），不用
     #     折旧代理（历史成本口径，已验证偏高45.4%）。
-    #   station_equipment_*_pv_yi —— 站体设备15年周期（=model_horizon_years，
-    #     毛估估、与折旧年限同步）：有限期账补期末残值，永续账补递归更新PV。
+    #   station_equipment_perpetual_pv_yi —— 站体设备15年周期（=model_horizon_years，
+    #     毛估估、与折旧年限同步）：永续账每15年全额换新一次的递归更新PV（标准
+    #     年金公式L÷[(1+r)^N−1]，不扣任何回收）。有限期账【2026-09-05d修正】不设
+    #     期末残值——付全款换新本身已隐含"到期视为耗尽"，两本账对同一台设备的
+    #     寿命终点不能持相反假设，且没有设备二手市场数据支撑残值折价。
     station_body_total_yi: float = 0.0
     station_body_total_by_pool_yi: dict[str, float] = field(default_factory=dict)
     pure_initial_capex_pv_yi: float = 0.0
@@ -236,8 +239,6 @@ class CapexResult:
     steady_state_net_replacement_by_pool_yi: dict[str, float] = field(default_factory=dict)
     station_equipment_perpetual_pv_yi: float = 0.0
     station_equipment_perpetual_pv_by_pool_yi: dict[str, float] = field(default_factory=dict)
-    station_equipment_terminal_residual_pv_yi: float = 0.0
-    station_equipment_terminal_residual_pv_by_pool_yi: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass

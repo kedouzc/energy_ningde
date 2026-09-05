@@ -65,6 +65,9 @@ python src/lab.py workbook    # ③ 参数血缘：生成 Excel 七表（假设�
 
 ### src/ 的四层
 
+> 想改代码（模块边界、数据契约、调用顺序、坑）看 **[`src/README.md`](./src/README.md)**；
+> 本表只做一分钟速览。
+
 | 层 | 文件 | 职责 |
 |---|---|---|
 | **配置** | `config_loader.py` | 读 base.toml，别处一律不读原文 |

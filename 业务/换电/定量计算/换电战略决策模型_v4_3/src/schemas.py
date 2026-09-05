@@ -215,6 +215,29 @@ class CapexResult:
     # _dcf_cross_check 的 debt 均改用此字段）。见 capex_debt_估值公式链.md 第3-4节。
     steady_state_debt_yi: float = 0.0
     steady_state_debt_by_pool_yi: dict[str, float] = field(default_factory=dict)
+    # 【新增 2026-09-05｜第四轮·两本账】见 capex_debt_估值公式链.md 第四轮。
+    #   station_body_total_yi          —— 站体设备总投入（成熟期，名义）。
+    #   pure_initial_capex_pv_yi        —— valuation_capital_pv_yi 剔除更换支出后
+    #     剩下的部分：永续账唯一还需要的、真正一次性的"初始投资"。
+    #   valuation_capital_pv_by_pool_yi / terminal_residual_pv_by_pool_yi
+    #     —— 对应两个既有总量字段的分池版，供有限期账（基础账）分池NPV用。
+    #   steady_state_net_replacement_yi —— 永续账的可持续资本性支出anchor，按
+    #     更新理论第一性原理算（Σ_池 机队GWh÷池寿命 × target_year净单价），不用
+    #     折旧代理（历史成本口径，已验证偏高45.4%）。
+    #   station_equipment_*_pv_yi —— 站体设备15年周期（=model_horizon_years，
+    #     毛估估、与折旧年限同步）：有限期账补期末残值，永续账补递归更新PV。
+    station_body_total_yi: float = 0.0
+    station_body_total_by_pool_yi: dict[str, float] = field(default_factory=dict)
+    pure_initial_capex_pv_yi: float = 0.0
+    pure_initial_capex_pv_by_pool_yi: dict[str, float] = field(default_factory=dict)
+    valuation_capital_pv_by_pool_yi: dict[str, float] = field(default_factory=dict)
+    terminal_residual_pv_by_pool_yi: dict[str, float] = field(default_factory=dict)
+    steady_state_net_replacement_yi: float = 0.0
+    steady_state_net_replacement_by_pool_yi: dict[str, float] = field(default_factory=dict)
+    station_equipment_perpetual_pv_yi: float = 0.0
+    station_equipment_perpetual_pv_by_pool_yi: dict[str, float] = field(default_factory=dict)
+    station_equipment_terminal_residual_pv_yi: float = 0.0
+    station_equipment_terminal_residual_pv_by_pool_yi: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass
@@ -364,6 +387,26 @@ class SwapBusinessResult:
     dcf_framework_l_equity_yi: float = 0.0
     dcf_framework_u_equity_yi: float = 0.0
     dcf_framework_ul_gap_pct: float = 0.0
+    # 【新增 2026-09-05，第四轮，见 capex_debt_估值公式链.md 第四轮 + DECISIONS
+    # 「2026-09-04c」「2026-09-05」】两本账：
+    #   ① 有限期账（基础账，dcf_*_true_yi 三个既有字段本条同步修正）：去掉此前
+    #      ev_true 与 valuation_capital_target 之间对2031-2045更新支出的重复扣减
+    #      （ev_true 改回毛forward_fcff资本化，capex侧真实排期已经扣过一次）；
+    #   ② 永续账（开放上限，新增字段）：不设15年截断、不含期末残值，可持续资本性
+    #      支出改用 steady_state_net_replacement（按更新理论第一性原理算，非折旧
+    #      代理）+ 递减永续年金（g=电池价格曲线长期降幅）+ 站体设备每15年一次性
+    #      更新。两本账都分池计算，见 dcf_*_by_pool_yi。
+    dcf_ev_perpetual_yi: float = 0.0
+    dcf_npv_perpetual_yi: float = 0.0
+    dcf_catl_value_perpetual_yi: float = 0.0
+    dcf_implied_multiple_perpetual: float = 0.0
+    dcf_multiple_premium_perpetual: float = 0.0
+    dcf_ev_base_by_pool_yi: dict[str, float] = field(default_factory=dict)
+    dcf_npv_base_by_pool_yi: dict[str, float] = field(default_factory=dict)
+    dcf_catl_value_base_by_pool_yi: dict[str, float] = field(default_factory=dict)
+    dcf_ev_perpetual_by_pool_yi: dict[str, float] = field(default_factory=dict)
+    dcf_npv_perpetual_by_pool_yi: dict[str, float] = field(default_factory=dict)
+    dcf_catl_value_perpetual_by_pool_yi: dict[str, float] = field(default_factory=dict)
     # v4.3 新增：电池银行侧费率三项（蔚能四项成本对照框架补齐）
     battery_asset_yi: float = 0.0
     equipment_asset_yi: float = 0.0

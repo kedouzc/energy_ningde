@@ -328,7 +328,13 @@ def build_capex(
     replacement_net: dict[int, float] = defaultdict(float)
     replacement_gross: dict[int, float] = defaultdict(float)
     replacement_residual: dict[int, float] = defaultdict(float)
+    # 【新增 2026-09-05｜第四轮永续账】更新净支出按池分列（cohort 已带 battery_pool
+    # 归属）——供 valuation_capital_pv_by_pool（有限期账投资侧分池）使用。
+    replacement_net_by_pool: dict[str, dict[int, float]] = {
+        pk: defaultdict(float) for pk in BATTERY_POOLS
+    }
     for cohort in battery_cohorts:
+        pool_key = str(cohort["battery_pool"])
         cycle = 1
         while cycle * float(cohort["life"]) < horizon - 1e-9:
             event_year = int(cohort["install_year"]) + cycle * float(cohort["life"])
@@ -346,6 +352,7 @@ def build_capex(
                 replacement_gross[replacement_year] += gross
                 replacement_residual[replacement_year] += recovery
                 replacement_net[replacement_year] += gross - recovery
+                replacement_net_by_pool[pool_key][replacement_year] += gross - recovery
             cycle += 1
 
     finance = config["finance"]
@@ -421,6 +428,12 @@ def build_capex(
     wacc = finance["wacc"]
     tax_rate = finance["tax_rate"]
     terminal_recovery_pv = 0.0
+    # 【新增 2026-09-05｜第四轮】期末残值PV分池 + 成熟期机队总GWh分池——后者是
+    # 永续账"稳态净更新支出"的第一性原理anchor（Σ_池 机队GWh/池寿命），与具体
+    # 日历年份无关（更新理论：稳态更新速率=存量÷寿命），见
+    # capex_debt_估值公式链.md 第四轮 §4.3。
+    terminal_recovery_pv_by_pool: dict[str, float] = {pk: 0.0 for pk in BATTERY_POOLS}
+    mature_fleet_gwh_by_pool: dict[str, float] = {pk: 0.0 for pk in BATTERY_POOLS}
     for cohort in battery_cohorts:
         factors = lifecycle_factors(
             config, float(cohort["install_year"]), float(cohort["life"])
@@ -465,6 +478,12 @@ def build_capex(
             for g in generations if not g["has_successor"]
         )
         pool_key = str(cohort["battery_pool"])
+        terminal_recovery_pv_by_pool[pool_key] += sum(
+            g["recovery"] * (1.0 - tax_rate)
+            / (1.0 + wacc) ** (install_year_f + horizon - base_year)
+            for g in generations if not g["has_successor"]
+        )
+        mature_fleet_gwh_by_pool[pool_key] += float(cohort["gwh"])
         lifecycle_capital_by_pool[pool_key] += (
             initial_capex * factors.capital_multiplier
         )
@@ -563,6 +582,72 @@ def build_capex(
         if amount
     )
 
+    # 【新增 2026-09-05｜第四轮，capex_debt_估值公式链.md §4.1-4.7】
+    # ① 纯初装现值(pure_initial_capex_pv)：valuation_capital_pv 剔除更换支出后剩下的
+    #   部分——永续账唯一还需要的、真正一次性的"初始投资"（有限期账继续用
+    #   valuation_capital_pv，含更换支出，两条线各自服务各自的NPV公式，互不混用）。
+    pure_initial_capex_pv = preperiod_station_initial_capex + sum(
+        sum(initial_components[year].values()) / (1.0 + wacc) ** (year - base_year)
+        for year in years
+    )
+    pure_initial_capex_pv_by_pool = {
+        pk: preperiod_initial_by_pool[pk] + sum(
+            sum(initial_components_by_pool[year][pk].values())
+            / (1.0 + wacc) ** (year - base_year)
+            for year in years
+        )
+        for pk in BATTERY_POOLS
+    }
+    # ② valuation_capital_pv 分池版——供有限期账（基础账）分池NPV用。
+    valuation_capital_pv_by_pool = {
+        pk: pure_initial_capex_pv_by_pool[pk] + sum(
+            amount / (1.0 + wacc) ** (year - base_year)
+            for year, amount in replacement_net_by_pool[pk].items()
+            if amount
+        )
+        for pk in BATTERY_POOLS
+    }
+    # ③ 稳态净更新支出(steady_state_net_replacement)：永续账的可持续资本性支出
+    #   anchor，不用折旧代理（历史成本口径，混了不同cohort装机年价格，已验证
+    #   比真实排期偏高45.4%），改用更新理论(renewal reward theorem)第一性原理——
+    #   稳态更新速率=Σ_池(机队总GWh÷池寿命)，量与具体日历年份无关；价用
+    #   target_year当年新电池净单价(扣回收后)。见第四轮§4.3。
+    target_price = battery_price_rmb_kwh(config, target_year)
+    net_unit_cost_target = target_price * (1.0 - recovery_ratio) / 100.0
+    steady_state_net_replacement_by_pool = {
+        pk: (mature_fleet_gwh_by_pool[pk] / scale.battery_pool_life_years[pk]) * net_unit_cost_target
+        for pk in BATTERY_POOLS
+    }
+    steady_state_net_replacement = sum(steady_state_net_replacement_by_pool.values())
+    # ④ 站体设备（第四轮§4.6）：15年一次性整体更新，与折旧年限(model_horizon_years)
+    #   同步，不设独立参数。有限期账(基础账)补一条对称的期末设备残值（现状"无更换、
+    #   期末账面为0"，跟电池"期末在役批还值一点钱"处理不一致）；永续账补一条
+    #   "每horizon年一笔"的递归永续现值（标准年金公式：PV=L÷[(1+r)^N−1]）。
+    #   两条都没有设备价格趋势数据支撑，按原值(无价格曲线)处理，是有意的保守简化。
+    curve = config["construction"]["battery_price_curve"]
+    station_equipment_terminal_residual_pv = (
+        station_body_total * curve["secondary_market_discount"] * (1.0 - tax_rate)
+        / (1.0 + wacc) ** (target_year + horizon - base_year)
+    )
+    station_equipment_terminal_residual_pv_by_pool = {
+        pk: station_body_total_by_pool[pk] * curve["secondary_market_discount"] * (1.0 - tax_rate)
+        / (1.0 + wacc) ** (target_year + horizon - base_year)
+        for pk in BATTERY_POOLS
+    }
+    station_equipment_perpetual_pv = station_body_total / ((1.0 + wacc) ** horizon - 1.0)
+    station_equipment_perpetual_pv_by_pool = {
+        pk: station_body_total_by_pool[pk] / ((1.0 + wacc) ** horizon - 1.0)
+        for pk in BATTERY_POOLS
+    }
+    # 分池一致性校验（第四轮新增字段，同样不靠人眼审）。
+    for label, by_pool, total in (
+        ("纯初装现值", pure_initial_capex_pv_by_pool, pure_initial_capex_pv),
+        ("估值资本PV", valuation_capital_pv_by_pool, valuation_capital_pv),
+        ("期末残值PV", terminal_recovery_pv_by_pool, terminal_recovery_pv),
+    ):
+        if abs(sum(by_pool.values()) - total) > 1e-6 * max(1.0, abs(total)):
+            raise ValueError(f"分池{label}之和({sum(by_pool.values())})≠总量({total})")
+
     # 【新增 2026-09-02｜不变量断言】这类错误用一个恒等式就能挡住，不必靠人眼审。
     nominal_total_capex = total_initial + sum(
         amount for amount in replacement_net.values() if amount
@@ -652,4 +737,19 @@ def build_capex(
         total_initial_capex_by_pool=dict(total_initial_by_pool),
         steady_state_debt_yi=steady_state_debt,
         steady_state_debt_by_pool_yi=steady_state_debt_by_pool,
+        # 【新增 2026-09-05｜第四轮：两本账】见 capex_debt_估值公式链.md 第四轮。
+        station_body_total_yi=station_body_total,
+        station_body_total_by_pool_yi=dict(station_body_total_by_pool),
+        pure_initial_capex_pv_yi=pure_initial_capex_pv,
+        pure_initial_capex_pv_by_pool_yi=dict(pure_initial_capex_pv_by_pool),
+        valuation_capital_pv_by_pool_yi=dict(valuation_capital_pv_by_pool),
+        terminal_residual_pv_by_pool_yi=dict(terminal_recovery_pv_by_pool),
+        steady_state_net_replacement_yi=steady_state_net_replacement,
+        steady_state_net_replacement_by_pool_yi=dict(steady_state_net_replacement_by_pool),
+        station_equipment_perpetual_pv_yi=station_equipment_perpetual_pv,
+        station_equipment_perpetual_pv_by_pool_yi=dict(station_equipment_perpetual_pv_by_pool),
+        station_equipment_terminal_residual_pv_yi=station_equipment_terminal_residual_pv,
+        station_equipment_terminal_residual_pv_by_pool_yi=dict(
+            station_equipment_terminal_residual_pv_by_pool
+        ),
     )

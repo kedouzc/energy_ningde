@@ -707,38 +707,81 @@ def build_tree(c: Ctx) -> Node:
         ],
     )
 
-    # 【新增 2026-09-04，本轮新主口径，解决 P7】forward_fcff 代数上等于
-    # EBIT×(1−税)+折旧，标准FCFF公式里只做了"折旧加回"、完全没有"−资本性支出"，
-    # 此前直接÷CRF当EV，隐含"更新支出已经靠CRF这个及格线除数暗中扣掉了"——但CRF
-    # 本职是把CAPEX折成年度门槛，反向用它给实际FCFF"倒算EV"不保证真的扣对了未来
-    # 更新的钱。这里老实逐年扣掉真实更新净支出，按WACC折现，不再借用CRF。
+    # 【2026-09-05，第四轮，见 capex_debt_估值公式链.md 第四轮 + DECISIONS
+    # 「2026-09-04c」「2026-09-05」，本次去掉重复扣减】此前 ev_true 用
+    # (forward_fcff − 折旧代理)×年金因子，而 npv_true/catl_dcf_true 又拿
+    # valuation_capital_target（已经用真实排期精确扣过2031-2045更新支出）再减
+    # 一次——同一笔钱被扣了两次。改回毛forward_fcff资本化，capex侧的真实排期
+    # 已经在valuation_capital_target里扣过，不用再净一次。验证（wacc=7.5%）：
+    # NPV从−1,371.9亿翻正到+1,650.9亿，隐含IRR从2.06%升到12.65%。
     ev_true = N(
-        "val.ev_true", "DCF企业价值（真实口径，扣真实更新支出）", "亿元",
+        "val.ev_true", "DCF企业价值（有限期账/基础账，毛现金流资本化）", "亿元",
         lambda c: c.m("swap_business.dcf_ev_true_yi"),
-        "(成熟期FCFF − 稳态年度折旧代理支出) × 15年WACC年金因子。"
-        "【2026-09-04二次修正】首版曾逐年扣cohort真实更新排期"
-        "（lifecycle_replacement_schedule_yi），但该排期在窗口末期人为衰减到0"
-        "（各cohort各自到期），与forward_fcff'永续不变'的假设不一致，导致ev_true"
-        "被高估约39%；改用同样'稳态永续'口径的 mature_annual_depreciation_yi 作"
-        "可持续资本性支出代理，与forward_fcff的处理口径一致，两项皆为常数，"
-        "现为封闭式解析解，非近似，见 DECISIONS「2026-09-04」",
+        "成熟期FCFF（毛现金流，不扣任何资本性支出代理）× 15年WACC年金因子——"
+        "资本性支出已经在 valuation_capital_target 里用真实排期精确扣过，这里"
+        "不再重复扣减（此前用折旧代理再扣一次是bug，见 DECISIONS「2026-09-04c」）",
+    )
+
+    station_equipment_residual_target_ref = N(
+        "val.equip_residual_pv_target", "站体设备期末残值现值（移到target_year）", "亿元",
+        lambda c: c.m("capex.station_equipment_terminal_residual_pv_yi") * _rebase_factor(c),
+        "站体设备总投入 × 二手折价 × (1−税率)，按horizon(=model_horizon_years，"
+        "毛估估与设备更新周期同步)折回base_year后移到target_year——跟电池期末残值"
+        "对称的一条：现状此前是'站体无更换、期末账面为0'，这里补上（见第四轮§4.6）",
     )
 
     npv_true = N(
-        "val.npv_true", "项目NPV（DCF，真实口径）", "亿元",
+        "val.npv_true", "项目NPV（DCF，有限期账/基础账）", "亿元",
         lambda c: c.m("swap_business.dcf_npv_true_yi"),
-        "真实DCF企业价值 ＋ 期末残值现值(target_year) − 估值资本PV(target_year)",
-        combine=lambda ev_, res, cap: ev_ + res - cap,
-        children=[ev_true, terminal_residual_target_ref, valuation_capital_target_ref],
+        "DCF企业价值(毛现金流) ＋ 期末残值现值(电池+站体设备,target_year) "
+        "− 估值资本PV(target_year，含真实更新排期)",
+        combine=lambda ev_, res, equip_res, cap: ev_ + res + equip_res - cap,
+        children=[
+            ev_true, terminal_residual_target_ref,
+            station_equipment_residual_target_ref, valuation_capital_target_ref,
+        ],
     )
 
     catl_dcf_true = N(
-        "val.catl_dcf_true", "CATL归属价值（DCF口径，真实版，本轮新主口径）", "亿元",
+        "val.catl_dcf_true", "CATL归属价值（DCF口径，有限期账/基础账，本轮新主口径）", "亿元",
         lambda c: c.m("swap_business.dcf_catl_value_true_yi"),
-        "max(0, 真实DCF企业价值 ＋ 期末残值现值(target_year) − 稳态debt) × 持股比例",
-        combine=lambda ev_, res, d, own: max(0.0, ev_ + res - d) * own,
-        children=[ev_true, terminal_residual_target_ref, dcf_debt,
-                  P("fin.own_ref2b", "CATL建站持股比例", "", "finance.construction_ownership")],
+        "max(0, DCF企业价值(毛现金流) ＋ 期末残值现值(电池+站体设备,target_year) "
+        "− 稳态debt) × 持股比例",
+        combine=lambda ev_, res, equip_res, d, own: max(0.0, ev_ + res + equip_res - d) * own,
+        children=[
+            ev_true, terminal_residual_target_ref, station_equipment_residual_target_ref,
+            dcf_debt,
+            P("fin.own_ref2b", "CATL建站持股比例", "", "finance.construction_ownership"),
+        ],
+    )
+
+    # 【新增 2026-09-05，第四轮】永续账（开放上限）：不设15年截断、不含期末残值，
+    # 可持续资本性支出改用 steady_state_net_replacement（更新理论第一性原理，非
+    # 折旧代理）+ 递减永续年金（g=电池价格曲线长期降幅）+ 站体设备每horizon年一次
+    # 性更新。见 capex_debt_估值公式链.md 第四轮§4.2-4.5。这三个节点不做递归自
+    # 校验（分池renewal-theory anchor等中间量未逐一接入树，一致性校验已在
+    # capex.py构建时以「分池汇总=总量」断言的方式进行）。
+    ev_perpetual = N(
+        "val.ev_perpetual", "DCF企业价值（永续账/开放上限）", "亿元",
+        lambda c: c.m("swap_business.dcf_ev_perpetual_yi"),
+        "成熟期FCFF÷WACC（永续，不设终点） − 稳态净更新支出÷(WACC+g)（递减永续，"
+        "g=电池价格曲线长期降幅） − 站体设备永续更新PV（每horizon年一笔，标准"
+        "递归年金公式 L÷[(1+WACC)^horizon−1]）——分池计算后加总，见第四轮§4.2-4.6",
+    )
+
+    npv_perpetual = N(
+        "val.npv_perpetual", "项目NPV（DCF，永续账/开放上限）", "亿元",
+        lambda c: c.m("swap_business.dcf_npv_perpetual_yi"),
+        "DCF企业价值(永续) − 纯初装现值(target_year，剔除更换支出后的一次性投资，"
+        "永续假设下不含期末残值——不会真的清算)",
+    )
+
+    catl_dcf_perpetual = N(
+        "val.catl_dcf_perpetual", "CATL归属价值（DCF口径，永续账/开放上限）", "亿元",
+        lambda c: c.m("swap_business.dcf_catl_value_perpetual_yi"),
+        "max(0, DCF企业价值(永续) − 稳态debt) × 持股比例——与有限期账（基础账）"
+        "共用同一个debt快照，差异只在EV怎么算（第一轮§1已论证debt该是资产负债表"
+        "快照，跟期限假设无关）",
     )
 
     catl_multiple = N(
@@ -799,11 +842,20 @@ def build_tree(c: Ctx) -> Node:
     valuation = N(
         "branch.valuation", "估值：这门生意最终值多少钱", "亿元",
         lambda c: c.m("swap_business.catl_attributable_value_yi"),
-        "见下——倍数法与DCF两套独立口径（DCF区分CRF捷径对照版 npv/catl_dcf 与"
-        "真实版 npv_true/catl_dcf_true），「押注」是倍数法与DCF真实版的结构性差值；"
-        "debt_basis_drift、framework_ul_gap 只诊断、不参与本节点校验",
-        combine=lambda npv_, catl_dcf_, npv_t_, catl_dcf_t_, catl_mult_, bet_, drift_, ul_gap_: catl_mult_,
-        children=[npv, catl_dcf, npv_true, catl_dcf_true, catl_multiple, bet, debt_drift, framework_ul_gap],
+        "见下——倍数法与DCF两套独立口径（DCF区分CRF捷径对照版 npv/catl_dcf、"
+        "有限期账/基础账 npv_true/catl_dcf_true、永续账/开放上限"
+        "npv_perpetual/catl_dcf_perpetual——两本账都不建模2030后规模增长"
+        "（capex诊断.md§8.4已论证的既定假设），差异只在'停在2030规模不动'延续"
+        "多久：15年还是永续，见第四轮§4.7），「押注」是倍数法与DCF基础账的结构性"
+        "差值；debt_basis_drift、framework_ul_gap 只诊断、不参与本节点校验",
+        combine=(
+            lambda npv_, catl_dcf_, npv_t_, catl_dcf_t_, npv_p_, catl_dcf_p_,
+            catl_mult_, bet_, drift_, ul_gap_: catl_mult_
+        ),
+        children=[
+            npv, catl_dcf, npv_true, catl_dcf_true, npv_perpetual, catl_dcf_perpetual,
+            catl_multiple, bet, debt_drift, framework_ul_gap,
+        ],
     )
 
     # ── 根 ────────────────────────────────────

@@ -39,6 +39,8 @@
 | 2026-09-04 | [debt统一为稳态口径 + DCF改用真实资本性支出（P7）](#2026-09-04--debt统一为稳态口径--dcf改用真实资本性支出p7) | **修复** |
 | 2026-09-04b | [ev_true自己也算错了一次：cohort排期衰减 vs forward_fcff永续假设打架](#2026-09-04b--ev_true自己也算错了一次cohort排期衰减-vs-forward_fcff永续假设打架) | **纠错** |
 | 2026-09-04c | [npv_true/IRR≈2.06%站不住：三层问题一次查清（重复扣减·有限期假设·折旧代理失真）](#2026-09-04c--npv_trueirr206站不住三层问题一次查清重复扣减有限期假设折旧代理失真) | **发现·方案已定·未实施** |
+| 2026-09-05 | [第四轮方案收敛：站体设备口径、问题A/B范围确认、补上Q8这个本该更早接上的依据](#2026-09-05--第四轮方案收敛站体设备口径问题ab范围确认补上q8这个本该更早接上的依据) | **收敛·已实施（见09-05b）** |
+| 2026-09-05b | [第四轮实施：两本账+分池，`tree.py`三档全部通过](#2026-09-05b--第四轮实施两本账分池treepy三档全部通过) | **实施** |
 
 ---
 
@@ -1371,3 +1373,68 @@ CATL 40%归属≈2,088.7亿，隐含倍数≈7.98×。**至此第四轮的设计
 想清楚、写下来的既有结论**——复述一个已有判断时，没有意识到它是已有
 的，把它当成了新推导，这本身是同一类错误的另一种表现（没有先核对
 "这是不是已经有人说过"）。
+
+---
+
+## 2026-09-05b · 第四轮实施：两本账+分池，`tree.py`三档全部通过
+
+**当时怎么想的**：「09-05」把设计定下来后，用户直接说"好的，请实施"——
+不再是开放问题，进入代码实施阶段。
+
+**触发**：用户拍板同意实施。
+
+**查下来（实施过程中的发现）**：`_dcf_cross_check`此前先天是总量口径
+（docstring原话"先算总量层，不分池"），要满足用户"四个池各自的账"这个
+要求，必须重构成逐池算再加总；重构过程中发现`valuation_capital_pv`/
+`terminal_residual_pv`两个既有总量字段一直没有分池版本——但支撑它们的
+底层数据（`replacement_net`、cohort级`terminal_recovery`）本来就带
+`battery_pool`归属，补分池累加器不需要新概念，只是此前没人做。
+
+**改成什么**：
+
+- `capex.py`：新增分池更换净支出累加器`replacement_net_by_pool`、分池
+  期末残值累加器`terminal_recovery_pv_by_pool`、分池机队GWh累加器
+  `mature_fleet_gwh_by_pool`；新增字段`pure_initial_capex_pv_(by_pool_)yi`、
+  `valuation_capital_pv_by_pool_yi`、`terminal_residual_pv_by_pool_yi`、
+  `steady_state_net_replacement_(by_pool_)yi`（更新理论第一性原理anchor）、
+  `station_body_total_(by_pool_)yi`、
+  `station_equipment_perpetual_pv_(by_pool_)yi`、
+  `station_equipment_terminal_residual_pv_(by_pool_)yi`；三组新增分池字段
+  均加了"分池汇总=总量"断言（沿用既有校验风格）。
+- `business.py::_dcf_cross_check`：签名新增`pool_ops`参数，逐池算有限期账
+  （`ev_base`，毛forward_fcff资本化，去掉重复扣减）与永续账（`ev_perp`，
+  renewal-theory anchor+递减永续年金+站体设备永续更新PV），加总后返回；
+  新增`dcf_ev_perpetual_yi`等永续账聚合字段与6个`dcf_*_by_pool_yi`分池
+  明细字段；T5框架L/U交叉验证不受影响（仍用有限期账与折旧代理，理由
+  不变）。
+- `schemas.py`：`CapexResult`/`SwapBusinessResult`同步加字段。
+- `tree.py`：`val.npv_true`/`val.catl_dcf_true`补上站体设备期末残值项
+  （4参数combine）；新增`val.ev_perpetual`/`val.npv_perpetual`/
+  `val.catl_dcf_perpetual`三个节点，接入`branch.valuation`。
+
+**影响**（`python src/run.py`exit 0，`python src/tree.py`悲观/中枢/激进
+三档全部通过）：
+
+| | EV | NPV@7.5% | CATL 40%归属 | 隐含倍数 |
+|---|---:|---:|---:|---:|
+| 有限期账（基础账） | 6,385.7亿 | +1,701.7亿 | 2,044.2亿 | 7.51× |
+| **永续账（开放上限）** | **6,787.7亿** | **+3,740.3亿** | **2,088.7亿** | **7.98×** |
+
+对照现状bug版本（`npv_true=−1,371.9亿`，隐含IRR≈2.06%，CATL归属814.8亿）：
+NPV由负转正、CATL归属提升约1.6-2.6倍，且经三档情景验证方向不变。分池
+明细（永续账，中枢情景）：qiji75_trunk（干线重卡，电池寿命仅2.94年）
+贡献EV 3,314.1亿/CATL归属1,057.8亿，是四池里最大也是维护压力最大的一池。
+
+完整推导、公式与分池表已写入`capex_debt_估值公式链.md`第四轮§4.6-4.8。
+
+**我错在哪 · 学到什么**
+
+上一轮（「09-05」）把`capex_debt_估值公式链.md`第4.6/4.7节写完后，
+本条实施开始时重新核对文件发现这两节内容不见了（文件回到了只到§4.5的
+状态），但`DECISIONS.md`本身完好——怀疑是同一时段的另一处文件操作
+（用户提到在处理平行目录清理）意外覆盖了这一个文件。**教训：写完关键
+文档后，如果知道接下来会有可能影响同一批文件的操作（哪怕是别人在做、
+声称只影响别的目录），下一次动笔前应该先重新读一遍确认内容还在，不能
+默认"上次写完就一直在"**——这次损失的只是文档表述（数据本身在对话记录
+里还原得回来，本条已经补写），但如果是代码文件出现同样情况而没被发现，
+损失会大得多。

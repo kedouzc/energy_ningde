@@ -48,12 +48,14 @@ LINK_TARGET_RE = re.compile(r"\]\([^)]*\)")   # 链接目标里的文件名／�
 
 # 允许出现的数字：年份、章节/小节号、版本号、有序列表序号、表格分隔线
 WHITELIST = [
+    re.compile(r"\d{4}-\d{2}-\d{2}[a-z]?"),                              # DECISIONS 条目号 2026-09-05e
     re.compile(r"(?:19|20)\d{2}(?:\s*[-–—/]\s*(?:19|20)?\d{2})?\s*年?"),  # 2026 / 2026–2030 / 2026年
     re.compile(r"§\s*\d+(?:\.\d+)*"),                                      # §4.2.1
     re.compile(r"\bv?\d+(?:\.\d+)+\b"),                                    # v4.3 / 4.3
     re.compile(r"^\s{0,3}\d{1,2}[.)、]\s"),                                # 有序列表 1. 2)
     re.compile(r"^\s*\|?[\s:|-]*$"),                                       # 表格分隔线
-    re.compile(r"第\s*[一二三四五六七八九十百零〇\d]+\s*[章节部分步条项层]"),   # 第三章 / 第 2 步
+    re.compile(r"第\s*[一二三四五六七八九十百零〇\d]+[A-Z]?\s*[章节部分步条项层]"),  # 第三章 / 第 2 步 / 第 3A 章
+    re.compile(r"\|\s*\*{0,2}\d{1,2}\s*[·.、)]"),                          # 表格单元格里的序号 | **1 · |
     re.compile(r"[（(]\s*[①-⑳\d]+\s*[）)]"),                               # (1) （②）
     re.compile(r"\bQ\d\b"),                                                # Q1 Q2 必答问题编号
 ]
@@ -183,9 +185,11 @@ def process(lint_only: bool = False) -> int:
     if not NARRATIVE_DIR.exists():
         print(f"没有 {NARRATIVE_DIR.name}/ 目录，跳过叙述层")
         return 0
-    sources = sorted(NARRATIVE_DIR.glob("*.src.md"))
+    # 【2026-09-06 清场】narrative/ 下增设 chapters/ 与 topics/ 两个子目录，
+    # 原来的 glob 只扫顶层，搬迁后会一个文件都找不到 → 改 rglob 递归扫。
+    sources = sorted(NARRATIVE_DIR.rglob("*.src.md"))
     if not sources:
-        print(f"{NARRATIVE_DIR.name}/ 下没有 .src.md，跳过叙述层")
+        print(f"{NARRATIVE_DIR.name}/ 下（含子目录）没有 .src.md，跳过叙述层")
         return 0
 
     facts = json.loads(FACTS_PATH.read_text("utf-8"))

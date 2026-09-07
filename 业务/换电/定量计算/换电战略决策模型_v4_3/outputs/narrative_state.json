@@ -1,151 +1,62 @@
 {
- "换电投资逻辑_叙述报告_v4.3.src.md": {
-  "7daa77355a84": {
-   "base.cash_2025a": 3925.0,
-   "base.np_2025a": 722.01,
-   "base.rev_2025a": 4237.01834
-  },
-  "2f439f6ade85": {
-   "base.group_mktcap": 20000.0,
-   "base.group_pe": 20.0
-  },
-  "0f958b159acf": {
-   "q3.mfg_margin_no": 0.125
-  },
-  "ea8b6b3946d2": {
-   "q1.veh_heavy": 38.0
-  },
-  "3979493e0ccc": {
-   "q1.veh_city": 85.5,
-   "q1.veh_ops": 207.5,
-   "q1.veh_ridehail": 16.2,
-   "q1.veh_robotaxi": 50.0,
-   "q1.veh_taxi": 17.8
-  },
-  "21e621125787": {
-   "q1.veh_private": 144.4
-  },
-  "746109163c81": {
-   "base.target_year": 2030.0
-  },
-  "698601e1bb38": {
-   "q1.energy": 1450.37536,
-   "q1.gwh_total": 378.8736113030303,
-   "q1.st_choco": 7689.0,
-   "q1.st_choco_city": 3705.0,
-   "q1.st_choco_pass": 3984.0,
-   "q1.st_heavy": 3596.0,
-   "q1.st_heavy_short": 281.0,
-   "q1.st_heavy_trunk": 3315.0,
-   "q1.veh_total": 351.9
-  },
-  "dff76fdf2a1a": {
-   "q2.capex_initial": 2632.079559419369
-  },
-  "0bf511a1382e": {
-   "base.horizon_years": 15.0,
-   "q2.eac_factor": 1.6326602469631588,
-   "q2.lifecycle_base": 4297.291663508309
-  },
-  "09978202c24e": {
-   "base.debt_ratio": 0.6,
-   "base.equity_share": 0.4,
-   "q2.project_debt": 2578.3749981049855
-  },
-  "0076e461714d": {
-   "q2.commitment": 687.5666661613295,
-   "q2.equity_call": 447.5955076878396,
-   "q2.peak_call": 105.25104713254139,
-   "q2.peak_year": 2030.0
-  },
-  "404c0cd09868": {
-   "base.cash_2025a": 3925.0,
-   "base.group_np": 1000.0,
-   "q2.equity_call": 447.5955076878396
-  },
-  "fca9bcb68ced": {
-   "q3.ebitda": 850.4145244059906,
-   "q3.opex": 89.10089430972361,
-   "q3.rev_anc": 5.4152131500000005,
-   "q3.rev_arb": 28.44278808,
-   "q3.rev_rent": 470.5448094857143,
-   "q3.rev_service": 435.11260799999997,
-   "q3.revenue": 939.5154187157143
-  },
-  "ed4243818af1": {
-   "q3.coverage": 1.1410217115140646,
-   "q3.dep": 342.44596408806854,
-   "q3.ebit": 507.9685603179221,
-   "q3.ebitda": 850.4145244059906,
-   "q3.required_ebitda": 745.309678005639
-  },
-  "70784f5ae08e": {
-   "q3.increment": 6103.292119896927,
-   "q3.increment_pct": 0.30516460599484635,
-   "q3.mfg_gap_value": 606.6508961377258,
-   "q3.mfg_margin_no": 0.125,
-   "q3.mfg_margin_with": 0.135,
-   "q3.op_value": 5496.641223759201
-  },
-  "21af33c6a2c9": {
-   "q3.power_value_no": 8629.453108363636,
-   "q3.power_value_with": 14732.745228260563
-  },
-  "3ae9fa35ffca": {
-   "q2.commitment": 687.5666661613295,
-   "q3.dist_cash": 273.71036993150574,
-   "q3.payback": 2.839085571466357
-  },
-  "975de6121436": {
-   "base.cfo_gate": 0.15,
-   "q2.peak_call": 105.25104713254139,
-   "q4.closing_liquidity": 8593.75294231216,
-   "q4.exposure": 1770.0,
-   "q4.min_reserve": 3000.0,
-   "q4.peak_to_cfo": 0.04677824317001839
-  },
-  "af4f047a3950": {
-   "q4.verdict": "支持重注"
-  },
-  "06c0e583040d": {
-   "q3.ebit": 507.9685603179221,
-   "q3.op_value": 5496.641223759201
-  },
-  "101a767d63be": {
-   "sens.ev14": 4742.628880847342,
-   "sens.ev14_x": "14×",
-   "sens.ev18": 6103.292119896927,
-   "sens.ev18_x": "18×",
-   "sens.ev22": 7463.955358946512,
-   "sens.ev22_x": "22×",
-   "sens.ev25": 8484.452788233699,
-   "sens.ev25_x": "25×"
-  },
-  "c649884df989": {
-   "q3.coverage": 1.1410217115140646,
-   "sens.fee_low": 4799.145438717499,
-   "sens.fee_low_cov": 0.897993224373217
-  },
-  "9610b6ee010e": {
-   "sens.batt_high": 6101.664160736174
-  },
-  "1edde3305414": {
-   "sens.margin_zero": 5419.13626771164
-  },
-  "cdb9927bc3f9": {
-   "sens.increment_high": 6564.435904360218,
-   "sens.increment_low": 5697.386040141529,
-   "sens.private_high": 250.6,
-   "sens.private_low": 50.9
-  },
-  "9755579f00a1": {
-   "q2.commitment": 687.5666661613295,
-   "q2.equity_call": 447.5955076878396,
-   "q3.dist_cash": 273.71036993150574,
-   "q3.increment": 6103.292119896927,
-   "q3.increment_pct": 0.30516460599484635,
-   "q3.payback": 2.839085571466357,
-   "q4.peak_to_cfo": 0.04677824317001839
+ "业务本质_第一性原理拆解.src.md": {
+  "38cdfed46488": {
+   "ext.batt_share_of_truck": 0.45,
+   "ext.pack_400kwh_price": 35.0
   }
- }
+ },
+ "估值_为什么拍这个倍数.src.md": {
+  "f647574a447b": {
+   "q1.gwh_total": 378.8736113030303,
+   "q1.veh_ops": 207.5,
+   "q3.coverage": 1.1410217115140646,
+   "q3.ebitda": 850.4145244059906
+  },
+  "fcb05700a725": {
+   "base.catl_blended_share": 0.16000000000000003,
+   "ext.mult_gp_high": 22.0,
+   "ext.mult_gp_low": 18.0,
+   "ext.mult_infra_high": 14.0,
+   "ext.mult_infra_low": 6.7,
+   "ext.mult_tsla": 89.7
+  },
+  "7be8df4aa5eb": {
+   "ext.mult_byd": 6.5,
+   "ext.mult_catl_self": 13.0
+  },
+  "c80be9c57edd": {
+   "base.ev_ebitda": 18.0
+  },
+  "2e559827c840": {
+   "base.ev_ebitda": 18.0
+  },
+  "8a27c371cbad": {
+   "dcf.bet": 3472.760313260689
+  }
+ },
+ "增量价值_运营单体加制造影响.src.md": {},
+ "并购_节奏与竞合.src.md": {},
+ "必要性_三条路为什么是换电.src.md": {},
+ "用人信号_战略定力与执行跟踪.src.md": {},
+ "目标用户_谁的痛点.src.md": {
+  "e028bfed9690": {
+   "ext.lng_price_rise": 0.48,
+   "ext.tco_ev_vs_diesel_5y": -0.25,
+   "ext.tco_ev_vs_lng_3y": -0.04,
+   "ext.tco_ev_vs_lng_5y": -0.11
+  },
+  "94c7993af93c": {
+   "ext.payload_loss_ev": 7.0
+  },
+  "d011160387f9": {
+   "ext.baas_capex_cut": 0.45,
+   "ext.revenue_uplift_per_truck": 4.0
+  }
+ },
+ "竞争格局_三足鼎立与赛道内玩家.src.md": {},
+ "终局年_为什么是2030.src.md": {},
+ "资本闭环_REITs与轻资产化.src.md": {},
+ "赔率与跟踪_从世界A到世界B.src.md": {},
+ "运营期限_换电是哪类资产.src.md": {},
+ "非共识_类型判定与证据形态.src.md": {}
 }

@@ -22,7 +22,10 @@ import sys
 from pathlib import Path
 
 if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8")
+    # 运行时安全：上面的 hasattr 已经守住了。
+    # type: ignore 是给静态检查器的——它把 sys.stdout 标注成 TextIO，
+    # 而 reconfigure 只存在于具体实现类 TextIOWrapper 上，hasattr 窄化不了这个类型。
+    sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
 
 SRC = Path(__file__).resolve().parent
 ROOT = SRC.parent

@@ -120,6 +120,87 @@ class Fact:
     note: str = ""           # 口径说明，写进 facts.json 供人查
 
 
+@dataclass(frozen=True)
+class ExtFact:
+    """外部引用事实：不是模型算出来的，是从外部信源引来的。
+
+    为什么要单开一类（2026-09-06）：
+      `facts.json` 原本只装模型输出，但**叙述层的裸数字纪律同样管着外部引用事实**——
+      可比公司倍数、第三方 TCO 测算、电池价格，它们同样不许在正文里裸写。
+      而 `facts.py` 的 `Fact` 要求能从快照里取值，外部事实取不到，所以另立一类。
+
+    两条硬规矩：
+      1. `source` 必须是**外部可达的信源**（URL，或 `media/` 下的外部报告原文），
+         **不能填本仓库某个老版本文档**——老版本会被归档，指针会断。
+      2. `as_of` 必须填**抓取日期**。理由见 DECISIONS「2026-09-05i」：
+         引用一个时点数，必须写清它是哪个时点的。
+      两条缺一，`build_facts` 直接报错。
+    """
+
+    key: str
+    label: str
+    text: str                # 正文里显示的形式，可以是区间（如 "40–50%"）
+    v: float                 # 变更侦测用的代表值；区间取中点
+    source: str              # 外部 URL 或 media/ 下的原文路径
+    as_of: str               # 抓取日期 YYYY-MM-DD
+    bare: str = ""           # 表格里的裸写法，默认同 text
+    unit: str = ""
+    note: str = ""
+
+
+# ── 外部引用事实（`ext.*`）───────────────────────────────
+# 排序按主题，不按字母。每条必须带 source ＋ as_of。
+_MV = "https://multiples.vc/public-comps"
+_JPM = "业务/换电/media/JPM_重卡电动化_英中对照.md"
+
+E: list[ExtFact] = [
+    # ── 估值倍数：三族定位的外部锚（口径均为 LTM）──────────
+    ExtFact("ext.mult_infra_low", "重资产基建运营族·区间下沿", "6.7×", 6.7,
+            f"{_MV}/brookfield-infrastructure-valuation-multiples", "2026-08-26", unit="×",
+            note="Brookfield Infrastructure；族内还包括公用事业 8–14×、储能平台 10–14×"),
+    ExtFact("ext.mult_infra_high", "重资产基建运营族·区间上沿", "14×", 14.0,
+            f"{_MV}/brookfield-infrastructure-valuation-multiples", "2026-08-26", unit="×",
+            note="公用事业与储能平台档的上沿"),
+    ExtFact("ext.mult_gp_low", "轻资产资管平台族·区间下沿", "18×", 18.0,
+            "https://valueinvesting.io/BX/valuation/ev_ebitda-multiples", "2026-08-26", unit="×",
+            note="该族中位数；换电不是真 GP，只能取这一档"),
+    ExtFact("ext.mult_gp_high", "轻资产资管平台族·区间上沿", "22×", 22.0,
+            "https://valueinvesting.io/BX/valuation/ev_ebitda-multiples", "2026-08-26", unit="×",
+            note="Blackstone 21.8× 附近"),
+    ExtFact("ext.mult_tsla", "车＋能源网络复合族参照", "89.7×", 89.7,
+            f"{_MV}/tesla-valuation-multiples", "2026-08-26", unit="×",
+            note="只作叙事参照，不作倍数锚——叙事半径不同，见 topics/赔率与跟踪"),
+    ExtFact("ext.mult_catl_self", "CATL 自身 EV/EBITDA", "13.0×", 13.0,
+            f"{_MV}/catl-valuation-multiples", "2026-08-26", unit="×",
+            note="制造业估值口径下的当前读数，是共识锚的旁证"),
+    ExtFact("ext.mult_byd", "比亚迪 EV/EBITDA", "6.5×", 6.5,
+            f"{_MV}/catl-valuation-multiples", "2026-08-26", unit="×"),
+
+    # ── 重卡 TCO：整套引用 JPM，不各取一项 ──────────────────
+    ExtFact("ext.batt_share_of_truck", "电池包占整车成本比例", "40–50%", 0.45,
+            _JPM, "2026-08", note="JPM §8.3；承重方论证的量级依据"),
+    ExtFact("ext.pack_400kwh_price", "大电量电池包价格", "30–40 万元", 35.0,
+            _JPM, "2026-08", unit="万元", note="JPM §8.3，400kWh 档"),
+    ExtFact("ext.revenue_uplift_per_truck", "单车年增收（换电 vs 充电）", "约 4 万元/年", 4.0,
+            _JPM, "2026-08", unit="万元/年",
+            note="JPM §8.3；原文标注可直接用作换电服务付费意愿的上限"),
+    ExtFact("ext.baas_capex_cut", "BaaS 购车成本降幅", "40–50%", 0.45,
+            _JPM, "2026-08", note="JPM §8.3；痛点强度的资金占用分量"),
+    ExtFact("ext.payload_loss_ev", "电动重卡年载重损失", "7 万元/年", 7.0,
+            _JPM, "2026-08", unit="万元/年",
+            note="JPM Table 3；电动重卡最大的隐性成本项，漏掉它的 TCO 结论都不可信"),
+    ExtFact("ext.tco_ev_vs_lng_3y", "三年持有期 TCO：电动 vs LNG", "−4%", -0.04,
+            _JPM, "2026-08", note="JPM Table 3"),
+    ExtFact("ext.tco_ev_vs_lng_5y", "五年持有期 TCO：电动 vs LNG", "−11%", -0.11,
+            _JPM, "2026-08", note="JPM Table 3；真正的边际对手是 LNG，不是柴油"),
+    ExtFact("ext.tco_ev_vs_diesel_5y", "五年持有期 TCO：电动 vs 柴油", "−25%", -0.25,
+            _JPM, "2026-08", note="JPM Table 3；安全但没信息量的那条对比"),
+    ExtFact("ext.lng_price_rise", "LNG 价格年度涨幅", "+48%", 0.48,
+            _JPM, "2026-08",
+            note="JPM 正文；意味着换电当前的痛点强度里有一部分是 LNG 涨价送的，不是自己挣的"),
+]
+
+
 F: list[Fact] = [
     # ── 集团基本盘 ────────────────────────────────
     Fact("base.rev_2025a", "集团营收（上一完整年度实绩）",
@@ -139,6 +220,14 @@ F: list[Fact] = [
     Fact("base.debt_ratio", "项目公司债务比例", dig("_extra.config.finance.debt_ratio"), "", kind="pct", decimals=0),
     Fact("base.equity_share", "CATL建站持股比例", dig("_extra.config.finance.construction_ownership"), "", kind="pct", decimals=0),
     Fact("base.ev_ebitda", "运营侧EV/EBITDA基准倍数", dig("_extra.config.finance.swap_ev_ebitda"), "×", kind="x", decimals=0),
+    # 2026-09-06：换电资产里 CATL 真正自己出的钱占多少。
+    # 曾一度打算做成 ext.catl_equity_share_blended，但它是**派生量**不是外部事实——
+    # =(1−项目公司债务比例)×CATL建站持股比例。做成派生，债务比例一改它自动跟着变。
+    Fact("base.catl_blended_share", "CATL 综合自有出资比例",
+         lambda s: (1.0 - float(dig("_extra.config.finance.debt_ratio")(s)))
+                   * float(dig("_extra.config.finance.construction_ownership")(s)),
+         "", kind="pct", decimals=0,
+         note="=(1−债务比例)×建站持股比例。三族定位里'不是真 GP'那条判断的量化依据"),
     Fact("base.mfg_pe", "制造侧PE", dig("_extra.config.finance.manufacturing_pe"), "×", kind="x", decimals=0),
     Fact("base.cfo_gate", "换电现金占CFO体检线",
          dig("_extra.config.decision_thresholds.max_peak_swap_cash_to_cfo"), "", kind="pct", decimals=0),
@@ -313,6 +402,34 @@ def build_facts(snapshot: dict | None = None) -> dict:
         }
     if missing:
         raise KeyError("以下事实在快照里取不到（快照结构变了？）：\n  " + "\n  ".join(missing))
+
+    # ── 合并外部引用事实 ────────────────────────────────
+    bad: list[str] = []
+    for e in E:
+        if e.key in out:
+            bad.append(f"{e.key}：与模型事实重名")
+            continue
+        if not e.source:
+            bad.append(f"{e.key}：缺 source（外部事实必须带可达信源）")
+        if not e.as_of:
+            bad.append(f"{e.key}：缺 as_of（引用时点数必须写清是哪个时点的）")
+        out[e.key] = {
+            "label": e.label,
+            "v": e.v,
+            "text": e.text,
+            "bare": e.bare or e.text,
+            "unit": e.unit,
+            "kind": "ext",
+            # 外部事实不随重跑变化，watch 设为 1.0 使其永不触发"待复核"；
+            # 它需要的是**定期回源核对**，那是另一套机制（见 交接.md 纪律登记表）
+            "watch": 1.0,
+            "from": e.source,
+            "as_of": e.as_of,
+            "note": e.note,
+        }
+    if bad:
+        raise ValueError("外部事实（ext.*）不合规：\n  " + "\n  ".join(bad))
+
     return out
 
 
@@ -321,7 +438,8 @@ def main() -> None:
     FACTS_PATH.write_text(
         json.dumps(facts, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
     )
-    print(f"事实包: {FACTS_PATH}（{len(facts)} 条）")
+    n_ext = sum(1 for v in facts.values() if v.get("kind") == "ext")
+    print(f"事实包: {FACTS_PATH}（{len(facts)} 条，其中外部引用 {n_ext} 条）")
 
 
 if __name__ == "__main__":

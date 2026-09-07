@@ -18,6 +18,34 @@ Excel 里这件事由"追踪引用单元格/从属单元格"解决；本模块�
     python src/lab.py scan                      全参数扫描 → 敏感性矩阵 + 关键参数排序
 
 输出一律 UTF-8；所有列表先打印"怎么用"再打印结果。
+
+对每个可调参数单独 +10%，重跑 model._build_core 同一条计算链，比对全部输出指标得出弹性矩阵。
+刻意不解析代码、不人工登记公式，因此模型改版后重跑即得新血缘，永不与代码脱钩。
+实测 272 参数 × 37 指标全扫描约 1 秒。 
+
+命令：workbook产出 outputs/换电模型_参数与血缘_v4.3.xlsx，
+含 01_假设参数、02_结果总表、03_敏感性矩阵、04_溯源、05_影响，
+对应用户熟悉的财务建模三表习惯。
+
+【分工（用户 2026-09-08 确认）】lab.py 只负责「客观发现谁影响大」（数值法实测）；
+「是否把它做成情景轴、档位取多少、配什么外部信源」是人的主观判断，lab 不代劳。
+lab 的「漏网的轴」审计（弹性大却没进轴）只是提醒人去拍板，不是自动加轴。
+
+【三项关键口径修正，2026-09-08】 
+1. 总影响力锚定在最终投资指标 val.swap_increment（换电增量价值合计），
+不再按「受影响指标个数/多个终端指标求和」加总，
+否则 rte 之类成本参数会顺着 电量→EBITDA→估值 链式传染、被虚高排名。 
+2. 参数枚举必须能穿透数组：scenes 是对象数组（换电渗透率/CATL市占率在里面）、nev_rates 是曲线数组；
+早期 iter_numeric_params 遇到 list 直接 pass + set_path 不支持下标，
+导致「车辆规模」整条轴在敏感性表里隐形。
+现在 scenes 带下标展开、曲线型按「整条曲线同比平移」作为一个参数参与扫描
+（但不进 01 表/trial/commit，Excel 单格放不下一条曲线）。 
+3. 新增【表 0】轴级敏感性 compute_axis_leverage：
+把一条 [drivers] 轴的全部 targets 一起 +step，看增量价值怎么动。
+因为轴是「一组参数同时平移」，单参数扫描一次只动一个、必然低估整条轴的合力。
+4. 不可调事实常量用 base.toml [sensitivity].not_adjustable 名单排除
+（如 swap_business.operating_days=350 是运营事实不是假设），不扫、不进 01 表；
+想恢复就从名单里删掉，不用改代码。
 """
 from __future__ import annotations
 
@@ -71,6 +99,9 @@ _SKIP_SECTIONS = (
     "sources",              # 全是 URL
     "capital_commitments",  # 交易台账，非可调假设
     "mna.scenarios",        # 情景卡片，整体切换而非逐参数调
+    "drivers",              # 情景档位声明，只被 tree/run 读；不是可调假设
+                            # （改它不影响模型，进扫描只会污染"漏网的轴"审计）
+    "sensitivity",          # 扫描自身的配置（不可调名单），不是模型假设
     "nio_reference",        # 参照公司事实数据
     "reits_reference",
     "qiyuan_reference",
@@ -86,26 +117,81 @@ def get_path(config: dict, path: str) -> Any:
 
 
 def set_path(config: dict, path: str, value: Any) -> None:
+    """按点分路径写值，支持数组下标（如 vehicles.heavy.scenes.0.swap_penetration）。
+
+    数组下标按"位置"定位（改第 0 个场景，不是名叫 0 的字段），故列表用 int(part)。
+    scenes 这类对象数组里的参数靠它才写得进去——也才进得了扫描。
+    """
     parts = path.split(".")
     node: Any = config
     for part in parts[:-1]:
-        node = node[part]
-    node[parts[-1]] = value
+        node = node[int(part)] if isinstance(node, list) else node[part]
+    last = parts[-1]
+    if isinstance(node, list):
+        node[int(last)] = value
+    else:
+        node[last] = value
 
 
-def iter_numeric_params(config: dict) -> list[tuple[str, float]]:
-    """扁平列出全部可调的数值参数，跳过开关/字符串/URL/事实台账。"""
-    out: list[tuple[str, float]] = []
+def _cfg_get(config: dict, path: str) -> Any:
+    """set_path 的读侧配套：同样支持数组下标。"""
+    node: Any = config
+    for part in path.split("."):
+        node = node[int(part)] if isinstance(node, list) else node[part]
+    return node
+
+
+def _perturb(old: Any, step: float) -> Any:
+    """+step 微扰：标量直接乘；数值数组整条曲线逐元素乘（与 [drivers].relative 同义）。"""
+    if isinstance(old, list):
+        return [x * (1.0 + step) for x in old]
+    return step if abs(old) < 1e-12 else old * (1.0 + step)
+
+
+def _not_adjustable(config: dict) -> set[str]:
+    """「不可调事实常量」名单（base.toml [sensitivity].not_adjustable）。
+
+    这些不是假设、没有可调区间（是事实/制度/会计常量），故不扫描、不进 01 表——
+    避免把根本不能动的数当成可调旋钮摆在那儿。
+    """
+    sens = config.get("sensitivity") or {}
+    return set(sens.get("not_adjustable") or [])
+
+
+def _is_excluded(path: str, excluded: set[str]) -> bool:
+    return any(path == p or path.startswith(p + ".") for p in excluded)
+
+
+def iter_numeric_params(config: dict, include_arrays: bool = False) -> list[tuple[str, Any]]:
+    """扁平列出全部可调的数值参数，跳过开关/字符串/URL/事实台账/不可调名单。
+
+    · 对象数组（scenes）会带下标展开 → 场景级参数（换电渗透率/CATL 市占率）可见可扫。
+    · include_arrays=True 时额外纳入"数值数组型"参数（如 nev_rates 渗透率 S 曲线），
+      语义＝整条曲线同比平移（与 [drivers] 的 relative 同义）。这类只进扫描，
+      不进 01_假设参数/trial/commit——Excel 单格放不下一条曲线。
+    """
+    excluded = _not_adjustable(config)
+    out: list[tuple[str, Any]] = []
 
     def walk(prefix: str, node: Any) -> None:
         if isinstance(node, dict):
             for key, child in node.items():
                 walk(f"{prefix}.{key}" if prefix else key, child)
         elif isinstance(node, list):
-            pass  # 数组型（渗透率曲线等）整体替换语义不清，暂不自动扫描
+            numeric = node and all(
+                isinstance(x, (int, float)) and not isinstance(x, bool) for x in node
+            )
+            if numeric:
+                if include_arrays and not _is_excluded(prefix, excluded):
+                    out.append((prefix, [float(x) for x in node]))
+                return
+            for i, child in enumerate(node):
+                walk(f"{prefix}.{i}", child)
         elif isinstance(node, bool):
             pass
         elif isinstance(node, (int, float)):
+            if _is_excluded(prefix, excluded):
+                return
             if any(prefix == s or prefix.startswith(s + ".") for s in _SKIP_SECTIONS):
                 return
             out.append((prefix, float(node)))
@@ -487,12 +573,12 @@ def compute_elasticity(
     不解析代码、不登记公式：模型改版后重跑即得新血缘，永远不会和代码脱钩。
     触发模型硬约束（assert）的参数记为 {} ——那不是错误，是模型在说它不能单独这么调。
     """
-    params = iter_numeric_params(config)
+    params = iter_numeric_params(config, include_arrays=True)
     elasticity: dict[str, dict[str, float]] = {}
     t0 = time.time()
     for index, (path, old) in enumerate(params, 1):
         new_config = copy.deepcopy(config)
-        set_path(new_config, path, step if abs(old) < 1e-12 else old * (1.0 + step))
+        set_path(new_config, path, _perturb(old, step))
         try:
             values = read_metrics(rerun(new_config))
         except Exception:  # noqa: BLE001
@@ -508,6 +594,56 @@ def compute_elasticity(
         if not quiet and index % 50 == 0:
             print(f"    …{index}/{len(params)}（{time.time() - t0:.0f}s）", flush=True)
     return elasticity
+
+
+def compute_axis_leverage(
+    config: dict,
+    base_values: dict[str, float],
+    step: float = 0.10,
+) -> dict[str, float]:
+    """轴级敏感性：把一条 [drivers] 轴的全部 targets **一起** +step，看增量价值怎么动。
+
+    为什么单参数表里看不出「车辆规模」：轴是"一组参数同时平移"（如
+    commercial_swap_share 同时动 5 个场景的换电渗透率），而单参数扫描一次只动一个
+    参数，单个场景的渗透率弹性当然很小。这张表补的正是「整条轴的合力」。
+    """
+    from config_loader import load_drivers  # 局部导入，避免与顶层 import 重复
+
+    out: dict[str, float] = {}
+    for name, spec in load_drivers(config).items():
+        if "pass_as" in spec:
+            continue
+        targets = spec["targets"] if "targets" in spec else ([spec["target"]] if "target" in spec else [])
+        if not targets:
+            continue
+        cap = spec.get("cap")
+        # 档位选择器型 target（如 charge_share.scenario 取值是"悲观/中性/乐观"字符串）
+        # 对它做 +10% 乘法没有意义——它不是数字旋钮。跳过它、只摆其余数值 target。
+        new_config = copy.deepcopy(config)
+        used = 0
+        try:
+            for t in targets:
+                base = _cfg_get(new_config, t)
+                if not isinstance(base, (int, float)) and not (
+                    isinstance(base, list) and base
+                    and all(isinstance(x, (int, float)) and not isinstance(x, bool) for x in base)
+                ):
+                    continue  # 字符串/档位选择器
+                val = [x * (1.0 + step) for x in base] if isinstance(base, list) else base * (1.0 + step)
+                if cap is not None:
+                    val = [min(x, cap) for x in val] if isinstance(val, list) else min(val, cap)
+                set_path(new_config, t, val)
+                used += 1
+            if not used:
+                out[name] = float("nan")  # 纯档位选择器，无数值旋钮可摆
+                continue
+            values = read_metrics(rerun(new_config))
+        except Exception:  # noqa: BLE001  # 触发模型硬约束的轴记为不可算
+            out[name] = float("nan")
+            continue
+        before, after = base_values[INFLUENCE_ANCHOR], values[INFLUENCE_ANCHOR]
+        out[name] = ((after - before) / before) / step if before else 0.0
+    return out
 
 
 # 总影响力口径（问题1修正）：只算「估值相关终端指标」，排除物理中间量(①运营规模/②制造出货)
@@ -530,15 +666,31 @@ VALUATION_TERMINAL_METRICS = [
 _VALUATION_TERMINAL_SET = set(VALUATION_TERMINAL_METRICS)
 
 
+# 总影响力口径（问题1修正）：锚定在「最终投资指标」——换电给 CATL 的增量价值
+# （val.swap_increment，含运营侧 + 制造侧，是这门生意最终值多少钱的唯一综合口径），
+# 不再按「受影响指标个数 / 多个终端指标求和」加总。理由：rte 之类成本参数会顺着
+# 电量→EBITDA→估值链式传染到一堆中间/终端指标，按个数或多项求和会被它虚高排名；
+# 锚定到增量价值后，排名直接回答「这个参数动一下，CATL 的换电增量价值变多少」，
+# 才是决策该看的重要度。03_敏感性矩阵仍展示全指标弹性明细，本锚只用于排序与星级。
+INFLUENCE_ANCHOR = "val.swap_increment"
+
+
 def total_influence(row: dict[str, float]) -> float:
-    """只对一个参数对「估值相关终端指标」的弹性取绝对值求和，避免链式重复加总。"""
-    return sum(abs(v) for k, v in row.items() if k in _VALUATION_TERMINAL_SET)
+    """锚定在最终投资指标（换电增量价值）的单指标弹性绝对值，不作多项加总。"""
+    return abs(row.get(INFLUENCE_ANCHOR, 0.0))
 
 
 def _short(path: str) -> str:
     """参数路径的简短显示：保留末两段，避免表格被撑爆。"""
     parts = path.split(".")
     return ".".join(parts[-2:]) if len(parts) > 2 else path
+
+
+def _display_value(value: Any) -> Any:
+    """表里「当前值」的显示：数值原样；曲线型数组压成紧凑文本（单元格放不下整条曲线）。"""
+    if isinstance(value, list):
+        return "[" + ", ".join(f"{x:g}" for x in value) + "]"
+    return value
 
 
 def cmd_workbook(config: dict, base_values: dict[str, float], step: float = 0.10) -> None:
@@ -556,7 +708,9 @@ def cmd_workbook(config: dict, base_values: dict[str, float], step: float = 0.10
     print(f"血缘实测完成（{time.time() - t0:.0f}s）")
 
     docs = load_param_docs()
-    params = dict(iter_numeric_params(config))
+    params = dict(iter_numeric_params(config))  # 标量：进 01 表，可试算/可落盘
+    # 含曲线型：03 矩阵要展示它们（NEV 渗透率 S 曲线等），但 01 表不放
+    all_params = dict(iter_numeric_params(config, include_arrays=True))
     influence = {p: total_influence(row) for p, row in elasticity.items()}
 
     def new_sheet(wb, title: str, first: bool = False):
@@ -590,9 +744,9 @@ def cmd_workbook(config: dict, base_values: dict[str, float], step: float = 0.10
         ("【影响力/弹性是怎么算出来的】", True),
         ("只做一件事：把参数单独 +10%，重跑同一条计算链，比对全部结果。不解析代码、不登记公式，", False),
         ("所以模型改版后重跑即得新血缘，永远不会和代码脱钩。完整逐步演算见 06_算法演示 页签。", False),
-        ("「总影响力」＝该参数对「估值相关终端指标」(③资本/④运营财务/⑤估值/⑥资金，共13项)的弹性取绝对值之和。", False),
-        ("　　已剔除①运营规模、②制造出货这两个物理中间量，并去掉「合计值与其分项」「增量价值与归一化值」等恒等式重复——", False),
-        ("　　否则链式因果(电量→EBITDA→估值)会被重复加总。总影响力只用来给参数排重要度，不作决策数字。", False),
+        ("「总影响力」＝该参数对「最终投资指标」换电增量价值(val.swap_increment) 的弹性绝对值。", False),
+        ("　　锚定在『这门生意最终值多少钱』这一个口径，不再按『受影响指标个数 / 多个终端指标求和』加总——", False),
+        ("　　否则 rte 之类成本参数会顺着 电量→EBITDA→估值 链式传染到一堆指标、被虚高排名。总影响力只用来给参数排重要度，不作决策数字。", False),
         ("", False),
         ("【改参数的标准动作（不想碰代码，全在 Excel 里完成）】", True),
         ("1. python src/lab.py workbook  → 生成本工作簿，01_假设参数 多出一列「试算值(改这里)」", False),
@@ -607,7 +761,7 @@ def cmd_workbook(config: dict, base_values: dict[str, float], step: float = 0.10
         ("【口径纪律】", True),
         ("· 本工作簿的所有数字都来自 outputs/decision_snapshot，与骨架报告同源，不存在第二套数。", False),
         ("· 一句话理由取自 base.toml 注释（前两行）；完整推导与信源一律见 MANIFEST.md，不在此展开。", False),
-        ("· 影响力星级：★★★ 总弹性≥5（动它要慎）｜★★ ≥2｜★ ≥0.5｜空白＝几乎不影响任何结果。", False),
+        ("· 影响力星级：★★★ 弹性≥1.0（动它要慎，直接撼动换电增量价值）｜★★ ≥0.4｜★ ≥0.15｜空白＝几乎不影响增量价值。", False),
     ]
     for row_index, (text, bold) in enumerate(guide, 1):
         cell = ws.cell(row=row_index, column=1, value=text)
@@ -634,7 +788,7 @@ def cmd_workbook(config: dict, base_values: dict[str, float], step: float = 0.10
             serial += 1
             row_index += 1
             total = influence.get(path, 0.0)
-            stars = "★★★" if total >= 5 else "★★" if total >= 2 else "★" if total >= 0.5 else ""
+            stars = "★★★" if total >= 1.0 else "★★" if total >= 0.4 else "★" if total >= 0.15 else ""
             ws.append([
                 serial,
                 section,
@@ -679,7 +833,7 @@ def cmd_workbook(config: dict, base_values: dict[str, float], step: float = 0.10
         row = elasticity.get(path, {})
         ws.append([
             path,
-            params[path],
+            _display_value(all_params.get(path)),
             round(influence.get(path, 0.0), 2),
             *[round(row.get(m.key, 0.0), 3) for m in METRICS],
         ])
@@ -714,7 +868,7 @@ def cmd_workbook(config: dict, base_values: dict[str, float], step: float = 0.10
             continue
         for path, value in column[:12]:
             row_index += 1
-            ws.append([None, None, None, path, params[path], round(value, 3),
+            ws.append([None, None, None, path, _display_value(all_params.get(path)), round(value, 3),
                        "↑同向" if value > 0 else "↓反向"])
             ws.cell(row=row_index, column=6).alignment = Alignment(horizontal="center")
     set_widths(ws, [26, 14, 10, 54, 14, 10, 10])
@@ -732,7 +886,7 @@ def cmd_workbook(config: dict, base_values: dict[str, float], step: float = 0.10
         row_index += 1
         ws.cell(row=row_index, column=1, value=path).fill = BLOCK_FILL
         ws.cell(row=row_index, column=1).font = Font(bold=True)
-        ws.cell(row=row_index, column=2, value=params[path])
+        ws.cell(row=row_index, column=2, value=_display_value(all_params.get(path)))
         for metric_key, value in sorted(row.items(), key=lambda kv: abs(kv[1]), reverse=True)[:10]:
             metric = METRIC_BY_KEY[metric_key]
             row_index += 1
@@ -778,12 +932,13 @@ def cmd_workbook(config: dict, base_values: dict[str, float], step: float = 0.10
         ws.append([text, what, formula, result])
         ws.cell(row=ws.max_row, column=4).alignment = Alignment(horizontal="right")
     ws.append([])
-    ws.append(["结论", f"服务费每涨 1%，{metric.label}涨 {demo_elas:.2f}%——这就是 03 表里那个 +0.55 的来历", "", ""])
+    ws.append(["结论", f"服务费每涨 1%，『{metric.label}』就涨约 {demo_elas:.2f}——03 表每一行就是这样一个『参数→指标』的弹性。", "", ""])
+    ws.append(["", "而『总影响力』那一列不把这些弹性相加，只取它对最终指标『换电增量价值(val.swap_increment)』的弹性绝对值。", "", ""])
     ws.append([])
     ws.append(["「总影响力」又是什么", "", "", ""])
-    ws.append(["", f"把同一个参数对「估值相关终端指标」(③资本/④运营财务/⑤估值/⑥资金，共 {len(VALUATION_TERMINAL_METRICS)} 项)的弹性取绝对值后相加，得到它撬动决策结果的总力度。", "", ""])
-    ws.append(["", "已剔除①运营规模、②制造出货这两个物理中间量，并去掉「合计值与其分项」「增量价值与归一化值」等恒等式重复，", "", ""])
-    ws.append(["", "否则链式因果(电量→EBITDA→估值)会被重复加总、虚高影响力。它只用来给参数排重要度，不作决策数字——", "", ""])
+    ws.append(["", "把同一个参数对「最终投资指标」换电增量价值(val.swap_increment) 的弹性取绝对值，得到它撬动这门生意总价值的力度。", "", ""])
+    ws.append(["", "不再按『受影响指标个数 / 多个终端指标求和』加总——rte 之类成本参数会顺着 电量→EBITDA→估值 链式传染，", "", ""])
+    ws.append(["", "按个数或多项求和会被它虚高排名；锚定到增量价值后，排名直接回答『动它一下，CATL 换电增量价值变多少』。", "", ""])
     ws.append(["", "要看具体哪个结果、变了多少，请回到 03/05 表。", "", ""])
     ws.append([])
     ws.append(["这方法的三条局限（必须知道）", "", "", ""])
@@ -1001,17 +1156,31 @@ def commit_edits(edited_config: dict) -> list[str]:
 
 def cmd_scan(config: dict, base_values: dict[str, float], step: float = 0.10,
              top_per_metric: int = 8) -> None:
-    params = iter_numeric_params(config)
-    print(f"\n全参数扫描：{len(params)} 个参数 × {len(METRICS)} 个指标，每个参数单独 {step:+.0%}")
+    params = iter_numeric_params(config, include_arrays=True)
+    print(f"\n全参数扫描：{len(params)} 个参数（含 scenes 场景级 + 曲线型）× {len(METRICS)} 个指标，每个参数单独 {step:+.0%}")
     print("（这是数值法实测的血缘矩阵，不是人工登记的注释）\n")
 
     t0 = time.time()
     elasticity = compute_elasticity(config, base_values, step)
     print(f"\n扫描完成，用时 {time.time() - t0:.0f}s\n")
 
-    # ── 表 1：参数影响力排序（仅对估值相关终端指标）──
-    print("【表 1】谁最能撬动决策结果（按对估值相关终端指标的总绝对弹性排序）")
-    print(_ljust("参数", 54) + _rjust("总影响力", 12) + "   受影响最大的指标")
+    # ── 表 0：情景轴合力（每条轴的全部 targets 一起 +step）──
+    anchor_label = METRIC_BY_KEY[INFLUENCE_ANCHOR].label if INFLUENCE_ANCHOR in METRIC_BY_KEY else INFLUENCE_ANCHOR
+    print("【表 0】各情景轴的杠杆（整条轴同时 +10% —— 不是单参数）")
+    print(_ljust("情景轴", 54) + _rjust("轴级弹性", 12) + "   锚定指标")
+    print("─" * 110)
+    for name, lev in sorted(
+        compute_axis_leverage(config, base_values, step).items(),
+        key=lambda kv: abs(kv[1]) if kv[1] == kv[1] else -1,
+        reverse=True,
+    ):
+        shown = "不可算" if lev != lev else f"{lev:.2f}"
+        print(_ljust(name, 54) + _rjust(shown, 12) + f"   {anchor_label}")
+    print("")
+
+    # ── 表 1：参数影响力排序（锚定最终投资指标：换电增量价值）──
+    print(f"【表 1】谁最能撬动 CATL 的换电增量价值（按对 {anchor_label} 的弹性排序）")
+    print(_ljust("参数", 54) + _rjust("总影响力", 12) + "   锚定指标")
     print("─" * 110)
     ranked = sorted(
         elasticity.items(),
@@ -1022,13 +1191,10 @@ def cmd_scan(config: dict, base_values: dict[str, float], step: float = 0.10,
         total = total_influence(row)
         if total < 0.005:
             continue
-        terminal_items = [(k, v) for k, v in row.items() if k in _VALUATION_TERMINAL_SET]
-        top_metric = max(terminal_items, key=lambda kv: abs(kv[1])) if terminal_items else ("", 0)
-        label = METRIC_BY_KEY[top_metric[0]].label if top_metric[0] in METRIC_BY_KEY else "—"
         print(
             _ljust(path, 54)
             + _rjust(f"{total:.2f}", 12)
-            + f"   {label}（弹性 {top_metric[1]:+.2f}）"
+            + f"   {anchor_label}"
         )
 
     # ── 表 2：每个关键指标的 Top 上游（龙卷风数据）──
@@ -1043,17 +1209,7 @@ def cmd_scan(config: dict, base_values: dict[str, float], step: float = 0.10,
         for path, value in col[:top_per_metric]:
             print("      " + _ljust(path, 52) + _rjust(f"{value:+.2f}", 8) + "  " + "█" * min(24, int(abs(value) * 12)))
 
-    # ── 落盘：完整矩阵 ──
-    out_dir = ROOT.parent / "outputs"
-    out_dir.mkdir(parents=True, exist_ok=True)
-    csv_path = out_dir / "敏感性矩阵_v4.3.csv"
-    with csv_path.open("w", encoding="utf-8-sig", newline="") as handle:
-        handle.write("参数路径,当前值," + ",".join(m.key for m in METRICS) + "\n")
-        param_values = dict(params)
-        for path, row in elasticity.items():
-            handle.write(f"{path},{param_values[path]:g}," + ",".join(f"{row.get(m.key, 0.0):.4f}" for m in METRICS) + "\n")
-    print(f"\n完整矩阵已写入：{csv_path}")
-    print("（CSV 里每个数字 = 弹性：参数 +10% 时该指标变化百分之几）")
+    # ── 落盘：完整矩阵仅在可读的 xlsx（03_敏感性矩阵）产出，不再写裸 CSV ──
 
 
 # ══════════════════════════════════════════════════════════════════════

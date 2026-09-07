@@ -30,6 +30,153 @@ terminal_vehicle_decimals = 1
 terminal_frequency_decimals = 1
 report_money_decimals = 1
 
+# ----------------------情景驱动因子 [drivers]-------------------------------
+# 为什么要有这一段：DECISIONS「2026-09-02 · 「三情景」名不副实」。
+#   此前情景信息在本文件里有**五种互不相通的写法**：全局标签（meta.base_scenario）／
+#   显式字典（vehicles.private.scenario_swap_penetration）／scenario 字段（charge_share）／
+#   列表靠位置（原 service_fee_scenarios_rmb_kwh）／**只写在注释里**（mfg_margin）。
+#   程序读不到注释，于是 tree.py 只能再硬编码一份常量 —— 那是第六份，也是「第二个家」的成因。
+#   现在统一到这一段：**情景定义只有一个家**。
+#
+# 三条纪律（DECISIONS 同条）：
+#   ① 谁是情景轴是「声明」不是测量。声明写在这里；lab.py 的弹性只用来**审计**它
+#      —— 声明的轴弹性≈0 → 白设了；没声明的参数弹性最大 → 漏了一个轴。
+#   ② 一个 driver 扇出到若干同源参数，三档整体切换；**只让同源参数联动**，
+#      不许全部参数一起变好变坏（那等于假设完全正相关，区间会宽到没有意义）。
+#   ③ 中性档必须**严格等于模型基线**——不改任何参数即基线。
+#
+# 字段：target = 写入的 config 点分路径；pass_as = 作为 build_model 关键字参数传入
+#       （不落 config，避免与参数本体形成第二个家）。
+# 本段只声明档位、不参与计算，故 lab.py 扫描时跳过（_SKIP_SECTIONS）。
+
+[drivers.fee_level]
+# 换电服务费（CATL 自主定价）。谱系：焦作商车邦实测 0.2（启源主导市场已打价格战）
+# → 齐鲁晚报行业 0.3–0.4 → 开源短倒 0.4。中枢 0.30 居中偏稳健。
+target = "swap_business.service_fee_rmb_kwh"
+"悲观" = 0.20
+"中性" = 0.30
+"乐观" = 0.40
+
+[drivers.charge_share]
+# 换电能锁住多少充电段份额：悲观＝充分竞争、换电未提供保护；乐观＝标准锁定后能保持。
+# 悲观档依据：宁德国内份额 52.1%(2021)→45.08%(2024)→37.1%(2025 1-8 月) 持续下滑。
+# 乐观档依据：标准锁定成立（换电车辆物理锁定 CATL 块）。
+target = "charge_share.scenario"
+"悲观" = "悲观"
+"中性" = "中性"
+"乐观" = "乐观"
+
+[drivers.private_penetration]
+# 私家车换电接受度。三档渗透率住在 [vehicles.private.scenario_swap_penetration]
+# （保守/中枢/激进），本 driver 只负责把情景名映射过去，不另存一份渗透率。
+pass_as = "private_scenario"
+"悲观" = "保守"
+"中性" = "中枢"
+"乐观" = "激进"
+
+[drivers.mfg_margin]
+# 换电对制造端净利率的保护：有换电净利率 ＝ 无换电 12.5% ＋ 上浮
+# （悲观无保护 0pct→12.5% ／ 中性 +1.0pct→13.5% ／ 乐观 +2.5pct→15%）。
+target = "swap_business.with_swap_manufacturing_net_margin"
+"悲观" = 0.125
+"中性" = 0.135
+"乐观" = 0.150
+
+[drivers.valuation_multiple]
+# 估值倍数：反映"非共识→共识"过程中的市场激烈程度。
+# 悲观13 = 维持以制造为基础的倍数（CATL 自身 LTM 13.0×）；乐观22 = 比肩轻资产资管平台型上限。
+# 锚：outputs/估值_为什么拍这个倍数.md（族① 18–22×、族② 6.7–14×、CATL 自身 13.0×、比亚迪 6.5×）。
+# 仅作用于换电运营 EV/EBITDA 估值口径（finance.swap_ev_ebitda），不改制造端 PE。
+# 中性=18 与 finance.swap_ev_ebitda 基线一致（apply_scenario 中性档断言校验）。
+target = "finance.swap_ev_ebitda"
+"悲观" = 13.0
+"中性" = 18.0
+"乐观" = 22.0
+
+[drivers.commercial_swap_share]
+# 换电在 NEV（商用：重卡/城配）里的占有率——技术迭代摆动项。
+# 相对模式：中性=1.0（不动基线），悲观/乐观按 ±30% 整体平移各场景换电渗透率。
+# 注：商用绝对保有量/更新周期/换电频次宏观固定、不做轴；此处只摆"占有率"这个技术迭代项。
+# （"NEV 渗透率"作为商用情景轴另议——见 review-plan「待拍板」，需先由敏感性表定参数。）
+mode = "relative"
+"悲观" = 0.70
+"中性" = 1.00
+"乐观" = 1.30
+targets = [
+  "vehicles.heavy.scenes.0.swap_penetration",
+  "vehicles.heavy.scenes.1.swap_penetration",
+  "vehicles.heavy.scenes.2.swap_penetration",
+  "vehicles.city.scenes.0.swap_penetration",
+  "vehicles.city.scenes.1.swap_penetration",
+]
+
+[drivers.commercial_nev_penetration]
+# NEV 在车型里的渗透率（重卡/城配/出租/网约的 nev_rates S 曲线）——技术迭代摆动项。
+# 相对模式：中性=1.0（不动基线），悲观/乐观整体平移各车型电动化节奏。
+# cap=1.0：向上浮动时任何年份的 NEV 渗透率都不得突破 100%（城配/出租/网约已近上限，见需求段注释）。
+# 注：私家车/robotaxi 模型内已假定全 NEV（无 nev_rates），故不在此轴内。
+mode = "relative"
+"悲观" = 0.85
+"中性" = 1.00
+"乐观" = 1.15
+cap = 1.0
+targets = [
+  "vehicles.heavy.nev_rates",
+  "vehicles.city.nev_rates",
+  "vehicles.taxi.nev_rates",
+  "vehicles.ridehail.nev_rates",
+]
+
+[drivers.catl_swap_share]
+# CATL 在换电里的市占率（各场景 catl_swap_share）——竞争格局摆动项。
+# 相对模式：中性=1.0（不动基线），悲观/乐观整体平移 CATL 在各场景换电中的份额。
+# cap=1.0：市占率不得 >100%（robotaxi 已 100%，只降不升）。
+# 注：此轴覆盖商用(重卡/城配)+乘用营运(出租/网约/robotaxi/私家车)全部场景。
+mode = "relative"
+"悲观" = 0.85
+"中性" = 1.00
+"乐观" = 1.15
+cap = 1.0
+targets = [
+  "vehicles.heavy.scenes.0.catl_swap_share",
+  "vehicles.heavy.scenes.1.catl_swap_share",
+  "vehicles.heavy.scenes.2.catl_swap_share",
+  "vehicles.city.scenes.0.catl_swap_share",
+  "vehicles.city.scenes.1.catl_swap_share",
+  "vehicles.taxi.scenes.0.catl_swap_share",
+  "vehicles.ridehail.scenes.0.catl_swap_share",
+  "vehicles.robotaxi.scenes.0.catl_swap_share",
+  "vehicles.private.scenes.0.catl_swap_share",
+  "vehicles.private.scenes.1.catl_swap_share",
+  "vehicles.private.scenes.2.catl_swap_share",
+]
+
+# ------------------敏感性扫描的"不可调"名单（lab.py 读）------------------
+[sensitivity]
+# 这些不是"假设"、没有可调区间（是事实/制度/会计常量），故不进扫描、
+# 不出现在 01_假设参数 表——避免把根本不能动的数当成可调旋钮摆在那儿。
+# 想让某个数重新参与敏感性分析，把它从下面删掉即可（无需改代码）。
+not_adjustable = [
+  "swap_business.operating_days",   # 350 天＝营运车全年营运留 15 天检修/极端天气停运，是运营事实不是假设
+  "swap_business.rte",              # 充放电效率是运营事实，不是假设参数
+  "vehicles.heavy.stock_wan",      # 重卡保有量是运营事实，不是假设参数
+  "vehicles.city.stock_wan",        # 城配保有量是运营事实，不是假设参数
+  "operating_demand.taxi_stock_wan",    # 出租保有量是运营事实，不是假设参数
+  "vehicles.private.annual_net_additions_wan",    # 私家车年增量是共识数据
+  "vehicles.heavy.existing_catl_swap_stock_wan",    # catl换电重卡存量是运营事实，不是假设参数
+  "vehicles.heavy.pure_electric_share",  # 电动重卡中的纯电占比，不需要敏感性分析
+  "vehicles.city.pure_electric_share",  # 纯电城配占比，不需要敏感性分析
+  "vehicles.private.pure_electric_share",  # 纯电私家车占比，不需要敏感性分析
+  "vehicles.robotaxi.pure_electric_share",  # 纯电robotaxi占比，不需要敏感性分析
+  "vehicles.heavy.replacement_cycle_years",  # 重卡更新周期是共识数据
+  "vehicles.city.replacement_cycle_years",  # 城配更新周期是共识数据
+  "vehicles.private.battery_kwh",  # 私家车电池容量是标准
+  "vehicles.robotaxi.battery_kwh",  # robotaxi电池容量是标准
+  "swap_business.usable_energy_factor",  # 可用电量系数是共识数据
+  "meta.target_year",               # 目标年份，不需要敏感性分析
+  "meta.reference_year",            # 基准年份，不需要敏感性分析
+]
+
 # ----------------------财务数据（MANIFEST §6）-----------------------------
 
 [finance]
@@ -473,10 +620,11 @@ operating_days = 350.0
 # 这 20% 是行驶安全的带电量冗余，不是效率损失。同一系数也用于可用续航：
 # 可用续航 = 背电量 × 0.8 ÷ 电耗，与换电频次分母同源
 usable_energy_factor = 0.80
-# 换电服务费中枢 0.30 元/kWh（三档 0.2/0.3/0.4）。谱系：焦作商车邦实测 0.2（启源主导市场已打价格战）
-# → 齐鲁晚报行业 0.3–0.4 → 开源短倒 0.4。中枢 0.30 居中偏稳健；三档全做敏感性
+# 换电服务费中枢 0.30 元/kWh。谱系：焦作商车邦实测 0.2（启源主导市场已打价格战）
+# → 齐鲁晚报行业 0.3–0.4 → 开源短倒 0.4。中枢 0.30 居中偏稳健。
+# 三档值不再写在这里（原 service_fee_scenarios_rmb_kwh 列表已删）——
+# 情景定义只有一个家：见 [drivers.fee_level]。
 service_fee_rmb_kwh = 0.30
-service_fee_scenarios_rmb_kwh = [0.20, 0.30, 0.40]
 # 电池租金 120 元/kWh·年 ≈ 10 元/kWh·月（全市场可比综合口径：小车 8.8–9.7/大车 13–17 元加权，
 # rlut 重卡月租 4500–6000 元佐证"小车便宜大车贵"）
 battery_rent_rmb_kwh_year = 120.0
@@ -505,7 +653,9 @@ passenger_station_labor_wan_year = 2.688
 # 蔚能线性外推 5.4 亿上界），2 亿体现规模效应（隐含单块成本为蔚能 37%）。
 # 密度模型分档表与完整推导见 MANIFEST §4.2.4
 software_opex_yi_year = 2.0
-with_swap_manufacturing_net_margin = 0.135   # 中性基准（与 meta.base_scenario="中性" 对齐）；乐观上沿=+2.5pct→15%、悲观无保护=0pct→12.5%，见 §6.1 敏感性
+# 有换电制造净利率，中性基准 13.5%（与 meta.base_scenario="中性" 对齐）。
+# 三档值不再只写在注释里（此前程序读不到）——情景定义只有一个家：见 [drivers.mfg_margin]。
+with_swap_manufacturing_net_margin = 0.135
 # 无换电制造净利率 12.5%：v3.2 L489-499 净利率差 2.5pct（15% − 2.5%）
 no_swap_manufacturing_net_margin = 0.125
 

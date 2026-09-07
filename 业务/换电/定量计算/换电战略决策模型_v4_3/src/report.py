@@ -143,9 +143,16 @@ def _build_sensitivity_interpretation(snapshot: ModelSnapshot) -> str:
     )
 
 
-PRIVATE_SCENARIO_ORDER = ("保守", "中枢", "激进")
+# 三情景档名，与 base.toml [drivers] 的档位名一致——情景定义只有一个家。
+# 注意区分两套名字：
+#   · 情景档名 悲观／中性／乐观 ← 本常量（模型整体情景，run.py 按 driver 组合整体重跑）
+#   · 私家车渗透率档名 保守／中枢／激进 ← [vehicles.private.scenario_swap_penetration]
+#   两者由 [drivers.private_penetration] 映射，不要混用。
+SCENARIO_ORDER = ("悲观", "中性", "乐观")
+PRIVATE_PENETRATION_ORDER = ("保守", "中枢", "激进")
+_TIER_TO_SCENARIO = {"保守": "悲观", "中枢": "中性", "激进": "乐观"}
 
-# 私家车三情景的指标定义（标签, 取值函数, 小数位）。
+# 三情景的指标定义（标签, 取值函数, 小数位）。
 # 内容定义属于report层；run.py只负责组装与打印，不持有任何指标口径。
 PRIVATE_SCENARIO_METRICS: list[tuple[str, Callable[[ModelSnapshot], float], int]] = [
     ("私家车换电车辆(万)", lambda s: s.scale.operating_stock_by_vehicle_wan.get("private", 0.0), 1),
@@ -165,10 +172,10 @@ PRIVATE_SCENARIO_METRICS: list[tuple[str, Callable[[ModelSnapshot], float], int]
 
 
 def format_private_scenario_console(snapshots: dict[str, ModelSnapshot]) -> str:
-    """私家车三情景的终端文本表。指标口径定义在本模块，run.py只管打印。"""
-    order = [s for s in PRIVATE_SCENARIO_ORDER if s in snapshots]
+    """三情景的终端文本表。指标口径定义在本模块，run.py只管打印。"""
+    order = [s for s in SCENARIO_ORDER if s in snapshots]
     lines = [
-        "私家车三情景：",
+        "三情景（driver 组合整体重跑）：",
         f"{'指标':<26}" + "".join(f"{s:>14}" for s in order),
     ]
     for label, extract, digits in PRIVATE_SCENARIO_METRICS:
@@ -363,8 +370,8 @@ def _private_market_totals(config: dict, pen: dict[str, float]) -> tuple[float, 
 def _private_scenario_tables(
     config: dict, snapshots: dict[str, ModelSnapshot]
 ) -> tuple[str, str, str]:
-    """私家车三情景：分档渗透率表、完整重跑对比表、解读。"""
-    order = ("保守", "中枢", "激进")
+    """三情景：私家车分档渗透率表、driver 组合整体重跑对比表、解读。"""
+    order = SCENARIO_ORDER
     pen_table = config["vehicles"]["private"]["scenario_swap_penetration"]
     penetration_table = _table(
         ["情景", "8万元以下", "8至15万元", "15万元以上", "全市场换电保有(万)", "CATL可及(万)"],
@@ -377,7 +384,7 @@ def _private_scenario_tables(
                 _n(_private_market_totals(config, pen_table[scen])[0], 0),
                 _n(_private_market_totals(config, pen_table[scen])[1], 0),
             )
-            for scen in order if scen in pen_table
+            for scen in PRIVATE_PENETRATION_ORDER if scen in pen_table
         ],
     )
 
@@ -414,7 +421,7 @@ def _private_scenario_tables(
          "分档渗透率×价格带权重×CATL市占率"),
         ("私家车装机（GWh）", *cell(_private_gwh), "车辆×56kWh÷100"),
         ("换电电池总装机（GWh）", *cell(_total_gwh),
-         "含全部车型；营运车底座在三情景间恒定，差异仅来自私家车"),
+         "含全部车型；三情景由 base.toml [drivers] 的驱动因子整体拨档，非仅私家车"),
         ("初装CAPEX合计（亿）", *cell(lambda s: s.capex.total_initial_capex_yi), "车辆电池＋站内电池＋站体"),
         ("全周期资本底座（亿）", *cell(lambda s: s.capex.lifecycle_capital_base_yi),
          "含历次更新，受电池寿命驱动"),
@@ -440,28 +447,30 @@ def _private_scenario_tables(
          *cell(lambda s: s.ledger.power_value_2030_with_swap_yi), "有换电情景"),
     ]
     scenario_table = _table(
-        ["指标", "保守", "中枢", "激进", "口径/说明"], rows
+        ["指标", *SCENARIO_ORDER, "口径/说明"], rows
     )
 
-    base = snapshots.get("中枢")
+    base = snapshots.get("中性")
     if base:
-        low = snapshots.get("保守")
-        high = snapshots.get("激进")
+        low = snapshots.get("悲观")
+        high = snapshots.get("乐观")
         spread = ""
         if low and high:
             spread = (
-                f"私家车从保守到激进，可归因换电增量价值由"
+                f"悲观到乐观，可归因换电增量价值由"
                 f"{_n(low.ledger.total_swap_increment_value_yi, 1)}亿到"
                 f"{_n(high.ledger.total_swap_increment_value_yi, 1)}亿，"
                 f"极差{_n(high.ledger.total_swap_increment_value_yi - low.ledger.total_swap_increment_value_yi, 1)}亿"
-                f"（约为中枢{_n(base.ledger.total_swap_increment_value_yi, 1)}亿的"
+                f"（约为中性{_n(base.ledger.total_swap_increment_value_yi, 1)}亿的"
                 f"{_p((high.ledger.total_swap_increment_value_yi - low.ledger.total_swap_increment_value_yi) / base.ledger.total_swap_increment_value_yi, 0)}）。"
             )
         coverage_low = low.swap_business.forward_to_required_ebitda if low else None
         note = (
-            f"三情景共享同一套营运车底座：重卡、城配、出租/网约/Robotaxi的车辆数、频次、"
-            f"装站需求在三档之间完全一致，差异全部来自私家车这一档，因此本表可直接读作"
-            f"“私家车这块的不确定性到底值多少钱”。{spread}"
+            f"三情景是 base.toml [drivers] 声明的驱动因子**整体拨档**的结果："
+            f"服务费、充电段份额、私家车渗透率、制造净利率四个同源参数同时切换，"
+            f"不再只拨私家车一档。营运车（重卡/城配/出租网约/Robotaxi）的车辆数与装站需求"
+            f"本身不随档位变化——它仍是未设情景轴的常量，这一缺口已在 DECISIONS"
+            f"「2026-09-02 · 三情景名不副实」登记，是否补轴由 lab.py 的弹性扫描裁定。{spread}"
         )
         # 覆盖倍数随渗透率上升而递减：私家车日均换电仅约0.2次，每增加一辆都在抬高
         # 装机与门槛EBITDA，其贡献的服务费与租金却远低于营运车，故单位资本效率递减。
@@ -469,22 +478,22 @@ def _private_scenario_tables(
             scen: snap.swap_business.forward_to_required_ebitda
             for scen, snap in snapshots.items() if snap
         }
-        if "保守" in covers and "激进" in covers:
-            if covers["激进"] < covers["保守"]:
+        if "悲观" in covers and "乐观" in covers:
+            if covers["乐观"] < covers["悲观"]:
                 note += (
-                    f"需要特别注意：覆盖倍数随渗透率上升而**下降**"
-                    f"（{covers['保守']:.2f}×→{covers['中枢'] if '中枢' in covers else covers['激进']:.2f}×"
-                    f"→{covers['激进']:.2f}×）。私家车日均换电仅约0.2次，每增加一辆都在抬高"
+                    f"需要特别注意：覆盖倍数随情景上行而**下降**"
+                    f"（{covers['悲观']:.2f}×→{covers['中性'] if '中性' in covers else covers['乐观']:.2f}×"
+                    f"→{covers['乐观']:.2f}×）。私家车日均换电仅约0.2次，每增加一辆都在抬高"
                     f"装机与门槛EBITDA，其带来的服务费和电池租金却远低于营运车，因此私家车是"
                     f"“绝对价值增厚、单位资本效率递减”的业务——它放大总盘子，但会摊薄项目整体的"
                     f"资本回报率。这决定了私家车应当被当作**顺周期的上行期权**去争取，"
                     f"而不应作为立项时的必要假设。"
                 )
         if coverage_low is not None:
-            note += f"保守档EBITDA覆盖倍数为{coverage_low:.2f}×，"
+            note += f"悲观档EBITDA覆盖倍数为{coverage_low:.2f}×，"
             if coverage_low >= 1.0:
                 note += (
-                    f"回看保守档的{coverage_low:.2f}×，它仍在门槛之上：即便私家车几乎不渗透，"
+                    f"回看悲观档的{coverage_low:.2f}×，它仍在门槛之上：即便最不利的一组 driver 同时发生，"
                     f"仅靠营运车底座项目就已成立——私家车决定的是上行空间有多大，"
                     f"而不是项目能不能立。"
                 )
@@ -494,7 +503,7 @@ def _private_scenario_tables(
                     "并非可有可无的上行项。"
                 )
     else:
-        note = "未获取到中枢情景快照，三情景对比未完整生成。"
+        note = "未获取到中性情景快照，三情景对比未完整生成。"
     return penetration_table, scenario_table, note
 
 
@@ -2184,7 +2193,8 @@ def render_report(
 
     # 7.2 私家车三情景：未显式传入时，退化为当前快照所属情景（保证单情景调用仍可渲染）。
     if private_snapshots is None:
-        private_snapshots = {snapshot.meta.get("private_scenario", "中枢"): snapshot}
+        _tier = snapshot.meta.get("private_scenario", "中枢")
+        private_snapshots = {_TIER_TO_SCENARIO.get(_tier, "中性"): snapshot}
     (
         private_penetration_table,
         private_scenario_table,

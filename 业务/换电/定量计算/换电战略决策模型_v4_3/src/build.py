@@ -33,9 +33,9 @@ sys.path.insert(0, str(SRC))
 
 import facts as facts_mod  # noqa: E402
 import inject as inject_mod  # noqa: E402
-from config_loader import load_config  # noqa: E402
-from model import build_model  # noqa: E402
-from report import PRIVATE_SCENARIO_ORDER, PRIVATE_SCENARIO_METRICS, write_outputs  # noqa: E402
+from config_loader import SCENARIO_ORDER, load_config  # noqa: E402
+from model import build_model, build_scenarios  # noqa: E402
+from report import PRIVATE_SCENARIO_METRICS, write_outputs  # noqa: E402
 
 REPORT_NAME = "换电战略决策报告_v4.3.md"
 
@@ -49,11 +49,9 @@ def main() -> None:
     # ── 1. 跑模型 ────────────────────────────────
     _step(1, "跑模型")
     config = load_config()
-    snapshots = {
-        scen: build_model(config, private_scenario=scen)
-        for scen in PRIVATE_SCENARIO_ORDER
-    }
-    snapshot = snapshots["中枢"]
+    # 与 run.py 共用同一个入口：情景定义只有一个家（base.toml [drivers]）
+    snapshots = build_scenarios(config)
+    snapshot = snapshots["中性"]
     legacy = build_model(config, private_scenario="中枢", life_mode="legacy_v32")
     report_path = ROOT / "outputs" / REPORT_NAME
     paths = write_outputs(config, snapshot, report_path, snapshots, legacy)
@@ -64,16 +62,16 @@ def main() -> None:
     # ── 2. 生成事实包 ────────────────────────────
     _step(2, "生成事实包")
     snap_data = json.loads(Path(paths["snapshot"]).read_text("utf-8"))
-    # 私家车三情景不在快照里（快照只存中枢档），这里重跑后挂进 _extra 供事实取用
+    # 三情景不在快照里（快照只存中性档），这里重跑后挂进 _extra 供事实取用
     snap_data["_extra"] = {
         # 历史财务实绩只住在 config，不进快照；叙述层要引用，这里挂过来
         "config": config,
-        "private_scenarios": {
+        "scenarios": {
             scen: {
                 label: getter(snapshots[scen])
                 for label, getter, _dec in PRIVATE_SCENARIO_METRICS
             }
-            for scen in PRIVATE_SCENARIO_ORDER
+            for scen in SCENARIO_ORDER
             if scen in snapshots
         }
     }

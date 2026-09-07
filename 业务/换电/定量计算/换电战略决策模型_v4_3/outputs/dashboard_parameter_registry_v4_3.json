@@ -50,6 +50,238 @@
     "type": "int"
   },
   {
+    "key": "drivers.fee_level.target",
+    "value": "swap_business.service_fee_rmb_kwh",
+    "type": "str"
+  },
+  {
+    "key": "drivers.fee_level.悲观",
+    "value": 0.2,
+    "type": "float"
+  },
+  {
+    "key": "drivers.fee_level.中性",
+    "value": 0.3,
+    "type": "float"
+  },
+  {
+    "key": "drivers.fee_level.乐观",
+    "value": 0.4,
+    "type": "float"
+  },
+  {
+    "key": "drivers.charge_share.target",
+    "value": "charge_share.scenario",
+    "type": "str"
+  },
+  {
+    "key": "drivers.charge_share.悲观",
+    "value": "悲观",
+    "type": "str"
+  },
+  {
+    "key": "drivers.charge_share.中性",
+    "value": "中性",
+    "type": "str"
+  },
+  {
+    "key": "drivers.charge_share.乐观",
+    "value": "乐观",
+    "type": "str"
+  },
+  {
+    "key": "drivers.private_penetration.pass_as",
+    "value": "private_scenario",
+    "type": "str"
+  },
+  {
+    "key": "drivers.private_penetration.悲观",
+    "value": "保守",
+    "type": "str"
+  },
+  {
+    "key": "drivers.private_penetration.中性",
+    "value": "中枢",
+    "type": "str"
+  },
+  {
+    "key": "drivers.private_penetration.乐观",
+    "value": "激进",
+    "type": "str"
+  },
+  {
+    "key": "drivers.mfg_margin.target",
+    "value": "swap_business.with_swap_manufacturing_net_margin",
+    "type": "str"
+  },
+  {
+    "key": "drivers.mfg_margin.悲观",
+    "value": 0.125,
+    "type": "float"
+  },
+  {
+    "key": "drivers.mfg_margin.中性",
+    "value": 0.135,
+    "type": "float"
+  },
+  {
+    "key": "drivers.mfg_margin.乐观",
+    "value": 0.15,
+    "type": "float"
+  },
+  {
+    "key": "drivers.valuation_multiple.target",
+    "value": "finance.swap_ev_ebitda",
+    "type": "str"
+  },
+  {
+    "key": "drivers.valuation_multiple.悲观",
+    "value": 13.0,
+    "type": "float"
+  },
+  {
+    "key": "drivers.valuation_multiple.中性",
+    "value": 18.0,
+    "type": "float"
+  },
+  {
+    "key": "drivers.valuation_multiple.乐观",
+    "value": 22.0,
+    "type": "float"
+  },
+  {
+    "key": "drivers.commercial_swap_share.mode",
+    "value": "relative",
+    "type": "str"
+  },
+  {
+    "key": "drivers.commercial_swap_share.悲观",
+    "value": 0.7,
+    "type": "float"
+  },
+  {
+    "key": "drivers.commercial_swap_share.中性",
+    "value": 1.0,
+    "type": "float"
+  },
+  {
+    "key": "drivers.commercial_swap_share.乐观",
+    "value": 1.3,
+    "type": "float"
+  },
+  {
+    "key": "drivers.commercial_swap_share.targets",
+    "value": [
+      "vehicles.heavy.scenes.0.swap_penetration",
+      "vehicles.heavy.scenes.1.swap_penetration",
+      "vehicles.heavy.scenes.2.swap_penetration",
+      "vehicles.city.scenes.0.swap_penetration",
+      "vehicles.city.scenes.1.swap_penetration"
+    ],
+    "type": "list"
+  },
+  {
+    "key": "drivers.commercial_nev_penetration.mode",
+    "value": "relative",
+    "type": "str"
+  },
+  {
+    "key": "drivers.commercial_nev_penetration.悲观",
+    "value": 0.85,
+    "type": "float"
+  },
+  {
+    "key": "drivers.commercial_nev_penetration.中性",
+    "value": 1.0,
+    "type": "float"
+  },
+  {
+    "key": "drivers.commercial_nev_penetration.乐观",
+    "value": 1.15,
+    "type": "float"
+  },
+  {
+    "key": "drivers.commercial_nev_penetration.cap",
+    "value": 1.0,
+    "type": "float"
+  },
+  {
+    "key": "drivers.commercial_nev_penetration.targets",
+    "value": [
+      "vehicles.heavy.nev_rates",
+      "vehicles.city.nev_rates",
+      "vehicles.taxi.nev_rates",
+      "vehicles.ridehail.nev_rates"
+    ],
+    "type": "list"
+  },
+  {
+    "key": "drivers.catl_swap_share.mode",
+    "value": "relative",
+    "type": "str"
+  },
+  {
+    "key": "drivers.catl_swap_share.悲观",
+    "value": 0.85,
+    "type": "float"
+  },
+  {
+    "key": "drivers.catl_swap_share.中性",
+    "value": 1.0,
+    "type": "float"
+  },
+  {
+    "key": "drivers.catl_swap_share.乐观",
+    "value": 1.15,
+    "type": "float"
+  },
+  {
+    "key": "drivers.catl_swap_share.cap",
+    "value": 1.0,
+    "type": "float"
+  },
+  {
+    "key": "drivers.catl_swap_share.targets",
+    "value": [
+      "vehicles.heavy.scenes.0.catl_swap_share",
+      "vehicles.heavy.scenes.1.catl_swap_share",
+      "vehicles.heavy.scenes.2.catl_swap_share",
+      "vehicles.city.scenes.0.catl_swap_share",
+      "vehicles.city.scenes.1.catl_swap_share",
+      "vehicles.taxi.scenes.0.catl_swap_share",
+      "vehicles.ridehail.scenes.0.catl_swap_share",
+      "vehicles.robotaxi.scenes.0.catl_swap_share",
+      "vehicles.private.scenes.0.catl_swap_share",
+      "vehicles.private.scenes.1.catl_swap_share",
+      "vehicles.private.scenes.2.catl_swap_share"
+    ],
+    "type": "list"
+  },
+  {
+    "key": "sensitivity.not_adjustable",
+    "value": [
+      "swap_business.operating_days",
+      "swap_business.rte",
+      "vehicles.heavy.stock_wan",
+      "vehicles.city.stock_wan",
+      "operating_demand.taxi_stock_wan",
+      "vehicles.private.annual_net_additions_wan",
+      "vehicles.heavy.existing_catl_swap_stock_wan",
+      "vehicles.heavy.pure_electric_share",
+      "vehicles.city.pure_electric_share",
+      "vehicles.private.pure_electric_share",
+      "vehicles.robotaxi.pure_electric_share",
+      "vehicles.heavy.replacement_cycle_years",
+      "vehicles.city.replacement_cycle_years",
+      "vehicles.private.battery_kwh",
+      "vehicles.robotaxi.battery_kwh",
+      "swap_business.usable_energy_factor",
+      "meta.target_year",
+      "meta.reference_year"
+    ],
+    "type": "list"
+  },
+  {
     "key": "finance.wacc",
     "value": 0.075,
     "type": "float"
@@ -1062,15 +1294,6 @@
     "key": "swap_business.service_fee_rmb_kwh",
     "value": 0.3,
     "type": "float"
-  },
-  {
-    "key": "swap_business.service_fee_scenarios_rmb_kwh",
-    "value": [
-      0.2,
-      0.3,
-      0.4
-    ],
-    "type": "list"
   },
   {
     "key": "swap_business.battery_rent_rmb_kwh_year",

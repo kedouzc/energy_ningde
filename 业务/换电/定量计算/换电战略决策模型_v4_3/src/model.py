@@ -103,6 +103,33 @@ def _build_core(
     )
 
 
+def build_scenarios(config: dict) -> dict[str, "ModelSnapshot"]:
+    """按 base.toml [drivers] 声明的驱动因子组合，整体重跑三个情景。
+
+    情景的**定义**与**施加**只有一个家：configs/base.toml 的 [drivers] 段
+    （读取与写入走 config_loader.apply_scenario）。
+    run.py 与 build.py 都必须走这里，不许各自另建一套——此前两边各跑一遍
+    private_scenario，是「一件事两个家」的又一例（DECISIONS 2026-09-02）。
+
+    纪律：要么全打包按情景跑，要么全跑中性，不许散装。
+    中性档严格等于模型基线（apply_scenario 会校验）。
+    """
+    from config_loader import (
+        SCENARIO_ORDER,
+        apply_scenario,
+        cloned_config,
+        load_drivers,
+    )
+
+    drivers = load_drivers(config)
+    out: dict[str, ModelSnapshot] = {}
+    for tier in SCENARIO_ORDER:
+        scenario_config = cloned_config(config)
+        kwargs = apply_scenario(scenario_config, drivers, tier)
+        out[tier] = build_model(scenario_config, **kwargs)
+    return out
+
+
 def build_model(
     config: dict,
     scenario_name: str | None = None,

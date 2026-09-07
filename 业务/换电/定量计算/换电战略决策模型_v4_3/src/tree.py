@@ -50,7 +50,13 @@ SRC = Path(__file__).resolve().parent
 ROOT = SRC.parent
 sys.path.insert(0, str(SRC))
 
-from config_loader import DEFAULT_CONFIG, load_config  # noqa: E402
+from config_loader import (  # noqa: E402
+    DEFAULT_CONFIG,
+    SCENARIO_ORDER,
+    apply_scenario,
+    load_config,
+    load_drivers,
+)
 from lab import load_param_docs  # noqa: E402
 from model import build_model  # noqa: E402
 from schemas import ModelSnapshot  # noqa: E402
@@ -58,12 +64,9 @@ from schemas import ModelSnapshot  # noqa: E402
 TREE_PATH = ROOT / "outputs" / "tree.json"
 XLSX_PATH = ROOT / "outputs" / "换电决策树_v4.3.xlsx"
 
-# 三情景 = 把 config 里本来就有三档的参数同时拨档；中性档严格等于模型基线。
-SCENARIOS: list[tuple[str, dict]] = [
-    ("悲观", dict(service_fee=0.20, charge_share="悲观", private="保守", margin=0.125)),
-    ("中性", dict(service_fee=0.30, charge_share="中性", private="中枢", margin=0.135)),
-    ("乐观", dict(service_fee=0.40, charge_share="乐观", private="激进", margin=0.150)),
-]
+# 三情景 = 把 [drivers] 声明的驱动因子同时拨档；中性档严格等于模型基线。
+# 档位值不再写在本文件（原 SCENARIOS 常量已删除）——情景定义只有一个家：
+# configs/base.toml 的 [drivers] 段。见 DECISIONS「2026-09-02 · 「三情景」名不副实」。
 
 
 def load_trailing_comments(path: Path = DEFAULT_CONFIG) -> dict[str, str]:
@@ -119,15 +122,17 @@ class Ctx:
         return node
 
 
-def build_ctx(scen: dict | None = None) -> Ctx:
-    """构造一个情景的上下文；scen=None 即基线（＝中性档）。"""
+def build_ctx(tier: str = "中性", drivers: dict | None = None) -> Ctx:
+    """构造一个情景的上下文；tier="中性" 即基线（＝中性档，不改任何参数）。
+
+    档位值来自 base.toml 的 [drivers] 段，不在本文件硬编码。
+    """
     from dataclasses import asdict
     cfg = load_config()
-    if scen:
-        cfg["swap_business"]["service_fee_rmb_kwh"] = scen["service_fee"]
-        cfg["charge_share"]["scenario"] = scen["charge_share"]
-        cfg["swap_business"]["with_swap_manufacturing_net_margin"] = scen["margin"]
-    snap = build_model(cfg, private_scenario=(scen or {}).get("private", "中枢"))
+    if drivers is None:
+        drivers = load_drivers(cfg)
+    kwargs = apply_scenario(cfg, drivers, tier)
+    snap = build_model(cfg, **kwargs)
     return Ctx(cfg=cfg, snap=asdict(snap), docs=load_param_docs(),
                tail=load_trailing_comments())
 
@@ -1006,7 +1011,8 @@ def main() -> None:
     parser.add_argument("--xlsx", action="store_true", help="额外写出可折叠的 Excel 层级表")
     args = parser.parse_args()
 
-    scen_ctx = {name: build_ctx(scen) for name, scen in SCENARIOS}
+    drivers = load_drivers(load_config())
+    scen_ctx = {tier: build_ctx(tier, drivers) for tier in SCENARIO_ORDER}
     c = scen_ctx["中性"]          # 中性档严格等于基线，审计以它为准
 
     root = build_tree(c)

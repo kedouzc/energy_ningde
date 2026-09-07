@@ -97,12 +97,13 @@ def _station_schedule(
     cumulative_target_2026: int,
     cumulative_target_2028: int,
 ) -> list[int]:
-    """直算2026—2028新增站数；2029—2030不再建站。"""
-    if not 0 <= opening_2025 <= cumulative_target_2026 <= cumulative_target_2028:
-        raise ValueError(
-            "站数应满足：2025年末存量 <= 2026累计目标 <= 2028终局目标"
-        )
+    """直算2026—2028新增站数；2029—2030不再建站。
 
+    站数是存量、不可为负、不可低于已有存量：需求下修（如 NEV 渗透率悲观情景）
+    时不再拆站，故对累计目标做单调钳制（新增站数不为负）。这让向下情景轴不会因
+    "规划站数跌破 2025 存量" 而让模型抛错；基线/乐观档本就满足单调，钳制为恒等。"""
+    cumulative_target_2026 = max(opening_2025, cumulative_target_2026)
+    cumulative_target_2028 = max(cumulative_target_2026, cumulative_target_2028)
     new_2026 = cumulative_target_2026 - opening_2025
     new_2027_to_2028 = cumulative_target_2028 - cumulative_target_2026
     new_2027 = round(new_2027_to_2028 / 2)

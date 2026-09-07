@@ -322,7 +322,20 @@ EAC、IRR、回收期、单位经济这一类工具，前提都是"一笔投入�
 `run.py` 改为按 driver 组合整体重跑——**要么全打包按情景跑，要么全跑中性，不许散装。**
 
 **影响**
-（待改）
+**实施结果（2026-09-07 回填）**——情景定义**只有一个家**落地：
+
+- `base.toml` 新增 `[drivers]` 段（4 个驱动因子，结构：`target`/`pass_as` ＋ 悲观/中性/乐观三档值 ＋ 人话叙事）。
+  原散落的五种写法一并收口：删 `service_fee_scenarios_rmb_kwh`（列表靠位置）→ 进 `[drivers.fee_level]`；
+  净利率的乐观/悲观档从注释搬进 `[drivers.mfg_margin]`；`charge_share.scenario` 由 `[drivers.charge_share]` 驱动；
+  私家车渗透率仍住在 `[vehicles.private.scenario_swap_penetration]`（保守/中枢/激进），由 `[drivers.private_penetration]`
+  的 `pass_as` 映射，不另存一份
+- `config_loader` 新增 `load_drivers / apply_scenario`：**中性档断言「档值 == 参数本体」**，防两个家漂移；
+  `model.build_scenarios()` 成为三情景**唯一**构建入口
+- `run.py` / `build.py` / `tree.py` 全部改为按 driver 组合整体重跑，**不再只拨私家车一档**
+- `lab.py` 扫描把 `drivers` 加进 `_SKIP_SECTIONS`，避免档位声明污染「漏网的轴」审计
+- 实测读数（中性档严格等于基线、未动）：三情景区间从私家车单轴的 ±7% 拉开到
+  **悲观 −53% / 乐观 +63%**；**覆盖倍数首次跌破门槛——悲观 0.92× < 1.0，门转红**（此前三档几乎不变、门永不红），可归因换电增量 2,847 / 6,103 / 9,977 亿
+- `report.py` 把失效的「差异全部来自私家车」结论改为如实标注；`src/README.md` 坑清单第 4 条已更新
 
 **我错在哪 · 学到什么**
 **「谁是情景轴」是一个声明，不是一个测量。** 声明必须显式写在参数定义里；
@@ -565,7 +578,7 @@ git 与本文件的分工：
 
 ### 待办（本次未做）
 
-- `base.toml` 情景元数据（`role` / `driver` / `[drivers]` 段）与 `run.py` 整体重跑——见「三情景名不副实」条
+- ~~`base.toml` 情景元数据与 `run.py` 整体重跑~~ → **已完成（2026-09-07）**：见「三情景名不副实」条实施回填（`[drivers]` 段 ＋ `build_scenarios` 唯一入口）
 - 年度化逐年并表贡献 2026–2030
 - 第 5 章按四桶分解重写；换电运营倍数改锚基建区间下沿
 - `dcf_legacy_debt_yi` 是对照字段，核对无误后删除

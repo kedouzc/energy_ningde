@@ -225,10 +225,14 @@ python src/inject.py --lint-only   # 只检查叙述层，不写文件
    只认 `键 = 单值` 的单行写法，**内联表与多行数组改不了**（会静默跳过），
    且**不做可行性校验**——`trial` 判定触发硬约束被挡下的值，只要还留在试算值列里，
    照样会被写进 `base.toml`。写完必须再跑 `run.py` 验证。
-4. **三情景有两套定义**：`tree.py` 的 `SCENARIOS` 常量里硬编码一套
-   （服务费 0.20/0.30/0.40、`charge_share` 三档、私家车三档、净利率三档），
-   `base.toml` 里另有一套（`service_fee_scenarios_rmb_kwh`、
-   `charge_share.*.pessimistic/optimistic`）。改分档要同时改两边。
+4. ~~**三情景有两套定义**~~ **已修（2026-09-07）**：原 `tree.py` 的 `SCENARIOS` 常量
+   与 `base.toml` 的散落写法（含 `service_fee_scenarios_rmb_kwh`）是两套，改分档要改两边。
+   现在**情景定义只有一个家**：`configs/base.toml` 的 `[drivers]` 段。
+   - 读与写：`config_loader.load_drivers / apply_scenario`（中性档会校验"档值 == 参数本体"）
+   - 建三情景：`model.build_scenarios(config)` —— **run.py 与 build.py 都必须走它**
+   - 档名统一为 **悲观／中性／乐观**；私家车渗透率档名仍是 **保守／中枢／激进**，
+     由 `[drivers.private_penetration]` 映射，两者不要混用（report.py 顶部有常量区分）
+   - 新增/删除一个情景轴：只改 `[drivers]`，代码零改动。
 5. **`report.py` 的两个 JSON 落盘目录是硬编码 `outputs/`**，只有 md 报告的路径
    由调用方传入。想改输出目录时别只改一处。
 6. **`report.py` 的模板在 `templates/strategic_report_v4_3.md.tpl`**（不是文件内

@@ -86,11 +86,15 @@ def _final_verdict(snap: dict) -> str:
     return str(snap["memos"][-1]["status"])
 
 
-def _private_scen(field: str, scen: str) -> Callable[[dict], float]:
-    """私家车三情景：快照本身只存中枢档，三档由 build.py 重跑后塞进 _extra。"""
+def _scen(field: str, scen: str) -> Callable[[dict], float]:
+    """三情景：快照本身只存中性档，三档由 build.py 重跑后塞进 _extra.scenarios。
+
+    三档是 [drivers] 的驱动因子整体拨档结果（悲观／中性／乐观），
+    不再是"只拨私家车"——故函数名去掉 private 前缀，档名也随之一致。
+    """
 
     def _get(snap: dict) -> float:
-        return float(snap["_extra"]["private_scenarios"][scen][field])
+        return float(snap["_extra"]["scenarios"][scen][field])
 
     return _get
 
@@ -321,13 +325,13 @@ F: list[Fact] = [
     Fact("q4.verdict", "决策备忘录末端判断", _final_verdict, "", kind="text", watch=1.0),
 
     # ── 情景（私家车三档，需求侧最大不确定项）──────
-    Fact("sens.private_low", "私家车换电车辆·保守", _private_scen("私家车换电车辆(万)", "保守"), "万辆"),
-    Fact("sens.private_mid", "私家车换电车辆·中枢", _private_scen("私家车换电车辆(万)", "中枢"), "万辆"),
-    Fact("sens.private_high", "私家车换电车辆·激进", _private_scen("私家车换电车辆(万)", "激进"), "万辆"),
-    Fact("sens.increment_low", "可归因增量·保守", _private_scen("可归因换电增量(亿)", "保守"), "亿元"),
-    Fact("sens.increment_high", "可归因增量·激进", _private_scen("可归因换电增量(亿)", "激进"), "亿元"),
-    Fact("sens.coverage_low", "EBITDA覆盖倍数·保守", _private_scen("EBITDA覆盖倍数", "保守"), "倍", kind="x", decimals=2),
-    Fact("sens.coverage_high", "EBITDA覆盖倍数·激进", _private_scen("EBITDA覆盖倍数", "激进"), "倍", kind="x", decimals=2),
+    Fact("sens.private_low", "私家车换电车辆·悲观", _scen("私家车换电车辆(万)", "悲观"), "万辆"),
+    Fact("sens.private_mid", "私家车换电车辆·中性", _scen("私家车换电车辆(万)", "中性"), "万辆"),
+    Fact("sens.private_high", "私家车换电车辆·乐观", _scen("私家车换电车辆(万)", "乐观"), "万辆"),
+    Fact("sens.increment_low", "可归因增量·悲观", _scen("可归因换电增量(亿)", "悲观"), "亿元"),
+    Fact("sens.increment_high", "可归因增量·乐观", _scen("可归因换电增量(亿)", "乐观"), "亿元"),
+    Fact("sens.coverage_low", "EBITDA覆盖倍数·悲观", _scen("EBITDA覆盖倍数", "悲观"), "倍", kind="x", decimals=2),
+    Fact("sens.coverage_high", "EBITDA覆盖倍数·乐观", _scen("EBITDA覆盖倍数", "乐观"), "倍", kind="x", decimals=2),
 
     # ── 口径对照：估值倍数怎么撬动结论（第 5 章要用）──
     Fact("sens.ev14", "增量价值 @运营14×", _sens("运营EV/EBITDA", "14×", "attributable_swap_value_yi"), "亿元"),

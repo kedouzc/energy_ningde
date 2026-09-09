@@ -64,6 +64,7 @@ def _build_core(
         t0 = scale.annual_catl_charge_gwh.get(y0, 0.0) + scale.annual_catl_swap_gwh.get(y0, 0.0)
         t1 = scale.annual_catl_charge_gwh.get(y1, 0.0) + scale.annual_catl_swap_gwh.get(y1, 0.0)
         bank = swap.rent_vehicle_gwh
+        station_bank = sum(p.station_battery_gwh for p in swap.pool_operations.values())
         market_share["cross_check_vs_national"] = {
             "national_power_install_gwh_2025": np25,
             "national_power_install_gwh_2030": np30,
@@ -73,9 +74,13 @@ def _build_core(
             "catl_modeled_share_of_national_2030": round(t1 / np30, 4) if np30 else None,
             "national_storage_install_gwh_2025": st25,
             "national_storage_install_gwh_2030": st30,
+            # 车端装机：参与电网调度的能力有限（电池在车上、不常驻站），只作注释。
             "swap_battery_bank_gwh": round(bank, 2),
-            "swap_battery_bank_share_of_national_storage_2025": round(bank / st25, 4) if st25 else None,
-            "swap_battery_bank_share_of_national_storage_2030": round(bank / st30, 4) if st30 else None,
+            # 站内周转装机：常驻站、可参与电网调度/储能，才是"分布式储能电网"的有效底数。
+            "swap_station_battery_gwh": round(station_bank, 2),
+            # 装机相当于多少储能：分子改用站内周转装机（车端装机的影响已在年换电量÷全社会用电量体现）。
+            "swap_station_battery_share_of_national_storage_2025": round(station_bank / st25, 4) if st25 else None,
+            "swap_station_battery_share_of_national_storage_2030": round(station_bank / st30, 4) if st30 else None,
         }
     # 全社会用电量：换电交易量（年换电量）的市场分母。换电网络的本质是分布式储能电网，
     # 所以交易量除了对储能装机，还要对全社会用电量做量级对照——两者单位统一为亿kWh。

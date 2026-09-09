@@ -1514,6 +1514,7 @@
     "annual_capital_requirement_yi": 644.5937495262465,
     "mature_annual_depreciation_yi": 342.4459640880685,
     "project_debt_yi": 2578.374998104986,
+    "external_equity_yi": 1031.3499992419945,
     "catl_lifecycle_equity_commitment_yi": 687.5666661613297,
     "catl_total_equity_call_yi": 447.5955076878396,
     "catl_peak_equity_call_yi": 105.25104713254142,
@@ -3831,8 +3832,9 @@
       "national_storage_install_gwh_2025": 351.0,
       "national_storage_install_gwh_2030": 780.0,
       "swap_battery_bank_gwh": 378.87,
-      "swap_battery_bank_share_of_national_storage_2025": 1.0794,
-      "swap_battery_bank_share_of_national_storage_2030": 0.4857
+      "swap_station_battery_gwh": 22.08,
+      "swap_station_battery_share_of_national_storage_2025": 0.0629,
+      "swap_station_battery_share_of_national_storage_2030": 0.0283
     },
     "cross_check_vs_society_electricity": {
       "national_society_electricity_yi_kwh_latest": 103682.0,

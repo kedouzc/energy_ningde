@@ -182,6 +182,7 @@ class CapexResult:
     annual_capital_requirement_yi: float
     mature_annual_depreciation_yi: float
     project_debt_yi: float
+    external_equity_yi: float
     catl_lifecycle_equity_commitment_yi: float
     catl_total_equity_call_yi: float
     catl_peak_equity_call_yi: float

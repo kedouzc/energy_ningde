@@ -699,6 +699,11 @@ def build_capex(
         annual_capital_requirement_yi=lifecycle_capital * crf,
         mature_annual_depreciation_yi=mature_depreciation,
         project_debt_yi=lifecycle_capital * finance["debt_ratio"],
+        external_equity_yi=(
+            lifecycle_capital
+            * (1.0 - finance["debt_ratio"])
+            * (1.0 - finance["construction_ownership"])
+        ),
         catl_lifecycle_equity_commitment_yi=(
             lifecycle_capital
             * (1.0 - finance["debt_ratio"])

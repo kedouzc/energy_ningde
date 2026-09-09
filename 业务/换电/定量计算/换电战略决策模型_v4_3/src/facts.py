@@ -329,6 +329,9 @@ F: list[Fact] = [
     Fact("q1.gwh_total", "换电电池总装机", _swap_gwh_total, "GWh",
          note="车端＋站内周转，按各年新增装机汇总"),
     Fact("q1.gwh_vehicle", "换电装机·车端", dig("swap_business.rent_vehicle_gwh"), "GWh"),
+    Fact("q1.gwh_station", "换电装机·站内周转",
+         lambda s: sum(p["station_battery_gwh"] for p in s["swap_business"]["pool_operations"].values()),
+         "GWh", mirror="ops.battery_station"),
     Fact("q1.energy", "年换电交易电量（成熟期）", dig("swap_business.annual_energy_yi_kwh"), "亿kWh"),
 
     # ── Q2 做透的代价 ────────────────────────────
@@ -341,6 +344,9 @@ F: list[Fact] = [
     Fact("q2.peak_year", "峰值年", dig("capex.peak_year"), "", kind="int", watch=1.0),
     Fact("q2.commitment", "CATL全周期权益承诺", dig("capex.catl_lifecycle_equity_commitment_yi"), "亿元"),
     Fact("q2.project_debt", "项目债务", dig("capex.project_debt_yi"), "亿元"),
+    Fact("q2.external_equity", "外部股权融资（合资方出资）", dig("capex.external_equity_yi"), "亿元",
+         mirror="capex.external_equity",
+         note="全周期资本底座×(1−债务比例)×(1−建站持股比例)；合资方/外部股权出资，不占 CATL 出资"),
 
     # ── Q3 换回的价值 ────────────────────────────
     Fact("q3.revenue", "换电业务年收入（成熟期）", dig("swap_business.revenue_yi"), "亿元"),
@@ -501,14 +507,14 @@ F: list[Fact] = [
          mirror="scale.stations_total"),
     # 占比一律**以百分数存储**（v=1.4 表示 1.4%），与 lab.METRICS 的 mk.* 完全同值——
     # 不用 kind="pct"（那会把 v 当成小数比值、渲染时再 ×100，与指标值差 100 倍）。
-    Fact("mk.share_storage_2025", "装机GWh / 最新储能装机",
+    Fact("mk.share_storage_2025", "站内装机GWh / 最新储能装机",
          lambda s: float(s["market_share"]["cross_check_vs_national"]
-                         ["swap_battery_bank_share_of_national_storage_2025"]) * 100.0,
+                         ["swap_station_battery_share_of_national_storage_2025"]) * 100.0,
          "%", kind="num", decimals=2, mirror="mk.share_storage_2025",
-         note="分子＝车端装机保有量 GWh；分母＝最新年度全国新型储能累计装机"),
-    Fact("mk.share_storage_2030", "装机GWh / 2030储能装机预测",
+         note="分子＝站内周转装机保有量 GWh（常驻站、可参与电网调度）；分母＝最新年度全国新型储能累计装机"),
+    Fact("mk.share_storage_2030", "站内装机GWh / 2030储能装机预测",
          lambda s: float(s["market_share"]["cross_check_vs_national"]
-                         ["swap_battery_bank_share_of_national_storage_2030"]) * 100.0,
+                         ["swap_station_battery_share_of_national_storage_2030"]) * 100.0,
          "%", kind="num", decimals=2, mirror="mk.share_storage_2030"),
     Fact("mk.share_elec_latest", "年换电量 / 最新年度全社会用电量",
          lambda s: float(s["market_share"]["cross_check_vs_society_electricity"]

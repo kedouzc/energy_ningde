@@ -497,12 +497,12 @@ METRICS: list[Metric] = [
     Metric("scale.stations_total", "终局站数合计", _stations_total, 0, "座", "①运营规模",
            note="四站型终局站数之和；= 重卡站 + 巧克力站"),
     # — ⑦ 市场地位：本业务的量对外部市场总量是什么量级（分母＝外部锚，见 model.market_share）—
-    Metric("mk.share_storage_2025", "装机GWh / 最新储能装机", _market_share(
-        "swap_battery_bank_share_of_national_storage_2025", "cross_check_vs_national"), 2, "%", "⑦市场地位",
-        note="分子＝车端装机保有量 GWh；分母＝最新年度全国新型储能累计装机（GWh，外部一手）"),
-    Metric("mk.share_storage_2030", "装机GWh / 2030储能装机预测", _market_share(
-        "swap_battery_bank_share_of_national_storage_2030", "cross_check_vs_national"), 2, "%", "⑦市场地位",
-        note="分母＝2030 全国新型储能装机预测（GWh，国务院文件推算，含经验假设折算）"),
+    Metric("mk.share_storage_2025", "站内装机GWh / 最新储能装机", _market_share(
+        "swap_station_battery_share_of_national_storage_2025", "cross_check_vs_national"), 2, "%", "⑦市场地位",
+        note="分子＝站内周转装机保有量 GWh（常驻站、可参与电网调度）；分母＝最新年度全国新型储能累计装机（GWh，外部一手）"),
+    Metric("mk.share_storage_2030", "站内装机GWh / 2030储能装机预测", _market_share(
+        "swap_station_battery_share_of_national_storage_2030", "cross_check_vs_national"), 2, "%", "⑦市场地位",
+        note="分子＝站内周转装机；分母＝2030 全国新型储能装机预测（GWh，国务院文件推算，含经验假设折算）"),
     Metric("mk.share_elec_latest", "年换电量 / 最新年度全社会用电量", _market_share(
         "swap_energy_share_of_society_electricity_latest", "cross_check_vs_society_electricity"), 3, "%",
         "⑦市场地位", note="分子＝成熟期年换电交易电量（亿kWh）；分母＝最新年度全社会用电量（亿kWh，一手）"),
@@ -554,6 +554,9 @@ METRICS: list[Metric] = [
            note="不折现的实际花钱总额；与现值口径 capex 初装/全周期不同源，不可混用"),
     Metric("capex.peak_year", "峰值年", lambda s: s.capex.peak_year, 0, "年", "③资本",
            note="CATL 单年权益出资最大的年份；配合 capex.peak_call 看资金吃紧程度"),
+    Metric("capex.external_equity", "外部股权融资（合资方出资）",
+           lambda s: s.capex.external_equity_yi, 1, "亿元", "③资本",
+           note="全周期资本底座 ×(1−债务比例)×(1−建站持股比例)；合资方/外部股权出资，不占 CATL 出资"),
     Metric("fund.peak_cash_to_cfo", "换电出资峰值/CFO", _peak_cash_to_cfo, 3, "倍", "⑥资金"),
     Metric("fund.closing_liquidity", "2030期末可动用资金", _closing_liquidity, 1, "亿元", "⑥资金"),
     Metric("fund.exposure", "待决战略敞口", lambda s: s.strategic_exposure_yi, 1, "亿元", "⑥资金"),

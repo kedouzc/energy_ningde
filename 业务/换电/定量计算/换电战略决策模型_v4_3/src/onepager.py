@@ -141,9 +141,10 @@ def check(groups, facts: dict, metric_values: dict) -> list[str]:
         problems.append(f"裸数字 第{lineno}行：{text}")
 
     # ② 占位符算不出来（含浏览器端取不到的键、不存在的 src.*）
+    #    指标 / 问题 也会渲染占位符（如 {{base.horizon_years}}），一并校验。
     for _title, _desc, rows in groups:
         for r in rows:
-            for f in TEXT_FIELDS:
+            for f in ("指标", "问题") + TEXT_FIELDS:
                 _out, unknown = inject_mod.inject(r[f], facts)
                 if unknown:
                     problems.append(f"占位符算不出来（{r.get('metric') or '无 metric'}·{f}）："
@@ -200,6 +201,14 @@ def tier_metric_values(cfg, drivers, keys: list[str]) -> dict[str, dict]:
     return out
 
 
+def render_field(facts: dict, text: str) -> str:
+    """用事实包渲染一个字段里的占位符；取不到的占位符原样返回（不静默丢弃）。"""
+    if not text:
+        return ""
+    rendered, unknown = inject_mod.inject(text, facts)
+    return rendered if not unknown else text
+
+
 def render_texts(facts: dict, groups) -> list[list[str]]:
     """把每行的三段判断文本用 facts 渲染一遍，返回 [[量级, 推翻, 锚], ...]（按行序）。"""
     out: list[list[str]] = []
@@ -207,8 +216,7 @@ def render_texts(facts: dict, groups) -> list[list[str]]:
         for r in rows:
             rendered = []
             for f in TEXT_FIELDS:
-                text, unknown = inject_mod.inject(r[f], facts)
-                rendered.append(text if not unknown else "")
+                rendered.append(render_field(facts, r[f]))
             out.append(rendered)
     return out
 
@@ -235,8 +243,8 @@ def payload() -> dict:
             m = METRIC_BY_KEY.get(r["metric"])
             out_rows.append({
                 "metric": r["metric"],
-                "label": r["指标"],
-                "q": r["问题"],
+                "label": render_field(facts, r["指标"]),
+                "q": render_field(facts, r["问题"]),
                 "unit": m.unit if m else "",
                 "decimals": m.decimals if m else 2,
                 "vals": [tiers[t].get(r["metric"]) for t in SCENARIO_ORDER],

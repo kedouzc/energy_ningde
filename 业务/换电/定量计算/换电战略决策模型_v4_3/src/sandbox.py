@@ -555,7 +555,7 @@ async function recomputeExact(over){
 
 function paintReadings(E, tag){
   currentE = E;
-  document.getElementById("readingTag").innerHTML = (tag || "");
+  const rt=document.getElementById("readingTag"); if(rt) rt.innerHTML=(tag||"");
   document.getElementById("metrics").innerHTML =
     '<h2>关键读数'+tag+'</h2><div class="grid">'+D.metrics.map(m=>{
       const v=E[m.key], d=m.decimals==null?2:m.decimals, up=v>=m.value;
@@ -585,8 +585,7 @@ function render(){
       if(r){
         paintReadings(r.metrics, " · 自定义（精确重跑，与一页纸同源）");
         renderOnePaperCurrent(r);          // 数值列 + 解释列一起用重跑结果刷新
-        const feas=document.getElementById("feas");
-        if(feas && !feas.classList.contains("hidden")) comboRefresh();   // 可行性视图用精确值重算
+        comboRefresh();   // 可行性视图用精确值重算（comboLive 未生成前 comboRefresh 自动 no-op）
       }
     }).catch(()=>{ _recompBusy = false; });
   }

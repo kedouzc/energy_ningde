@@ -252,10 +252,10 @@ def build_tree(c: Ctx) -> Node:
             N("ops.rev_rent", "电池租金收入", "亿元",
               lambda c: c.m("swap_business.battery_rent_yi"),
               "计费装机 × 单位装机年租金",
-              combine=lambda g, rate: g * rate / 100.0,
+              combine=lambda g, rate: g * rate * 12.0 / 100.0,   # 配置值是月租，年租 = ×12
               children=[rent_gwh,
-                        P("ops.rent_rate", "单位装机年租金", "元/kWh·年",
-                          "swap_business.battery_rent_rmb_kwh_year")]),
+                        P("ops.rent_rate", "单位装机月租金", "元/kWh·月",
+                          "swap_business.battery_rent_rmb_kwh_month")]),
             N("ops.rev_arb", "峰谷套利收入", "亿元",
               lambda c: c.m("swap_business.arbitrage_yi"),
               "站内周转装机 × 运营天数 × 峰谷价差 × 站效率",

@@ -9,13 +9,73 @@ Excel 里这件事由"追踪引用单元格/从属单元格"解决；本模块�
 
 血缘关系因此不是人工登记的注释，而是每次跑出来的真值，模型改版不会失效。
 
-命令
-----
-    python src/lab.py list                      列出全部可调数值参数（值 + 一句话理由 + 锚点）
-    python src/lab.py impact <参数路径> <新值>   改这一个参数，看所有指标怎么动
-    python src/lab.py impact <参数路径> +10%     同上，按相对幅度调
-    python src/lab.py lineage <指标键>           追溯：哪些参数在影响这个指标、影响多大
-    python src/lab.py scan                      全参数扫描 → 敏感性矩阵 + 关键参数排序
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+一、数据流：先看懂这个，再看任何一行代码
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    configs/base.toml  ──►  src/model.py  ──►  outputs/（报告·决策树·一页纸·血缘表）
+    ★全部数字都在这        ★只跑逻辑，
+     参数值 / 情景档位       不含任何业务数字
+     不可调名单 / 微扰幅度
+              │
+              └──►  src/lab.py（本文件）：把 model 反复重跑，
+                    用"实测"回答"谁影响了谁、影响多大"
+
+**分工原则（最重要的一条）**：
+    base.toml  = 你改数字的地方（唯一事实源）
+    src/*.py   = 程序跑逻辑的地方（里面不该有业务数字）
+
+所以：**调参数、改情景档位、加减不可调项 —— 全部去 base.toml，不要动 Python。**
+本文件里剩下的数字只是"怎么量"的方法参数（微扰幅度 step），而且它**也已经提到
+base.toml 的 [sensitivity] 段**了。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+二、两个"幅度"千万别搞混（最容易踩的坑）
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ┌──────────┬─────────────────────────┬───────────────────────────┐
+  │          │ ① 微扰幅度 step         │ ② 情景档位（drivers）      │
+  ├──────────┼─────────────────────────┼───────────────────────────┤
+  │ 在哪设    │ base.toml [sensitivity] │ base.toml [drivers.xxx]   │
+  │          │ .step（默认 0.10）       │ 的 悲观/中性/乐观 三档      │
+  ├──────────┼─────────────────────────┼───────────────────────────┤
+  │ 干什么用  │ **测量**：轻轻推一下参数 │ **判断**：你认为世界会变成 │
+  │          │ ，量它有多敏感（是尺子） │ 什么样，这条轴该摆多远     │
+  ├──────────┼─────────────────────────┼───────────────────────────┤
+  │ 谁定      │ 程序默认，一般不用改     │ **你定** ← 这才要校准      │
+  └──────────┴─────────────────────────┴───────────────────────────┘
+
+  例：step=0.10 = "把每个参数单独 +10%，看指标变化百分之几"。
+  它是**尺子不是预测**——改大改小只影响灵敏度读数的精度，不改变谁重要谁不重要的排序。
+  而"±15% 怎么校准"（review-plan §3.6 那条）说的是 **②情景档位**，
+  要去 base.toml 的 [drivers.commercial_nev_penetration] / [drivers.catl_swap_share] 改，
+  跟 step 无关。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+三、命令（从最常用开始）
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    python src/run.py                     ★一键出全部（报告+血缘+决策树+一页纸）
+    python src/lab.py scan                谁最能撬动换电增量价值（看【表 0】【表 1】）
+    python src/lab.py workbook            生成 outputs/换电模型_参数与血缘_v4.3.xlsx
+    python src/lab.py impact <参数> +10%  改这一个参数，看所有结果怎么动
+    python src/lab.py lineage <指标键>    这个结果由谁决定
+    python src/lab.py list                全部可调参数（值 + 为什么这么假设）
+
+    scan / workbook 后可加 `--step 0.2` 临时换微扰幅度（不用改 base.toml）。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+四、弹性怎么读
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    弹性 = （指标变化百分之几） ÷ （参数变化百分之几）
+
+    +1.00 → 参数涨 10%、指标涨 10%（同比例）
+    -1.50 → 参数涨 10%、指标跌 15%（放大且反向）
+     0.00 → 这个参数根本没进这条链，调它不影响该结果
+
+「总影响力」只取它对**最终投资指标** val.swap_increment（换电增量价值）的弹性，
+不做多项加总——理由见下方"口径修正"。
 
 输出一律 UTF-8；所有列表先打印"怎么用"再打印结果。
 
@@ -50,6 +110,7 @@ lab 的「漏网的轴」审计（弹性大却没进轴）只是提醒人去拍�
 from __future__ import annotations
 
 import copy
+import fnmatch
 import re
 import sys
 import time
@@ -61,8 +122,17 @@ if hasattr(sys.stdout, "reconfigure"):
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from config_loader import DEFAULT_CONFIG, ROOT, load_config  # noqa: E402
-from model import _build_core  # noqa: E402
+from config_loader import (  # noqa: E402
+    DEFAULT_CONFIG,
+    ROOT,
+    SCENARIO_ORDER,
+    _SKIP_SECTIONS,
+    _scene_name,
+    apply_scenario,
+    load_config,
+    load_drivers,
+)
+from model import _build_core, build_model  # noqa: E402
 from schemas import ModelSnapshot  # noqa: E402
 
 try:
@@ -95,18 +165,7 @@ else:
 # 一、参数路径工具（支持 "vehicles.heavy.battery_kwh" 这类点分路径）
 # ══════════════════════════════════════════════════════════════════════
 
-_SKIP_SECTIONS = (
-    "sources",              # 全是 URL
-    "capital_commitments",  # 交易台账，非可调假设
-    "mna.scenarios",        # 情景卡片，整体切换而非逐参数调
-    "drivers",              # 情景档位声明，只被 tree/run 读；不是可调假设
-                            # （改它不影响模型，进扫描只会污染"漏网的轴"审计）
-    "sensitivity",          # 扫描自身的配置（不可调名单），不是模型假设
-    "nio_reference",        # 参照公司事实数据
-    "reits_reference",
-    "qiyuan_reference",
-    "battery_life_model.legacy_v32",  # 遗留对照口径
-)
+DEFAULT_STEP = 0.10   # 微扰幅度兜底值；优先读 base.toml [sensitivity].step
 
 
 def get_path(config: dict, path: str) -> Any:
@@ -148,6 +207,20 @@ def _perturb(old: Any, step: float) -> Any:
     return step if abs(old) < 1e-12 else old * (1.0 + step)
 
 
+def sensitivity_step(config: dict) -> float:
+    """敏感性微扰幅度：base.toml [sensitivity].perturb，缺省 DEFAULT_STEP。
+
+    ★ 这是"测量用的尺子"，**不是**情景档位，也**不是**滑块步长：
+      情景档位在 [drivers.*] 的悲观/中性/乐观；滑块步长是 [drivers.*].step。
+    """
+    sens = config.get("sensitivity") or {}
+    value = sens.get("perturb", sens.get("step"))   # 旧名 step 仍兼容
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return DEFAULT_STEP
+
+
 def _not_adjustable(config: dict) -> set[str]:
     """「不可调事实常量」名单（base.toml [sensitivity].not_adjustable）。
 
@@ -159,18 +232,32 @@ def _not_adjustable(config: dict) -> set[str]:
 
 
 def _is_excluded(path: str, excluded: set[str]) -> bool:
-    return any(path == p or path.startswith(p + ".") for p in excluded)
+    """精确前缀匹配 + 通配匹配（not_adjustable 支持 "vehicles.*.scenes.*.weight"）。
+
+    —不是可调假设的量（权重合计恒为 1、车型物理参数）不必逐个抄路径。
+    """
+    def hit(pattern: str) -> bool:
+        if "*" in pattern or "?" in pattern:
+            return fnmatch.fnmatchcase(path, pattern)
+        return path == pattern or path.startswith(pattern + ".")
+
+    return any(hit(p) for p in excluded)
 
 
-def iter_numeric_params(config: dict, include_arrays: bool = False) -> list[tuple[str, Any]]:
+def iter_numeric_params(
+    config: dict, include_arrays: bool = False, also: tuple[str, ...] = ()
+) -> list[tuple[str, Any]]:
     """扁平列出全部可调的数值参数，跳过开关/字符串/URL/事实台账/不可调名单。
 
     · 对象数组（scenes）会带下标展开 → 场景级参数（换电渗透率/CATL 市占率）可见可扫。
     · include_arrays=True 时额外纳入"数值数组型"参数（如 nev_rates 渗透率 S 曲线），
       语义＝整条曲线同比平移（与 [drivers] 的 relative 同义）。这类只进扫描，
       不进 01_假设参数/trial/commit——Excel 单格放不下一条曲线。
+    · also：把这些段从 _SKIP_SECTIONS 临时捞出（如沙盘给 charge_share 测弹性）；
+      敏感性扫描不传它——情景轴仍不当自由旋钮。
     """
     excluded = _not_adjustable(config)
+    skip = tuple(s for s in _SKIP_SECTIONS if s not in also)
     out: list[tuple[str, Any]] = []
 
     def walk(prefix: str, node: Any) -> None:
@@ -182,7 +269,12 @@ def iter_numeric_params(config: dict, include_arrays: bool = False) -> list[tupl
                 isinstance(x, (int, float)) and not isinstance(x, bool) for x in node
             )
             if numeric:
-                if include_arrays and not _is_excluded(prefix, excluded):
+                # 数组分支也必须过 _SKIP_SECTIONS——否则 [param_bounds] 的
+                # [min, max] 会被当成"可调参数"混进扫描（它是元数据不是参数）
+                if (include_arrays
+                        and not _is_excluded(prefix, excluded)
+                        and not any(prefix == s or prefix.startswith(s + ".")
+                                    for s in skip)):
                     out.append((prefix, [float(x) for x in node]))
                 return
             for i, child in enumerate(node):
@@ -192,7 +284,7 @@ def iter_numeric_params(config: dict, include_arrays: bool = False) -> list[tupl
         elif isinstance(node, (int, float)):
             if _is_excluded(prefix, excluded):
                 return
-            if any(prefix == s or prefix.startswith(s + ".") for s in _SKIP_SECTIONS):
+            if any(prefix == s or prefix.startswith(s + ".") for s in skip):
                 return
             out.append((prefix, float(node)))
 
@@ -269,14 +361,26 @@ def load_param_docs(path: Path = DEFAULT_CONFIG) -> dict[str, dict[str, str]]:
 
 
 class Metric:
+    """结果注册表的一项。
+
+    **本表是结果层的唯一注册表**（2026-09-09 升格）：沙盘顶部读数、三道门、可行性验证、
+    敏感性矩阵、血缘 Excel、一页纸的数值列，全部经 `read_metrics()` 从本表取数——
+    **下游不得再各自写一条取数路径**（同一个量在 lab / facts / tree / report 各登记一遍，
+    就是"一个数字两个出处"的根因）。新增可对外引用的结果，一律先在这里登记。
+
+    note＝口径说明：写清它是什么口径、与谁的区别（存量/流量、100%/归属、现值/名义），
+    免得下游按自己的理解复用。
+    """
+
     def __init__(self, key: str, label: str, getter: Callable[[ModelSnapshot], float],
-                 decimals: int = 1, unit: str = "", group: str = ""):
+                 decimals: int = 1, unit: str = "", group: str = "", note: str = ""):
         self.key = key
         self.label = label
         self.getter = getter
         self.decimals = decimals
         self.unit = unit
         self.group = group
+        self.note = note
 
 
 def _daily_swaps_wan(s: ModelSnapshot) -> float:
@@ -328,6 +432,27 @@ def _battery_stock_total(s: ModelSnapshot) -> float:
     return s.swap_business.rent_vehicle_gwh + _station_battery_gwh(s)
 
 
+def _market_share(field: str, block: str, pct: bool = True) -> Callable[[ModelSnapshot], float]:
+    """从快照的 market_share 里取一个占比（分母是外部市场总量，已在 model.py 算好）。
+
+    分母（储能装机、全社会用电量）来自 config，model.py 已把它们算进
+    `market_share` —— 这里只做登记，不在 lab 里重算第二遍（避免第二个口径）。
+    pct=True 时返回百分数（便于展示），否则返回小数比值。
+    """
+
+    def get(s: ModelSnapshot) -> float:
+        raw = (s.market_share.get(block) or {}).get(field)
+        if raw is None:
+            return float("nan")
+        return float(raw) * 100.0 if pct else float(raw)
+
+    return get
+
+
+def _stations_total(s: ModelSnapshot) -> float:
+    return float(sum(s.scale.target_station_demand.values()))
+
+
 METRICS: list[Metric] = [
     # — ① 运营业务规模（存量口径：终局在役多少、网络多大）—
     Metric("ops.veh_commercial", "终局覆盖·商用营运车(重卡+城配)", _stock_vehicles(_COMMERCIAL), 1, "万辆", "①运营规模"),
@@ -369,6 +494,66 @@ METRICS: list[Metric] = [
     Metric("val.swap_increment", "换电增量价值合计", lambda s: s.ledger.total_swap_increment_value_yi, 1, "亿元", "⑤估值"),
     Metric("val.incr_over_mktcap", "增量价值/集团市值", lambda s: s.ledger.attributable_swap_value_to_current_group_market_cap, 4, "倍", "⑤估值"),
     # — 资金层 —
+    Metric("scale.stations_total", "终局站数合计", _stations_total, 0, "座", "①运营规模",
+           note="四站型终局站数之和；= 重卡站 + 巧克力站"),
+    # — ⑦ 市场地位：本业务的量对外部市场总量是什么量级（分母＝外部锚，见 model.market_share）—
+    Metric("mk.share_storage_2025", "装机GWh / 最新储能装机", _market_share(
+        "swap_battery_bank_share_of_national_storage_2025", "cross_check_vs_national"), 2, "%", "⑦市场地位",
+        note="分子＝车端装机保有量 GWh；分母＝最新年度全国新型储能累计装机（GWh，外部一手）"),
+    Metric("mk.share_storage_2030", "装机GWh / 2030储能装机预测", _market_share(
+        "swap_battery_bank_share_of_national_storage_2030", "cross_check_vs_national"), 2, "%", "⑦市场地位",
+        note="分母＝2030 全国新型储能装机预测（GWh，国务院文件推算，含经验假设折算）"),
+    Metric("mk.share_elec_latest", "年换电量 / 最新年度全社会用电量", _market_share(
+        "swap_energy_share_of_society_electricity_latest", "cross_check_vs_society_electricity"), 3, "%",
+        "⑦市场地位", note="分子＝成熟期年换电交易电量（亿kWh）；分母＝最新年度全社会用电量（亿kWh，一手）"),
+    Metric("mk.share_elec_2030", "年换电量 / 2030全社会用电量预测", _market_share(
+        "swap_energy_share_of_society_electricity_2030", "cross_check_vs_society_electricity"), 3, "%",
+        "⑦市场地位", note="分母＝2030 全社会用电量预测（亿kWh，国网能源院口径，二手转引）"),
+    # — 估值：业务整体（100%）与归属股东（×持股）必须成对看 —
+    Metric("val.op_ev_multiple", "运营企业价值 EV（倍数法，100%口径）",
+           lambda s: s.swap_business.enterprise_value_yi, 1, "亿元", "⑤估值",
+           note="EBITDA × 拍定 EV/EBITDA；未扣债、未乘持股比例＝业务整体口径"),
+    Metric("val.op_equity_gross", "运营项目权益价值（100%口径）",
+           lambda s: s.swap_business.project_equity_value_yi, 1, "亿元", "⑤估值",
+           note="= EV − 稳态债务；未乘持股比例。归属股东口径见 swap.operating_value"),
+    Metric("val.ev_dcf_true", "DCF内在价值·有限期EV",
+           lambda s: s.swap_business.dcf_ev_true_yi, 1, "亿元", "⑤估值",
+           note="15 年有限期、毛现金流资本化；不含 2030 年后规模增长"),
+    Metric("val.ev_dcf_perpetual", "DCF内在价值·永续EV",
+           lambda s: s.swap_business.dcf_ev_perpetual_yi, 1, "亿元", "⑤估值",
+           note="规模冻结在 2030 的永续账：模型内的上限、真实世界的下限"),
+    Metric("val.catl_dcf_true", "CATL归属·DCF有限期",
+           lambda s: s.swap_business.dcf_catl_value_true_yi, 1, "亿元", "⑤估值",
+           note="= max(0, 有限期EV + 期末残值 − 稳态债务) × 持股比例"),
+    Metric("val.catl_dcf_perpetual", "CATL归属·DCF永续",
+           lambda s: s.swap_business.dcf_catl_value_perpetual_yi, 1, "亿元", "⑤估值",
+           note="= max(0, 永续EV − 稳态债务) × 持股比例"),
+    Metric("val.mfg_increment", "制造侧增量价值",
+           lambda s: s.ledger.full_manufacturing_scenario_gap_value_yi, 1, "亿元", "⑤估值",
+           note="有换电制造净利 − 无换电制造净利，再 × 制造PE；悲观可为负（虹吸大于锁量）"),
+    Metric("val.increment_np", "合并增量净利润",
+           lambda s: s.ledger.total_swap_increment_net_profit_yi, 1, "亿元", "⑤估值",
+           note="运营 + 制造两侧的净利影响合计（区别于价值口径 val.swap_increment）"),
+    Metric("val.increment_gross", "合并增量价值（业务整体）",
+           lambda s: (s.swap_business.project_equity_value_yi
+                      + s.ledger.full_manufacturing_scenario_gap_value_yi), 1, "亿元", "⑤估值",
+           note="运营项目权益（100%）+ 制造增量价值；归属股东口径见 val.swap_increment"),
+    # — 运营财务：净利润（EBITDA 强正但折旧≈EBITDA，会计净利可能为负，是重资本基建常态）—
+    Metric("swap.net_profit", "运营净利润（项目100%口径）",
+           lambda s: s.swap_business.project_net_profit_yi, 1, "亿元", "④运营财务",
+           note="分池计税、亏损池不产生跨池税盾；故合计可能为负"),
+    Metric("swap.catl_net_profit", "运营净利润（CATL归属）",
+           lambda s: s.swap_business.catl_attributable_net_profit_yi, 1, "亿元", "④运营财务",
+           note="= 项目净利润 × 建站持股比例"),
+    # — 资本：名义口径与峰值年（代价那层要"花了多少钱、哪年最吃紧"）—
+    Metric("capex.lifecycle_base", "全周期资本底座（现值）",
+           lambda s: s.capex.lifecycle_capital_base_yi, 1, "亿元", "③资本",
+           note="初装 + 全周期电池更新净额（折现）；门槛口径，与估值口径 valuation_capital_pv 不同源"),
+    Metric("capex.nominal_total", "名义累计投入（不折现）",
+           lambda s: s.capex.nominal_total_capex_yi, 1, "亿元", "③资本",
+           note="不折现的实际花钱总额；与现值口径 capex 初装/全周期不同源，不可混用"),
+    Metric("capex.peak_year", "峰值年", lambda s: s.capex.peak_year, 0, "年", "③资本",
+           note="CATL 单年权益出资最大的年份；配合 capex.peak_call 看资金吃紧程度"),
     Metric("fund.peak_cash_to_cfo", "换电出资峰值/CFO", _peak_cash_to_cfo, 3, "倍", "⑥资金"),
     Metric("fund.closing_liquidity", "2030期末可动用资金", _closing_liquidity, 1, "亿元", "⑥资金"),
     Metric("fund.exposure", "待决战略敞口", lambda s: s.strategic_exposure_yi, 1, "亿元", "⑥资金"),
@@ -391,11 +576,8 @@ def read_metrics(snapshot: ModelSnapshot) -> dict[str, float]:
 # 四、重跑：只跑核心链（不含并购对比与内置敏感性，故快）
 # ══════════════════════════════════════════════════════════════════════
 
-_BASE_PRIVATE_SCENARIO = "中枢"
-
-
 def rerun(config: dict, scenario_name: str | None = None) -> ModelSnapshot:
-    return _build_core(config, scenario_name, _BASE_PRIVATE_SCENARIO, "derived")
+    return _build_core(config, scenario_name, "derived")
 
 
 def perturbed(config: dict, path: str, factor: float | None = None,
@@ -562,18 +744,138 @@ def cmd_lineage(config: dict, base_values: dict[str, float], metric_key: str,
     print("弹性读法：+1.00 = 参数涨 10%、指标涨 10%；0.00 = 该参数根本没进这条链。")
 
 
+def _is_pair(v) -> bool:
+    return isinstance(v, (list, tuple)) and len(v) == 2
+
+
+def _pair(v) -> list[float]:
+    return [float(v[0]), float(v[1])]
+
+
+def param_bounds_dict(config: dict) -> dict[str, list[float]]:
+    """合并所有「可选区间」：情景轴参数从 [drivers.*].bounds 取，
+    非情景轴参数从 [param_bounds."路径"].bounds 取。供沙盘滑块/反解约束用。
+
+    ★ 相对轴（mode="relative"）的 bounds 是**乘数**的允许范围，不是取值区间
+    （见 base.toml [drivers] 段头注释）。必须按「取值 = 基线 × 乘数」换算后再用，
+    否则沙盘会把「换电渗透率」的滑块直接设成 [0.5, 1.5]——既能拖到 150%，
+    又把现值 0.30 卡在滑块下限之下被静默 clamp。换算后再受该轴 cap 约束。
+    """
+    out: dict[str, list[float]] = {}
+    for spec in config.get("drivers", {}).values():
+        b = spec.get("bounds")
+        if not _is_pair(b):
+            continue
+        lo_m, hi_m = _pair(b)
+        cap = spec.get("cap")
+        for path in spec.get("targets", [spec.get("target")]):
+            if not path:
+                continue
+            if spec.get("mode") != "relative":
+                out[path] = [lo_m, hi_m]      # 绝对模式：bounds 就是取值区间
+                continue
+            try:
+                base = _cfg_get(config, path)
+            except (KeyError, IndexError, TypeError):
+                continue
+            if isinstance(base, list) or not isinstance(base, (int, float)):
+                continue          # 数组型（S 曲线）不进滑块，不设区间
+            lo, hi = base * lo_m, base * hi_m
+            if cap is not None:
+                hi = min(hi, float(cap))
+            if hi <= lo:
+                continue          # 基线为 0（如城配低频）→ 区间退化，不设
+            out[path] = [lo, hi]
+    # 向量型轴（三档是 dict，如 charge_share／private_penetration）：没有 bounds 声明，
+    # 区间直接取三档分量的 [最小, 最大]——沙盘滑块即可在三档之间连续取值。
+    for spec in config.get("drivers", {}).values():
+        tiers = [spec.get(t) for t in SCENARIO_ORDER]
+        if not all(isinstance(t, dict) for t in tiers):
+            continue
+        b = spec.get("bounds")
+        for path in spec.get("targets", []):
+            if _is_pair(b):                    # 向量轴也可直接声明区间（如私家车渗透率 [0,1]）
+                out[path] = _pair(b)
+                continue
+            key = _scene_name(config, path) or path.split(".")[-1]
+            try:
+                comps = [t[key] for t in tiers]
+            except KeyError:
+                continue
+            lo, hi = min(comps), max(comps)
+            if hi > lo:
+                out[path] = [lo, hi]
+    # 场景级结构边界：权重/渗透率/份额天然在 [0,1]（同车型权重和恒为 1，
+    # 余下场景自动倒扣——联动在沙盘里做）。驱动轴算出的区间优先，故用 setdefault。
+    for vkey, vspec in (config.get("vehicles") or {}).items():
+        if not isinstance(vspec, dict):
+            continue
+        for i in range(len(vspec.get("scenes") or [])):
+            base = f"vehicles.{vkey}.scenes.{i}."
+            out.setdefault(base + "weight", [0.0, 1.0])
+            out.setdefault(base + "swap_penetration", [0.0, 1.0])
+            out.setdefault(base + "catl_swap_share", [0.0, 1.0])
+    for path, spec in (config.get("param_bounds") or {}).items():
+        if isinstance(spec, dict):
+            b = spec.get("bounds")
+            if _is_pair(b):
+                out[path] = _pair(b)
+        elif _is_pair(spec):
+            out[path] = _pair(spec)
+    return out
+
+
+def param_cn_dict(config: dict) -> dict[str, str]:
+    """参数路径 → 中文名（从 [drivers.*].cn 与 [param_bounds."路径"].cn 合并）。"""
+    out: dict[str, str] = {}
+    for spec in config.get("drivers", {}).values():
+        cn = spec.get("cn")
+        if cn:
+            for path in spec.get("targets", [spec.get("target")]):
+                if path:
+                    out[path] = cn
+    for path, spec in (config.get("param_bounds") or {}).items():
+        if isinstance(spec, dict) and spec.get("cn"):
+            out[path] = spec["cn"]
+    return out
+
+
+def scene_label_map(config: dict) -> dict[str, str]:
+    """「vehicles.<车型>.scenes.<下标>」→「车型·场景」中文名。
+
+    场景级参数在沙盘/工作簿里显示为 vehicles.heavy.scenes.0.swap_penetration，
+    光看下标 0/1/2 不知道是短途还是长途。这里把下标换成场景自己的 name
+    （重卡·短途 / 重卡·中途 / 重卡·长途 / 城配物流·高频 …），全车型统一。
+    """
+    out: dict[str, str] = {}
+    for vkey, vspec in (config.get("vehicles") or {}).items():
+        if not isinstance(vspec, dict):
+            continue
+        vlabel = vspec.get("label") or vkey
+        for i, scene in enumerate(vspec.get("scenes") or []):
+            if isinstance(scene, dict) and scene.get("name"):
+                name = scene["name"]
+                # 单车单场景（出租车/网约车/Robotaxi）会出现「出租车·出租车」，去重
+                out[f"vehicles.{vkey}.scenes.{i}"] = (
+                    vlabel if name == vlabel else f"{vlabel}·{name}"
+                )
+    return out
+
+
 def compute_elasticity(
     config: dict,
     base_values: dict[str, float],
     step: float = 0.10,
     quiet: bool = True,
+    also: tuple[str, ...] = (),
 ) -> dict[str, dict[str, float]]:
     """逐个参数单独微扰、重跑、比对——用实测得出完整的「参数 × 指标」血缘矩阵。
 
     不解析代码、不登记公式：模型改版后重跑即得新血缘，永远不会和代码脱钩。
     触发模型硬约束（assert）的参数记为 {} ——那不是错误，是模型在说它不能单独这么调。
+    also：透传给 iter_numeric_params（沙盘要测 charge_share 的弹性）。
     """
-    params = iter_numeric_params(config, include_arrays=True)
+    params = iter_numeric_params(config, include_arrays=True, also=also)
     elasticity: dict[str, dict[str, float]] = {}
     t0 = time.time()
     for index, (path, old) in enumerate(params, 1):
@@ -596,20 +898,22 @@ def compute_elasticity(
     return elasticity
 
 
-def compute_axis_leverage(
+def compute_axis_matrix(
     config: dict,
     base_values: dict[str, float],
     step: float = 0.10,
-) -> dict[str, float]:
-    """轴级敏感性：把一条 [drivers] 轴的全部 targets **一起** +step，看增量价值怎么动。
+) -> dict[str, dict[str, float]]:
+    """轴级敏感性：把一条 [drivers] 轴的全部 targets **一起** +step，返回「轴 × 指标」弹性矩阵。
 
     为什么单参数表里看不出「车辆规模」：轴是"一组参数同时平移"（如
     commercial_swap_share 同时动 5 个场景的换电渗透率），而单参数扫描一次只动一个
-    参数，单个场景的渗透率弹性当然很小。这张表补的正是「整条轴的合力」。
+    参数，单个场景的渗透率弹性当然很小。这里补的正是「整条轴的合力」，
+    而且是**全指标**的——不只告诉你增量价值变多少，还告诉你收入/EBITDA/装机/站数
+    各被动了多少，用来挑出"最该跟踪的那几个指标"。
     """
     from config_loader import load_drivers  # 局部导入，避免与顶层 import 重复
 
-    out: dict[str, float] = {}
+    out: dict[str, dict[str, float]] = {}   # 轴 → {指标键: 弹性}
     for name, spec in load_drivers(config).items():
         if "pass_as" in spec:
             continue
@@ -617,8 +921,8 @@ def compute_axis_leverage(
         if not targets:
             continue
         cap = spec.get("cap")
-        # 档位选择器型 target（如 charge_share.scenario 取值是"悲观/中性/乐观"字符串）
-        # 对它做 +10% 乘法没有意义——它不是数字旋钮。跳过它、只摆其余数值 target。
+        # 非数值型 target（如字符串档位选择器）跳过——它不是数字旋钮。
+        # charge_share 已是数值型逐车型活值，正常走下方 +step 扰动。
         new_config = copy.deepcopy(config)
         used = 0
         try:
@@ -635,15 +939,103 @@ def compute_axis_leverage(
                 set_path(new_config, t, val)
                 used += 1
             if not used:
-                out[name] = float("nan")  # 纯档位选择器，无数值旋钮可摆
+                out[name] = {}  # 纯档位选择器，无数值旋钮可摆
                 continue
             values = read_metrics(rerun(new_config))
         except Exception:  # noqa: BLE001  # 触发模型硬约束的轴记为不可算
-            out[name] = float("nan")
+            out[name] = {}
             continue
-        before, after = base_values[INFLUENCE_ANCHOR], values[INFLUENCE_ANCHOR]
-        out[name] = ((after - before) / before) / step if before else 0.0
+        row: dict[str, float] = {}
+        for metric in METRICS:
+            before, after = base_values[metric.key], values[metric.key]
+            if before != before or after != after:  # NaN 跳过
+                continue
+            row[metric.key] = (((after - before) / before) / step) if before else 0.0
+        out[name] = row
     return out
+
+
+def compute_axis_leverage(config: dict, base_values: dict[str, float],
+                          step: float = 0.10) -> dict[str, float]:
+    """每条轴对「最终投资指标」的杠杆（＝轴级矩阵的锚点那一列），供排序用。"""
+    return {
+        name: abs(row.get(INFLUENCE_ANCHOR, float("nan")))
+        for name, row in compute_axis_matrix(config, base_values, step).items()
+    }
+
+
+def axis_tier_effect(config: dict, drivers: dict, neutral_kwargs: dict,
+                     base_values: dict) -> list[tuple]:
+    """每条轴**单独**摆到悲观/乐观档（其余轴保持中性），实测各指标变了多少。
+
+    与 03_敏感性矩阵同族：那边是"单参数 × 指标"的弹性，这里是"整条轴 × 指标"的
+    **真实档位影响**。回答："这条轴调到乐观，增量价值多多少？收入/EBITDA 各变多少？"
+    """
+    rows: list[tuple] = []
+    for name, spec in drivers.items():
+        for tier in ("悲观", "乐观"):
+            cfg = copy.deepcopy(config)
+            kw = dict(neutral_kwargs)
+            try:
+                kw.update(apply_scenario(cfg, {name: spec}, tier))
+                values = read_metrics(build_model(cfg, **kw))
+            except Exception:  # noqa: BLE001
+                continue
+            d_abs = values.get(INFLUENCE_ANCHOR, 0.0) - base_values.get(INFLUENCE_ANCHOR, 0.0)
+            d_pct = {}
+            for m in METRICS:
+                b, a = base_values.get(m.key), values.get(m.key)
+                if b is None or a is None or b != b or a != a or not b:
+                    continue
+                d_pct[m.key] = (a - b) / b
+            rows.append((name, tier, _tier_text(spec, tier), d_abs, d_pct))
+    return rows
+
+
+def _tier_text(spec: dict, tier: str) -> str:
+    v = spec.get(tier)
+    if spec.get("mode") == "relative":
+        return f"×{v}"
+    if "pass_as" in spec:
+        return f"→ {v}"
+    # 注意：不能以 "=" 开头——Excel 会当成公式，读回来是空值
+    return f"定档 {v}"
+
+
+def export_axis_sheet(wb, axis_rows) -> None:
+    """03b：轴级影响 —— 一条轴整体摆档后，各指标实际变了多少（放 03 旁边，同族同址）。"""
+    from openpyxl.formatting.rule import ColorScaleRule
+    from openpyxl.styles import Alignment, Font, PatternFill
+    from openpyxl.utils import get_column_letter
+
+    # 与 03_敏感性矩阵同族同址：物理位置也紧跟在它后面
+    titles = wb.sheetnames
+    idx = titles.index("03_敏感性矩阵") + 1 if "03_敏感性矩阵" in titles else None
+    ws = wb.create_sheet("03b_轴级影响（整条轴一起摆）", idx)
+    head = ["情景轴", "档位", "档位取值", "换电增量价值 Δ(亿元)",
+            *[m.label + " Δ%" for m in METRICS]]
+    ws.append(head)
+    for cell in ws[1]:
+        cell.font = Font(bold=True, size=10)
+        cell.fill = PatternFill("solid", fgColor="EFF0F3")
+        cell.alignment = Alignment(vertical="center", wrap_text=True)
+
+    for name, tier, tier_text, d_abs, d_pct in axis_rows:
+        ws.append([name, tier, tier_text, round(d_abs, 2),
+                   *[round(d_pct.get(m.key, 0.0) * 100, 2) for m in METRICS]])
+
+    ws.freeze_panes = "E2"
+    for i, w in enumerate([26, 8, 12, 20, *[13] * len(METRICS)], 1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+    last = get_column_letter(4 + len(METRICS))
+    ws.conditional_formatting.add(
+        f"E2:{last}{ws.max_row}",
+        ColorScaleRule(start_type="min", start_color="F8CBAD",
+                       mid_type="num", mid_value=0, mid_color="FFFFFF",
+                       end_type="max", end_color="C6E0B4"))
+    for row in ws.iter_rows(min_row=2):
+        for cell in row:
+            cell.alignment = Alignment(vertical="top", wrap_text=(cell.column <= 3))
 
 
 # 总影响力口径（问题1修正）：只算「估值相关终端指标」，排除物理中间量(①运营规模/②制造出货)
@@ -960,8 +1352,16 @@ def cmd_workbook(config: dict, base_values: dict[str, float], step: float = 0.10
         print(f"\n⚠ 目标文件被占用（多半是 Excel 正打开它），已改写到：\n  {fallback}")
         print("  关闭 Excel 里的旧文件后重新运行本命令，即可覆盖回原文件名。")
         return
+    # ── Sheet 03b：轴级影响（与 03 同族：都是「× 指标」矩阵，
+    #    只是一个是单参数粒度、一个是整条轴粒度，故必须放同一个工作簿）
+    _cfg = load_config()
+    _drv = load_drivers(_cfg)
+    _nk = apply_scenario(_cfg, _drv, "中性")
+    export_axis_sheet(wb, axis_tier_effect(
+        _cfg, _drv, _nk, read_metrics(build_model(_cfg, **_nk))))
+
     print(f"\n已生成：{xlsx_path}")
-    print("  00_怎么用 / 01_假设参数 / 02_结果总表 / 03_敏感性矩阵 / 04_溯源 / 05_影响")
+    print("  00_怎么用 / 01_假设参数 / 02_结果总表 / 03_敏感性矩阵 / 03b_轴级影响 / 04_溯源 / 05_影响")
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -1241,6 +1641,79 @@ USAGE = """用法：
 """
 
 
+def cmd_target(config: dict, base_values: dict[str, float], metric_key: str,
+               target_pct: float, step: float = 0.10, top: int = 15) -> None:
+    """反解：要让某指标涨跌 target_pct%，每个参数 / 每条轴各自需要动多少。
+
+    典型用法——回答"这个估值倍数里到底含了多少增长想象"：
+        python src/lab.py target swap.ebitda +38.5%
+    （+38.5% 来自 18÷13−1：把 18× 拆成"13× 的成熟倍数 × 大 38.5% 的盈利基数"）
+    """
+    metric = METRIC_BY_KEY.get(metric_key)
+    if metric is None:
+        print(f"✗ 未知指标 {metric_key}。可用指标：")
+        for m in METRICS:
+            print(f"    {m.key:<28}{m.label}")
+        return
+
+    base = base_values[metric.key]
+    goal = base * (1 + target_pct / 100.0)
+    print(f"\n反解：{metric.label}  {_fmt(base, metric.decimals)} → "
+          f"{_fmt(goal, metric.decimals)} {metric.unit}（{target_pct:+.1f}%）")
+    print("倒推公式：参数需变动% = 目标变动% ÷ 该参数的实测弹性\n")
+
+    values = dict(iter_numeric_params(config, include_arrays=True))
+
+    def _pair(cur, need_pct):
+        if isinstance(cur, list):
+            return ("[" + ", ".join(f"{x:g}" for x in cur) + "]",
+                    "[" + ", ".join(f"{x * (1 + need_pct / 100):g}" for x in cur) + "]")
+        return f"{cur:g}", f"{cur * (1 + need_pct / 100):g}"
+
+    rows = []
+    for path, row in compute_elasticity(config, base_values, step).items():
+        e = row.get(metric.key)
+        if not e or abs(e) < 0.01:
+            continue
+        rows.append((abs(target_pct / e), path, target_pct / e, e))
+    rows.sort()
+    print("【单参数】各自单独调，需要动多少（按最省力排序，只列 ≤100% 的）")
+    print(_ljust("参数", 50) + _rjust("需变动", 10) + _rjust("弹性", 8) + "   当前值 → 需要取值")
+    print("─" * 116)
+    n = 0
+    for _, path, need, e in rows:
+        if abs(need) > 100 or n >= top:
+            continue
+        c, v = _pair(values.get(path), need)
+        print(_ljust(path, 50) + _rjust(f"{need:+.1f}%", 10) + _rjust(f"{e:+.2f}", 8)
+              + f"   {c} → {v}")
+        n += 1
+
+    arows = []
+    for name, row in compute_axis_matrix(config, base_values, step).items():
+        e = row.get(metric.key)
+        if not e or abs(e) < 0.01:
+            continue
+        arows.append((abs(target_pct / e), name, target_pct / e, e))
+    arows.sort()
+    print("\n【情景轴】整条轴一起摆，需要摆多少")
+    print(_ljust("情景轴", 50) + _rjust("需摆动", 10) + _rjust("轴弹性", 8))
+    print("─" * 116)
+    for _, name, need, e in arows[:top]:
+        print(_ljust(name, 50) + _rjust(f"{need:+.1f}%", 10) + _rjust(f"{e:+.2f}", 8))
+
+
+def _pop_step(argv: list[str], config: dict) -> float:
+    """微扰幅度：命令行 `--step 0.2` 优先，否则取 base.toml [sensitivity].step。"""
+    if "--step" in argv:
+        i = argv.index("--step")
+        try:
+            return float(argv[i + 1])
+        except (IndexError, ValueError):
+            print("⚠ `--step` 后面要跟一个数字（如 0.2），已改用 base.toml 的设置")
+    return sensitivity_step(config)
+
+
 def main(argv: list[str]) -> int:
     if len(argv) < 2 or argv[1] in ("-h", "--help"):
         print(USAGE)
@@ -1248,6 +1721,7 @@ def main(argv: list[str]) -> int:
 
     command = argv[1]
     config = load_config()
+    step = _pop_step(argv, config)   # --step 优先，其次 base.toml [sensitivity].step
 
     if command == "list":
         cmd_list(config)
@@ -1268,10 +1742,20 @@ def main(argv: list[str]) -> int:
             print(USAGE)
             return 1
         cmd_lineage(config, base_values, argv[2])
+    elif command == "target":
+        if len(argv) < 4:
+            print(USAGE)
+            return 1
+        try:
+            pct = float(str(argv[3]).rstrip("%"))
+        except ValueError:
+            print("⚠ 目标要写成 `+38.5%` 或 `-20` 这样的形式")
+            return 1
+        cmd_target(config, base_values, argv[2], pct, step)
     elif command == "scan":
-        cmd_scan(config, base_values)
+        cmd_scan(config, base_values, step)
     elif command == "workbook":
-        cmd_workbook(config, base_values)
+        cmd_workbook(config, base_values, step)
     elif command == "trial":
         cmd_trial(config, base_values)
     elif command == "commit":

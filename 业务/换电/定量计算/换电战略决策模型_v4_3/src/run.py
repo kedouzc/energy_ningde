@@ -23,7 +23,7 @@ def main() -> None:
     snapshots = build_scenarios(config)
     snapshot = snapshots["中性"]
     # v3.2遗留寿命口径的对照重跑，仅供附录A.2量化口径变更影响，不参与基准结论。
-    legacy_snapshot = build_model(config, private_scenario="中枢", life_mode="legacy_v32")
+    legacy_snapshot = build_model(config, life_mode="legacy_v32")
     # v4.3 目录自包含：报告与快照统一落 outputs/
     report_path = ROOT.parent / "outputs" / REPORT_NAME
     paths = write_outputs(config, snapshot, report_path, snapshots, legacy_snapshot)
@@ -50,13 +50,20 @@ def main() -> None:
         print("决策树(可口算视图): outputs/换电决策树_v4.3.xlsx")
     except Exception as exc:  # 决策树失败不应阻断主报告
         print(f"⚠ 决策树生成跳过：{exc}")
-    # 步骤4：一页纸（核心终端指标 + 四列判断列）——方案 §2.1 定义的目标态
+    # 步骤4：一页纸自检（内容源 narrative/一页纸.md，呈现出口＝沙盘 HTML）
+    # 不再写 xlsx：IDE 里读不了、参数一改就得重开、也没法边调参边看判断。
+    # 自检不通过会中断（md 有裸数字 / 占位符算不出来 / metric 不在注册表 / facts↔指标镜像不一致）。
+    import onepager
+    onepager.main()
+    # 交互沙盘（组合调参 + 自动优化反解；浏览器端只插值）
     try:
-        import onepager
-        onepager.main()
-        print("一页纸(可口算视图): outputs/换电一页纸_v4.3.xlsx")
-    except Exception as exc:  # 一页纸失败不应阻断主报告
-        print(f"⚠ 一页纸生成跳过：{exc}")
+        import sandbox
+        sandbox.main()
+        print("交互沙盘: outputs/换电沙盘_v4.3.html")
+    except Exception as exc:  # 沙盘失败不应阻断主报告
+        import traceback
+        print(f"⚠ 沙盘生成跳过：{exc}")
+        traceback.print_exc()   # 打印完整堆栈，便于定位（沙盘仍在调试期）
 
 
 if __name__ == "__main__":

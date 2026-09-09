@@ -50,238 +50,6 @@
     "type": "int"
   },
   {
-    "key": "drivers.fee_level.target",
-    "value": "swap_business.service_fee_rmb_kwh",
-    "type": "str"
-  },
-  {
-    "key": "drivers.fee_level.悲观",
-    "value": 0.2,
-    "type": "float"
-  },
-  {
-    "key": "drivers.fee_level.中性",
-    "value": 0.3,
-    "type": "float"
-  },
-  {
-    "key": "drivers.fee_level.乐观",
-    "value": 0.4,
-    "type": "float"
-  },
-  {
-    "key": "drivers.charge_share.target",
-    "value": "charge_share.scenario",
-    "type": "str"
-  },
-  {
-    "key": "drivers.charge_share.悲观",
-    "value": "悲观",
-    "type": "str"
-  },
-  {
-    "key": "drivers.charge_share.中性",
-    "value": "中性",
-    "type": "str"
-  },
-  {
-    "key": "drivers.charge_share.乐观",
-    "value": "乐观",
-    "type": "str"
-  },
-  {
-    "key": "drivers.private_penetration.pass_as",
-    "value": "private_scenario",
-    "type": "str"
-  },
-  {
-    "key": "drivers.private_penetration.悲观",
-    "value": "保守",
-    "type": "str"
-  },
-  {
-    "key": "drivers.private_penetration.中性",
-    "value": "中枢",
-    "type": "str"
-  },
-  {
-    "key": "drivers.private_penetration.乐观",
-    "value": "激进",
-    "type": "str"
-  },
-  {
-    "key": "drivers.mfg_margin.target",
-    "value": "swap_business.with_swap_manufacturing_net_margin",
-    "type": "str"
-  },
-  {
-    "key": "drivers.mfg_margin.悲观",
-    "value": 0.125,
-    "type": "float"
-  },
-  {
-    "key": "drivers.mfg_margin.中性",
-    "value": 0.135,
-    "type": "float"
-  },
-  {
-    "key": "drivers.mfg_margin.乐观",
-    "value": 0.15,
-    "type": "float"
-  },
-  {
-    "key": "drivers.valuation_multiple.target",
-    "value": "finance.swap_ev_ebitda",
-    "type": "str"
-  },
-  {
-    "key": "drivers.valuation_multiple.悲观",
-    "value": 13.0,
-    "type": "float"
-  },
-  {
-    "key": "drivers.valuation_multiple.中性",
-    "value": 18.0,
-    "type": "float"
-  },
-  {
-    "key": "drivers.valuation_multiple.乐观",
-    "value": 22.0,
-    "type": "float"
-  },
-  {
-    "key": "drivers.commercial_swap_share.mode",
-    "value": "relative",
-    "type": "str"
-  },
-  {
-    "key": "drivers.commercial_swap_share.悲观",
-    "value": 0.7,
-    "type": "float"
-  },
-  {
-    "key": "drivers.commercial_swap_share.中性",
-    "value": 1.0,
-    "type": "float"
-  },
-  {
-    "key": "drivers.commercial_swap_share.乐观",
-    "value": 1.3,
-    "type": "float"
-  },
-  {
-    "key": "drivers.commercial_swap_share.targets",
-    "value": [
-      "vehicles.heavy.scenes.0.swap_penetration",
-      "vehicles.heavy.scenes.1.swap_penetration",
-      "vehicles.heavy.scenes.2.swap_penetration",
-      "vehicles.city.scenes.0.swap_penetration",
-      "vehicles.city.scenes.1.swap_penetration"
-    ],
-    "type": "list"
-  },
-  {
-    "key": "drivers.commercial_nev_penetration.mode",
-    "value": "relative",
-    "type": "str"
-  },
-  {
-    "key": "drivers.commercial_nev_penetration.悲观",
-    "value": 0.85,
-    "type": "float"
-  },
-  {
-    "key": "drivers.commercial_nev_penetration.中性",
-    "value": 1.0,
-    "type": "float"
-  },
-  {
-    "key": "drivers.commercial_nev_penetration.乐观",
-    "value": 1.15,
-    "type": "float"
-  },
-  {
-    "key": "drivers.commercial_nev_penetration.cap",
-    "value": 1.0,
-    "type": "float"
-  },
-  {
-    "key": "drivers.commercial_nev_penetration.targets",
-    "value": [
-      "vehicles.heavy.nev_rates",
-      "vehicles.city.nev_rates",
-      "vehicles.taxi.nev_rates",
-      "vehicles.ridehail.nev_rates"
-    ],
-    "type": "list"
-  },
-  {
-    "key": "drivers.catl_swap_share.mode",
-    "value": "relative",
-    "type": "str"
-  },
-  {
-    "key": "drivers.catl_swap_share.悲观",
-    "value": 0.85,
-    "type": "float"
-  },
-  {
-    "key": "drivers.catl_swap_share.中性",
-    "value": 1.0,
-    "type": "float"
-  },
-  {
-    "key": "drivers.catl_swap_share.乐观",
-    "value": 1.15,
-    "type": "float"
-  },
-  {
-    "key": "drivers.catl_swap_share.cap",
-    "value": 1.0,
-    "type": "float"
-  },
-  {
-    "key": "drivers.catl_swap_share.targets",
-    "value": [
-      "vehicles.heavy.scenes.0.catl_swap_share",
-      "vehicles.heavy.scenes.1.catl_swap_share",
-      "vehicles.heavy.scenes.2.catl_swap_share",
-      "vehicles.city.scenes.0.catl_swap_share",
-      "vehicles.city.scenes.1.catl_swap_share",
-      "vehicles.taxi.scenes.0.catl_swap_share",
-      "vehicles.ridehail.scenes.0.catl_swap_share",
-      "vehicles.robotaxi.scenes.0.catl_swap_share",
-      "vehicles.private.scenes.0.catl_swap_share",
-      "vehicles.private.scenes.1.catl_swap_share",
-      "vehicles.private.scenes.2.catl_swap_share"
-    ],
-    "type": "list"
-  },
-  {
-    "key": "sensitivity.not_adjustable",
-    "value": [
-      "swap_business.operating_days",
-      "swap_business.rte",
-      "vehicles.heavy.stock_wan",
-      "vehicles.city.stock_wan",
-      "operating_demand.taxi_stock_wan",
-      "vehicles.private.annual_net_additions_wan",
-      "vehicles.heavy.existing_catl_swap_stock_wan",
-      "vehicles.heavy.pure_electric_share",
-      "vehicles.city.pure_electric_share",
-      "vehicles.private.pure_electric_share",
-      "vehicles.robotaxi.pure_electric_share",
-      "vehicles.heavy.replacement_cycle_years",
-      "vehicles.city.replacement_cycle_years",
-      "vehicles.private.battery_kwh",
-      "vehicles.robotaxi.battery_kwh",
-      "swap_business.usable_energy_factor",
-      "meta.target_year",
-      "meta.reference_year"
-    ],
-    "type": "list"
-  },
-  {
     "key": "finance.wacc",
     "value": 0.075,
     "type": "float"
@@ -482,6 +250,16 @@
   {
     "key": "national_battery_market.storage_install_gwh_2030",
     "value": 780.0,
+    "type": "float"
+  },
+  {
+    "key": "national_power_market.society_electricity_yi_kwh_latest",
+    "value": 103682.0,
+    "type": "float"
+  },
+  {
+    "key": "national_power_market.society_electricity_yi_kwh_2030",
+    "value": 135000.0,
     "type": "float"
   },
   {
@@ -896,51 +674,6 @@
     "type": "float"
   },
   {
-    "key": "vehicles.private.scenario_swap_penetration.保守.8万元以下",
-    "value": 0.0,
-    "type": "float"
-  },
-  {
-    "key": "vehicles.private.scenario_swap_penetration.保守.8至15万元",
-    "value": 0.03,
-    "type": "float"
-  },
-  {
-    "key": "vehicles.private.scenario_swap_penetration.保守.15万元以上",
-    "value": 0.0,
-    "type": "float"
-  },
-  {
-    "key": "vehicles.private.scenario_swap_penetration.中枢.8万元以下",
-    "value": 0.0,
-    "type": "float"
-  },
-  {
-    "key": "vehicles.private.scenario_swap_penetration.中枢.8至15万元",
-    "value": 0.05,
-    "type": "float"
-  },
-  {
-    "key": "vehicles.private.scenario_swap_penetration.中枢.15万元以上",
-    "value": 0.03,
-    "type": "float"
-  },
-  {
-    "key": "vehicles.private.scenario_swap_penetration.激进.8万元以下",
-    "value": 0.03,
-    "type": "float"
-  },
-  {
-    "key": "vehicles.private.scenario_swap_penetration.激进.8至15万元",
-    "value": 0.08,
-    "type": "float"
-  },
-  {
-    "key": "vehicles.private.scenario_swap_penetration.激进.15万元以上",
-    "value": 0.05,
-    "type": "float"
-  },
-  {
     "key": "vehicles.private.scenes",
     "value": [
       {
@@ -1296,8 +1029,8 @@
     "type": "float"
   },
   {
-    "key": "swap_business.battery_rent_rmb_kwh_year",
-    "value": 120.0,
+    "key": "swap_business.battery_rent_rmb_kwh_month",
+    "value": 10.0,
     "type": "float"
   },
   {
@@ -1466,71 +1199,6 @@
     "type": "float"
   },
   {
-    "key": "charge_share.scenario",
-    "value": "中性",
-    "type": "str"
-  },
-  {
-    "key": "charge_share.heavy.pessimistic",
-    "value": 0.35,
-    "type": "float"
-  },
-  {
-    "key": "charge_share.heavy.optimistic",
-    "value": 0.55,
-    "type": "float"
-  },
-  {
-    "key": "charge_share.city.pessimistic",
-    "value": 0.35,
-    "type": "float"
-  },
-  {
-    "key": "charge_share.city.optimistic",
-    "value": 0.45,
-    "type": "float"
-  },
-  {
-    "key": "charge_share.taxi.pessimistic",
-    "value": 0.35,
-    "type": "float"
-  },
-  {
-    "key": "charge_share.taxi.optimistic",
-    "value": 0.45,
-    "type": "float"
-  },
-  {
-    "key": "charge_share.ridehail.pessimistic",
-    "value": 0.35,
-    "type": "float"
-  },
-  {
-    "key": "charge_share.ridehail.optimistic",
-    "value": 0.45,
-    "type": "float"
-  },
-  {
-    "key": "charge_share.robotaxi.pessimistic",
-    "value": 0.4,
-    "type": "float"
-  },
-  {
-    "key": "charge_share.robotaxi.optimistic",
-    "value": 0.4,
-    "type": "float"
-  },
-  {
-    "key": "charge_share.private.pessimistic",
-    "value": 0.3,
-    "type": "float"
-  },
-  {
-    "key": "charge_share.private.optimistic",
-    "value": 0.4,
-    "type": "float"
-  },
-  {
     "key": "group_funding.initial_cash_and_trading_assets_yi",
     "value": 4402.11,
     "type": "float"
@@ -1631,57 +1299,6 @@
       928.26,
       969.9,
       1332.2
-    ],
-    "type": "list"
-  },
-  {
-    "key": "capital_commitments",
-    "value": [
-      {
-        "label": "2026年A股回购计划",
-        "headline_amount_yi": 400.0,
-        "cash_in_model_yi": 400.0,
-        "perimeter": "宁德时代合并口径",
-        "timing": "2026年，按已披露200—400亿元区间上限预留",
-        "note": "资金表采用上限，属于审慎压力口径。",
-        "source_url": "https://www1.hkexnews.hk/search/titlesearch.xhtml?category=0&market=SEHK&stockId=1000259940"
-      },
-      {
-        "label": "中恒电气交易",
-        "headline_amount_yi": 40.99859,
-        "cash_in_model_yi": 29.03495,
-        "perimeter": "宁德时代合并口径",
-        "timing": "2026年",
-        "note": "总对价含时代天源股权作价11.96364亿元；资金表只扣现金部分。",
-        "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-09/1225083748.PDF"
-      },
-      {
-        "label": "启源芯动力交易",
-        "headline_amount_yi": 25.5566,
-        "cash_in_model_yi": 25.5566,
-        "perimeter": "宁德时代合并口径",
-        "timing": "2026年",
-        "note": "启源芯动力25%股权摘牌价；经并购基准情景进入2026年资金表。",
-        "source_url": "https://www.chinapower.hk/sc/ir/announcements.php"
-      },
-      {
-        "label": "世纪互联交易",
-        "headline_amount_yi": 64.0,
-        "cash_in_model_yi": 64.0,
-        "perimeter": "买方为宁德时代关联投资主体，v4.2起按审慎口径计入资金表",
-        "timing": "2026年交易安排",
-        "note": "约9.42亿美元；v4.2起按三项已识别并购合并计算，全部计入2026年现金。",
-        "source_url": "https://ir.vnet.com/static-files/848f4589-7db7-49db-8c1d-61202816a7dc"
-      },
-      {
-        "label": "矿产资源投资公司",
-        "headline_amount_yi": 300.0,
-        "cash_in_model_yi": 0.0,
-        "perimeter": "注册资本上限，现金与股权出资混合",
-        "timing": "实缴节奏未披露",
-        "note": "不得机械均摊至2026—2028年；作为承诺上限和资金预警项单列。",
-        "source_url": "https://static.cninfo.com.cn/finalpage/2026-04-16/1225107944.PDF"
-      }
     ],
     "type": "list"
   },
@@ -1814,166 +1431,6 @@
     "type": "list"
   },
   {
-    "key": "nio_reference.network_stations",
-    "value": 3790,
-    "type": "int"
-  },
-  {
-    "key": "nio_reference.cumulative_swaps_yi",
-    "value": 1.0,
-    "type": "float"
-  },
-  {
-    "key": "nio_reference.cumulative_energy_yi_kwh",
-    "value": 52.8,
-    "type": "float"
-  },
-  {
-    "key": "nio_reference.battery_bank_operating_gwh",
-    "value": 42.0,
-    "type": "float"
-  },
-  {
-    "key": "nio_reference.battery_bank_users_wan",
-    "value": 55.0,
-    "type": "float"
-  },
-  {
-    "key": "nio_reference.battery_bank_total_assets_yi",
-    "value": 251.78,
-    "type": "float"
-  },
-  {
-    "key": "nio_reference.battery_bank_total_liabilities_yi",
-    "value": 224.83,
-    "type": "float"
-  },
-  {
-    "key": "nio_reference.battery_bank_reference_equity_value_yi",
-    "value": 100.0,
-    "type": "float"
-  },
-  {
-    "key": "nio_reference.catl_existing_ownership",
-    "value": 0.0758,
-    "type": "float"
-  },
-  {
-    "key": "nio_reference.abs_sample_battery_count",
-    "value": 5369,
-    "type": "int"
-  },
-  {
-    "key": "nio_reference.abs_sample_capacity_gwh",
-    "value": 0.490221,
-    "type": "float"
-  },
-  {
-    "key": "nio_reference.abs_sample_book_value_yi",
-    "value": 5.001394,
-    "type": "float"
-  },
-  {
-    "key": "nio_reference.abs_sample_appraised_value_yi",
-    "value": 5.06,
-    "type": "float"
-  },
-  {
-    "key": "nio_reference.abs_sample_occupancy",
-    "value": 0.92,
-    "type": "float"
-  },
-  {
-    "key": "nio_reference.abs_rent_75kwh_rmb_month",
-    "value": 728.0,
-    "type": "float"
-  },
-  {
-    "key": "nio_reference.abs_rent_100_102kwh_rmb_month",
-    "value": 1128.0,
-    "type": "float"
-  },
-  {
-    "key": "nio_reference.network_replacement_cost_wan_per_station",
-    "value": 150.0,
-    "type": "float"
-  },
-  {
-    "key": "reits_reference.nio_battery_reits_issue_yi",
-    "value": 5.01,
-    "type": "float"
-  },
-  {
-    "key": "reits_reference.nio_battery_reits_yield",
-    "value": 0.0468,
-    "type": "float"
-  },
-  {
-    "key": "reits_reference.nio_battery_reits_tenor_years",
-    "value": 12,
-    "type": "int"
-  },
-  {
-    "key": "reits_reference.nio_battery_reits_issue_month",
-    "value": "2026年2月",
-    "type": "str"
-  },
-  {
-    "key": "reits_reference.nio_battery_abs_shelf_size_yi",
-    "value": 50.0,
-    "type": "float"
-  },
-  {
-    "key": "reits_reference.nio_battery_abs_shelf_a1_rate",
-    "value": 0.018,
-    "type": "float"
-  },
-  {
-    "key": "reits_reference.nio_battery_abs_shelf_month",
-    "value": "2026年4月",
-    "type": "str"
-  },
-  {
-    "key": "qiyuan_reference.equity_appraisal_yi",
-    "value": 102.75,
-    "type": "float"
-  },
-  {
-    "key": "qiyuan_reference.book_equity_yi",
-    "value": 46.898862,
-    "type": "float"
-  },
-  {
-    "key": "qiyuan_reference.net_profit_2025_yi",
-    "value": 3.56154,
-    "type": "float"
-  },
-  {
-    "key": "qiyuan_reference.revenue_2025_yi",
-    "value": 95.25,
-    "type": "float"
-  },
-  {
-    "key": "qiyuan_reference.liability_ratio",
-    "value": 0.809,
-    "type": "float"
-  },
-  {
-    "key": "qiyuan_reference.implied_pe",
-    "value": 28.9,
-    "type": "float"
-  },
-  {
-    "key": "qiyuan_reference.implied_pb",
-    "value": 2.18,
-    "type": "float"
-  },
-  {
-    "key": "qiyuan_reference.implied_ps",
-    "value": 1.08,
-    "type": "float"
-  },
-  {
     "key": "mna.base_scenario_name",
     "value": "启源入股_不收蔚来",
     "type": "str"
@@ -1982,76 +1439,6 @@
     "key": "mna.comparison_scenario_name",
     "value": "纯自建_无并购参考",
     "type": "str"
-  },
-  {
-    "key": "mna.scenarios",
-    "value": [
-      {
-        "name": "纯自建_无并购参考",
-        "label": "纯自建参考：不含启源与蔚来交易",
-        "purchase_price_yi": 0.0,
-        "assumed_debt_yi": 0.0,
-        "integration_cost_yi": 0.0,
-        "heavy_catl_swap_share_uplift": 0.0,
-        "passenger_catl_swap_share_uplift": 0.0,
-        "physically_reusable_heavy_stations": 0,
-        "physically_reusable_choco_stations": 0,
-        "network_acceleration_years": 0.0,
-        "acquired_network_stations": 0,
-        "acquired_battery_bank_gwh": 0.0,
-        "price_basis": "纯自建对照，不发生交易",
-        "price_status": "仅作资本对比基准"
-      },
-      {
-        "name": "启源入股_不收蔚来",
-        "label": "启源股权收购已完成；暂不假设物理整合，不收购蔚来",
-        "purchase_price_yi": 25.5566,
-        "assumed_debt_yi": 0.0,
-        "integration_cost_yi": 0.0,
-        "heavy_catl_swap_share_uplift": 0.0,
-        "passenger_catl_swap_share_uplift": 0.0,
-        "physically_reusable_heavy_stations": 0,
-        "physically_reusable_choco_stations": 0,
-        "network_acceleration_years": 0.25,
-        "acquired_network_stations": 0,
-        "acquired_battery_bank_gwh": 0.0,
-        "price_basis": "启源芯动力25%股权摘牌价（评估值102.75亿×24.8726%）",
-        "price_status": "股权摘牌已发生；业务协同尚未发生"
-      },
-      {
-        "name": "启源入股加蔚来全网络电池银行",
-        "label": "启源股权收购，加收购蔚来网络与电池银行",
-        "purchase_price_yi": 174.8266,
-        "assumed_debt_yi": 224.83,
-        "integration_cost_yi": 15.0,
-        "heavy_catl_swap_share_uplift": 0.01,
-        "passenger_catl_swap_share_uplift": 0.03,
-        "physically_reusable_heavy_stations": 0,
-        "physically_reusable_choco_stations": 0,
-        "network_acceleration_years": 0.75,
-        "acquired_network_stations": 3790,
-        "acquired_battery_bank_gwh": 42.0,
-        "price_basis": "启源25.56亿＋蔚能剩余权益约92.42亿＋3790站按150万元/站重置成本56.85亿",
-        "price_status": "蔚来交易未发生；权益与站网价格均为可调研究锚"
-      },
-      {
-        "name": "启源入股加蔚来电池银行",
-        "label": "启源股权收购，加收购蔚来电池银行；站网由地方国资持有",
-        "purchase_price_yi": 117.9766,
-        "assumed_debt_yi": 224.83,
-        "integration_cost_yi": 10.0,
-        "heavy_catl_swap_share_uplift": 0.01,
-        "passenger_catl_swap_share_uplift": 0.02,
-        "physically_reusable_heavy_stations": 0,
-        "physically_reusable_choco_stations": 0,
-        "network_acceleration_years": 0.6,
-        "acquired_network_stations": 0,
-        "acquired_battery_bank_gwh": 42.0,
-        "price_basis": "启源25.56亿＋蔚能参考股权价值100亿扣除CATL现持7.58%后的约92.42亿",
-        "price_status": "蔚来交易未发生；蔚能权益估值与负债承担方式为可调研究锚"
-      }
-    ],
-    "type": "list"
   },
   {
     "key": "decision_thresholds.max_peak_swap_cash_to_cfo",
@@ -2084,113 +1471,28 @@
     "type": "float"
   },
   {
-    "key": "sources.annual_report_2025",
-    "value": "https://www.catl.com/uploads/1/file/public/202603/20260310105829_c5p2l3q9ll.pdf",
-    "type": "str"
+    "key": "decision_thresholds.min_swap_increment_yi",
+    "value": 1000.0,
+    "type": "float"
   },
   {
-    "key": "sources.annual_report_2025_summary",
-    "value": "https://www.catl.com/news/9654.html",
-    "type": "str"
+    "key": "decision_thresholds.min_increment_over_mktcap",
+    "value": 0.1,
+    "type": "float"
   },
   {
-    "key": "sources.interim_report_2026",
-    "value": "https://www.catl.com/uploads/1/file/public/202607/20260724221812_53isiu3vxl.pdf",
-    "type": "str"
+    "key": "decision_thresholds.target_increment_over_mktcap",
+    "value": 0.2,
+    "type": "float"
   },
   {
-    "key": "sources.interim_report_2026_hkex",
-    "value": "https://www1.hkexnews.hk/search/titlesearch.xhtml?category=0&market=SEHK&stockId=1000259940",
-    "type": "str"
+    "key": "decision_thresholds.max_bet_share_low",
+    "value": 0.5,
+    "type": "float"
   },
   {
-    "key": "sources.consensus_reference",
-    "value": "https://basic.10jqka.com.cn/300750/worth.html",
-    "type": "str"
-  },
-  {
-    "key": "sources.market_cap_note",
-    "value": "用户给定的2026-08约2万亿元A+H市值快照；仅作比较基准",
-    "type": "str"
-  },
-  {
-    "key": "sources.qiyuan_transaction",
-    "value": "https://www.chinapower.hk/sc/ir/announcements.php",
-    "type": "str"
-  },
-  {
-    "key": "sources.nio_catl_partnership",
-    "value": "https://www.nio.com/news/20250318001",
-    "type": "str"
-  },
-  {
-    "key": "sources.catl_swap_plan_2026",
-    "value": "https://www.catl.com/news/9516.html",
-    "type": "str"
-  },
-  {
-    "key": "sources.nio_network_2026",
-    "value": "https://www.nio.com/news/20260206001",
-    "type": "str"
-  },
-  {
-    "key": "sources.dividend_habit",
-    "value": "https://disc.static.szse.cn/download/disc/disk03/finalpage/2026-03-10/202a7521-9015-4094-b180-bfa7735459ab.PDF",
-    "type": "str"
-  },
-  {
-    "key": "sources.mineral_company_announcement",
-    "value": "https://static.cninfo.com.cn/finalpage/2026-04-16/1225107944.PDF",
-    "type": "str"
-  },
-  {
-    "key": "sources.zhongheng_transaction",
-    "value": "https://static.cninfo.com.cn/finalpage/2026-04-09/1225083748.PDF",
-    "type": "str"
-  },
-  {
-    "key": "sources.vnet_transaction",
-    "value": "https://ir.vnet.com/static-files/848f4589-7db7-49db-8c1d-61202816a7dc",
-    "type": "str"
-  },
-  {
-    "key": "sources.nio_abs_appraisal_local",
-    "value": "../media/武汉蔚能电池资产有限公司2026年第一期ABS-世联资产评估报告.pdf",
-    "type": "str"
-  },
-  {
-    "key": "sources.nio_reits_analysis_local",
-    "value": "../定性分析/蔚能REITs案例分析.md",
-    "type": "str"
-  },
-  {
-    "key": "sources.wuhan_station_asset_transfer",
-    "value": "https://weibo.com/2/detail/5331153011610154",
-    "type": "str"
-  },
-  {
-    "key": "sources.production_reuse_research",
-    "value": "../../产线复用与战略CAPEX_补充研究.md",
-    "type": "str"
-  },
-  {
-    "key": "sources.mot_heavy_truck_plan_2026",
-    "value": "https://xxgk.mot.gov.cn/jigou/zhghs/202606/t20260612_4207423.html",
-    "type": "str"
-  },
-  {
-    "key": "sources.zhejiang_demand_response_2025",
-    "value": "https://www.95598.cn/omg-static//omg-static/99310131647213747437700383229062.pdf",
-    "type": "str"
-  },
-  {
-    "key": "sources.ndrc_ancillary_price_2024",
-    "value": "https://gbdy.ndrc.gov.cn/gbdyzcjd/202402/t20240208_1364055.html",
-    "type": "str"
-  },
-  {
-    "key": "sources.nio_suzhou_vpp",
-    "value": "https://www.suzhou.gov.cn/szsrmzf/szyw/202503/a60985e397184d0c9fbfb424db962de1.shtml",
-    "type": "str"
+    "key": "decision_thresholds.max_bet_share_high",
+    "value": 0.7,
+    "type": "float"
   }
 ]

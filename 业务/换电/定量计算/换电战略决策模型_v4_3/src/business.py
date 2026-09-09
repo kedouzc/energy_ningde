@@ -515,7 +515,8 @@ def build_swap_business(config: dict, scale: ScaleResult, capex: CapexResult) ->
         service = energy * business["service_fee_rmb_kwh"]
         station_external_gwh = station_gwh_by_pool[pk] * (1.0 - ownership)
         rent_gwh = vehicle_gwh_by_pool[pk] + station_external_gwh
-        battery_rent = rent_gwh * business["battery_rent_rmb_kwh_year"] / 100.0
+        # 配置值是月租（元/kWh·月），年租 = 月租 × 12
+        battery_rent = rent_gwh * business["battery_rent_rmb_kwh_month"] * 12.0 / 100.0
         arbitrage = (
             station_gwh_by_pool[pk] * days * business["grid_spread_rmb_kwh"]
             * business["rte"] / 100.0

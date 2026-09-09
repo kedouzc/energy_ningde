@@ -28,6 +28,24 @@ def cloned_config(config: dict[str, Any]) -> dict[str, Any]:
 SCENARIO_ORDER: tuple[str, ...] = ("悲观", "中性", "乐观")
 
 
+# 不可作"可调参数"扫描的 config 段（情景轴/元数据/事实台账）。
+# lab.iter_numeric_params 与 parameter_registry 同口径复用——情景轴走三档切换，
+# 不进单参数 +10% 扰动，也不混进"可调参数"清单。
+_SKIP_SECTIONS = (
+    "sources",
+    "capital_commitments",
+    "mna.scenarios",
+    "drivers",
+    "charge_share",
+    "sensitivity",
+    "param_bounds",
+    "nio_reference",
+    "reits_reference",
+    "qiyuan_reference",
+    "battery_life_model.legacy_v32",
+)
+
+
 def load_drivers(config: dict[str, Any]) -> dict[str, dict[str, Any]]:
     """取并校验 [drivers] 段。缺段/缺档/缺落点直接报错，不静默降级。"""
     drivers = config.get("drivers")
@@ -50,6 +68,19 @@ def load_drivers(config: dict[str, Any]) -> dict[str, dict[str, Any]]:
             )
         if spec.get("mode") == "relative" and spec.get("中性") != 1.0:
             raise SystemExit(f"[drivers.{name}] relative 模式中性档必须为 1.0（不动基线）")
+        # 档位必须落在 bounds 内：否则沙盘滑块够不到自己的某一档（档位是区间内的两个点）。
+        b = spec.get("bounds")
+        if isinstance(b, (list, tuple)) and len(b) == 2:
+            lo, hi = float(b[0]), float(b[1])
+            for tier in SCENARIO_ORDER:
+                v = spec.get(tier)
+                if isinstance(v, bool) or not isinstance(v, (int, float)):
+                    continue      # 向量档（dict）／路由档（str）不适用
+                if not lo <= v <= hi:
+                    raise SystemExit(
+                        f"[drivers.{name}] 的「{tier}」档（{v}）落在 bounds（[{lo}, {hi}]）之外。\n"
+                        f"档位必须落在区间内——请放宽 bounds 到能容纳三档，或把档位收回区间内。"
+                    )
     return drivers
 
 
@@ -95,6 +126,25 @@ def _apply_cap(value: Any, cap: float | None) -> Any:
     return min(value, cap)
 
 
+def _scene_name(config: dict[str, Any], target: str) -> str | None:
+    """落点是「...scenes.<i>.<字段>」时，返回该场景的 name；否则 None。
+
+    供向量型情景按场景名取分量（私家车三档渗透率的分量键＝价格带）。
+    """
+    parts = target.split(".")
+    for i, part in enumerate(parts[:-1]):
+        if part == "scenes" and i + 1 < len(parts) and parts[i + 1].isdigit():
+            try:
+                node: Any = config
+                for p in parts[: i + 2]:
+                    node = _walk(node, p)
+            except (KeyError, IndexError, TypeError):
+                return None
+            if isinstance(node, dict) and isinstance(node.get("name"), str):
+                return node["name"]
+    return None
+
+
 def apply_scenario(
     config: dict[str, Any],
     drivers: dict[str, dict[str, Any]],
@@ -120,6 +170,24 @@ def apply_scenario(
         mode = spec.get("mode", "absolute")
         cap = spec.get("cap")
         targets = spec["targets"] if "targets" in spec else [spec["target"]]
+        if isinstance(value, dict):
+            # 向量型情景：每个 target 取 value 中同名分量。分量键的取法：
+            #   · 落点是 [[scenes]].N.field → 用场景自己的 name（如私家车价格带"8至15万元"）；
+            #   · 否则用末级键（如 charge_share 的 heavy/city/…）。
+            # 前者解决"同一段 targets 末级键全部相同（swap_penetration）"的分量对位。
+            for target in targets:
+                leaf = target.split(".")[-1]
+                comp = value[_scene_name(config, target) or leaf]
+                if check_neutral and tier == "中性":
+                    current = get_path(config, target)
+                    if current != comp:
+                        raise SystemExit(
+                            f"[drivers.{name}] 的中性档分量（{target}={comp!r}）"
+                            f"与当前值（{current!r}）不一致。\n"
+                            f"中性档必须严格等于模型基线——请改参数本体的值，不要改 [drivers] 的中性档。"
+                        )
+                _set_path(config, target, comp)
+            continue
         for target in targets:
             if mode == "relative":
                 if check_neutral and tier == "中性":
@@ -140,10 +208,19 @@ def apply_scenario(
 
 
 def parameter_registry(config: dict[str, Any]) -> list[dict[str, Any]]:
-    """为后续Dashboard输出扁平化参数表；列表/场景保持为一个可编辑对象。"""
+    """为后续Dashboard输出扁平化参数表；列表/场景保持为一个可编辑对象。
+
+    跳过 _SKIP_SECTIONS（sources/资本台账/情景声明charge_share等），
+    与 iter_numeric_params 口径一致——情景轴不进"可调参数"清单。
+    """
     rows: list[dict[str, Any]] = []
 
+    def _skip(prefix: str) -> bool:
+        return any(prefix == s or prefix.startswith(s + ".") for s in _SKIP_SECTIONS)
+
     def walk(prefix: str, value: Any) -> None:
+        if _skip(prefix):
+            return
         if isinstance(value, dict):
             for key, child in value.items():
                 walk(f"{prefix}.{key}" if prefix else key, child)

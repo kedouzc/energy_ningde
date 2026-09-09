@@ -26,11 +26,10 @@ from schemas import ModelSnapshot
 def _build_core(
     config: dict,
     scenario_name: str | None = None,
-    private_scenario: str = "中枢",
     life_mode: str = "derived",
 ) -> ModelSnapshot:
     sourcing = get_sourcing_adjustment(config, scenario_name)
-    scale = build_scale(config, sourcing, private_scenario, life_mode)
+    scale = build_scale(config, sourcing, life_mode)
     capex = build_capex(config, scale, sourcing)
     baseline = build_2026_baseline(config)
     swap = build_swap_business(config, scale, capex)
@@ -78,6 +77,21 @@ def _build_core(
             "swap_battery_bank_share_of_national_storage_2025": round(bank / st25, 4) if st25 else None,
             "swap_battery_bank_share_of_national_storage_2030": round(bank / st30, 4) if st30 else None,
         }
+    # 全社会用电量：换电交易量（年换电量）的市场分母。换电网络的本质是分布式储能电网，
+    # 所以交易量除了对储能装机，还要对全社会用电量做量级对照——两者单位统一为亿kWh。
+    # 分母同取自 config（外部信源只登记在 audit/信源审计台账.md「信源索引（机读）」）。
+    npm = config.get("national_power_market", {})
+    if npm:
+        el_now = npm.get("society_electricity_yi_kwh_latest")
+        el_30 = npm.get("society_electricity_yi_kwh_2030")
+        energy = swap.annual_energy_yi_kwh
+        market_share["cross_check_vs_society_electricity"] = {
+            "national_society_electricity_yi_kwh_latest": el_now,
+            "national_society_electricity_yi_kwh_2030": el_30,
+            "swap_annual_energy_yi_kwh": round(energy, 2),
+            "swap_energy_share_of_society_electricity_latest": round(energy / el_now, 6) if el_now else None,
+            "swap_energy_share_of_society_electricity_2030": round(energy / el_30, 6) if el_30 else None,
+        }
     memos = build_decision_memos(config, scale, capex, swap, ledger, light, funding, exposure)
     return ModelSnapshot(
         meta={
@@ -85,7 +99,6 @@ def _build_core(
             "wacc": config["finance"]["wacc"],
             "wacc_basis": "蔚来换电ABS融资基准，毛估估直接采用，不作CAPM推导",
             "generated_numbers_only": True,
-            "private_scenario": private_scenario,
             "life_mode": life_mode,
         },
         sourcing=sourcing,
@@ -133,17 +146,16 @@ def build_scenarios(config: dict) -> dict[str, "ModelSnapshot"]:
 def build_model(
     config: dict,
     scenario_name: str | None = None,
-    private_scenario: str = "中枢",
     life_mode: str = "derived",
 ) -> ModelSnapshot:
-    """private_scenario：私家车分档换电渗透率情景（保守/中枢/激进），
-    与并购情景 scenario_name 正交——前者是需求侧分情景，后者是供给侧并购假设。
+    """life_mode：电池寿命口径，"derived"（基准）或 "legacy_v32"（附录对照重跑）。
 
-    life_mode：电池寿命口径，"derived"（基准）或 "legacy_v32"（附录对照重跑）。
+    私家车分档渗透率已由 [drivers.private_penetration] 按情景档写入场景活值，
+    随 config 走，不再是独立关键字参数。
     """
-    snapshot = _build_core(config, scenario_name, private_scenario, life_mode)
+    snapshot = _build_core(config, scenario_name, life_mode)
     reference = _build_core(
-        config, config["mna"]["comparison_scenario_name"], private_scenario, life_mode
+        config, config["mna"]["comparison_scenario_name"], life_mode
     )
     reference_power_value = reference.ledger.power_value_2030_with_swap_yi
     reference_swap_value = reference.ledger.total_swap_increment_value_yi
@@ -157,7 +169,7 @@ def build_model(
         candidate = (
             snapshot
             if scenario["name"] == snapshot.sourcing.name
-            else _build_core(config, scenario["name"], private_scenario, life_mode)
+            else _build_core(config, scenario["name"], life_mode)
         )
         transaction_cash = candidate.sourcing.cash_consideration_yi
         acquired_asset_value = candidate.sourcing.purchase_price_yi
@@ -254,8 +266,8 @@ def _build_sensitivity(config: dict, base: ModelSnapshot) -> list[dict]:
             cfg["swap_business"]["service_fee_rmb_kwh"] = (
                 config["swap_business"]["service_fee_rmb_kwh"] * value
             )
-            cfg["swap_business"]["battery_rent_rmb_kwh_year"] = (
-                config["swap_business"]["battery_rent_rmb_kwh_year"] * value
+            cfg["swap_business"]["battery_rent_rmb_kwh_month"] = (
+                config["swap_business"]["battery_rent_rmb_kwh_month"] * value
             )
 
         cases.append(("服务费+租金", f"基准×{factor:.1f}", set_prices))
@@ -294,10 +306,18 @@ def _build_sensitivity(config: dict, base: ModelSnapshot) -> list[dict]:
         ))
     # 充电段市占率：悲观/中性/乐观三档（v4.2.2 取消"份额提升实现率"这一中间层，
     # 改为直接给份额；中性档由程序取两档均值派生，不再手工拍值）。
+    # 逐车型三档份额统一声明在 base.toml 的 [drivers.charge_share]（一个家）；
+    # 本处按档把各车型活值写入 config["charge_share"]，供 _charge_share() 直接读。
     # 该链条（换电数据反哺充电市占率）证据最弱，只进敏感性，不进可归因价值。
     def set_charge_scenario(cfg: dict, value: str) -> None:
-        # 用setdefault：配置段缺失时（如base.toml被外部回滚）仍能构造情景。
-        cfg.setdefault("charge_share", {})["scenario"] = value
+        # 按档把逐车型份额写入 config["charge_share"]（活值），与 apply_scenario 同口径；
+        # 配置段缺失（如被外部回滚）时静默跳过，保证可构造情景。
+        spread = cfg.get("drivers", {}).get("charge_share", {}).get(value)
+        if not isinstance(spread, dict):
+            return
+        cs = cfg.setdefault("charge_share", {})
+        for vtype, share in spread.items():
+            cs[vtype] = share
 
     for scenario in ("悲观", "中性", "乐观"):
         cases.append((

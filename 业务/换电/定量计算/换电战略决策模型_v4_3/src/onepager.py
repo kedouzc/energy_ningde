@@ -1,40 +1,37 @@
-"""「一页纸」视图：把决策树的核心终端指标 + 四列判断列压成一屏。
+"""「一页纸」：把投资决策压成「三层次 × 若干行」的一屏，嵌进沙盘 HTML。
 
-为什么还要第三个产物
---------------------
-现有两个 outputs 都不是一页纸：
+为什么只有 HTML 一个出口
+------------------------
+以前它写 `outputs/换电一页纸_v4.3.xlsx`——IDE 里读不了、参数一改就得重开文件、
+更没法边调参边看判断怎么写。**能实时重算的呈现只有 HTML**，所以 xlsx 停产
+（旧文件留作存档，README 已标注）。
 
-* `换电模型_参数与血缘_v4.3.xlsx` —— **参数级**（200+ 行 × 37 指标），回答
-  "每个参数影响谁"，是审计件，不是决策页。
-* `换电决策树_v4.3.xlsx` —— **审计级**（167 节点，含全部中间量），回答
-  "这条链算得对不对"，可折叠，但折叠前不是一页。
+三件事住在三个地方（不许串门）
+----------------------------
+* **问题与定性判断** → `narrative/一页纸.md`（人写、程序读，与叙述层同一套
+  `inject.lint()` 裸数字检查）。数字一律 `{{fact}}` 占位符，链接一律 `{{src.xxx}}`——
+  **信源与 URL 只住 `audit/信源审计台账.md` 的「信源索引（机读）」表**。
+* **数值** → `lab.METRICS` 的 `read_metrics()`。三情景列、当前（实时）列、顶部关键读数、
+  可行性验证全部从它取数——**同页一个数只有一个出处**（此前一页纸走 tree 节点、
+  再按数值模糊匹配指标，是两套数据源，已删）。
+* **配置数据** → `configs/base.toml`（外部锚数值、判断阈值），不放任何定性逻辑。
 
-一页纸要回答的是第三个问题：**这几个终端数字，我自己拿心算对得上吗？**
-所以它只取树的**核心终端节点**（十几个），给每个配上方案 §3.6 步骤 4 要求的四列：
-
-    核心问题 ｜ 合理量级 ｜ 什么会推翻它 ｜ 外部锚
-
-取值全部来自模型实跑（跟决策树同源、同一套 build_ctx），不手写任何数字——
-所以模型改了、轴拨了，这一页跟着变，不会和代码脱钩。
-
-四列怎么读
-----------
-* 核心问题：这个数字到底在回答哪个决策问题（对应决策树的四支）。
-* 合理量级：凭定性判断/外部常识，这个数"应该在什么量级"——用来做心算校验。
-* 什么会推翻它：到什么取值，结论就要改（优先用模型自己的门槛/体检线）。
-* 外部锚：这个判断锚在哪个外部事实上。**
-
-**信源纪律：模型内部口径与经验假设必须显式标注，不得伪装成外部信源；
-  分母类（保有量/渗透率）必须来自中汽协/乘联会上险等外部独立信源，
-  不得用模型自身推导值自证。**
+四条机械校验（任一失败即中断，不静默降级）
+----------------------------------------
+1. md 有裸数字 → `inject.lint()` 报行号；
+2. md 引用了算不出来的占位符 → 报 key（含浏览器端取不到的 `sens.*` 与不存在的 `src.*`）；
+3. 行里的 `metric:` 不在 `METRICS` → 报行；
+4. facts 与 METRICS 的镜像值不相等 → 报两个值（两条取数路径必须给出同一个数）。
 
 运行
 ----
-    python src/onepager.py        # 写出 outputs/换电一页纸_v4.3.xlsx
+    python src/onepager.py        # 只做检查与自检（不落任何文件）
 """
 from __future__ import annotations
 
+import copy
 import sys
+from dataclasses import asdict
 from pathlib import Path
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -44,171 +41,299 @@ SRC = Path(__file__).resolve().parent
 ROOT = SRC.parent
 sys.path.insert(0, str(SRC))
 
-from config_loader import SCENARIO_ORDER, load_config, load_drivers  # noqa: E402
-from tree import build_ctx, build_tree, walk  # noqa: E402
+from config_loader import (  # noqa: E402
+    SCENARIO_ORDER,
+    apply_scenario,
+    load_config,
+    load_drivers,
+)
+from lab import INFLUENCE_ANCHOR, METRICS, METRIC_BY_KEY, read_metrics  # noqa: E402
+from model import build_model  # noqa: E402
+import facts as facts_mod  # noqa: E402
+import inject as inject_mod  # noqa: E402
 
-XLSX_PATH = ROOT / "outputs" / "换电一页纸_v4.3.xlsx"
+MD_PATH = ROOT / "narrative" / "一页纸.md"
 
-# ─────────────────────────────────────────────── 一页纸的行（核心问题 / 判断四列）
-# (节点key, 核心问题, 合理量级, 什么会推翻它, 外部锚)
-# 节点 key 与 tree.build_tree 里的一致——改树不会让这一页悄悄失效，
-# key 找不到会在生成时直接报出来。
-CORE_ROWS: list[tuple[str, str, str, str, str]] = [
-    # ── 支一：换回的价值 ──
-    ("val.increment", "换电到底给 CATL 多带回多少钱（运营＋制造）？",
-     "千亿到万亿量级才谈得上「重注」；中性 6,103 亿 ≈ 集团市值三成。若只有百亿量级，这只是个边缘业务。",
-     "中性档若 <1,000 亿（<5% 市值），「重注」结论不成立。注意悲观档制造侧已 −1,265 亿、几乎吞掉运营侧 +1,570 亿。",
-     "对照集团市值基准 20,000 亿（A+H，模型内部基准，非外部信源）；分母（商用保有量/NEV渗透）仍待中汽协·乘联会上险外部信源"),
-
-    ("val.op_increment", "运营这门生意本身（服务费＋租金＋套利＋辅助）值多少？",
-     "应是增量价值的主体，中性 5,497／6,103 ≈ 90%。若制造侧占比过半，则「换电是运营生意」这一定性被推翻。",
-     "服务费单价跌破 0.2 元/kWh（价格战已现），或建站持股比例从 40% 降到蔚能锚 27.8% → 运营侧腰斩。",
-     "服务费谱系：焦作商车邦实测 0.2／齐鲁晚报 0.3–0.4／开源短倒 0.4；建站持股锚：蔚能经天地资本增资后 27.8% 实控"),
-
-    ("val.mfg_increment", "顺带锁住制造端多少（锁量＋锁价）？",
-     "中性 607 亿，应是小头（约一成）。量级应为数百亿，不该反客为主。",
-     "悲观档已 −1,265 亿：充电段虹吸 −91 亿经制造 PE 20× 放大。若宁德国内份额继续从 37.1% 下滑，制造侧会持续为负。",
-     "宁德国内动力电池份额 52.1%(2021)→45.08%(2024)→37.1%(2025 1–8月)（模型内已登记信源）"),
-
-    ("val.increment_pct", "占集团多大盘子？",
-     "中性 30.5%。>20% 才算值得重注；<10% 只是锦上添花，不配占用集团战略敞口。",
-     "若 <10%，则不值得占用 1,770 亿战略敞口中的任何一块。",
-     "分母＝集团市值基准 20,000 亿（模型内部基准，非外部信源）"),
-
-    # ── 支二：体检过不过线 ──
-    ("ops.ebitda", "成熟期一年能赚多少现金毛利？",
-     "中性 850 亿＝年收入 939 − OPEX 89，即毛利约占收入九成——因为电费只计循环损耗（RTE/站用电率），这个高毛利率是模型结构决定的，需拿外部运营商毛利率对照。",
-     "若 OPEX 被低估（人工/场租按保守而非实际），或谷电价从 0.3 上行，毛利率会显著下滑。",
-     "谷电价 0.3 元/kWh（rlut「低谷 0.3–0.4」取下沿）；场租 15 万/站/年（200–300㎡×50元/㎡/月，经验假设）"),
-
-    ("chk.coverage", "赚的够不够覆盖资本回报要求？（门槛）",
-     ">1.0 才过线。中性 1.14 刚过；悲观 0.92 **已破线**——这是模型第一次真正踩破门槛。",
-     "若中性档也 <1.0，整个投资逻辑不成立（不是「少赚」而是「不该做」）。",
-     "门槛由 CRF 资本回收系数 × WACC 7.5% 反推（模型内部门槛，非外部信源）"),
-
-    ("chk.dcf", "现金流本身支持几倍 EV/EBITDA？",
-     "中性 5.67× vs 拍的 18×。**注意口径**：这是 15 年有限期、按 CRF 年金化的隐含倍数，"
-     "不含 2030 年后增长与永续残值；与 18× 的「持续经营」口径不同源，直接相减会夸大「溢价」。"
-     "真正可比的对照是永续账 DCF（val.catl_dcf_perpetual）。",
-     "若拿永续账口径对照后仍远低于 18×，才说明估值判断缺乏现金流支撑——当前缺这一步对照。",
-     "同源口径：成熟期 FCFF ÷ CRF（WACC 7.5%，模型假设）"),
-
-    ("chk.premium", "拍的倍数相对现金流溢价几倍（＝押注多大）？",
-     "中性 3.17×（乐观 3.95×）——**已越过 3× 这一档**。但这不等于「纯押注」：分母是 15 年"
-     "有限期 CRF 隐含倍数，18× 是持续经营口径，两者不同源（见上一行）。"
-     "**这一行是待你判断的开放问题，不是自动结论。**",
-     "若用永续账 DCF 对照后溢价仍 >3×，则结论主要由倍数判断而非现金流支撑，"
-     "「支持重注」应降级为「小步试」。当前缺这一步对照。",
-     "18× 锚：v3.2 §4.1「含战略溢价的基建运营倍数」；对照组 CATL 自身 13.0×／比亚迪 6.5×（见 outputs/估值_为什么拍这个倍数.md）"),
-
-    # ── 支三：做透的代价 ──
-    ("cap.lifecycle", "做透一共要投多少（现值）？",
-     "中性 4,297 亿＝初装 2,632 ＋ 全周期更新净额。量级应为数千亿。",
-     "若电池价格长期不降（现按学习曲线下行），更新支出会显著抬升这个数。",
-     "电池价格曲线：按你的判断长期必降但不会跌破成本、且无可观测触发事件，故**不作情景轴**，仅此处作对照"),
-
-    ("cap.commitment", "CATL 自己要掏多少？",
-     "中性 687.6 亿（报告 Q2）。这是集团真金白银的出资，不是项目总投资。",
-     "建站持股比例若从 40% 升到 100%（转为自建自营），出资翻倍以上。",
-     "40% 为保守假设值（经验假设）；外部锚＝蔚能 27.8% 实控"),
-
-    ("cap.annual_req", "一年要压多少资本？资金从容吗？",
-     "中性 644.6 亿/年＝全周期底座 4,297 × CRF，是**项目层年均资本要求**（年金平均数，非峰值）。"
-     "CATL 实际单年峰值出资 105.3 亿（2030 年），占峰值年 CFO 4.7%，远低于 15% 体检线——两者别混。",
-     "若峰值/CFO >15%（体检线），「从容」结论要改成分步投。",
-     "体检线 15%（集团内部风险口径，非外部信源）"),
-
-    # ── 支四：估值最终值多少 ──
-    ("val.catl_multiple", "按拍的倍数，CATL 归属多少？",
-     "**与上一行「运营侧直接增量」数值相同**——两者都＝(EV−debt)×持股，"
-     "是同一笔钱的两个名字、不是重复录入。应与可归因增量价值同量级（数千亿）。",
-     "若与 DCF 口径（val.catl_dcf_true）差距过大，说明这个数主要是「拍」出来的。",
-     "同 18× 锚（见 chk.premium）"),
-
-    ("val.bet", "其中多少是「押注」（倍数法 − DCF）？",
-     "中性押注 3,473 亿 ÷ 归属 5,497 亿 ＝ **63%**，已在 50% 线之上、70% 线之下（灰区）。"
-     "<50% 可坦然辩护；>70% 则结论主要靠倍数而非现金流。",
-     "押注 >70% 时，结论主要建立在倍数判断而非现金流上。",
-     "两口径自 2026-09-04 起共用同一稳态 debt（口径已统一，见 DECISIONS）"),
-
-    # ── 规模（盘子）──
-    ("ops.energy", "盘子有多大（电量口径）？",
-     "中性 1,450 亿 kWh/年。可拿全国电动车用电量做量级交叉校验。",
-     "若日换电次数（中性 329 万次/日）反推的换电车辆数超出保有量常识，则车辆口径虚高。",
-     "分母（商用保有量 900 万/1,500 万、NEV 渗透率）**待补中汽协/乘联会上险外部独立信源**"),
-
-    ("st.total", "要建多少站？",
-     "中性 11,285 座；其中重卡站可对照政策口径做量级校验。",
-     "若单站日服务能力假设偏乐观，站数与 CAPEX 会被系统性低估。",
-     "重卡干线对照 52 号文 3,000 座（模型内已登记交叉验证）"),
-]
+# md 里每行允许的字段名（顺序即写文档时的顺序）
+FIELDS = ("metric", "指标", "问题", "量级", "推翻", "锚")
+TEXT_FIELDS = ("量级", "推翻", "锚")
 
 
-def collect(scen_ctx: dict, root) -> list[list]:
-    """按 CORE_ROWS 取三条情景的实跑值；节点 key 缺失直接报错（不静默跳过）。"""
-    by_key = {n.key: n for n in walk(root)}
-    missing = [k for k, *_ in CORE_ROWS if k not in by_key]
-    if missing:
-        raise SystemExit(f"一页纸引用了决策树里不存在的节点：{missing}\n"
-                         f"（树改版后请同步 CORE_ROWS 的 key）")
+# ─────────────────────────────────────────── md 解析
+def load_rows(path: Path = MD_PATH) -> list[tuple[str, str, list[dict]]]:
+    """解析一页纸 md → [(层标题, 层说明, [行 dict, ...]), ...]。
 
-    rows: list[list] = []
-    for key, question, magnitude, falsifier, anchor in CORE_ROWS:
-        node = by_key[key]
-        vals = []
-        for tier in SCENARIO_ORDER:
+    格式：`##` 是层（下面紧跟的 `>` 行是层说明），`###` 是行，`- 字段:` 是字段，
+    缩进续行自动并入上一个字段。解析不到的字段留空，由 `check()` 报出来。
+    """
+    if not path.exists():
+        raise SystemExit(f"一页纸内容源不存在：{path}")
+
+    groups: list[tuple[str, str, list[dict]]] = []
+    title: str | None = None
+    desc: list[str] = []
+    rows: list[dict] = []
+    cur: dict | None = None
+    last: str | None = None
+
+    def flush_row() -> None:
+        nonlocal cur, last
+        if cur is not None:
+            rows.append(cur)
+        cur, last = None, None
+
+    def flush_group() -> None:
+        nonlocal title, desc, rows
+        flush_row()
+        if title:
+            groups.append((title, " ".join(desc).strip(), rows))
+        title, desc, rows = None, [], []
+
+    for raw in path.read_text("utf-8").splitlines():
+        line = raw.strip()
+        if set(line) <= set("-= "):                      # 分隔线
+            continue
+        if line.startswith("## "):
+            flush_group()
+            title = line[3:].strip()
+            continue
+        if line.startswith("### "):
+            flush_row()
+            cur = {f: "" for f in FIELDS}
+            continue
+        if title and line.startswith(">"):
+            desc.append(line.lstrip("> ").strip())
+            continue
+        if line.startswith("- "):
+            body = line[2:]
+            cuts = [i for i in (body.find(":"), body.find("：")) if i >= 0]
+            if cuts:
+                key, val = body[: min(cuts)].strip(), body[min(cuts) + 1:].strip()
+                if key in FIELDS and cur is not None:
+                    cur[key] = val
+                    last = key
+                    continue
+            if cur is not None and last:
+                cur[last] += "\n" + body
+            continue
+        if line and cur is not None and last:
+            cur[last] += "\n" + line
+
+    flush_group()
+    if not groups:
+        raise SystemExit(f"{path.name} 里没解析到任何层（要有 `## 层` / `### 行` / `- 字段:`）")
+    return groups
+
+
+def metric_keys(groups=None) -> list[str]:
+    """一页纸用到的全部指标 key（供沙盘扩展嵌入指标集，保证三档值同源）。"""
+    groups = groups if groups is not None else load_rows()
+    return [r["metric"] for _t, _d, rs in groups for r in rs if r["metric"]]
+
+
+# ─────────────────────────────────────────── 校验
+def check(groups, facts: dict, metric_values: dict) -> list[str]:
+    """四条机械校验，返回问题清单（空＝通过）。"""
+    problems: list[str] = []
+
+    # ① 裸数字：与叙述层同一函数、同一白名单
+    for lineno, text in inject_mod.lint(MD_PATH):
+        problems.append(f"裸数字 第{lineno}行：{text}")
+
+    # ② 占位符算不出来（含浏览器端取不到的键、不存在的 src.*）
+    for _title, _desc, rows in groups:
+        for r in rows:
+            for f in TEXT_FIELDS:
+                _out, unknown = inject_mod.inject(r[f], facts)
+                if unknown:
+                    problems.append(f"占位符算不出来（{r.get('metric') or '无 metric'}·{f}）："
+                                    f"{', '.join(sorted(set(unknown)))}")
+
+    # ③ metric 必须存在于结果注册表
+    for _title, _desc, rows in groups:
+        for r in rows:
+            key = r["metric"]
+            if not key:
+                problems.append(f"缺 metric：「{r['问题'][:24]}」这一行没写 `- metric:`")
+            elif key not in METRIC_BY_KEY:
+                problems.append(f"metric 不存在：{key}（不在 lab.METRICS 里）")
+
+    # ④ facts 与 METRICS 的镜像必须同值
+    for key, item in facts.items():
+        m = item.get("mirror")
+        if not m:
+            continue
+        b = metric_values.get(m)
+        if b is None or b != b:
+            continue
+        if abs(item["v"] - b) > 1e-9 * max(1.0, abs(b)):
+            problems.append(f"镜像不一致：facts.{key}={item['v']:,.6g} vs METRICS.{m}={b:,.6g}")
+
+    return problems
+
+
+# ─────────────────────────────────────────── 取数与渲染
+def build_context(tier: str = "中性"):
+    """一次实跑拿齐：配置 / 驱动 / 快照 / 事实包 / 指标值。
+
+    **与浏览器端 PY_BOOT 走同一段代码**：只跑一次 build_model，事实包用
+    `strict=False`（没有敏感性表与三情景表），所以这里渲染得出来的占位符，
+    浏览器里也一定渲染得出来——校验 ② 的意义就在这里。
+    """
+    cfg = load_config()
+    drivers = load_drivers(cfg)
+    snapshot = build_model(cfg, **apply_scenario(cfg, drivers, tier))
+    snap_dict = asdict(snapshot)
+    snap_dict["_extra"] = {"config": cfg}
+    facts = facts_mod.build_facts(snap_dict, strict=False)
+    return cfg, drivers, snapshot, facts, read_metrics(snapshot)
+
+
+def tier_metric_values(cfg, drivers, keys: list[str]) -> dict[str, dict]:
+    """三情景下每个指标的**精确实跑值**（与沙盘 tierValues 同一套 build_model）。"""
+    out: dict[str, dict] = {}
+    for tier in SCENARIO_ORDER:
+        cfg2 = load_config()
+        snapshot = build_model(cfg2, **apply_scenario(cfg2, drivers, tier))
+        values = read_metrics(snapshot)
+        out[tier] = {k: values.get(k) for k in keys}
+    return out
+
+
+def render_texts(facts: dict, groups) -> list[list[str]]:
+    """把每行的三段判断文本用 facts 渲染一遍，返回 [[量级, 推翻, 锚], ...]（按行序）。"""
+    out: list[list[str]] = []
+    for _title, _desc, rows in groups:
+        for r in rows:
+            rendered = []
+            for f in TEXT_FIELDS:
+                text, unknown = inject_mod.inject(r[f], facts)
+                rendered.append(text if not unknown else "")
+            out.append(rendered)
+    return out
+
+
+def payload() -> dict:
+    """给沙盘 HTML 用的一页纸数据包（三层次 × 三情景精确值 × 渲染后判断文本）。
+
+    生成期与浏览器端各跑一次：生成期产出快照值，浏览器端（Pyodide）用同一段代码
+    按用户当前参数重跑，所以**解释列会跟着参数一起变**，不会停在旧数字上。
+    """
+    cfg, drivers, _snapshot, facts, _metric_values = build_context()
+    groups = load_rows()
+    keys = metric_keys(groups)
+    tiers = tier_metric_values(cfg, drivers, keys)
+    texts = render_texts(facts, groups)
+
+    out_groups = []
+    idx = 0
+    for title, desc, rows in groups:
+        out_rows = []
+        for r in rows:
+            mag, fals, anchor = texts[idx]
+            idx += 1
+            m = METRIC_BY_KEY.get(r["metric"])
+            out_rows.append({
+                "metric": r["metric"],
+                "label": r["指标"],
+                "q": r["问题"],
+                "unit": m.unit if m else "",
+                "decimals": m.decimals if m else 2,
+                "vals": [tiers[t].get(r["metric"]) for t in SCENARIO_ORDER],
+                "mag": mag,
+                "fals": fals,
+                "anchor": anchor,
+            })
+        out_groups.append({"title": title, "desc": desc, "rows": out_rows})
+    return {"tiers": list(SCENARIO_ORDER), "groups": out_groups}
+
+
+# ─────────────────────────────────────────── 档位方向机械校验（保留）
+def axis_tier_effect(config: dict, drivers: dict, neutral_kwargs: dict,
+                     base_values: dict) -> list[tuple]:
+    """每条轴**单独**摆到悲观/乐观档（其余轴保持中性），实测各指标变了多少。
+
+    回答的是："这条轴调到乐观，换电增量价值多多少？收入、EBITDA 各变多少？"
+    ——是**真实档位影响**，不是弹性，所以能直接用来挑"最该跟踪的指标"。
+    """
+    rows: list[tuple] = []
+    for name, spec in drivers.items():
+        for tier in ("悲观", "乐观"):
+            cfg = copy.deepcopy(config)
+            kw = dict(neutral_kwargs)
             try:
-                vals.append(round(float(node.value(scen_ctx[tier])), 4))
+                kw.update(apply_scenario(cfg, {name: spec}, tier))
+                values = read_metrics(build_model(cfg, **kw))
             except Exception:  # noqa: BLE001
-                vals.append(None)
-        rows.append([question, node.label, *vals, node.unit,
-                     magnitude, falsifier, anchor])
+                continue
+            d_abs = values.get(INFLUENCE_ANCHOR, 0.0) - base_values.get(INFLUENCE_ANCHOR, 0.0)
+            d_pct = {}
+            for m in METRICS:
+                b, a = base_values.get(m.key), values.get(m.key)
+                if b is None or a is None or b != b or a != a or not b:
+                    continue
+                d_pct[m.key] = (a - b) / b
+            rows.append((name, tier, _tier_text(spec, tier), d_abs, d_pct))
     return rows
 
 
-def export(rows: list[list], scen_order, path: Path) -> None:
-    from openpyxl import Workbook
-    from openpyxl.styles import Alignment, Font, PatternFill
-    from openpyxl.utils import get_column_letter
+def check_tier_direction(cfg, drivers, neutral_kwargs, base_values) -> list[str]:
+    """机械检查：三档是**投资价值**的三档，故每条 driver 的乐观档必须让锚点上升、悲观档下降。
 
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "一页纸"
-    headers = ["核心问题", "指标（终端数字）", *scen_order, "单位",
-               "合理量级（心算校验）", "什么会推翻它", "外部锚 / 信源"]
-    ws.append(headers)
-    for cell in ws[1]:
-        cell.font = Font(bold=True, size=10)
-        cell.fill = PatternFill("solid", fgColor="EFF0F3")
-        cell.alignment = Alignment(vertical="center", wrap_text=True)
-
-    for row in rows:
-        ws.append(row)
-
-    n = len(headers)
-    widths = [30, 30, *[13] * len(scen_order), 8, 46, 46, 46]
-    for i, w in enumerate(widths, 1):
-        ws.column_dimensions[get_column_letter(i)].width = w
-    for row in ws.iter_rows(min_row=2):
-        for cell in row:
-            cell.alignment = Alignment(vertical="top", wrap_text=True)
-        # 数值列右对齐、千分位
-        for col in range(3, 3 + len(scen_order)):
-            row[col - 1].number_format = "#,##0.00"
-            row[col - 1].alignment = Alignment(horizontal="right", vertical="top")
-
-    ws.freeze_panes = "C2"
-    ws.auto_filter.ref = f"A1:{get_column_letter(n)}{ws.max_row}"
-    wb.save(path)
+    违反者即"档位方向填反了"——最典型是成本类参数被当成收益类填
+    （如谷电单价：价越高→成本越高→投资价值越低，乐观档必须是低价）。
+    返回违规 driver 名列表（不阻断，由调用方决定怎么报）。
+    """
+    bad = []
+    for name, tier, _tt, d_abs, _pct in axis_tier_effect(cfg, drivers, neutral_kwargs, base_values):
+        # 资本结构参数（债/股比）不是"经营价值驱动"：杠杆升高使权益价值切片变小是正确代数，
+        # 不应触发"档位方向反了"误报；只校验经营类 driver 的方向。
+        if drivers.get(name, {}).get("structure"):
+            continue
+        if tier == "乐观" and d_abs < 0:
+            bad.append(name)
+        if tier == "悲观" and d_abs > 0:
+            bad.append(name)
+    return sorted(set(bad))
 
 
+def _tier_text(spec: dict, tier: str) -> str:
+    v = spec.get(tier)
+    if spec.get("mode") == "relative":
+        return f"×{v}"
+    if "pass_as" in spec:
+        return f"→ {v}"
+    return f"定档 {v}"
+
+
+# ─────────────────────────────────────────── 主流程
 def main() -> None:
-    drivers = load_drivers(load_config())
-    scen_ctx = {tier: build_ctx(tier, drivers) for tier in SCENARIO_ORDER}
-    root = build_tree(scen_ctx["中性"])          # 中性＝基线，与决策树同源
-    rows = collect(scen_ctx, root)
-    export(rows, SCENARIO_ORDER, XLSX_PATH)
-    print(f"已写出 {XLSX_PATH.name}（{len(rows)} 行核心指标 × 三情景 × 四列判断）")
+    groups = load_rows()
+    cfg, drivers, snapshot, facts, metric_values = build_context()
+
+    problems = check(groups, facts, metric_values)
+    n_rows = sum(len(rs) for _t, _d, rs in groups)
+    print("═" * 60)
+    print("一页纸 · 自检（内容源 narrative/一页纸.md）")
+    print("═" * 60)
+    print(f"层次 {len(groups)}　行 {n_rows}　引用指标 {len(set(metric_keys(groups)))} 个"
+          f"　事实包 {len(facts)} 条")
+    if problems:
+        print(f"\n✗ {len(problems)} 处问题，已中断：")
+        for p in problems[:30]:
+            print("   " + p)
+        raise SystemExit(1)
+    print("✓ 四条校验通过：无裸数字、占位符全部可解析、metric 全部在注册表、facts↔指标镜像一致")
+    print("  出口：outputs/换电沙盘_v4.3.html（xlsx 已停产，旧文件留作存档）")
+
+    # 档位方向：三档是投资价值的三档，成本类须反向填（资本结构参数标 structure 跳过）
+    neutral_kwargs = apply_scenario(load_config(), drivers, "中性")
+    bad = check_tier_direction(cfg, drivers, neutral_kwargs, metric_values)
+    if bad:
+        print("\n⚠ 档位方向与「投资价值判断」不一致（乐观档反而降低价值 / 悲观档反而提升价值）：")
+        print("   ", bad)
+        print("   三档是投资价值的三档：成本类参数要反向填——乐观＝低成本、悲观＝高成本。"
+              "请修正 base.toml 的 [drivers.*] 档位。\n")
 
 
 if __name__ == "__main__":

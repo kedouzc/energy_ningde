@@ -52,7 +52,7 @@ def main() -> None:
     # 与 run.py 共用同一个入口：情景定义只有一个家（base.toml [drivers]）
     snapshots = build_scenarios(config)
     snapshot = snapshots["中性"]
-    legacy = build_model(config, private_scenario="中枢", life_mode="legacy_v32")
+    legacy = build_model(config, life_mode="legacy_v32")
     report_path = ROOT / "outputs" / REPORT_NAME
     paths = write_outputs(config, snapshot, report_path, snapshots, legacy)
     print(f"骨架报告  {paths['report'].name}")

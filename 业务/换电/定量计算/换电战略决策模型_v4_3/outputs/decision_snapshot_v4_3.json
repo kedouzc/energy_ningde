@@ -10,7 +10,6 @@
     "wacc": 0.075,
     "wacc_basis": "蔚来换电ABS融资基准，毛估估直接采用，不作CAPM推导",
     "generated_numbers_only": true,
-    "private_scenario": "中枢",
     "life_mode": "derived"
   },
   "sourcing": {
@@ -3549,8 +3548,8 @@
       "choco_stations": 7689,
       "catl_construction_cash_call_yi": 447.5955076878396,
       "required_ebitda_yi": 745.3096780056391,
-      "deliverable_ebitda_yi": 1031.5460079031334,
-      "ebitda_coverage": 1.3840501986549123,
+      "deliverable_ebitda_yi": 1031.5460079031336,
+      "ebitda_coverage": 1.3840501986549125,
       "manufacturing_net_profit_yi": 461.8052002250681,
       "attributable_swap_value_yi": 7407.438801076356,
       "power_value_2030_yi": 16036.891909439992,
@@ -3834,6 +3833,13 @@
       "swap_battery_bank_gwh": 378.87,
       "swap_battery_bank_share_of_national_storage_2025": 1.0794,
       "swap_battery_bank_share_of_national_storage_2030": 0.4857
+    },
+    "cross_check_vs_society_electricity": {
+      "national_society_electricity_yi_kwh_latest": 103682.0,
+      "national_society_electricity_yi_kwh_2030": 135000.0,
+      "swap_annual_energy_yi_kwh": 1450.38,
+      "swap_energy_share_of_society_electricity_latest": 0.013989,
+      "swap_energy_share_of_society_electricity_2030": 0.010744
     }
   }
 }

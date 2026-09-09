@@ -372,7 +372,9 @@ def _private_scenario_tables(
 ) -> tuple[str, str, str]:
     """三情景：私家车分档渗透率表、driver 组合整体重跑对比表、解读。"""
     order = SCENARIO_ORDER
-    pen_table = config["vehicles"]["private"]["scenario_swap_penetration"]
+    # 私家车三档渗透率只有一个家：[drivers.private_penetration] 的向量档。
+    _pp = config["drivers"]["private_penetration"]
+    pen_table = {"保守": _pp["悲观"], "中枢": _pp["中性"], "激进": _pp["乐观"]}
     penetration_table = _table(
         ["情景", "8万元以下", "8至15万元", "15万元以上", "全市场换电保有(万)", "CATL可及(万)"],
         [
@@ -963,7 +965,7 @@ def render_report(
         station_battery_rent = (
             station_battery_gwh
             * (1.0 - config["finance"]["construction_ownership"])
-            * config["swap_business"]["battery_rent_rmb_kwh_year"]
+            * config["swap_business"]["battery_rent_rmb_kwh_month"] * 12.0
             / 100.0
         )
         site_rent = (
@@ -1533,7 +1535,7 @@ def render_report(
             ("⑤ 站内周转电池", "Σ终局站数×单站库存块数×单块电量", f"四站型={capex.station_targets['qiji75_short']:,}/{capex.station_targets['qiji75_trunk']:,}/{capex.station_targets['choco25_passenger']:,}/{capex.station_targets['choco35_city']:,}", *_pool_vals("station_battery_gwh"), _n(station_battery_total_gwh, 1) + "GWh"),
             ("⑥ 站内可收租部分", "站内周转电池×外部经济权益", f"{_n(station_battery_total_gwh,1)}GWh×{_p(1.0-config['finance']['construction_ownership'],0)}", *_pool_vals("station_external_rent_gwh"), _n(swap.rent_station_external_gwh, 1) + "GWh"),
             ("⑦ 可收租电池合计", "车端＋站内外部权益部分", f"{_n(swap.rent_vehicle_gwh,1)}＋{_n(swap.rent_station_external_gwh,1)}", *_pool_vals("rent_eligible_gwh"), _n(swap.rent_eligible_gwh, 1) + "GWh"),
-            ("⑧ 电池租金", "可收租电池×度电年租", f"{_n(swap.rent_eligible_gwh,1)}GWh×{config['swap_business']['battery_rent_rmb_kwh_year']:g}元/kWh年；约10元/kWh月", *_pool_vals("battery_rent_yi"), _n(swap.battery_rent_yi, 1) + "亿元"),
+            ("⑧ 电池租金", "可收租电池×度电月租×12", f"{_n(swap.rent_eligible_gwh,1)}GWh×{config['swap_business']['battery_rent_rmb_kwh_month']:g}元/kWh月×12", *_pool_vals("battery_rent_yi"), _n(swap.battery_rent_yi, 1) + "亿元"),
             ("⑨ 峰谷套利", "站内电池×运营天数×峰谷差×RTE", f"{_n(station_battery_total_gwh,1)}GWh×{config['swap_business']['operating_days']:g}×{config['swap_business']['grid_spread_rmb_kwh']:g}元×{_p(config['swap_business']['rte'],0)}", *_pool_vals("arbitrage_yi"), _n(swap.arbitrage_yi, 1) + "亿元"),
             ("⑩ 辅助服务", "容量补偿+max(需求响应,调频)，随站数计算", "电网互动收入，不作为估值溢价依据", *_pool_vals("ancillary_yi", 2), _n(swap.ancillary_yi, 2) + "亿元"),
             ("▶ 营业收入", "③＋⑧＋⑨＋⑩", "—", *_pool_vals("revenue_yi"), _n(swap.revenue_yi, 1) + "亿元"),
@@ -2193,8 +2195,7 @@ def render_report(
 
     # 7.2 私家车三情景：未显式传入时，退化为当前快照所属情景（保证单情景调用仍可渲染）。
     if private_snapshots is None:
-        _tier = snapshot.meta.get("private_scenario", "中枢")
-        private_snapshots = {_TIER_TO_SCENARIO.get(_tier, "中性"): snapshot}
+        private_snapshots = {snapshot.meta.get("base_scenario", "中性"): snapshot}
     (
         private_penetration_table,
         private_scenario_table,

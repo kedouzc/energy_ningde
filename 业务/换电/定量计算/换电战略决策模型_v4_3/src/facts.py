@@ -122,6 +122,8 @@ class Fact:
     decimals: int = 1
     watch: float = 0.03      # 相对变动超过它 → 引用它的段落待复核
     note: str = ""           # 口径说明，写进 facts.json 供人查
+    mirror: str = ""         # 对应的 lab.METRICS key：两条取数路径必须给出同一个数，
+                             # 由 onepager.check_mirrors() 每次实跑断言（不一致即中断）
 
 
 @dataclass(frozen=True)
@@ -150,6 +152,79 @@ class ExtFact:
     bare: str = ""           # 表格里的裸写法，默认同 text
     unit: str = ""
     note: str = ""
+
+
+@dataclass(frozen=True)
+class RefFact:
+    """信源引用事实：URL / 名称 / 抓取日期 / 分级的**唯一家**在
+    `audit/信源审计台账.md` 的「信源索引（机读）」表里，本类只负责把它读出来。
+
+    为什么要单开一类（2026-09-09）：信源与链接**也是一种数据**——此前同一条链接在
+    base.toml 注释、台账正文、叙述层正文里各贴一遍，改一处忘三处。现在规矩是：
+      · URL / 名称 / 抓取日期 / 分级 → 只写台账索引表；
+      · 数值 → 只写 `configs/base.toml`（注释里写「信源：src.xxx」，不重复贴 URL）；
+      · 下游（一页纸 md、叙述层、HTML）只能写 `{{src.xxx}}` 引用。
+
+    text 渲染为 `[名称](URL)（抓取于 YYYY-MM-DD）`，与 Fact/ExtFact 走同一个
+    `{{key}}` 占位符体系，故不需要新语法。
+    """
+
+    key: str        # 必须以 src. 开头，与 Fact / ExtFact 的命名空间隔离
+    label: str      # 名称
+    url: str        # 外部可点击信源
+    as_of: str      # 抓取日期 YYYY-MM-DD
+    grade: str = ""  # 一手 / 二手 / 假设
+    used_by: str = ""  # 用于哪个 base.toml 参数
+
+    @property
+    def text(self) -> str:
+        grade = f"·{self.grade}" if self.grade else ""
+        return f"[{self.label}]({self.url})（抓取于 {self.as_of}{grade}）"
+
+
+LEDGER_PATH = ROOT / "audit" / "信源审计台账.md"
+REF_SECTION = "## 信源索引（机读）"
+
+
+def load_ref_facts(path: Path = LEDGER_PATH) -> list[RefFact]:
+    """解析台账的「信源索引（机读）」表。
+
+    找不到该节或表头列名不符 → 直接抛错中断：信源是被引用的数据，
+    解析不出来却静默跳过，等于让下游渲染出空链接（那比报错更糟）。
+    """
+    if not path.exists():
+        raise FileNotFoundError(f"信源台账不存在：{path}")
+    text = path.read_text("utf-8")
+    if REF_SECTION not in text:
+        raise ValueError(
+            f"{path.name} 里没有「{REF_SECTION}」节——信源索引是 URL 的唯一家，"
+            f"缺了它下游只能手写链接（会重新变成到处有数据）"
+        )
+    body = text.split(REF_SECTION, 1)[1]
+    rows = [ln.strip() for ln in body.splitlines() if ln.strip().startswith("|")]
+    header_idx = next((i for i, ln in enumerate(rows) if "key" in ln and "URL" in ln), None)
+    if header_idx is None:
+        raise ValueError(f"{path.name} 的「{REF_SECTION}」节里找不到表头行（需含 key 与 URL 两列）")
+    cols = [c.strip() for c in rows[header_idx].strip("|").split("|")]
+    try:
+        i_key, i_name, i_url, i_asof = (cols.index(c) for c in ("key", "名称", "URL", "抓取日期"))
+        i_grade = cols.index("分级")
+        i_used = cols.index("用于")
+    except ValueError as exc:
+        raise ValueError(f"{path.name}「信源索引」表头列不全（缺 {exc}）") from exc
+
+    out: list[RefFact] = []
+    for ln in rows[header_idx + 1:]:
+        cells = [c.strip() for c in ln.strip("|").split("|")]
+        if len(cells) < len(cols) or set(cells[0]) <= set("-: "):
+            continue                                  # 分隔行
+        if not cells[i_key].startswith("src."):
+            continue                                  # 表尾的说明行等
+        out.append(RefFact(key=cells[i_key], label=cells[i_name], url=cells[i_url],
+                           as_of=cells[i_asof], grade=cells[i_grade], used_by=cells[i_used]))
+    if not out:
+        raise ValueError(f"{path.name}「{REF_SECTION}」表里没有解析到任何 src.* 条目")
+    return out
 
 
 # ── 外部引用事实（`ext.*`）───────────────────────────────
@@ -351,6 +426,99 @@ F: list[Fact] = [
     Fact("sens.ev18_x", "档位标签", lambda s: "18×", kind="text", watch=1.0),
     Fact("sens.ev22_x", "档位标签", lambda s: "22×", kind="text", watch=1.0),
     Fact("sens.ev25_x", "档位标签", lambda s: "25×", kind="text", watch=1.0),
+
+    # ── 外部市场锚（一页纸市占率的分母）────────────────────
+    # 数值只在 base.toml；**信源（名称/URL/抓取日期/分级）只在 audit/信源审计台账.md 的
+    # 「信源索引（机读）」表**，故这里 note 只指 key、不复制链接——链接复制第二份就会开始漂移。
+    Fact("ext.storage_gwh_2025", "最新全国新型储能累计装机",
+         dig("_extra.config.national_battery_market.storage_install_gwh_2025"), "GWh", kind="int",
+         watch=1.0, note="外部一手（国家能源局）；信源见台账 src.nea_storage_2026"),
+    Fact("ext.storage_gwh_2030", "2030 全国新型储能装机预测",
+         dig("_extra.config.national_battery_market.storage_install_gwh_2030"), "GWh", kind="int",
+         watch=1.0, note="国务院文件推算（等效 2.6h 折算属经验假设）；信源见台账 src.gov_storage_2030"),
+    Fact("ext.elec_latest", "最新年度全社会用电量",
+         dig("_extra.config.national_power_market.society_electricity_yi_kwh_latest"), "亿kWh", kind="int",
+         watch=1.0, note="外部一手（国家能源局）；信源见台账 src.nea_elec_2025"),
+    Fact("ext.elec_2030", "2030 全社会用电量预测",
+         dig("_extra.config.national_power_market.society_electricity_yi_kwh_2030"), "亿kWh", kind="int",
+         watch=1.0, note="国网能源院口径（二手转引）；另有中电联 13 万亿口径差约 4%；信源见台账 src.society_elec_2030"),
+
+    # ── 判断阈值（唯一家＝base.toml [decision_thresholds]；下游只引用，不许再写一遍数字）──
+    Fact("thr.min_increment_yi", "重注门槛·增量价值下限",
+         dig("_extra.config.decision_thresholds.min_swap_increment_yi"), "亿元", kind="int", watch=1.0),
+    Fact("thr.min_incr_pct", "战略敞口门槛·增量占集团市值下限",
+         dig("_extra.config.decision_thresholds.min_increment_over_mktcap"), "", kind="pct", watch=1.0),
+    Fact("thr.target_incr_pct", "值得重注·增量占集团市值目标",
+         dig("_extra.config.decision_thresholds.target_increment_over_mktcap"), "", kind="pct", watch=1.0),
+    Fact("thr.bet_low", "押注占比·可坦然辩护的上限",
+         dig("_extra.config.decision_thresholds.max_bet_share_low"), "", kind="pct", watch=1.0),
+    Fact("thr.bet_high", "押注占比·结论靠倍数而非现金流的线",
+         dig("_extra.config.decision_thresholds.max_bet_share_high"), "", kind="pct", watch=1.0),
+    Fact("thr.min_coverage", "EBITDA 覆盖倍数体检线",
+         dig("_extra.config.decision_thresholds.min_forward_to_required_ebitda"), "倍", kind="x",
+         decimals=2, watch=1.0),
+    Fact("thr.max_premium", "战略溢价倍数上限（拍的倍数 ÷ 现金流支持的倍数）",
+         dig("_extra.config.decision_thresholds.min_swap_value_creation_multiple"), "倍", kind="x",
+         decimals=2, watch=1.0),
+
+    # ── 与 lab.METRICS 镜像的结果事实 ────────────────────────
+    # 一页纸的数值列走 METRICS（与沙盘读数同一出口），解释列走 facts 占位符；
+    # 两条取数路径必须给出同一个数，由 onepager.check_mirrors() 每次实跑断言。
+    Fact("op.net_profit", "运营净利润（项目100%口径）",
+         dig("swap_business.project_net_profit_yi"), "亿元", mirror="swap.net_profit",
+         note="分池计税、亏损池不跨池抵扣，故合计可能为负"),
+    Fact("op.catl_net_profit", "运营净利润（CATL归属）",
+         dig("swap_business.catl_attributable_net_profit_yi"), "亿元", mirror="swap.catl_net_profit"),
+    Fact("op.ev_multiple", "运营企业价值 EV（倍数法，100%口径）",
+         dig("swap_business.enterprise_value_yi"), "亿元", mirror="val.op_ev_multiple",
+         note="未扣债、未乘持股比例；归属口径见 q3.op_value"),
+    Fact("op.equity_gross", "运营项目权益价值（100%口径）",
+         dig("swap_business.project_equity_value_yi"), "亿元", mirror="val.op_equity_gross"),
+    Fact("dcf.ev_true", "DCF内在价值·有限期EV",
+         dig("swap_business.dcf_ev_true_yi"), "亿元", mirror="val.ev_dcf_true",
+         note="15 年有限期、毛现金流资本化；不含 2030 年后增长"),
+    Fact("dcf.ev_perpetual", "DCF内在价值·永续EV",
+         dig("swap_business.dcf_ev_perpetual_yi"), "亿元", mirror="val.ev_dcf_perpetual",
+         note="规模冻结在 2030 的永续账：模型内的上限、真实世界的下限"),
+    Fact("dcf.catl_true", "CATL归属·DCF有限期",
+         dig("swap_business.dcf_catl_value_true_yi"), "亿元", mirror="val.catl_dcf_true"),
+    Fact("dcf.catl_perpetual", "CATL归属·DCF永续",
+         dig("swap_business.dcf_catl_value_perpetual_yi"), "亿元", mirror="val.catl_dcf_perpetual"),
+    Fact("q3.increment_np", "合并增量净利润",
+         dig("ledger.total_swap_increment_net_profit_yi"), "亿元", mirror="val.increment_np"),
+    Fact("q3.increment_gross", "合并增量价值（业务整体）",
+         lambda s: (float(dig("swap_business.project_equity_value_yi")(s))
+                    + float(dig("ledger.full_manufacturing_scenario_gap_value_yi")(s))),
+         "亿元", mirror="val.increment_gross",
+         note="运营项目权益（100%）＋制造增量价值；归属股东口径见 q3.increment"),
+    Fact("q2.nominal_total", "名义累计投入（不折现）",
+         dig("capex.nominal_total_capex_yi"), "亿元", mirror="capex.nominal_total",
+         note="实际花钱总额；与现值口径（q2.lifecycle_base）不同源，不可混用"),
+    Fact("q2.peak_year", "峰值年", dig("capex.peak_year"), "年", kind="year", watch=1.0,
+         mirror="capex.peak_year", note="CATL 单年权益出资最大的年份——年份不加千分位"),
+    Fact("q1.st_total", "终局站数合计",
+         lambda s: float(sum(s["scale"]["target_station_demand"].values())), "座", kind="int",
+         mirror="scale.stations_total"),
+    # 占比一律**以百分数存储**（v=1.4 表示 1.4%），与 lab.METRICS 的 mk.* 完全同值——
+    # 不用 kind="pct"（那会把 v 当成小数比值、渲染时再 ×100，与指标值差 100 倍）。
+    Fact("mk.share_storage_2025", "装机GWh / 最新储能装机",
+         lambda s: float(s["market_share"]["cross_check_vs_national"]
+                         ["swap_battery_bank_share_of_national_storage_2025"]) * 100.0,
+         "%", kind="num", decimals=2, mirror="mk.share_storage_2025",
+         note="分子＝车端装机保有量 GWh；分母＝最新年度全国新型储能累计装机"),
+    Fact("mk.share_storage_2030", "装机GWh / 2030储能装机预测",
+         lambda s: float(s["market_share"]["cross_check_vs_national"]
+                         ["swap_battery_bank_share_of_national_storage_2030"]) * 100.0,
+         "%", kind="num", decimals=2, mirror="mk.share_storage_2030"),
+    Fact("mk.share_elec_latest", "年换电量 / 最新年度全社会用电量",
+         lambda s: float(s["market_share"]["cross_check_vs_society_electricity"]
+                         ["swap_energy_share_of_society_electricity_latest"]) * 100.0,
+         "%", kind="num", decimals=3, mirror="mk.share_elec_latest",
+         note="分子＝成熟期年换电交易电量（亿kWh）；分母＝最新年度全社会用电量"),
+    Fact("mk.share_elec_2030", "年换电量 / 2030全社会用电量预测",
+         lambda s: float(s["market_share"]["cross_check_vs_society_electricity"]
+                         ["swap_energy_share_of_society_electricity_2030"]) * 100.0,
+         "%", kind="num", decimals=3, mirror="mk.share_elec_2030"),
 ]
 
 FACT_BY_KEY = {f.key: f for f in F}
@@ -361,6 +529,8 @@ def render(fact: Fact, value: Any) -> str:
     """事实的规范写法。{{key}} 注入的就是这个字符串。"""
     if fact.kind == "text":
         return str(value)
+    if fact.kind == "year":
+        return f"{int(round(float(value)))}{fact.unit}"     # 年份不加千分位（2030 ≠ 2,030）
     if fact.kind == "int":
         return f"{int(round(float(value))):,}{fact.unit}"
     if fact.kind == "pct":
@@ -374,6 +544,8 @@ def render_bare(fact: Fact, value: Any) -> str:
     """{{key:n}} 注入的写法：只有数字，不带单位（用于表格列已标单位的场合）。"""
     if fact.kind == "text":
         return str(value)
+    if fact.kind == "year":
+        return f"{int(round(float(value)))}"
     if fact.kind == "int":
         return f"{int(round(float(value))):,}"
     if fact.kind == "pct":
@@ -382,7 +554,16 @@ def render_bare(fact: Fact, value: Any) -> str:
 
 
 # ─────────────────────────────────────────── 生成
-def build_facts(snapshot: dict | None = None) -> dict:
+def build_facts(snapshot: dict | None = None, strict: bool = True) -> dict:
+    """装配事实包。
+
+    strict=True（默认，build.py 走这条路）：任何一条事实取不到就中断——
+    宁可中断也不能给出一份缺数的事实包。
+
+    strict=False：给**只跑了一次 build_model 的场景**用（一页纸、浏览器内 Pyodide 重跑）。
+    这些场景没有 `snap["sensitivity"]`（敏感性表）与 `_extra.scenarios`（三情景表），
+    依赖它们的事实（sens.*）自然取不到——跳过即可，不该让整包失败。
+    """
     snap = snapshot if snapshot is not None else json.loads(SNAPSHOT_PATH.read_text("utf-8"))
     out: dict[str, dict] = {}
     missing: list[str] = []
@@ -403,9 +584,13 @@ def build_facts(snapshot: dict | None = None) -> dict:
             "watch": fact.watch,
             "from": getattr(fact.get, "__doc__", "") or "派生",
             "note": fact.note,
+            "mirror": fact.mirror,
         }
-    if missing:
+    if missing and strict:
         raise KeyError("以下事实在快照里取不到（快照结构变了？）：\n  " + "\n  ".join(missing))
+    if missing:
+        print(f"　（strict=False：{len(missing)} 条事实取不到已跳过，"
+              f"多为依赖敏感性表/三情景表的 sens.*）")
 
     # ── 合并外部引用事实 ────────────────────────────────
     bad: list[str] = []
@@ -431,8 +616,31 @@ def build_facts(snapshot: dict | None = None) -> dict:
             "as_of": e.as_of,
             "note": e.note,
         }
+    # ── 合并信源引用事实（src.*，来自台账「信源索引（机读）」）──────
+    # 链接是被引用的数据：这里只从唯一的家读出来渲染，下游一律写 {{src.xxx}}。
+    for r in load_ref_facts():
+        if r.key in out:
+            bad.append(f"{r.key}：与已有事实重名")
+            continue
+        if not r.url.startswith(("http://", "https://")):
+            bad.append(f"{r.key}：URL 不可点击（{r.url}）——信源必须是外部可达的链接")
+            continue
+        out[r.key] = {
+            "label": r.label,
+            "v": r.url,
+            "text": r.text,
+            "bare": r.text,
+            "unit": "",
+            "kind": "src",
+            "watch": 1.0,
+            "from": r.url,
+            "as_of": r.as_of,
+            "note": f"{r.grade}｜用于 {r.used_by}",
+            "mirror": "",
+        }
+
     if bad:
-        raise ValueError("外部事实（ext.*）不合规：\n  " + "\n  ".join(bad))
+        raise ValueError("外部事实（ext.* / src.*）不合规：\n  " + "\n  ".join(bad))
 
     return out
 

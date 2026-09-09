@@ -180,7 +180,7 @@ def parameter_audit_rows(config: dict, snapshot: ModelSnapshot) -> list[tuple[st
     add("需求", "私家价格带权重", "12.3%/40.4%/47.3%", _seq([row["weight"] for row in private_scenes], True), "一致", "分档计算", "私家换电车辆")
     add("需求", "私家换电渗透/CATL市占", "0%/5%/3%；CATL 50%", _seq([row["swap_penetration"] for row in private_scenes], True)+f"；CATL {_pct(private_scenes[0]['catl_swap_share'],0)}", "一致", "中性情景", "私家换电车辆")
     add("需求", "私家电量/里程/电耗/寿命", "56kWh / 60km / 0.15 / 10年", f"{private['battery_kwh']:g}kWh / {private['daily_km']:g}km / {private['energy_consumption_kwh_km']:g} / {lives['private']:g}年", "按主文", "旧配置66.7km/90%与主文60km/80%冲突；现跟主文；寿命改为推算后低频使循环寿命>10年、由日历封顶兜住10年", "频次、站数、CAPEX")
-    add("需求", "无换电CATL份额(=charge_share中性档)", "营运35%；私家33%", f"重卡/城配/出租/网约/Robotaxi {_pct((config['charge_share']['heavy']['pessimistic']+config['charge_share']['heavy']['optimistic'])/2,0)}；私家{_pct((config['charge_share']['private']['pessimistic']+config['charge_share']['private']['optimistic'])/2,0)}", "一致", "无换电基准改由 charge_share 中性档派生（不再单列 no_swap_catl_share）", "无换电制造装机")
+    add("需求", "无换电CATL份额(=charge_share中性档)", "营运35%；私家33%", f"重卡/城配/出租/网约/Robotaxi {_pct(config['drivers']['charge_share']['中性']['heavy'],0)}；私家{_pct(config['drivers']['charge_share']['中性']['private'],0)}", "一致", "无换电基准改由 charge_share 中性档派生（不再单列 no_swap_catl_share）", "无换电制造装机")
 
     add("频次", "可用电量比例", "80%", _pct(business["usable_energy_factor"],0), "一致", "剩余20%换电", "全部车型频次与交易电量")
     add("频次", "重卡加权频次", "1.80次/日（展示值）", f"{current['heavy']['frequency']:.1f}次/日", "一致", "分场景原值加权，在车型终局节点保留1位", "重卡站数维持3,563")
@@ -250,7 +250,7 @@ def parameter_audit_rows(config: dict, snapshot: ModelSnapshot) -> list[tuple[st
         )
     add("更新", "3.8年首轮更新年度拆分", "第3年20%＋第4年80%", "事件年3.8按相邻年度20%/80%", "一致", "非整数寿命批次分配", "2029—2030更新CAPEX")
 
-    add("经营", "运营天数/服务费/电池年租金", "350天 / 0.4元/kWh / 120元/kWh年", f"{business['operating_days']:g}天 / {business['service_fee_rmb_kwh']:g}元/kWh / {business['battery_rent_rmb_kwh_year']:g}元/kWh年", "一致", "核心经营单价", "服务收入、租金收入")
+    add("经营", "运营天数/服务费/电池月租金", "350天 / 0.4元/kWh / 10元/kWh月", f"{business['operating_days']:g}天 / {business['service_fee_rmb_kwh']:g}元/kWh / {business['battery_rent_rmb_kwh_month']:g}元/kWh月", "一致", "核心经营单价", "服务收入、租金收入")
     add("经营", "租金资产范围", "主文：仅装车；修订记录：装车+站内×60%（内部冲突）", "装车电池+站内电池×外部权益60%", "按v3.2最终修订口径", "只对外部股东对应电池确认租金，不确认CATL内部权益租金", "站数通过站内外部权益电池租金影响EBITDA")
     add("经营", "峰谷/RTE/自耗/谷价", "0.4 / 92% / 2% / 0.3元", f"{business['grid_spread_rmb_kwh']:g} / {_pct(business['rte'],0)} / {_pct(business['auxiliary_power_rate'],0)} / {business['valley_power_price_rmb_kwh']:g}元", "一致", "净额法", "套利与损耗电费")
     add("经营", "场租/人工/软件", "30万站年；重卡30元/次、乘用13元/次；20亿/年", f"{business['site_rent_wan_year']:g}万站年；重卡{business['heavy_station_labor_wan_year']:g}万/站年、巧克力{business['passenger_station_labor_wan_year']:g}万/站年；{business['software_opex_yi_year']:g}亿/年", "口径变更", "场租统一15万；人工改按站计价（重卡2人双班；巧克力0.2人/站保守档=5站共用1名巡检员，官方3公里服务半径口径下1人覆盖约25–40km行程圈）；软件三路径核验后取2亿", "EBITDA")

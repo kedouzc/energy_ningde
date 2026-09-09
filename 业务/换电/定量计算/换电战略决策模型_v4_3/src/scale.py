@@ -188,8 +188,8 @@ FALLBACK_CHARGE_SHARE: dict[str, tuple[float, float]] = {
     "city": (0.35, 0.45),
     "taxi": (0.35, 0.45),
     "ridehail": (0.35, 0.45),
-    "robotaxi": (0.40, 0.40),  # 全量换电(swap_pen=1)：有换电侧充电份额恒为0（被 swap_pen 归零），该档仅用于无换电反事实纯制造口径（中性 0.40），故无情景区间——与 base.toml [charge_share.robotaxi] 对齐
-    "private": (0.33, 0.40),
+    "robotaxi": (0.40, 0.40),  # 全量换电(swap_pen=1)：有换电侧充电份额恒为0（被 swap_pen 归零），该档仅用于无换电反事实纯制造口径（中性 0.40），故无情景区间——与 base.toml [drivers.charge_share.spread.robotaxi] 对齐
+    "private": (0.30, 0.40),   # 与 [drivers.charge_share.spread.private] 对齐
 }
 
 # -------------------------------新增-----------------------------------
@@ -335,25 +335,39 @@ def _replace_row_life(row: ScaleRow, life_years: float) -> ScaleRow:
 # -------------------------------新增END-----------------------------------
 
 
-def _charge_share(config: dict, vehicle_key: str, scenario: str) -> float:
-    """充电段CATL市占率：按悲观/中性/乐观直接取档，不再用"份额提升实现率"插值。
+def _charge_share(config: dict, vehicle_key: str, scenario=None) -> float:
+    """充电段CATL市占率：直接读 config["charge_share"][车型] 的当前活值。
 
-    悲观 = 无换电保护、充分竞争下的份额；乐观 = 换电标准锁定后能保持的份额；
-    中性 = (悲观+乐观)/2，由程序派生，不手工拍值。
+    v4.3 起逐车型三档份额统一声明在 [drivers.charge_share]（一个家），apply_scenario
+    按档把各车型活值写入 config["charge_share"]；模型只读活值，不经情景名中转。
+    scenario 为 None 时读当前活值；传 "中性" 时读 drivers 段中性档（无换电反事实基准，
+    固定取中性、与激活档无关）。
     """
-    entry = config.get("charge_share", {}).get(vehicle_key)
-    if entry is None:
-        pessimistic, optimistic = FALLBACK_CHARGE_SHARE[vehicle_key]
-    else:
-        pessimistic = entry["pessimistic"]
-        optimistic = entry["optimistic"]
-    if scenario == "悲观":
-        return pessimistic
-    if scenario == "乐观":
-        return optimistic
     if scenario == "中性":
-        return (pessimistic + optimistic) / 2.0
-    raise ValueError(f"未知充电段市占率情景 {scenario}")
+        entry = (
+            config.get("drivers", {})
+            .get("charge_share", {})
+            .get("中性", {})
+            .get(vehicle_key)
+        )
+        if entry is None:
+            pessimistic, optimistic = FALLBACK_CHARGE_SHARE[vehicle_key]
+            return (pessimistic + optimistic) / 2.0
+        return float(entry)
+    live = config.get("charge_share", {}).get(vehicle_key)
+    if live is None:
+        # 配置缺失兜底：取中性档均值
+        entry = (
+            config.get("drivers", {})
+            .get("charge_share", {})
+            .get("中性", {})
+            .get(vehicle_key)
+        )
+        if entry is None:
+            pessimistic, optimistic = FALLBACK_CHARGE_SHARE[vehicle_key]
+            return (pessimistic + optimistic) / 2.0
+        return float(entry)
+    return float(live)
 
 
 def _city_stock_layer(config: dict) -> dict:
@@ -392,11 +406,11 @@ def _city_stock_layer(config: dict) -> dict:
 def build_scale(
     config: dict,
     sourcing: SourcingAdjustment,
-    private_scenario: str = "中枢",
     life_mode: str = "derived",
 ) -> ScaleResult:
-    """private_scenario：私家车分档换电渗透率情景，取 保守/中枢/激进（见 base.toml
-    [vehicles.private.scenario_swap_penetration]）。中枢即 scenes 内的默认口径。
+    """私家车分档换电渗透率已由 [drivers.private_penetration] 按档写入
+    vehicles.private.scenes.*.swap_penetration，本函数直接读场景活值，
+    不再经情景名中转（原 private_scenario 参数与情景表已删，数值只有一个家）。
 
     life_mode：电池寿命口径。
       "derived"    = 先按四个电池池汇总使用强度（含站内库存电池），再按[battery_life_model]
@@ -409,18 +423,8 @@ def build_scale(
     legacy_station_life = LEGACY_V32_STATION_LIFE_YEARS
     years = config["construction"]["years"]
     stocks = _operating_stocks(config)
-    # 私家车三情景：非中枢档时按情景表覆盖各价格带分档的换电渗透率。
-    private_scene_pen: dict[str, float] = {}
-    if private_scenario != "中枢":
-        table = config["vehicles"].get("private", {}).get("scenario_swap_penetration", {})
-        if private_scenario not in table:
-            raise ValueError(
-                f"未知私家车情景 {private_scenario}，可用：{list(table)}"
-            )
-        private_scene_pen = table[private_scenario]
-    # 充电段市占率：直接按悲观/中性/乐观取档（见[charge_share]），不再用实现率插值。
-    # 中性档为程序派生的两档均值，基准不再默认取最乐观值。
-    charge_scenario = config.get("charge_share", {}).get("scenario", "中性")
+    # 充电段市占率：逐车型活值直接读 config["charge_share"]（由 apply_scenario 按档写入，
+    # 三档份额声明在 [drivers.charge_share]），不再用实现率插值、不经情景名中转。
     rows: list[ScaleRow] = []
 
     # 【新增】与 rows 一一对应，记录每条车型×场景属于哪个电池流转池。
@@ -446,9 +450,7 @@ def build_scale(
             annual_ev = _annual_ev_wan(vehicle, year_index, stocks)
             for scene_index, scene in enumerate(vehicle["scenes"]):
                 ev = annual_ev * scene["weight"]
-                swap_penetration = private_scene_pen.get(
-                    scene["name"], scene["swap_penetration"]
-                ) if private_scene_pen else scene["swap_penetration"]
+                swap_penetration = scene["swap_penetration"]
                 charge_penetration = 1.0 - swap_penetration
                 identity_error = max(identity_error, abs(swap_penetration + charge_penetration - 1.0))
                 catl_swap_share = min(1.0, scene["catl_swap_share"] + share_uplift)
@@ -456,7 +458,7 @@ def build_scale(
                 market_charge = ev * charge_penetration
                 catl_swap = market_swap * catl_swap_share
                 # 充电段份额按三档取档（与寿命口径正交；A.2仅对比寿命维度，不混入充电份额变更）。
-                catl_charge = market_charge * _charge_share(config, key, charge_scenario)
+                catl_charge = market_charge * _charge_share(config, key)
                 # 无换电反事实基准：充电段份额取「中性」档，作用于全市场（swap_pen=0），
                 # 与有换电侧充电段（_charge_share(charge_scenario)）同口径派生，不再单列 no_swap_catl_share。
                 catl_no_swap = ev * _charge_share(config, key, "中性")

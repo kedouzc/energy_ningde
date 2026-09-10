@@ -1051,9 +1051,18 @@ def recompute(state_json):
                 cap = ax.get("cap")
                 new = [min(cap, max(0.0, x + d)) for x in cur] if cap is not None else [x + d for x in cur]
             else:
+                # lo/hi 是轴 δ 的允许范围，不是参数值的范围。
+                # 旧代码 `max(lo, min(hi, base + d))` 会把结果值错误地钳到 δ 范围里，
+                # 导致正向调整反而被压成基线以下（如 charge_share 0.45 -> 0.30）。
+                # 正确做法：先钳 δ，再加到 base；最后按物理边界 [0, cap] 兜底。
                 base = ax.get("base", {}).get(p)
                 lo, hi = ax.get("lo"), ax.get("hi")
-                new = max(lo, min(hi, base + d)) if (lo is not None and hi is not None) else base + d
+                if lo is not None and hi is not None:
+                    d = max(lo, min(hi, d))
+                cap = ax.get("cap")
+                new = base + d
+                if cap is not None:
+                    new = min(cap, max(0.0, new))
             try:
                 _set_path(cfg, p, new)
             except Exception as exc:

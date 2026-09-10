@@ -42,10 +42,21 @@ tr.attrib td{background:#f8fafc}
 /* 设计：手机(<900px)自上而下；电脑/平板(≥900px)时 ②③ 左右并行（见 .cols）。
    ④ 默认收起，点开变全屏遮罩——手机与桌面体验一致，不挤占顶部空间。 */
 .sec{margin-bottom:14px}
-/* ① 结论区：浅底 + 左侧强调色，一眼看完、不滚动 */
+/* ① 结论区：结论写在最前（左侧强调色），下面 业绩/估值/卡位/ROI/重点 = 五张卡片。
+   卡片比一串 bullet 好扫：每张自洽、一屏读完五个维度，不再"一堆文字数字看晕"（用户 2026-09-11）。 */
 .verdict{background:#fff;border:1px solid var(--bd);border-left:4px solid var(--ac);
-  border-radius:10px;padding:14px 16px;line-height:1.95;font-size:15px}
-.verdict-txt{margin:0}
+  border-radius:10px;padding:14px 16px;font-size:15px}
+.verdict-lead{line-height:1.9}
+.verdict-lead .vpara{margin:0 0 8px}
+.verdict-lead .vpara:last-child{margin-bottom:0}
+.vgrid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}
+@media(min-width:760px){.vgrid{grid-template-columns:1fr 1fr}}
+.vcard{border:1px solid var(--bd);border-top:3px solid var(--ac);border-radius:10px;
+  padding:10px 12px;background:var(--bg)}
+.vcard.wide{grid-column:1/-1}
+.vcard .vct{display:flex;align-items:center;gap:6px;font-weight:700;font-size:14px;margin-bottom:4px}
+.vcard .vct::before{content:"";width:3px;height:14px;border-radius:2px;background:var(--ac)}
+.vcard .vcb{font-size:13.5px;line-height:1.8;color:#222}
 .verdict b{color:var(--ac);font-weight:700}
 .verdict b.todo{color:var(--bad);font-weight:400;font-style:italic}
 

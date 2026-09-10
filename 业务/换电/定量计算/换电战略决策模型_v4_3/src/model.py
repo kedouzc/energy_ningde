@@ -21,6 +21,7 @@ from group_constraints import build_capital_commitments, build_funding_envelope
 from mna import get_sourcing_adjustment
 from scale import build_scale
 from schemas import ModelSnapshot
+from tco import build_heavy_economics
 
 
 def _build_core(
@@ -33,6 +34,8 @@ def _build_core(
     capex = build_capex(config, scale, sourcing)
     baseline = build_2026_baseline(config)
     swap = build_swap_business(config, scale, capex)
+    # TCO 已在 tco.py 独立（build_heavy_economics）；在装配层挂载到快照，business 不再依赖 tco。
+    swap.heavy_economics = build_heavy_economics(config, scale, capex, swap.pool_operations)
     no_swap, with_swap = build_manufacturing_cases(config, scale, capex)
     ledger = build_consolidated_ledger(config, baseline, no_swap, with_swap, swap)
     light = build_light_asset_scenarios(config, scale, capex, swap, ledger)

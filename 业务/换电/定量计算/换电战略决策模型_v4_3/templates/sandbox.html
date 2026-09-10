@@ -8,8 +8,10 @@
 </head><body><div class="wrap">
 <h1>换电战略沙盘 <span class="note" id="pystat">精确模式：浏览器内重跑同一套 Python 模型；离线则显示生成快照，改参请回跑 python src/run.py</span></h1>
 
-<!-- ① 结论区：极简。一两句话 + 几个关键数，不滚动就能看完 -->
+<!-- ① 结论区：结论写在最前（两段判断），下面 业绩/估值/卡位/ROI/重点 五张卡片。
+     版面由 narrative/沙盘结论区.md 的 # 顶部结论 / # 结论卡片 决定，本文件不管文案。 -->
 <section class="sec verdict" id="secVerdict">
+  <h2 style="margin-top:0">◈ 结论</h2>
   <div id="verdict"></div>
 </section>
 
@@ -22,13 +24,9 @@
   <button onclick="resetAll()">全部复位</button>
 </div>
 
-<!-- ②③ 手机：自上而下；桌面/平板(≥900px)：左右并行。见 sandbox.css 的 .cols -->
+<!-- ②③ 定量支撑在前（结论卡片之下先回答"这些数站不站得住"），定性逻辑在后。
+     手机：自上而下；桌面/平板(≥900px)：左右并行。见 sandbox.css 的 .cols -->
 <div class="cols">
-  <section class="sec" id="secNarrative">
-    <h2 style="margin-top:0">◈ 定性逻辑</h2>
-    <div id="narrative"></div>
-  </section>
-
   <section class="sec" id="secDashboard">
     <h2 style="margin-top:0">◈ 定量支撑</h2>
     <div id="metrics"></div>
@@ -38,6 +36,11 @@
       <summary>结论校验 · 一页纸（详细，默认收起）</summary>
       <div id="onepaper"></div>
     </details>
+  </section>
+
+  <section class="sec" id="secNarrative">
+    <h2 style="margin-top:0">◈ 定性逻辑</h2>
+    <div id="narrative"></div>
   </section>
 </div>
 

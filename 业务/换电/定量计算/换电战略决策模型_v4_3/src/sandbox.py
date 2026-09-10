@@ -420,27 +420,33 @@ from pathlib import Path as _Path
 
 def _load_sandbox_md() -> dict:
     """读取 narrative/沙盘结论区.md：
-      # 顶部结论   —— 一段为论证模板
+      # 顶部结论   —— 结论写在最前，空行分段
+      # 结论卡片   —— 下用 ## 分段：业绩／估值／卡位／ROI／重点（渲染成结论区下方卡片）
       # 定性逻辑   —— 下用 ## 分段为三支柱
       # 口径与信源 —— 逐条口径说明与外链（渲染成结论区下方小字，数看得见、口径也看得见）
     占位符 {key} 由 verdict.build_vals 的 vals 填。"""
     p = _Path(__file__).resolve().parent.parent / "narrative" / "沙盘结论区.md"
     text = p.read_text("utf-8")
     parts = _re.split(r"^#\s+", text, flags=_re.M)
-    verdict_tmpl, narrative, notes = "", [], []
+    verdict_tmpl, cards, narrative, notes = "", [], [], []
     for part in parts[1:]:
         lines = part.split("\n")
         title = lines[0].strip()
         body = "\n".join(lines[1:]).strip()
         if title == "顶部结论":
             verdict_tmpl = body
+        elif title == "结论卡片":
+            for s in _re.split(r"^##\s+", body, flags=_re.M)[1:]:
+                sl = s.split("\n")
+                cards.append({"title": sl[0].strip(), "body": "\n".join(sl[1:]).strip()})
         elif title == "定性逻辑":
             for s in _re.split(r"^##\s+", body, flags=_re.M)[1:]:
                 sl = s.split("\n")
                 narrative.append({"title": sl[0].strip(), "body": "\n".join(sl[1:]).strip()})
         elif title == "口径与信源":
             notes = [ln.strip() for ln in body.split("\n") if ln.strip()]
-    return {"verdict_tmpl": verdict_tmpl, "narrative": narrative, "notes": notes}
+    return {"verdict_tmpl": verdict_tmpl, "cards": cards,
+            "narrative": narrative, "notes": notes}
 
 _SANDBOX_MD = _load_sandbox_md()
 
@@ -460,6 +466,9 @@ def _check_placeholders(verdict: dict) -> None:
     而这类数一旦被引用进决策，事后极难追回。宁可生成失败，也不出半成品。
     """
     used: set[str] = set(_PH_RE.findall(verdict.get("tmpl", "")))
+    for card in verdict.get("cards", []):
+        used |= set(_PH_RE.findall(card.get("title", "")))
+        used |= set(_PH_RE.findall(card.get("body", "")))
     for sec in verdict.get("narrative", []):
         used |= set(_PH_RE.findall(sec.get("body", "")))
     for ln in verdict.get("notes", []):
@@ -481,6 +490,7 @@ def _check_placeholders(verdict: dict) -> None:
 def _build_verdict() -> dict:
     """顶部结论区：只装模板与文案，数值全部交给 verdict.build_vals。"""
     return {"tmpl": _SANDBOX_MD["verdict_tmpl"],
+            "cards": _SANDBOX_MD["cards"],
             "vals": {},            # 由 main() 用基线 snapshot 填（baseVals）
             "narrative": _SANDBOX_MD["narrative"],
             "notes": _SANDBOX_MD["notes"]}

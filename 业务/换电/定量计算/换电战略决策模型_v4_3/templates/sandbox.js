@@ -6,7 +6,7 @@
    ①结论 ②定性逻辑 ③定量支撑 ④调参抽屉 一一对应：
      §0 状态与工具函数     S/A/读数 的单一真相 + 格式化小工具
      §1 精确引擎(Pyodide)  浏览器内重跑同一套 Python 模型
-     §2 顶部结论区         renderVerdict()      —— 对应 ①
+     §2 顶部结论区         renderVerdict()      —— 对应 ①（结论在前 + 业绩/估值/卡位/ROI/重点 五卡）
      §3 定性逻辑区         renderNarrative()    —— 对应 ②
      §4 定量看板区         paintReadings/render/参数面板 —— 对应 ③
      §5 一页纸             renderOnePaper()     —— ③ 内的详细校验表
@@ -181,6 +181,8 @@ function paintReadings(E, tag){
 
 /* §2–§3 顶部结论区（①）与定性逻辑区（②）：文案住 MD（narrative/沙盘结论区.md），
    数值住 src/verdict.py 的 build_vals——**生成期与浏览器里跑的是同一个函数**。
+   ① 区版面：`# 顶部结论`＝结论（写在最前，空行分段），`# 结论卡片` 的每个 `##` ＝一张卡
+   （业绩／估值／卡位／ROI／重点）；只增删 MD 的段落即可改版面，不动本文件。
 
    vals 的三种来源，必须同源同刻（拖滑块/切档位时 ①② 区要跟 ③ 区一起动）：
      · 档位态：D.tierVals[档]      —— Python 预计算的精确实跑值
@@ -207,7 +209,18 @@ function renderVerdict(vals){
   const box=document.getElementById("verdict");
   if(!box || !D.verdict) return;
   const v = vals || curVals || {};
-  let html = '<p class="verdict-txt">'+nl2br(_fillPlaceholders(D.verdict.tmpl, v))+'</p>';
+  const fill = t => nl2br(_fillPlaceholders(String(t==null?"":t), v));
+  // 顶部结论：结论写在最前（空行分段，段落各自成段，不再挤成一条长句）
+  const paras = String(D.verdict.tmpl||"").split(/\n\s*\n/)
+    .map(s=>s.trim()).filter(Boolean)
+    .map(s=>`<p class="vpara">${fill(s)}</p>`).join("");
+  // 结论卡片（业绩／估值／卡位／ROI／重点）：段落在 MD 的 # 结论卡片 下，改文案不动程序。
+  // 「重点」正文最长，占满整行，避免其它四张被撑成同一高度留下大片空白。
+  const cards = (D.verdict.cards||[]).map(c=>
+    `<div class="vcard${/重点/.test(c.title||"")?" wide":""}">`
+    + `<div class="vct">${c.title}</div><div class="vcb">${fill(c.body)}</div></div>`).join("");
+  let html = (paras?`<div class="verdict-lead">${paras}</div>`:"")
+           + (cards?`<div class="vgrid">${cards}</div>`:"");
   const notes = D.verdict.notes || [];
   if(notes.length){
     html += '<details class="caliber"><summary>口径与信源（点开核对每个数怎么来的）</summary>'

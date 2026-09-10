@@ -225,7 +225,8 @@ def build_data(config: dict, base_values: dict, step: float) -> dict:
     # ── 多目标轴：打包 ──
     drivers = config.get("drivers", {})
     axes: list[dict] = []
-    axis_members: set[str] = set()
+    axis_members: set[str] = set()          # 只用于"是不是轴成员"的查询
+    axis_order: list[str] = []              # 保序：下面 arrays 必须按它迭代
     axis_cap: dict[str, float | None] = {}
     for name in AXIS_DRIVERS:
         spec = drivers.get(name)
@@ -309,6 +310,12 @@ def build_data(config: dict, base_values: dict, step: float) -> dict:
         axes.append(axis)
         axis_members.update(members)
         for p in members:
+            # set 的迭代顺序由字符串哈希决定，而 Python 默认**随机化**字符串哈希
+            # （PYTHONHASHSEED），所以直接 for p in axis_members 会让 arrays 顺序每次运行
+            # 都不同 → 产物不可复现（每次跑出的 HTML 都不一样，git diff 全是噪音）。
+            # 这里另存一份插入顺序，专供 arrays 使用。
+            if p not in axis_order:
+                axis_order.append(p)
             axis_cap[p] = spec.get("cap")
 
     leaf_cn = {"weight": "场景权重", "onboard_battery_kwh": "单车带电量",
@@ -407,12 +414,60 @@ def build_data(config: dict, base_values: dict, step: float) -> dict:
     arrays = [{"path": p, "value": list(values[p]), "cap": axis_cap.get(p),
                "elas": {m.key: round(elasticity.get(p, {}).get(m.key, 0.0), 4)
                         for m in _embed_metrics()}}
-              for p in axis_members if isinstance(values.get(p), list)]
+              for p in axis_order if isinstance(values.get(p), list)]
     return {"params": pmap, "axes": axes, "arrays": arrays,
             "metrics": metrics, "estMetrics": est_metrics, "gates": gates,
             "groups": [{"title": t, "paths": ps} for t, ps in groups.items()],
             "tiers": list(SCENARIO_ORDER), "step": step,
-            "tierValues": tier_metric_vals}
+            "tierValues": tier_metric_vals,
+            "verdict": _build_verdict(config, base_values)}
+
+
+# ── 顶部结论区（①）：把模型算出的关键数填进用户给定的论证文案 ──
+# VERDICT_TMPL 的 {占位符} 对应 _build_verdict 算出的 vals；算不出的标待补——
+# 那些通常是「依赖外部市场总量 / 外部假设」的数（营运车总规模、REITs 回笼倍数），
+# 模型内暂无，待补清单见下方 vals 里的 None。
+VERDICT_TMPL = (
+    "换电运营业务只需要在2030年之前累计获得{veh_ops}万辆营运车辆装机"
+    "（占{veh_mkt}万辆营运车总规模的{share}%，重点是{veh_heavy}万辆重卡、{veh_city}万辆城配物流车），"
+    "就能给CATL每年贡献{dist_cash}亿元可分派现金，按{ebitda}亿EBITDA×{mult}倍可贡献{mktcap}万亿市值，"
+    "年换电量达{energy}亿度、占全社会用电量的{elec_share}%，换电站内装机规模{batt_station}GWh、"
+    "占国内储能装机规模的{storage_share}%，{stations}座换电站均位于交通干线，"
+    "成为最大的分布式储能VPP运营商，而每年最多仅需投入{peak_call}亿元，"
+    "后续发行REITs可回笼{reit_mult}倍于投资的资金，无论从夯实动力电池业务基础、"
+    "还是财务投资回报，都是值得重估的好业务；一旦“电动车用能=CATL换电=便宜+好用”的标准建立、"
+    "用户心智达成，后续无论是面临固态电池等具体技术迭代，还是拓展不同场景（比如电动船舶、工业机器人），"
+    "都会进一步强化CATL在动力电池领域的生态闭环并反哺研发制造，进入增长飞轮，届时估值倍数会又进一步放大的空间。"
+)
+
+
+def _build_verdict(config: dict, bv: dict) -> dict:
+    """顶部结论区：从已算指标取数，填进 VERDICT_TMPL。"""
+    def g(key):
+        return bv.get(key)
+    def r(x, d=1):
+        return None if x is None else round(float(x), d)
+    veh_ops = r((g("ops.veh_commercial") or 0) + (g("ops.veh_passenger_ops") or 0), 1)
+    op_value = g("swap.operating_value")
+    vals = {
+        "veh_ops": veh_ops,
+        "veh_mkt": None,                          # 待补：营运车市场总规模（外部保有量口径）
+        "share": None,                            # 待补：= veh_ops / veh_mkt
+        "veh_heavy": r(g("ops.veh_heavy"), 1),
+        "veh_city": r(g("ops.veh_city"), 1),
+        "dist_cash": r(g("swap.dist_cash"), 1),
+        "ebitda": r(g("swap.ebitda"), 1),
+        "mult": (config.get("finance") or {}).get("swap_ev_ebitda"),
+        "mktcap": (round(op_value / 10000, 3) if op_value is not None else None),
+        "energy": r(g("ops.annual_energy"), 1),
+        "elec_share": r(g("mk.share_elec_latest"), 3),
+        "batt_station": r(g("ops.battery_station"), 0),
+        "storage_share": r(g("mk.share_storage_2025"), 3),
+        "stations": r(g("scale.stations_total"), 0),
+        "peak_call": r(g("capex.peak_call"), 1),
+        "reit_mult": None,                        # 待补：REITs 回笼倍数（外部假设）
+    }
+    return {"tmpl": VERDICT_TMPL, "vals": vals}
 
 
 

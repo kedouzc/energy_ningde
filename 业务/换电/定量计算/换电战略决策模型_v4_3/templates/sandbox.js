@@ -1,4 +1,20 @@
 
+/* ════════════════════════════════════════════════════════════════
+   换电战略沙盘 · 前端脚本分区导航（§0–§7）
+   ------------------------------------------------------------
+   整个交互逻辑按"页面四层结构"分块，与 templates/sandbox.html 的
+   ①结论 ②定性逻辑 ③定量支撑 ④调参抽屉 一一对应：
+     §0 状态与工具函数     S/A/读数 的单一真相 + 格式化小工具
+     §1 精确引擎(Pyodide)  浏览器内重跑同一套 Python 模型
+     §2 顶部结论区         renderVerdict()      —— 对应 ①
+     §3 定性逻辑区         renderNarrative()    —— 对应 ②
+     §4 定量看板区         paintReadings/render/参数面板 —— 对应 ③
+     §5 一页纸             renderOnePaper()     —— ③ 内的详细校验表
+     §6 可行性验证         analyze() 组合试算
+     §7 图表预留 + 异常兜底 + 初始化
+   改哪一层，先找对应的 §N。
+   ════════════════════════════════════════════════════════════════ */
+
 // base64 -> UTF-8 字符串（裸 atob 会按 Latin-1 解释，中文会乱码，故用 TextDecoder 真解码）。
 function b64utf8(s){
   const bin = atob(s), bytes = new Uint8Array(bin.length);
@@ -37,7 +53,7 @@ function arrEff(a,d){
   return t? s/t : 1;
 }
 
-/* 精确引擎：浏览器内用 Pyodide 重跑同一套 Python build_model，得到与一页纸同源的精确值。
+/* §1 精确引擎：浏览器内用 Pyodide 重跑同一套 Python build_model，得到与一页纸同源的精确值。
    档位态直接取 Python 预计算 D.tierValues（精确实跑）；
    自定义态优先用精确引擎实时重跑，未加载时退回"生成快照精确值"（绝不外推、绝不标 ±30%）。 */
 let pyodide = null, pyReady = false, _recompBusy = false;
@@ -136,6 +152,8 @@ async function recomputeExact(over){
   return r;
 }
 
+/* §4 定量看板区（对应页面 ③）：把读数/三道门渲染进 #metrics/#gates。
+   档位态用精确实跑值，自定义态先显示快照、精确引擎就绪后实时重跑。 */
 function paintReadings(E, tag){
   currentE = E;
   const rt=document.getElementById("readingTag"); if(rt) rt.innerHTML=(tag||"");
@@ -150,6 +168,41 @@ function paintReadings(E, tag){
     const v=E[g.key], ok=g.op==="≥"?v>=g.thr:v<=g.thr, d=D.metrics.find(m=>m.key===g.key);
     return `<div class="gate ${ok?'ok':'no'}">${ok?"✓":"✗"} ${g.label}：${fmt(v,d?d.decimals:2)}（门槛 ${fmt(g.thr,d?d.decimals:2)}）· ${g.why}</div>`;
   }).join("");
+}
+
+/* §2 顶部结论区（对应页面 ①）：D.verdict.tmpl 是用户给定的论证文案，
+   {key} 占位符用 D.verdict.vals 填；值为 null 显示 [待补]（依赖外部假设的数）。 */
+function renderVerdict(){
+  const box=document.getElementById("verdict");
+  if(!box || !D.verdict) return;
+  const t=D.verdict.tmpl, v=D.verdict.vals||{};
+  const html = t.replace(/\{([a-z_]+)\}/g, (m,k)=>{
+    const x=v[k];
+    if(x===null || x===undefined || x==="") return '<b class="todo">[待补]</b>';
+    return '<b>'+x+'</b>';
+  });
+  box.innerHTML = '<p class="verdict-txt">'+nl2br(html)+'</p>';
+}
+
+/* §3 定性逻辑区（对应页面 ②）：按顶部结论的论证层次组织。
+   当前先给三个支柱的定量支撑卡，论证链下轮从一页纸/叙述层沉淀进来。 */
+function renderNarrative(){
+  const box=document.getElementById("narrative");
+  if(!box) return;
+  const v=(D.verdict && D.verdict.vals) || {};
+  const num=k=> (v[k]===null || v[k]===undefined) ? "—" : v[k];
+  const card=(t,d)=>`<div class="card" style="margin-bottom:10px"><b>${t}</b><div class="note" style="margin-top:4px">${d}</div></div>`;
+  box.innerHTML =
+    `<p class="note" style="margin-top:0">定性逻辑按顶部结论的论证层次组织（下轮填充完整论证链）。当前给出三个支柱的定量支撑：</p>`+
+    card("① 财务回报扎实", `年可分派现金 <b>${num("dist_cash")}</b> 亿元；按 <b>${num("mult")}</b> 倍 EV/EBITDA 可贡献 <b>${num("mktcap")}</b> 万亿市值——增长确定、现金流清晰，是 CATL 当前市值的一个有安全垫的增量。`) +
+    card("② 战略价值：最大的分布式储能 VPP", `<b>${num("stations")}</b> 座换电站、年换电 <b>${num("energy")}</b> 亿度、站内储能 <b>${num("batt_station")}</b> GWh，占全社会用电量 <b>${num("elec_share")}</b>%、占国内储能装机 <b>${num("storage_share")}</b>%。均位于交通干线，是最优的分布式储能节点。`) +
+    card("③ 增长飞轮", `EV/EBITDA <b>${num("mult")}</b> 倍；一旦“电动车用能=CATL换电=便宜+好用”的用户心智达成，固态电池等技术迭代与船舶/工业机器人等新场景都会反哺生态闭环、放大估值倍数。`);
+}
+
+/* ④ 调参抽屉展开/收起（见 sandbox.css 的 #console.open） */
+function toggleConsole(){
+  const c=document.getElementById("console");
+  if(c) c.classList.toggle("open");
 }
 
 function render(){
@@ -255,7 +308,7 @@ function setTier(i){
   [0,1,2].forEach(k=>document.getElementById("tb"+k).classList.toggle("pri",k===i));
   render();   // render 内部会按 curTier 取精确实跑值并 highlightOpTier(curTier)
 }
-/* ── 结论校验 · 一页纸（三情景精确实跑值 × 当前实时精确值）──
+/* §5 结论校验 · 一页纸（三情景精确实跑值 × 当前实时精确值）──
    三情景列是 Python 实跑三情景的**精确值**；「当前（实时）」列也是精确值：
    停在档上＝该档精确实跑值（与档列同源）；自定义态＝精确引擎实时重跑（与一页纸同源）。
    任何列都不外推、不标 ±30%——同源单程，调参才可信。 */
@@ -337,7 +390,7 @@ function resetAll(){
   render();                              // 清表后再刷新，面板 / 读数才真正复位
 }
 
-/* ── 可行性验证 ──
+/* §6 可行性验证 ──
    信任优先：表格里的「预计读数 / 补目标缺口」必须按用户在「设值」里填的数【实时】重算，
    不再是只显示触边界结果的死数；底部「组合实时试算」也随每次勾选 / 改值即时更新。
    派生值一律现推（rowReading），不另存——单一真相。 */
@@ -517,6 +570,7 @@ function hiBtn(id){
   const el=document.getElementById(id); if(el) el.classList.toggle("pri",true);
 }
 
+/* §7 前端异常兜底 + 初始化：脚本错误显形到页面，并在启动时渲染结论/定性区 */
 /* 前端异常是静默的：一旦抛错，按钮"点了没反应"且控制台之外毫无痕迹。
    这里强制把脚本错误显示在页面上——否则永远靠用户猜。 */
 window.addEventListener("error", e=>{
@@ -530,6 +584,8 @@ window.addEventListener("error", e=>{
 document.getElementById("tgtM").innerHTML=
   D.metrics.map(m=>`<option value="${m.key}">${m.label}</option>`).join("");
 document.getElementById("tgtV").value=(D.metrics[0].value*1.2).toFixed(0);
+renderVerdict();
+renderNarrative();
 renderOnePaper(snapshotMetrics());
 render();
 initPy();   // 异步加载精确引擎（Pyodide）；失败则界面显示生成快照精确值

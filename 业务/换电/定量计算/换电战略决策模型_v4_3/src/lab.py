@@ -457,6 +457,8 @@ METRICS: list[Metric] = [
     # — ① 运营业务规模（存量口径：终局在役多少、网络多大）—
     Metric("ops.veh_commercial", "终局覆盖·商用营运车(重卡+城配)", _stock_vehicles(_COMMERCIAL), 1, "万辆", "①运营规模"),
     Metric("ops.veh_passenger_ops", "终局覆盖·乘用营运车(出租+网约+Robotaxi)", _stock_vehicles(_PASSENGER_OPS), 1, "万辆", "①运营规模"),
+    Metric("ops.veh_heavy", "终局覆盖·换电重卡", _stock_vehicles(("heavy",)), 1, "万辆", "①运营规模"),
+    Metric("ops.veh_city", "终局覆盖·换电城配物流车", _stock_vehicles(("city",)), 1, "万辆", "①运营规模"),
     Metric("ops.veh_private", "终局覆盖·私家车", _stock_vehicles(_PRIVATE), 1, "万辆", "①运营规模"),
     Metric("ops.veh_total", "终局覆盖车辆合计", _stock_vehicles(_ALL_VEHICLES), 1, "万辆", "①运营规模"),
     Metric("ops.battery_vehicle", "换电装机保有量·车端", lambda s: s.swap_business.rent_vehicle_gwh, 1, "GWh", "①运营规模"),
@@ -483,6 +485,7 @@ METRICS: list[Metric] = [
     Metric("swap.ancillary", "　辅助服务收入", lambda s: s.swap_business.ancillary_yi, 1, "亿元", "④运营财务"),
     Metric("swap.opex", "运营OPEX", lambda s: s.swap_business.opex_yi, 1, "亿元", "④运营财务"),
     Metric("swap.ebitda", "EBITDA", lambda s: s.swap_business.ebitda_yi, 1, "亿元", "④运营财务"),
+    Metric("swap.dist_cash", "CATL年可分派现金", lambda s: s.swap_business.catl_forward_distributable_cash_yi, 1, "亿元", "④运营财务"),
     Metric("swap.required_ebitda", "资本回报要求EBITDA", lambda s: s.swap_business.required_ebitda_yi, 1, "亿元", "④运营财务"),
     Metric("swap.coverage", "EBITDA覆盖倍数", lambda s: s.swap_business.forward_to_required_ebitda, 2, "×", "④运营财务"),
     Metric("swap.operating_value", "运营权益价值(CATL归属)", lambda s: s.swap_business.catl_attributable_value_yi, 1, "亿元", "④运营财务"),

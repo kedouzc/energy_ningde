@@ -8,32 +8,60 @@
 </head><body><div class="wrap">
 <h1>换电战略沙盘 <span class="note" id="pystat">精确模式：浏览器内重跑同一套 Python 模型；离线则显示生成快照，改参请回跑 python src/run.py</span></h1>
 
+<!-- ① 结论区：极简。一两句话 + 几个关键数，不滚动就能看完 -->
+<section class="sec verdict" id="secVerdict">
+  <div id="verdict"></div>
+</section>
+
+<!-- 一键三档：作用于全部区块，所以放在结论区下方、左右分栏上方 -->
 <div class="card row">
   <b>一键三档</b>
   <button id="tb0" onclick="setTier(0)">悲观</button>
   <button id="tb1" class="pri" onclick="setTier(1)">中性</button>
   <button id="tb2" onclick="setTier(2)">乐观</button>
   <button onclick="resetAll()">全部复位</button>
-  <span class="note">详细设置：展开下方面板</span>
 </div>
 
-<div id="metrics"></div>
-<div id="gates"></div>
-<div id="onepaper"></div>
+<!-- ②③ 手机：自上而下；桌面/平板(≥900px)：左右并行。见 sandbox.css 的 .cols -->
+<div class="cols">
+  <section class="sec" id="secNarrative">
+    <h2 style="margin-top:0">◈ 定性逻辑</h2>
+    <div id="narrative"></div>
+  </section>
 
-<details>
-  <summary>⚙ 假设参数（默认收起）</summary>
-  <div id="panel"></div>
-</details>
+  <section class="sec" id="secDashboard">
+    <h2 style="margin-top:0">◈ 定量支撑</h2>
+    <div id="metrics"></div>
+    <div id="gates"></div>
+    <!-- §7 图表预留位：等可视化方案定下来填这里，布局不用改 -->
+    <div id="charts"></div>
+    <details>
+      <summary>结论校验 · 一页纸（详细，默认收起）</summary>
+      <div id="onepaper"></div>
+    </details>
+  </section>
+</div>
 
-<div class="card">
-  <h2 style="margin-top:0">◈ 可行性验证：想调整关键读数，需要调哪些参数、怎么调</h2>
-  <div class="row">
-    让 <select id="tgtM"></select> 达到 <input id="tgtV" type="number" step="any">
-    <button id="bnAna" class="pri" onclick="analyze()">分析</button>
-    <span id="anaHead" class="note"></span>
+<!-- ④ 调参抽屉：默认收起，点开后全屏遮罩（手机与桌面一致） -->
+<section class="sec" id="secConsole">
+  <button id="btnConsole" class="pri" onclick="toggleConsole()">⚙ 调参：展开详细计算与参数</button>
+  <div id="console">
+    <div id="consoleBar" class="card row">
+      <b>调参</b>
+      <button onclick="toggleConsole()">收起 ✕</button>
+      <span class="note">改动即时反映到上方读数与结论</span>
+    </div>
+    <div id="panel"></div>
+    <div class="card">
+      <h2 style="margin-top:0">◈ 可行性验证：如果关键读数不达标，调哪些参数能达标</h2>
+      <div class="row">
+        让 <select id="tgtM"></select> 达到 <input id="tgtV" type="number" step="any">
+        <button id="bnAna" class="pri" onclick="analyze()">分析</button>
+        <span id="anaHead" class="note"></span>
+      </div>
+      <div id="anaOut"></div>
+    </div>
   </div>
-  <div id="anaOut"></div>
-</div>
+</section>
 
 <script>__JS__</script></div></body></html>

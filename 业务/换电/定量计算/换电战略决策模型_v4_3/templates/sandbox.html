@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>换电战略沙盘 v4.3</title>
+<style>__CSS__</style>
+<!-- Pyodide 改为运行时动态多镜像加载（见 initPy）：cdn.jsdelivr 在国内常不可达，
+     故依次回退到 npmmirror / unpkg；全部失败则明确提示，不再静默。 -->
+</head><body><div class="wrap">
+<h1>换电战略沙盘 <span class="note" id="pystat">精确模式：浏览器内重跑同一套 Python 模型；离线则显示生成快照，改参请回跑 python src/run.py</span></h1>
+
+<div class="card row">
+  <b>一键三档</b>
+  <button id="tb0" onclick="setTier(0)">悲观</button>
+  <button id="tb1" class="pri" onclick="setTier(1)">中性</button>
+  <button id="tb2" onclick="setTier(2)">乐观</button>
+  <button onclick="resetAll()">全部复位</button>
+  <span class="note">详细设置：展开下方面板</span>
+</div>
+
+<div id="metrics"></div>
+<div id="gates"></div>
+<div id="onepaper"></div>
+
+<details>
+  <summary>⚙ 假设参数（默认收起）</summary>
+  <div id="panel"></div>
+</details>
+
+<div class="card">
+  <h2 style="margin-top:0">◈ 可行性验证：想调整关键读数，需要调哪些参数、怎么调</h2>
+  <div class="row">
+    让 <select id="tgtM"></select> 达到 <input id="tgtV" type="number" step="any">
+    <button id="bnAna" class="pri" onclick="analyze()">分析</button>
+    <span id="anaHead" class="note"></span>
+  </div>
+  <div id="anaOut"></div>
+</div>
+
+<script>__JS__</script></div></body></html>

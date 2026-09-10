@@ -42,6 +42,7 @@ python src/lab.py workbook    # ③ 参数血缘：生成 Excel 七表（假设�
 │
 ├── configs/               ← 唯一参数源。每个参数带取值依据与信源
 ├── src/                   ← 唯一计算引擎（分四层，见下）
+├── templates/             ← 输出格式模板：沙盘的 html/css/js（**不含任何业务数字**）
 ├── 口径/                   ← 跨环节的口径与方法论证（capex/debt→估值链住这里）
 ├── narrative/
 │   ├── chapters/          ← 报告八章。只写论证，数字一律占位符

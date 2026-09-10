@@ -33,6 +33,8 @@
 | | `facts.py` | 事实包：从快照取数 → `facts.json`（叙述层唯一可引用的数字） | `build` |
 | | `inject.py` | 叙述层装配：裸数字 lint → 占位符注入 → 待复核标记 | `build` |
 | | `build.py` | **一条命令串起三步**（跑模型 → 出事实包 → 叙述层） | 命令行 |
+| | `sandbox.py` | **交互沙盘的生成器**：跑模型算基线 → 打包装进 HTML → 读 `templates/` 替换占位符 → 写出 `outputs/换电沙盘_v4.3.html`。**只做打包，不写任何界面** | 命令行 |
+| | `py_boot.py` | **浏览器端（Pyodide）启动脚本**：`import` 模型、定义 `recompute()` 供 JS 调用。只被 `sandbox.py` 当**文本**读取并 base64 下发，**不被 import** | 浏览器 |
 | **检查与探索** | `tree.py` | 决策树 + 链路审计：每个内部节点跑「父 = f(子)」 | 命令行 |
 | | `lab.py` | 参数实验室：数值法血缘（212 参数 × 37 指标）、Excel 七表、试算→落盘闭环 | 命令行 / `tree` / `app` |
 | | `app.py` | Streamlit 实时沙盘：改参即重跑同一条链 | `streamlit run` |

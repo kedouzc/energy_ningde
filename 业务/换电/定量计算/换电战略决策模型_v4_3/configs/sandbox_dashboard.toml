@@ -1,0 +1,66 @@
+# 沙盘「看板 / 轴 / 分组 / 三道门」的定义层（只声明，不计算）。
+# 改面板（放哪些指标、门槛多少、轴怎么捆、参数怎么分组）只改这个文件，
+# 不必动 src/sandbox.py（打包层）；派生测算住在 scale.py / capital_cycle.py（各自本来的计算程序）。
+# 这是把"定性/展示定义"从程序里抽出来的配套动作（见 沙盘结论区.md 同思路）。
+
+top_n = 14
+also = ["charge_share"]          # 情景轴但沙盘要测弹性的旁路（不影响敏感性扫描口径）
+
+[key_metrics]                   # 顶部 6 个关键读数（顺序即展示顺序）
+keys = [
+  "val.swap_increment",         # 换电增量价值
+  "swap.operating_value",       # 换电 CATL 权益市值
+  "swap.revenue",               # 年收入
+  "swap.ebitda",                # EBITDA
+  "swap.coverage",
+  "val.incr_over_mktcap",
+]
+
+[gates]                        # 三道门（检验门槛）：key / 比较符 / 阈值 / 解释
+[[gates.item]]
+key = "swap.coverage"
+op = "≥"
+thr = 1.0
+why = "EBITDA 覆盖倍数过线（<1＝稳态EBITDA 不足以覆盖按 CRF=15% 计的年化资本要求，含税盾调整）"
+[[gates.item]]
+key = "val.incr_over_mktcap"
+op = "≥"
+thr = 0.10
+why = "增量价值占集团市值 ≥10%（才配占用战略敞口）"
+[[gates.item]]
+key = "val.swap_increment"
+op = "≥"
+thr = 1000.0
+why = "换电增量价值 ≥1,000 亿（千亿才算重注量级）"
+
+[axis]                         # 多目标轴：把哪些 driver 打包成一条滑块
+drivers = [
+  "commercial_nev_penetration",
+  "commercial_swap_share",
+  "catl_swap_share",
+  "private_penetration",
+  "charge_share",
+]
+abs_step = 0.05                # 轴默认步长：5 个百分点（份额/渗透率）
+rel_step = 0.05                # （预留）相对轴整体平移步长 ±5%
+rel_span = 0.30                # （预留）相对轴平移范围 ±30%
+
+[groups]                       # 参数面板分组（纯展示层：只管怎么摆）
+[[groups.item]]
+title = "① 需求与规模（车辆数）：逐参数"
+prefixes = ["vehicles."]
+[[groups.item]]
+title = "② 价格与运营"
+prefixes = ["swap_business."]
+[[groups.item]]
+title = "③ 制造与估值"
+prefixes = ["finance."]
+
+[leaf_cn]                      # 无名参数的中文兜底（叶子级），不露英文路径
+weight = "场景权重"
+onboard_battery_kwh = "单车带电量"
+daily_km = "日均里程"
+battery_kwh = "单车带电量"
+energy_consumption_kwh_km = "单位电耗"
+debt_ratio = "项目负债率"
+valley_power_price_rmb_kwh = "谷电单价"

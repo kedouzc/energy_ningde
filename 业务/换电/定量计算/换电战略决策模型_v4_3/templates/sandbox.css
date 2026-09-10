@@ -48,15 +48,37 @@ tr.attrib td{background:#f8fafc}
 .verdict-txt{margin:0}
 .verdict b{color:var(--ac);font-weight:700}
 .verdict b.todo{color:var(--bad);font-weight:400;font-style:italic}
+
+/* §4 关键读数：紧凑网格，一行多排，检验门槛挂在卡内（不单独成段） */
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.mcard{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--bg)}
+.mcard .mlabel{font-size:13px;color:var(--muted)}
+.mcard .mval{font-size:21px;font-weight:700;margin-top:2px;line-height:1.1}
+.mcard .mval .unit{font-size:12px;font-weight:400;color:var(--muted);margin-left:2px}
+.mcard .mnote{font-size:11px;color:var(--muted);margin-top:2px}
+.mcard .calcnote{font-size:11px;color:var(--muted);margin-top:4px;padding:3px 6px;border-left:2px solid var(--bd);background:rgba(0,0,0,.02)}
+.mcard .gate{font-size:11px;margin-top:5px;padding:2px 5px;border-radius:4px;display:inline-block}
+.mcard .gate.ok{color:var(--ok);background:rgba(46,204,113,.12)}
+.mcard .gate.no{color:var(--bad);background:rgba(231,76,60,.12)}
 .cols{display:grid;gap:14px;grid-template-columns:1fr}
 @media(min-width:900px){
   .cols{grid-template-columns:1fr 1fr;align-items:start}
   #secNarrative,#secDashboard{margin-bottom:0}
 }
 .sec h2{margin-top:0}
-/* ④ 调参抽屉：收起时仅留一条按钮；展开时全屏 */
-#console{display:none}
-#console.open{display:block;position:fixed;inset:0;z-index:60;background:var(--bg);
-  overflow:auto;padding:16px}
-#console .card{margin-bottom:14px}
-#consoleBar{position:sticky;top:0;z-index:1;margin-bottom:8px}
+/* ④ 调参：拆为「假设参数（默认折叠 details）」+「可行性验证」两个区域 */
+.subsec{border:1px solid var(--bd);border-radius:10px;background:#fff;padding:0 14px;margin-bottom:12px}
+.subsec>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 0}
+.subsec>summary::-webkit-details-marker{display:none}
+.subsec>summary::before{content:"▸";color:var(--mu);font-size:13px}
+.subsec[open]>summary::before{content:"▾"}
+.subsec[open]>summary{border-bottom:1px solid var(--bd);margin-bottom:12px}
+.subsec #panel{margin-top:4px}
+/* 假设参数内部：3 组各自可折叠（默认折叠，与外层 假设参数 一致） */
+.grp{border-top:1px solid var(--bd);margin-top:10px;padding-top:2px}
+.grp>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;
+  font-size:15px;font-weight:600;padding:8px 0}
+.grp>summary::-webkit-details-marker{display:none}
+.grp>summary::before{content:"▸";color:var(--mu);font-size:12px}
+.grp[open]>summary::before{content:"▾"}
+.grp[open]>summary{border-bottom:1px solid var(--bd);margin-bottom:8px}

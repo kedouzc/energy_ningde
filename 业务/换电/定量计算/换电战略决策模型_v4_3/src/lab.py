@@ -453,6 +453,40 @@ def _stations_total(s: ModelSnapshot) -> float:
     return float(sum(s.scale.target_station_demand.values()))
 
 
+# 重卡池 = 骐骥 75#（短途 + 干线）。按前缀识别，与 business._heavy_pool_keys 同源口径。
+_HEAVY_POOL_PREFIX = "qiji75"
+
+
+def _repl_gwh(s: ModelSnapshot, heavy_only: bool = False) -> float:
+    """稳态年更新装机 GWh（车端 + 站内、分池；更新理论：Σ 池机队 GWh ÷ 池寿命）。"""
+    d = s.capex.steady_state_replacement_gwh_by_pool or {}
+    if heavy_only:
+        return sum(v for k, v in d.items() if k.startswith(_HEAVY_POOL_PREFIX))
+    return float(sum(d.values()))
+
+
+def _heavy_pool_sum(s: ModelSnapshot, attr: str) -> float:
+    return sum(
+        getattr(p, attr)
+        for k, p in (s.swap_business.pool_operations or {}).items()
+        if k.startswith(_HEAVY_POOL_PREFIX)
+    )
+
+
+def _heavy_economics(s: ModelSnapshot):
+    return getattr(s.swap_business, "heavy_economics", None)
+
+
+def _heavy_user_energy_price(s: ModelSnapshot) -> float:
+    he = _heavy_economics(s)
+    return float(he.user_energy_rmb_kwh) if he and he.user_energy_rmb_kwh is not None else float("nan")
+
+
+def _heavy_battery_life(s: ModelSnapshot) -> float:
+    he = _heavy_economics(s)
+    return float(he.battery_life_years) if he and he.battery_life_years is not None else float("nan")
+
+
 METRICS: list[Metric] = [
     # — ① 运营业务规模（存量口径：终局在役多少、网络多大）—
     Metric("ops.veh_commercial", "终局覆盖·商用营运车(重卡+城配)", _stock_vehicles(_COMMERCIAL), 1, "万辆", "①运营规模"),
@@ -473,6 +507,11 @@ METRICS: list[Metric] = [
     Metric("mfg.charge_veh_2030", "2030出货·充电车辆", _flow("catl_charge_vehicles_wan"), 1, "万辆", "②制造出货"),
     Metric("mfg.swap_gwh_2030", "2030出货·换电装车", _flow("catl_swap_gwh"), 1, "GWh", "②制造出货"),
     Metric("mfg.charge_gwh_2030", "2030出货·充电装车", _flow("catl_charge_gwh"), 1, "GWh", "②制造出货"),
+    # — ②b 稳态年更新装机（建设期结束后只剩更新需求；分池算，含车端+站内）—
+    Metric("mfg.repl_gwh", "稳态年更新装机（车端+站内）", lambda s: _repl_gwh(s), 1, "GWh/年", "②制造出货",
+           note="Σ_池(池机队GWh ÷ 池寿命)；倒短8.37年 vs 干线2.94年差异极大，必须分池算完再相加"),
+    Metric("mfg.repl_gwh_heavy", "稳态年更新装机·重卡", lambda s: _repl_gwh(s, heavy_only=True), 1, "GWh/年", "②制造出货",
+           note="只含骐骥75#两池；重卡是更新需求的主力（干线池寿命仅2.94年）"),
     # — ③ 资本层 —
     Metric("capex.initial_capex", "终局初装CAPEX", lambda s: s.capex.total_initial_capex_yi, 1, "亿元", "③资本"),
     Metric("capex.equity_call", "CATL权益出资合计", lambda s: s.capex.catl_total_equity_call_yi, 1, "亿元", "③资本"),
@@ -486,8 +525,10 @@ METRICS: list[Metric] = [
     Metric("swap.opex", "运营OPEX", lambda s: s.swap_business.opex_yi, 1, "亿元", "④运营财务"),
     Metric("swap.ebitda", "EBITDA", lambda s: s.swap_business.ebitda_yi, 1, "亿元", "④运营财务"),
     Metric("swap.dist_cash", "CATL年可分派现金", lambda s: s.swap_business.catl_forward_distributable_cash_yi, 1, "亿元", "④运营财务"),
-    Metric("swap.required_ebitda", "资本回报要求EBITDA", lambda s: s.swap_business.required_ebitda_yi, 1, "亿元", "④运营财务"),
-    Metric("swap.coverage", "EBITDA覆盖倍数", lambda s: s.swap_business.forward_to_required_ebitda, 2, "×", "④运营财务"),
+    Metric("swap.required_ebitda", "资本回报要求EBITDA", lambda s: s.swap_business.required_ebitda_yi, 1, "亿元", "④运营财务",
+           note="门槛EBITDA＝(年化资本要求 − 折旧×税率)/(1−税率)；年化资本要求＝CAPEX×capital_multiplier×CRF(15%)，即按≈12.4%/15年要求回报计，非WACC 7.5%"),
+    Metric("swap.coverage", "EBITDA覆盖倍数", lambda s: s.swap_business.forward_to_required_ebitda, 2, "×", "④运营财务",
+           note="＝稳态EBITDA ÷ 资本要求回报(EBITDA口径)；资本要求回报按 CRF=15%（隐含≈12.4%/15年）计，非 WACC 7.5%（WACC 仅用于 DCF 净更新折现）"),
     Metric("swap.operating_value", "运营权益价值(CATL归属)", lambda s: s.swap_business.catl_attributable_value_yi, 1, "亿元", "④运营财务"),
     # — 制造与估值层 —
     Metric("mfg.with_swap_np", "有换电制造净利", lambda s: s.ledger.with_swap_manufacturing.net_profit_yi, 1, "亿元", "⑤估值"),
@@ -563,6 +604,13 @@ METRICS: list[Metric] = [
     Metric("fund.peak_cash_to_cfo", "换电出资峰值/CFO", _peak_cash_to_cfo, 3, "倍", "⑥资金"),
     Metric("fund.closing_liquidity", "2030期末可动用资金", _closing_liquidity, 1, "亿元", "⑥资金"),
     Metric("fund.exposure", "待决战略敞口", lambda s: s.strategic_exposure_yi, 1, "亿元", "⑥资金"),
+    # — ⑧ 重卡专项（结论区「重点：重卡」一段取这里；随服务费/租金滑块实时变）—
+    Metric("ops.heavy_vehicle_gwh", "重卡装机保有量·车端", lambda s: _heavy_pool_sum(s, "rent_vehicle_gwh"), 1, "GWh", "⑧重卡"),
+    Metric("ops.heavy_station_gwh", "重卡装机保有量·站内周转", lambda s: _heavy_pool_sum(s, "station_battery_gwh"), 1, "GWh", "⑧重卡"),
+    Metric("ops.heavy_user_price", "重卡用户能源单价", _heavy_user_energy_price, 3, "元/kWh", "⑧重卡",
+           note="电费(谷电，平价转嫁) + 服务费 + 电池租金摊薄；与 LNG/柴油「年能源成本」同为含燃料口径，可直接比"),
+    Metric("ops.heavy_battery_life", "重卡加权电池寿命", _heavy_battery_life, 2, "年", "⑧重卡",
+           note="骐骥两池按机队GWh加权；倒短8.37 vs 干线2.94年，加权后由干线主导"),
 ]
 
 METRIC_BY_KEY = {m.key: m for m in METRICS}

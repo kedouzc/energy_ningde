@@ -132,3 +132,35 @@ def build_light_asset_scenarios(
             ),
         ))
     return scenarios
+
+
+def reit_recycle_multiple(
+    config: dict,
+    scale: ScaleResult | None = None,
+    capex: CapexResult | None = None,
+    swap: SwapBusinessResult | None = None,
+    ledger: ConsolidatedLedger | None = None,
+) -> float | None:
+    """发行 REITs / 资产出表可回笼资金 ÷ CATL 初装权益投入（=回笼倍数）。
+
+    取资本循环模型「退出后保留 20% 股权」情景的净回款（与 v3.2 §5.1 口径一致）。
+    计算失败或投资为 0 返回 None（页面标待补，不崩）。
+
+    scale/capex/swap/ledger 由调用方传入（sandbox 已 build_model 一次，直接喂结果，
+    不重复建模型）；缺省则内部惰性 build_model 兜底（仅历史兼容，不推荐重复建）。
+    """
+    if scale is None or capex is None or swap is None or ledger is None:
+        from model import build_model  # 惰性，避免 capital_cycle↔model 顶层循环导入
+        snap = build_model(config)
+        scale = scale or snap.scale
+        capex = capex or snap.capex
+        swap = swap or snap.swap_business
+        ledger = ledger or snap.ledger
+    scs = build_light_asset_scenarios(config, scale, capex, swap, ledger)
+    target = next((s for s in scs if abs(s.terminal_ownership - 0.20) < 1e-9), None)
+    if target is None:
+        target = min(scs, key=lambda s: s.terminal_ownership)
+    inv = swap.catl_initial_equity_investment_yi
+    if inv:
+        return round(target.sale_proceeds_net_yi / inv, 2)
+    return None

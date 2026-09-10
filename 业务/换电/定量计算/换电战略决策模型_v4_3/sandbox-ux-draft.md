@@ -44,6 +44,7 @@
 - **G. 档位方向＝投资价值方向，成本类反向填＋机械校验**：三档是"投资价值"的三档，故**成本类 driver 必须反向填**——乐观＝低成本、悲观＝高成本（谷电单价 `valley_power_price` 已修正：悲观 0.40 / 乐观 0.20）。但"记得小心档位方向"会漏，故加 `onepager.check_tier_direction`：每次 `run.py` 逐条 driver 实测"乐观档是否使锚点 `val.swap_increment` 上升、悲观档下降"，违反者打印 ⚠ 清单（本回合 `check_tier_direction` 抓出 `debt_ratio` 方向"反"；经核：项目权益价值＝EV−债务，杠杆越高、债越多、CATL 权益切片越小是**正确代数**，不是模型 bug——`debt_ratio` 是资本结构参数、非经营价值驱动，已标记 `structure=true` 并排除出档位方向校验，见 DECISIONS 09-09b/09-09c）。**把"记得小心"变成机械可判的检查。**
 - **列顺序**：参数 / 当前值 / 可调到(触边界) / 设值 / 预计读数 / 补目标缺口 / 边界读数* / 敏感度。
 - **H. 精确重跑引擎本身的正确性（同源单程的"实现正确性"关，本回合补上）**：09-09c 后我误以为 recompute 跑通＝结果对，实际连踩三个"能跑、报错被吞、结果错得离谱"的坑：① JSON 字面量拼装——`recomputeExact` 把 `JSON.stringify(state)` 直接拼进 `recompute({...})`，轴里 `isArray` 布尔（true/false）不是 Python 关键字 → `NameError`，被 `.catch` 静默 → "面板动了数字不动"；改：state 以**字符串**经 `pyodide.globals.set("__state_json")` 传入、Python 内 `json.loads` 解析；② 数组被标量覆盖——JS 把数组型参数（nev_rates）在 `S` 里设成 `0`，运行时 `_set_path` 把 config 整条数组替换成 `0`，`build_model` 做 `[year_index]` 下标 → 崩；改：删该赋值（数组只由轴 `A` 管理），recompute 数组分支改用 `ax["cur"]`（保留原始 list）逐元素位移；③ 标量轴方向反了——标量分支把轴 `lo/hi`（**δ 范围**，非值范围）当成值范围去钳 `base+d`，正向 δ 被钳回基线以下、价值暴跌为负；改：先钳 δ 再 `base+d`、最后 `[0,cap]` 兜底。教训见 DECISIONS「2026-09-10」。**同源单程只保证同一套算法，不保证算法实现得对——recompute 跑通≠结果对。**
+- **I. 结论区 ①②③ 同源同刻（本回合补上）**：原 ①② 结论区数字在**生成期**算一次写死进 HTML，拖滑块时只有 ③ 定量看板在动——同一页面两个数字互打，违反"任一不动＝信任归零"。改：① 新建 `src/verdict.py::build_vals(snap,cfg)` 作为结论区数值**唯一算法**，生成期对三档复用已有 snapshot 得 `D.tierVals`、基线得 `D.baseVals` 离线兜底，浏览器 `py_boot.recompute` 重跑后一并返回 `vals`；JS 侧 `refreshVerdict()` 在 `render()` 与重跑回调里都调，**不写任何算式**（算式写两遍必然漂移）。② 估值倍数 / 持股 / 服务费 / 电池租金 / 电池价 这类**可调 driver 走 `cfg` 现读**，绝不写死。③ 占位符由 `{{a.b.c}}` 嵌套改为扁平具名 `{target_year}`/`{heavy_stock_wan}`；渲染正则 `/\{([a-z_][a-z0-9_]*)\}/gi` 与 Python 侧 `_PH_RE` 同形态。④ 生成期 `_check_placeholders` 校验"MD 占位符集合 ⊆ `build_vals` 键集"，缺一个即终止生成（不是静默 `[待补]`）。新增派生（稳态更新 GWh 分池含车端+站内、重卡装车/站内/更新、重卡用户 TOC、全成本 TCO 等）一律回原程序（`capex.py`/`scale.py`/`business.py`/`capital_cycle.py`）并在 `lab.py` 登记 Metric，删掉了第三居所 `sandbox_metrics.py`。详见 DECISIONS「2026-09-10f」与 `review-plan_claude_20260907.md` §3.6.1 坑 23/24。
 
 ---
 
@@ -73,6 +74,8 @@
 - [ ] 在可行性表填「设值」→ 该行 预计读数 / 补缺口 **立即**变，底部组合实时试算**立即**变
 - [ ] 勾选 / 取消 → 底部组合实时试算**立即**变
 - [ ] 一键三档 → 所有面板状态 + 顶部读数一致；且档位态顶部读数 = 一页纸对应档列**精确实跑值**（非外推）；自定义态顶部读数由 Pyodide 精确重跑（与一页纸同源），离线则显示生成快照精确值、并提示回跑 run.py
+- [ ] 拖"CATL 持股比例 / EV-EBITDA 倍数 / 服务费 / 电池租金"等滑块 → ① 顶部结论区、② 定性逻辑区、③ 定量看板**同时**变（结论区走 `verdict.build_vals` 单一函数、不写死），不再出现"③ 动、①② 不动"
+- [ ] 切档位 → ① ② 区与该档 ③ 区精确实跑值一致（读 `D.tierVals`）
 - [ ] 一页纸「当前（实时）」列：档位态＝该档精确实跑值、自定义态＝Pyodide 精确重跑（全套 17 行，与顶部读数同源），无任何 ≈ / — / 外推字样
 - [ ] 任何脚本异常出现在页面顶部红条（`window.onerror`）
 - [ ] 改完重生成并在浏览器点一遍全流程

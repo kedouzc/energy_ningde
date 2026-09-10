@@ -32,7 +32,6 @@
   <section class="sec" id="secDashboard">
     <h2 style="margin-top:0">◈ 定量支撑</h2>
     <div id="metrics"></div>
-    <div id="gates"></div>
     <!-- §7 图表预留位：等可视化方案定下来填这里，布局不用改 -->
     <div id="charts"></div>
     <details>
@@ -42,25 +41,22 @@
   </section>
 </div>
 
-<!-- ④ 调参抽屉：默认收起，点开后全屏遮罩（手机与桌面一致） -->
+<!-- ④ 调参：拆为两个区域 —— 1) 假设参数（默认折叠）  2) 可行性验证 -->
 <section class="sec" id="secConsole">
-  <button id="btnConsole" class="pri" onclick="toggleConsole()">⚙ 调参：展开详细计算与参数</button>
-  <div id="console">
-    <div id="consoleBar" class="card row">
-      <b>调参</b>
-      <button onclick="toggleConsole()">收起 ✕</button>
-      <span class="note">改动即时反映到上方读数与结论</span>
-    </div>
+  <!-- 区域 1：假设参数（默认折叠；含 ①需求与规模 ②价格与运营 ③制造与估值，取消"其他"） -->
+  <details class="subsec" id="secAssump">
+    <summary><b>⚙ 假设参数</b><span class="note">（点开调参，改动即时反映到上方读数与结论）</span></summary>
     <div id="panel"></div>
-    <div class="card">
-      <h2 style="margin-top:0">◈ 可行性验证：如果关键读数不达标，调哪些参数能达标</h2>
-      <div class="row">
-        让 <select id="tgtM"></select> 达到 <input id="tgtV" type="number" step="any">
-        <button id="bnAna" class="pri" onclick="analyze()">分析</button>
-        <span id="anaHead" class="note"></span>
-      </div>
-      <div id="anaOut"></div>
+  </details>
+  <!-- 区域 2：可行性验证 -->
+  <div class="card" id="secFeas">
+    <h2 style="margin-top:0">◈ 可行性验证：如果关键读数不达标，调哪些参数能达标</h2>
+    <div class="row">
+      让 <select id="tgtM"></select> 达到 <input id="tgtV" type="number" step="any">
+      <button id="bnAna" class="pri" onclick="analyze()">分析</button>
+      <span id="anaHead" class="note"></span>
     </div>
+    <div id="anaOut"></div>
   </div>
 </section>
 

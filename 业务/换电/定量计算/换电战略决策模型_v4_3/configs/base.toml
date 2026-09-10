@@ -89,7 +89,7 @@ targets = [
 ]
 
 [drivers.commercial_swap_share]
-cn      = "换电占有率(纯电中)"
+cn      = "换电在纯电中的渗透率"
 unit    = "换电/纯电"
 desc    = "技术迭代摆动：换电在 NEV（重卡/城配）里的占有率。中性=1.0（不动基线），悲观/乐观按 ±30% 整体平移各场景换电渗透率。商用绝对保有量等宏观固定、不作轴。"
 mode    = "relative"
@@ -424,6 +424,43 @@ society_electricity_yi_kwh_latest = 103682.0
 #   另有中电联 13 万亿口径，与国网能源院 13.5 万亿差约 4%，不影响量级判断，模型取后者）
 society_electricity_yi_kwh_2030 = 135000.0
 
+# ----------------------重卡 TCO：JPM Table 3 整套引用（不各取一项）-----------------------------
+# 来源：[JPM 重卡电动化 英中对照 · Table 3](../../media/JPM_重卡电动化_英中对照.md)（原文标注
+#   `Source: J.P. Morgan estimates.`，单位人民币元）；算法复刻见
+#   [JPM重卡换电测算.py](../../media/JPM重卡换电测算.py)。
+# 为什么整套引用、不能各取一项：一套自洽测算里的参数相互约束（高电耗↔高负载↔低里程），
+#   拆开拼出来的组合可能物理上不存在。详见 口径/TCO口径_JPM整套引用.md。
+# 公式（已用原表反算验证）：年运营成本 = 年里程 × 单公里能源成本 + 年维保 + 年载重损失；
+#   TCO(N) = 购车总成本 + 年运营成本 × N。
+#   验证：电动 595,000 + (191,250+15,000+70,000)×8 = 2,805,000，与 Table 3 八年行完全一致。
+# 注意：这里**不登记 0.85 元/kWh 电价**——换电侧的能源单价由模型自己算
+#   （服务费 + 电池租金 ÷ 换电量，见 business.build_heavy_economics），故电价不入参。
+[tco_jpm]
+as_of = "2026-08"
+# —— 电动（充电）基准列：换电侧复用其购车/税/补贴/维保/载重损失，只替换能源单价 ——
+purchase_price = 700000.0          # 电动重卡购车价（Table 3）
+purchase_tax_rate = 0.05           # 电动购置税率（LNG/柴油 10%，此处用电动列）
+purchase_subsidy = 140000.0        # 购车补贴
+maintenance = 15000.0              # 电动年维保
+payload_loss = 70000.0             # 电动年载重损失（电池比油箱重，最大的隐性成本项）
+annual_gain_swap = 40000.0         # 换电 vs 充电 单车年增收（JPM §8.3，时间价值分量）
+# —— 三种动力共同的里程与能耗基准（等效能耗分母 = annual_km × kwh_per_km × N）——
+annual_km = 150000.0               # 年行驶里程（高利用率场景）
+kwh_per_km = 1.5                   # 电动单公里能耗（三者年里程相同，故分母可比）
+# 年能源成本取 Table 3 的**原列**（不用"单公里能源成本 × 年里程"反算——那两个列
+# 是 JPM 四舍五入后的展示值，反算会差 0.2%；用原列可与 Table 3 逐年数完全一致）
+ev_energy_cost_year = 191250.0     # 电动（充电 0.85 元/kWh 口径），仅作口径校验用
+# —— LNG（真正的边际对手，不是柴油）——
+lng_energy_cost_year = 325500.0    # 年能源成本（Table 3 原值）
+lng_maintenance = 25000.0
+lng_payload_loss = 15000.0
+lng_purchase_total = 385000.0      # 购车总成本（已含购置税、已扣补贴）
+# —— 柴油 ——
+diesel_energy_cost_year = 430806.0
+diesel_maintenance = 30000.0
+diesel_payload_loss = 0.0
+diesel_purchase_total = 330000.0
+
 # ----------------------车辆层（MANIFEST §2）-----------------------------
 # 车辆运营年限法规：网约车 8 年退役/60 万公里报废（交通部暂行办法 39 条）、
 # 货车 15 年（机动车强制报废标准规定第 5 条）、出租 8 年。
@@ -455,7 +492,7 @@ weight = 0.38
 # 短途换电渗透 30% = 2025 实测自然基线（钢厂/港口/矿山场景）；政策刺激峰曾达 50%+（2021-22 唐山/包头）
 swap_penetration = 0.30
 # 宁德 30%/启源 70%：短途属启源传统优势（建站市占 71%、交付 55%）
-catl_swap_share = 0.30
+catl_swap_share = 0.80 # 并购启源前只假设 0.3，并购后都用 catl 电池，市占绝对垄断
 daily_km = 130.0
 # 342kWh = No.75 单包 171kWh × 2 双包配置：盐田港官网一手（中文版）+ 中国商用汽车网 + logev 三源
 onboard_battery_kwh = 342.0
@@ -468,7 +505,7 @@ battery_pool = "qiji75_trunk"
 weight = 0.50
 # 中途换电渗透 50%：介于短途 30%/长途 70% 之间，效率敏感梯度（快递调拨/固定线路偏好换电）
 swap_penetration = 0.50
-catl_swap_share = 0.30
+catl_swap_share = 0.80 # 并购调整，情况同短途
 daily_km = 400.0
 # 513kWh = 171×3 三包满配：骐骥官网 + JPM + 零一汽车港牵专车选配佐证
 onboard_battery_kwh = 513.0
@@ -481,7 +518,7 @@ weight = 0.12
 # 长途换电渗透 70%（60–80% 中位）：干线渗透<1% 但换电为王（效率刚性）
 swap_penetration = 0.70
 # 宁德 70%/启源 30%：长途属宁德底盘式主阵地（极兔 5000 台验证）
-catl_swap_share = 0.70
+catl_swap_share = 0.80 # 并购启源前假设 0.7，并购后都用 catl 电池，市占绝对垄断
 daily_km = 650.0
 onboard_battery_kwh = 513.0
 energy_consumption_kwh_km = 1.70

@@ -173,6 +173,26 @@ def _operating_stocks(config: dict) -> dict[str, float]:
     return {"taxi": d["taxi_stock_wan"], "ridehail": human_stock - d["taxi_stock_wan"]}
 
 
+def operating_market_total(config: dict) -> float:
+    """营运车市场总规模（分母）：重卡+城配+出租+网约+Robotaxi 全口径保有量。
+
+    Robotaxi 挤占出租/网约份额，故分母必须计入（用户 2026-09-10 纠正）。
+    各分项取自 config 的运营事实字段（operating_demand / vehicles），非模型推导，
+    与分子（CATL 换电车辆，由 build_scale 推算）相互独立，避免循环论证。
+    出租/网约的里程→保有量换算复用 _operating_stocks，避免多处重算同一段。
+    """
+    stocks = _operating_stocks(config)  # {"taxi", "ridehail"}
+    od = config["operating_demand"]
+    v = config["vehicles"]
+    return (
+        v["heavy"]["stock_wan"]
+        + v["city"]["stock_wan"]
+        + stocks["taxi"]
+        + stocks["ridehail"]
+        + od["robotaxi_fleet_wan"]
+    )
+
+
 def _annual_ev_wan(vehicle: dict, year_index: int, stocks: dict[str, float]) -> float:
     pure = vehicle.get("pure_electric_share", 1.0)
     if "annual_net_additions_wan" in vehicle:

@@ -152,57 +152,94 @@ async function recomputeExact(over){
   return r;
 }
 
-/* §4 定量看板区（对应页面 ③）：把读数/三道门渲染进 #metrics/#gates。
-   档位态用精确实跑值，自定义态先显示快照、精确引擎就绪后实时重跑。 */
+/* §4 定量看板区（对应页面 ③）：关键读数紧凑成网格（一行多排），
+   三道门（检验门槛）直接挂在对应指标卡上，不单独成段。 */
 function paintReadings(E, tag){
   currentE = E;
   const rt=document.getElementById("readingTag"); if(rt) rt.innerHTML=(tag||"");
-  document.getElementById("metrics").innerHTML =
-    '<h2>关键读数'+tag+'</h2><div class="grid">'+D.metrics.map(m=>{
-      const v=E[m.key], d=m.decimals==null?2:m.decimals, up=v>=m.value;
-      return `<div class="metric">${m.label}
-        <b style="color:${up?'var(--ok)':'var(--bad)'}">${fmt(v,d)}<span class="note" style="font-size:12px"> ${m.unit||""}</span></b>
-        <span class="note">基线 ${fmt(m.value,d)}</span></div>`;
-    }).join("")+"</div>";
-  document.getElementById("gates").innerHTML = D.gates.map(g=>{
-    const v=E[g.key], ok=g.op==="≥"?v>=g.thr:v<=g.thr, d=D.metrics.find(m=>m.key===g.key);
-    return `<div class="gate ${ok?'ok':'no'}">${ok?"✓":"✗"} ${g.label}：${fmt(v,d?d.decimals:2)}（门槛 ${fmt(g.thr,d?d.decimals:2)}）· ${g.why}</div>`;
+  const gateByKey = {};
+  (D.gates||[]).forEach(g=> gateByKey[g.key]=g);
+  const cards = D.metrics.map(m=>{
+    const v=E[m.key], d=m.decimals==null?2:m.decimals;
+    const g = gateByKey[m.key];
+    let gate="";
+    if(g){
+      const ok = g.op==="≥" ? v>=g.thr : v<=g.thr;
+      gate = `<div class="gate ${ok?'ok':'no'}" title="${g.why}">${ok?"✓":"✗"} ${g.label} ${g.op} ${fmt(g.thr,d)}</div>`;
+    }
+    return `<div class="mcard">
+      <div class="mlabel">${m.label}</div>
+      <div class="mval">${fmt(v,d)}<span class="unit">${m.unit||""}</span></div>
+      <div class="mnote">基线 ${fmt(m.value,d)}</div>
+      ${m.note?`<div class="calcnote">${m.note}</div>`:""}
+      ${gate}
+    </div>`;
   }).join("");
+  document.getElementById("metrics").innerHTML = '<h2>关键读数'+tag+'</h2><div class="mgrid">'+cards+'</div>';
+  const gc=document.getElementById("gates"); if(gc) gc.innerHTML="";
 }
 
-/* §2 顶部结论区（对应页面 ①）：D.verdict.tmpl 是用户给定的论证文案，
-   {key} 占位符用 D.verdict.vals 填；值为 null 显示 [待补]（依赖外部假设的数）。 */
-function renderVerdict(){
+/* §2–§3 顶部结论区（①）与定性逻辑区（②）：文案住 MD（narrative/沙盘结论区.md），
+   数值住 src/verdict.py 的 build_vals——**生成期与浏览器里跑的是同一个函数**。
+
+   vals 的三种来源，必须同源同刻（拖滑块/切档位时 ①② 区要跟 ③ 区一起动）：
+     · 档位态：D.tierVals[档]      —— Python 预计算的精确实跑值
+     · 自定义态：精确引擎重跑返回的 r.vals —— Pyodide 重跑同一套 build_model 后现算
+     · 离线兜底：D.verdict.baseVals —— 生成快照的精确值（并在读数百里标明未重算）
+   本文件**不写任何算式**，只做字符串替换——算式写两遍必然漂移。 */
+let curVals = (D.verdict && D.verdict.baseVals) || {};
+
+function _fillPlaceholders(t, v){
+  // 与 src/sandbox.py 的 _PH_RE 同形态：小写字母开头，可含数字与下划线
+  return String(t).replace(/\{([a-z_][a-z0-9_]*)\}/gi, (m,k)=>{
+    const x=v[k];
+    return (x===null||x===undefined||x==="") ? '<b class="todo">[待补]</b>' : '<b>'+x+'</b>';
+  });
+}
+
+/* 口径说明里的 [文字](链接) 转成可点外链——信源必须可点，不能只写机构名 */
+function _linkify(t){
+  return String(t).replace(/\[([^\]]+)\]\(([^)]+)\)/g,
+    (m,txt,url)=>`<a href="${url}" target="_blank" rel="noopener">${txt}</a>`);
+}
+
+function renderVerdict(vals){
   const box=document.getElementById("verdict");
   if(!box || !D.verdict) return;
-  const t=D.verdict.tmpl, v=D.verdict.vals||{};
-  const html = t.replace(/\{([a-z_]+)\}/g, (m,k)=>{
-    const x=v[k];
-    if(x===null || x===undefined || x==="") return '<b class="todo">[待补]</b>';
-    return '<b>'+x+'</b>';
-  });
-  box.innerHTML = '<p class="verdict-txt">'+nl2br(html)+'</p>';
+  const v = vals || curVals || {};
+  let html = '<p class="verdict-txt">'+nl2br(_fillPlaceholders(D.verdict.tmpl, v))+'</p>';
+  const notes = D.verdict.notes || [];
+  if(notes.length){
+    html += '<details class="caliber"><summary>口径与信源（点开核对每个数怎么来的）</summary>'
+          + '<div class="note">'+nl2br(_linkify(_fillPlaceholders(notes.join("\n"), v)))+'</div></details>';
+  }
+  box.innerHTML = html;
 }
 
-/* §3 定性逻辑区（对应页面 ②）：按顶部结论的论证层次组织。
-   当前先给三个支柱的定量支撑卡，论证链下轮从一页纸/叙述层沉淀进来。 */
-function renderNarrative(){
+function renderNarrative(vals){
   const box=document.getElementById("narrative");
   if(!box) return;
-  const v=(D.verdict && D.verdict.vals) || {};
-  const num=k=> (v[k]===null || v[k]===undefined) ? "—" : v[k];
-  const card=(t,d)=>`<div class="card" style="margin-bottom:10px"><b>${t}</b><div class="note" style="margin-top:4px">${d}</div></div>`;
-  box.innerHTML =
-    `<p class="note" style="margin-top:0">定性逻辑按顶部结论的论证层次组织（下轮填充完整论证链）。当前给出三个支柱的定量支撑：</p>`+
-    card("① 财务回报扎实", `年可分派现金 <b>${num("dist_cash")}</b> 亿元；按 <b>${num("mult")}</b> 倍 EV/EBITDA 可贡献 <b>${num("mktcap")}</b> 万亿市值——增长确定、现金流清晰，是 CATL 当前市值的一个有安全垫的增量。`) +
-    card("② 战略价值：最大的分布式储能 VPP", `<b>${num("stations")}</b> 座换电站、年换电 <b>${num("energy")}</b> 亿度、站内储能 <b>${num("batt_station")}</b> GWh，占全社会用电量 <b>${num("elec_share")}</b>%、占国内储能装机 <b>${num("storage_share")}</b>%。均位于交通干线，是最优的分布式储能节点。`) +
-    card("③ 增长飞轮", `EV/EBITDA <b>${num("mult")}</b> 倍；一旦“电动车用能=CATL换电=便宜+好用”的用户心智达成，固态电池等技术迭代与船舶/工业机器人等新场景都会反哺生态闭环、放大估值倍数。`);
+  const vd=D.verdict||{}, secs=vd.narrative||[], v=vals||curVals||{};
+  const cards = secs.map(s=>
+    `<div class="card" style="margin-bottom:10px"><b>${s.title}</b>`+
+    `<div class="note" style="margin-top:4px">${nl2br(_fillPlaceholders(s.body, v))}</div></div>`);
+  box.innerHTML = cards.length ? cards.join("")
+    : '<p class="note">（定性逻辑文案在 narrative/沙盘结论区.md，未读到内容）</p>';
 }
 
-/* ④ 调参抽屉展开/收起（见 sandbox.css 的 #console.open） */
-function toggleConsole(){
-  const c=document.getElementById("console");
-  if(c) c.classList.toggle("open");
+let lastExactVals = null;   // 精确引擎最近一次重跑返回的结论区 vals（自定义态用）
+
+/* ①② 区刷新：档位态取 Python 预计算的三档值；自定义态用精确引擎重跑的 vals；
+   引擎未就绪/未返回时退回生成快照的精确值（读数百里已标明"未重算"，不冒充实时）。 */
+function refreshVerdict(){
+  const tierName = (curTier!=null) ? D.tiers[curTier] : null;
+  if(tierName && D.tierVals && D.tierVals[tierName]){
+    curVals = D.tierVals[tierName];
+  }else{
+    curVals = lastExactVals || (D.verdict && D.verdict.baseVals) || {};
+  }
+  renderVerdict(curVals);
+  renderNarrative(curVals);
 }
 
 function render(){
@@ -218,6 +255,7 @@ function render(){
   paintReadings(E, tag);
   renderPanel();
   renderOnePaper(E);
+  refreshVerdict();          // ①② 区必须和 ③ 区同源同刻，否则读数自相矛盾
   if(!exact && pyReady && !_recompBusy){
     _recompBusy = true;
     recomputeExact().then(r=>{
@@ -226,6 +264,10 @@ function render(){
         paintReadings(r.metrics, " · 自定义（精确重跑，与一页纸同源）");
         renderOnePaperCurrent(r);          // 数值列 + 解释列一起用重跑结果刷新
         comboRefresh();   // 可行性视图用精确值重算（comboLive 未生成前 comboRefresh 自动 no-op）
+        if(r.vals && Object.keys(r.vals).length){
+          lastExactVals = r.vals;          // 结论区用**同一次重跑**的 vals，不再另算一套
+          refreshVerdict();
+        }
       }else if(r){        // 重算返回了但无指标（如 build_model 抛错）：显形，不再静默停在旧快照
         showRecompError("重算返回空指标" + (r.error? "："+r.error : ""));
       }
@@ -239,10 +281,26 @@ function render(){
 let built=false;
 function renderPanel(){
   if(!built){
-    let h = '<h2>① 需求与规模（车辆数）：情景轴打包调整</h2><div class="grid">';
-    D.axes.forEach((ax,i)=>{h+=axisCard(ax,i);});
-    h += "</div>";
-    for(const g of D.groups) h += `<h2>${g.title}</h2><div class="grid">${g.paths.map(p=>card(p)).join("")}</div>`;
+    let h = "";
+    // 假设参数按 3 组分组折叠：每组一个 <details>（默认折叠）；情景轴始终并入 ①。
+    // 分组以 toml 定义的 3 组为准；若 ① 因无高影响力参数被丢弃，仍用情景轴兜底出 ①。
+    let groups = D.groups.filter(g=>g.title!=="其他");   // 取消"其他"分组
+    if(!groups.some(g=>g.title.startsWith("①"))){
+      groups = [{title:"① 需求与规模（车辆数）", paths:[]}].concat(groups);
+    }
+    groups.sort((a,b)=> a.title<b.title ? -1 : (a.title>b.title ? 1 : 0));  // ①<②<③（按 Unicode 序）
+    for(const g of groups){
+      const withAxes = g.title.startsWith("①");
+      h += `<details class="grp"><summary>${g.title}`
+         + (withAxes ? `<span class="note"> · 打包调整（份额/渗透率整体平移）</span>` : ``)
+         + `</summary>`;
+      if(withAxes){
+        h += `<div class="grid">`;
+        D.axes.forEach((ax,i)=>{ h += axisCard(ax,i); });
+        h += `</div>`;
+      }
+      h += `<div class="grid">` + g.paths.map(p=>card(p)).join("") + `</div></details>`;
+    }
     document.getElementById("panel").innerHTML=h; built=true;
   }
   for(const p of Object.values(D.params)){
@@ -305,6 +363,7 @@ function setTier(i){
   for(const p of Object.values(D.params)) if(p.tiers[t]!=null) put(p,p.tiers[t]);
   D.axes.forEach((ax,k)=>setAxisTier(k,t));
   applyingTier=false; curTier=i;           // 套用完成才落到该档（精确值态）
+  lastExactVals=null;                      // 回到档位态：结论区改读该档的预计算精确实跑值
   [0,1,2].forEach(k=>document.getElementById("tb"+k).classList.toggle("pri",k===i));
   render();   // render 内部会按 curTier 取精确实跑值并 highlightOpTier(curTier)
 }
@@ -584,8 +643,7 @@ window.addEventListener("error", e=>{
 document.getElementById("tgtM").innerHTML=
   D.metrics.map(m=>`<option value="${m.key}">${m.label}</option>`).join("");
 document.getElementById("tgtV").value=(D.metrics[0].value*1.2).toFixed(0);
-renderVerdict();
-renderNarrative();
+refreshVerdict();          // 启动时也走同一条路径，避免"初始渲染"与"联动渲染"两套逻辑
 renderOnePaper(snapshotMetrics());
 render();
 initPy();   // 异步加载精确引擎（Pyodide）；失败则界面显示生成快照精确值

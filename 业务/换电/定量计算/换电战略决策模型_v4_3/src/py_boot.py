@@ -28,6 +28,14 @@ sys.path.insert(0, "/app/src")
 from config_loader import load_config, cloned_config, _set_path
 from model import build_model
 from lab import read_metrics
+# 结论区①+②的数值：与生成期**同一个** build_vals，杜绝"生成期一套、浏览器一套"。
+# 放在 try 里：万一它加载失败，只丢结论区刷新，不能让整个 recompute 未定义
+# （那正是"面板动了数字不动"的根因之一）。
+try:
+    from verdict import build_vals as _build_vals
+except Exception as _exc:            # noqa: BLE001
+    print("verdict import skipped: %r" % (_exc,))
+    _build_vals = None
 
 def recompute(state_json):
     state = json.loads(state_json)
@@ -80,6 +88,14 @@ def recompute(state_json):
         print(err)
         return json.dumps({"metrics": {}, "texts": [], "error": err})
     metrics = {k: (None if mv.get(k) is None else mv.get(k)) for k in state.get("metrics", [])}
+    # 结论区①+②的取值：同一份 snapshot、同一个 build_vals，与生成期三档值同源同算。
+    # 少它，顶部结论就会停在生成快照上——拖滑块时 ①② 区不动、③ 区动，读数自相矛盾。
+    vals = {}
+    if _build_vals is not None:
+        try:
+            vals = _build_vals(snap, cfg)
+        except Exception as exc:      # noqa: BLE001
+            print("verdict vals skipped: %r" % (exc,))
     # 一页纸的**解释列**也在这里重渲染：同一份 narrative/一页纸.md ＋ 同一个信源索引表
     # （audit/信源审计台账.md）。只刷数值、不刷解释＝调完参数解释还是旧的，用户会不信。
     # 解释列依赖 tree/facts/onepager，逐个 import 包在 try 内：任一失败只丢解释，不丢指标数字。
@@ -94,4 +110,4 @@ def recompute(state_json):
         texts = onepager.render_texts(facts.build_facts(snap_dict, strict=False), groups)
     except Exception as exc:
         print("onepaper texts skipped: %r" % (exc,))
-    return json.dumps({"metrics": metrics, "texts": texts, "error": err})
+    return json.dumps({"metrics": metrics, "texts": texts, "vals": vals, "error": err})

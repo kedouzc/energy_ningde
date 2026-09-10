@@ -86,42 +86,28 @@ from lab import (  # noqa: E402
     sensitivity_step,
 )
 from model import build_model  # noqa: E402
+from verdict import (  # noqa: E402
+    PLACEHOLDER_KEYS as _PLACEHOLDER_KEYS,
+    build_vals,
+)
 
 OUT = ROOT / "outputs" / "换电沙盘_v4.3.html"
 
-# 下拉顺序：用户最关心的四个读数在前
-KEY_METRIC_KEYS = [
-    "val.swap_increment",      # 换电增量价值
-    "swap.operating_value",    # 换电 CATL 权益市值
-    "swap.revenue",            # 年收入
-    "swap.ebitda",             # EBITDA
-    "swap.coverage", "val.incr_over_mktcap",
-]
-GATES = [
-    ("swap.coverage", "≥", 1.0, "EBITDA 覆盖倍数过线（<1 就是赚的不够还资本）"),
-    ("val.incr_over_mktcap", "≥", 0.10, "增量价值占集团市值 ≥10%（才配占用战略敞口）"),
-    ("val.swap_increment", "≥", 1000.0, "换电增量价值 ≥1,000 亿（千亿才算重注量级）"),
-]
-TOP_N = 14
-
-# charge_share 是情景轴（_SKIP_SECTIONS 排除在敏感性扫描之外），
-# 但沙盘要给它测弹性——用 also 旁路，不影响扫描口径。
-ALSO = ("charge_share",)
-
-# 多目标轴：打包成一条轴、一个滑块整体平移（步长 5%），不再逐车型拖。
-AXIS_DRIVERS = ("commercial_nev_penetration", "commercial_swap_share",
-                "catl_swap_share", "private_penetration", "charge_share")
-AXIS_STEP = 0.05          # 相对轴：整体平移步长 ±5%
-AXIS_SPAN = 0.30          # 相对轴：平移范围 ±30%
-AXIS_ABS_STEP = 0.05      # 轴默认步长：0.05（份额/渗透率＝5 个百分点）
-                          # 私家车轴在 base.toml 用 axis_step=0.01 覆盖（1 个百分点）
-
-# 参数面板分组（纯展示层：只管"怎么摆"，不持有任何数值）。
-_GROUPS: list[tuple[str, tuple[str, ...]]] = [
-    ("① 需求与规模（车辆数）：逐参数", ("vehicles.",)),
-    ("② 价格与运营", ("swap_business.",)),
-    ("③ 制造与估值", ("finance.",)),
-]
+# ── 看板/轴/分组「定义」全部外置到 configs/sandbox_dashboard.toml ──
+# 这里只声明"放哪些指标、三道门门槛、轴怎么捆、面板怎么分组"，不含任何计算；
+# 改面板只改那个 toml，不用动本文件（打包层）。派生测算（分母 / REIT 倍数）
+# 住在它们本来的计算程序里（scale.py / capital_cycle.py），本文件只 import 取数。
+_DASH = load_config(ROOT / "configs" / "sandbox_dashboard.toml")
+KEY_METRIC_KEYS = _DASH["key_metrics"]["keys"]
+GATES = [(g["key"], g["op"], g["thr"], g["why"]) for g in _DASH["gates"]["item"]]
+TOP_N = _DASH.get("top_n", 14)
+ALSO = tuple(_DASH.get("also", []))
+AXIS_DRIVERS = tuple(_DASH["axis"]["drivers"])
+AXIS_STEP = _DASH["axis"].get("rel_step", 0.05)
+AXIS_SPAN = _DASH["axis"].get("rel_span", 0.30)
+AXIS_ABS_STEP = _DASH["axis"].get("abs_step", 0.05)
+_GROUPS = [(g["title"], tuple(g["prefixes"])) for g in _DASH["groups"]["item"]]
+leaf_cn = _DASH.get("leaf_cn", {})
 
 
 def _key_metrics():
@@ -202,14 +188,19 @@ def build_data(config: dict, base_values: dict, step: float) -> dict:
 
     # 各档位下每个核心指标的**精确实跑值**——供「一键三档」显示精确值，
     # 与一页纸三情景列**同源同算**；这样点档位按钮给的数字，和下方一页纸该列完全一致。
+    # 同一个 snapshot 顺带算出**结论区 vals**（build_vals），于是 ①② 区在三档之间
+    # 切换时读到的也是精确实跑值，与 ③ 区读数同源同刻（不额外跑模型）。
     tier_metric_vals: dict[str, dict] = {}
+    tier_verdict_vals: dict[str, dict] = {}
     for tier in SCENARIO_ORDER:
         cfg2 = load_config()
         # 中性档＝基线（不 apply）；其余档只读探测，关闭「中性≠基线」守卫避免误杀构建。
         kw = {} if tier == "中性" else apply_scenario(
             cfg2, load_drivers(cfg2), tier, check_neutral=False)
-        mv = read_metrics(build_model(cfg2, **kw))
+        snap2 = build_model(cfg2, **kw)
+        mv = read_metrics(snap2)
         tier_metric_vals[tier] = {m.key: mv.get(m.key) for m in _embed_metrics()}
+        tier_verdict_vals[tier] = build_vals(snap2, cfg2)
 
     def influence(p: str) -> float:
         return abs(elasticity.get(p, {}).get(INFLUENCE_ANCHOR, 0.0))
@@ -318,11 +309,6 @@ def build_data(config: dict, base_values: dict, step: float) -> dict:
                 axis_order.append(p)
             axis_cap[p] = spec.get("cap")
 
-    leaf_cn = {"weight": "场景权重", "onboard_battery_kwh": "单车带电量",
-               "daily_km": "日均里程", "battery_kwh": "单车带电量",
-               "energy_consumption_kwh_km": "单位电耗", "debt_ratio": "项目负债率",
-               "valley_power_price_rmb_kwh": "谷电单价"}
-
     def cn_of(path: str) -> str:
         cn = cn_map.get(path)
         parts = path.split(".")
@@ -400,11 +386,11 @@ def build_data(config: dict, base_values: dict, step: float) -> dict:
     for p in params:
         groups.setdefault(_group_of(p["path"]), []).append(p["path"])
 
-    metrics = [{"key": m.key, "label": m.label, "unit": m.unit,
+    metrics = [{"key": m.key, "label": m.label, "unit": m.unit, "note": m.note,
                 "value": base_values.get(m.key), "decimals": m.decimals}
                for m in _key_metrics()]
     # 估算用的指标超集（含一页纸「当前列」要复用的 ops.annual_energy），与弹性嵌入一致
-    est_metrics = [{"key": m.key, "label": m.label, "unit": m.unit,
+    est_metrics = [{"key": m.key, "label": m.label, "unit": m.unit, "note": m.note,
                     "value": base_values.get(m.key), "decimals": m.decimals}
                    for m in _embed_metrics()]
     gates = [{"key": k, "op": op, "thr": thr, "why": why,
@@ -420,62 +406,84 @@ def build_data(config: dict, base_values: dict, step: float) -> dict:
             "groups": [{"title": t, "paths": ps} for t, ps in groups.items()],
             "tiers": list(SCENARIO_ORDER), "step": step,
             "tierValues": tier_metric_vals,
-            "verdict": _build_verdict(config, base_values)}
+            "tierVals": tier_verdict_vals,
+            "verdict": _build_verdict()}
+    # 注：verdict.baseVals 由 main() 用基线 snapshot 补上（build_data 只拿到指标字典，
+    # 拿不到 snapshot；不为了它再跑一次模型）。
 
 
-# ── 顶部结论区（①）：把模型算出的关键数填进用户给定的论证文案 ──
-# VERDICT_TMPL 的 {占位符} 对应 _build_verdict 算出的 vals；算不出的标待补——
-# 那些通常是「依赖外部市场总量 / 外部假设」的数（营运车总规模、REITs 回笼倍数），
-# 模型内暂无，待补清单见下方 vals 里的 None。
-VERDICT_TMPL = (
-    "换电运营业务只需要在2030年之前累计获得{veh_ops}万辆营运车辆装机"
-    "（占{veh_mkt}万辆营运车总规模的{share}%，重点是{veh_heavy}万辆重卡、{veh_city}万辆城配物流车），"
-    "就能给CATL每年贡献{dist_cash}亿元可分派现金，按{ebitda}亿EBITDA×{mult}倍可贡献{mktcap}万亿市值，"
-    "年换电量达{energy}亿度、占全社会用电量的{elec_share}%，换电站内装机规模{batt_station}GWh、"
-    "占国内储能装机规模的{storage_share}%，{stations}座换电站均位于交通干线，"
-    "成为最大的分布式储能VPP运营商，而每年最多仅需投入{peak_call}亿元，"
-    "后续发行REITs可回笼{reit_mult}倍于投资的资金，无论从夯实动力电池业务基础、"
-    "还是财务投资回报，都是值得重估的好业务；一旦“电动车用能=CATL换电=便宜+好用”的标准建立、"
-    "用户心智达成，后续无论是面临固态电池等具体技术迭代，还是拓展不同场景（比如电动船舶、工业机器人），"
-    "都会进一步强化CATL在动力电池领域的生态闭环并反哺研发制造，进入增长飞轮，届时估值倍数会又进一步放大的空间。"
-)
+# ── 顶部结论区（①）+ 定性逻辑区（②）：文案住 MD，数值住程序 ──
+# 定性描述（论证文案 / 三支柱叙述）全部外置到 narrative/沙盘结论区.md，
+# 用户改文案不必动任何 .py；{占位符} 由 verdict.build_vals 算出的 vals 填。
+import re as _re
+from pathlib import Path as _Path
+
+def _load_sandbox_md() -> dict:
+    """读取 narrative/沙盘结论区.md：
+      # 顶部结论   —— 一段为论证模板
+      # 定性逻辑   —— 下用 ## 分段为三支柱
+      # 口径与信源 —— 逐条口径说明与外链（渲染成结论区下方小字，数看得见、口径也看得见）
+    占位符 {key} 由 verdict.build_vals 的 vals 填。"""
+    p = _Path(__file__).resolve().parent.parent / "narrative" / "沙盘结论区.md"
+    text = p.read_text("utf-8")
+    parts = _re.split(r"^#\s+", text, flags=_re.M)
+    verdict_tmpl, narrative, notes = "", [], []
+    for part in parts[1:]:
+        lines = part.split("\n")
+        title = lines[0].strip()
+        body = "\n".join(lines[1:]).strip()
+        if title == "顶部结论":
+            verdict_tmpl = body
+        elif title == "定性逻辑":
+            for s in _re.split(r"^##\s+", body, flags=_re.M)[1:]:
+                sl = s.split("\n")
+                narrative.append({"title": sl[0].strip(), "body": "\n".join(sl[1:]).strip()})
+        elif title == "口径与信源":
+            notes = [ln.strip() for ln in body.split("\n") if ln.strip()]
+    return {"verdict_tmpl": verdict_tmpl, "narrative": narrative, "notes": notes}
+
+_SANDBOX_MD = _load_sandbox_md()
 
 
-def _build_verdict(config: dict, bv: dict) -> dict:
-    """顶部结论区：从已算指标取数，填进 VERDICT_TMPL。"""
-    def g(key):
-        return bv.get(key)
-    def r(x, d=1):
-        return None if x is None else round(float(x), d)
-    veh_ops = r((g("ops.veh_commercial") or 0) + (g("ops.veh_passenger_ops") or 0), 1)
-    op_value = g("swap.operating_value")
-    vals = {
-        "veh_ops": veh_ops,
-        "veh_mkt": None,                          # 待补：营运车市场总规模（外部保有量口径）
-        "share": None,                            # 待补：= veh_ops / veh_mkt
-        "veh_heavy": r(g("ops.veh_heavy"), 1),
-        "veh_city": r(g("ops.veh_city"), 1),
-        "dist_cash": r(g("swap.dist_cash"), 1),
-        "ebitda": r(g("swap.ebitda"), 1),
-        "mult": (config.get("finance") or {}).get("swap_ev_ebitda"),
-        "mktcap": (round(op_value / 10000, 3) if op_value is not None else None),
-        "energy": r(g("ops.annual_energy"), 1),
-        "elec_share": r(g("mk.share_elec_latest"), 3),
-        "batt_station": r(g("ops.battery_station"), 0),
-        "storage_share": r(g("mk.share_storage_2025"), 3),
-        "stations": r(g("scale.stations_total"), 0),
-        "peak_call": r(g("capex.peak_call"), 1),
-        "reit_mult": None,                        # 待补：REITs 回笼倍数（外部假设）
-    }
-    return {"tmpl": VERDICT_TMPL, "vals": vals}
+# 结论区的取值算法**只有 verdict.build_vals 一份**（生成期三档 + 浏览器 Pyodide 共用）；
+# 本文件（打包层）不再自己拼 vals，只负责把三档/基线的值塞进 bundle。
+
+# 占位符正则：与 templates/sandbox.js 的渲染正则保持同一形态（小写字母开头 + 数字/下划线）。
+# 生成期用它扫 MD，把"模板里用了但程序没给"的键挡在构建阶段，而不是留到页面上 [待补]。
+_PH_RE = _re.compile(r"\{([a-z_][a-z0-9_]*)\}")
 
 
+def _check_placeholders(verdict: dict) -> None:
+    """MD 占位符 ⊆ PLACEHOLDER_KEYS 的机械校验（缺一个就终止生成）。
+
+    为什么必须硬失败：静默 [待补] 等于"报告里出现一个说不清来源的数"，
+    而这类数一旦被引用进决策，事后极难追回。宁可生成失败，也不出半成品。
+    """
+    used: set[str] = set(_PH_RE.findall(verdict.get("tmpl", "")))
+    for sec in verdict.get("narrative", []):
+        used |= set(_PH_RE.findall(sec.get("body", "")))
+    for ln in verdict.get("notes", []):
+        used |= set(_PH_RE.findall(ln))
+    missing = used - _PLACEHOLDER_KEYS
+    if missing:
+        raise SystemExit(
+            "✗ 沙盘结论区模板引用了程序不认识的占位符："
+            + "、".join(sorted(missing))
+            + "\n  请在 src/verdict.py 的 PLACEHOLDER_KEYS 与 build_vals 里补齐，"
+              "或改 narrative/沙盘结论区.md 的写法。"
+        )
+    unused = _PLACEHOLDER_KEYS - used
+    if unused:
+        # 只是提醒，不阻断：有些键是给三支柱以外的地方备用的
+        print("  · 结论区模板未用到的数据键：" + "、".join(sorted(unused)))
 
 
-
-
-
-
+def _build_verdict() -> dict:
+    """顶部结论区：只装模板与文案，数值全部交给 verdict.build_vals。"""
+    return {"tmpl": _SANDBOX_MD["verdict_tmpl"],
+            "vals": {},            # 由 main() 用基线 snapshot 填（baseVals）
+            "narrative": _SANDBOX_MD["narrative"],
+            "notes": _SANDBOX_MD["notes"]}
 
 
 def _b64(obj) -> str:
@@ -560,8 +568,13 @@ def model_bundle() -> dict:
 def main() -> None:
     config = load_config()
     step = sensitivity_step(config)
-    base_values = read_metrics(rerun(config))
+    base_snap = rerun(config)
+    base_values = read_metrics(base_snap)
     data = build_data(config, base_values, step)
+    # 结论区基线值：用**同一个基线 snapshot** 走 verdict.build_vals，与三档、与浏览器
+    # 里 Pyodide 重跑完全同一套算法（离线兜底时页面显示的就是这套精确值）。
+    data["verdict"]["baseVals"] = build_vals(base_snap, config)
+    _check_placeholders(data["verdict"])
     # 一页纸（三情景精确实跑值 + 四列判断）嵌入沙盘，免得在两个文件间跳读。
     # 快照式：本表是 Python 实跑的精确值，与沙盘的弹性插值估算不同源，页面里必须标注清楚。
     try:

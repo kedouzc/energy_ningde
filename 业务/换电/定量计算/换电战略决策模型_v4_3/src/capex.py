@@ -620,6 +620,16 @@ def build_capex(
         for pk in BATTERY_POOLS
     }
     steady_state_net_replacement = sum(steady_state_net_replacement_by_pool.values())
+    # ③b 【2026-09-10】稳态年更新装机的**物理量**（GWh/年）：同一条更新理论，只是
+    #   不乘净单价。结论区"锁定之后每年平均 X GWh 订单"就取这个——建设期结束之后
+    #   新增装车归零、只剩更新，而更新必须**分池**算（倒短 8.37 年 vs 干线 2.94 年，
+    #   若用单一寿命会把干线池的更换频率抹平，稳态量直接算错一半以上）。
+    steady_state_replacement_gwh_by_pool = {
+        pk: (mature_fleet_gwh_by_pool[pk] / scale.battery_pool_life_years[pk])
+        if scale.battery_pool_life_years.get(pk) else 0.0
+        for pk in BATTERY_POOLS
+    }
+    steady_state_replacement_gwh = sum(steady_state_replacement_gwh_by_pool.values())
     # ④ 站体设备（第四轮§4.6，2026-09-05d修正）：15年一次性整体更新，与折旧年限
     #   (model_horizon_years)同步，不设独立参数。永续账按"每horizon年一笔"的
     #   递归永续现值处理（标准年金公式：PV=L÷[(1+r)^N−1]，付**全额**，不扣任何
@@ -748,4 +758,8 @@ def build_capex(
         steady_state_net_replacement_by_pool_yi=dict(steady_state_net_replacement_by_pool),
         station_equipment_perpetual_pv_yi=station_equipment_perpetual_pv,
         station_equipment_perpetual_pv_by_pool_yi=dict(station_equipment_perpetual_pv_by_pool),
+        # 【2026-09-10】稳态年更新 GWh（分池 + 合计），结论区"每年平均订单"取这里。
+        mature_fleet_gwh_by_pool=dict(mature_fleet_gwh_by_pool),
+        steady_state_replacement_gwh_by_pool=dict(steady_state_replacement_gwh_by_pool),
+        steady_state_replacement_gwh=steady_state_replacement_gwh,
     )

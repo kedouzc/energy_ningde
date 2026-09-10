@@ -240,6 +240,15 @@ class CapexResult:
     steady_state_net_replacement_by_pool_yi: dict[str, float] = field(default_factory=dict)
     station_equipment_perpetual_pv_yi: float = 0.0
     station_equipment_perpetual_pv_by_pool_yi: dict[str, float] = field(default_factory=dict)
+    # 【新增 2026-09-10｜结论区"锁定之后每年平均 GWh 订单"】稳态年更新装机的**物理量**。
+    # 与 steady_state_net_replacement_yi 同源同式（更新理论：稳态更新速率 = 存量 ÷ 寿命），
+    # 差别只在那里乘净单价得金额、这里保留 GWh。用户口径：建设期之后只剩更新需求，
+    # **分池计算、含车端 + 站内**——故分子取该池全部 cohort（kind=vehicle 与 station 都在里），
+    # 分母取该池自身寿命 battery_pool_life_years（倒短 8.37 / 干线 2.94 年，差异极大，
+    # 必须分池算完再相加，不能用单一寿命）。
+    mature_fleet_gwh_by_pool: dict[str, float] = field(default_factory=dict)
+    steady_state_replacement_gwh_by_pool: dict[str, float] = field(default_factory=dict)
+    steady_state_replacement_gwh: float = 0.0
 
 
 @dataclass
@@ -418,6 +427,45 @@ class SwapBusinessResult:
     # v4.3 新增：四站型分池经营明细（键=池键）。总量字段=四池之和，
     # report 的 operating_table/cash_return_table 分站型列直接读这里。
     pool_operations: dict[str, PoolOperations] = field(default_factory=dict)
+    # 【新增 2026-09-10】重卡用户经济性（结论区 ①「用户 TCO」一句取这里）。
+    # 未配置 [tco_jpm] 时为 None，页面按 [待补] 显示，不编数。
+    heavy_economics: HeavyEconomics | None = None
+
+
+@dataclass
+class TcoRow:
+    """同一持有期下三种动力的全成本 TCO 对照（结论区「用户 TCO」那句的数据源）。
+
+    口径：JPM Table 3 的**持有期总成本**（购车 − 补贴 + 年运营 × N），不是只算能源；
+    万元/辆 供直觉读，元/kWh 供与换电单价并排读（分母＝等效能耗，三者年里程相同故可比）。
+    """
+
+    swap_wan: float | None          # 换电重卡：N 年总持有成本（万元/辆）
+    swap_kwh: float | None          # 换电重卡：折合 元/kWh
+    lng_wan: float | None
+    lng_kwh: float | None
+    diesel_wan: float | None
+    diesel_kwh: float | None
+
+
+@dataclass
+class HeavyEconomics:
+    """重卡用户经济性：模型实时量 + JPM 外部事实的组合，只服务于结论区取数。
+
+    为什么放这里：这些都是**结论区要读的数**，但它们既不是资本量（capex）也不是
+    出货量（scale），而是"重卡这门生意对用户划不划算"——属业务侧，故随
+    SwapBusinessResult 一起由 business.py 算出，避免再开第三个居所。
+    """
+
+    battery_life_years: float | None            # N1 持有期：模型算出的重卡加权电池寿命
+    replacement_cycle_years: float | None       # N2 持有期：config 的重卡更新周期（9 年）
+    user_price_rmb_kwh: float | None            # 用户付给 CATL 的（服务费 + 电池租金）元/kWh
+    user_energy_rmb_kwh: float | None           # 用户能源全口径单价 = 电费 + 服务费 + 租金
+    vehicle_gwh: float = 0.0                    # 重卡车端装机 GWh（存量）
+    station_gwh: float = 0.0                    # 重卡站内周转装机 GWh（存量）
+    battery_purchase_cut_yi: float = 0.0        # BaaS 免去的电池购置（元/辆）
+    n1: TcoRow | None = None                    # 持有期 = 模型电池寿命
+    n2: TcoRow | None = None                    # 持有期 = 更新周期
 
 
 @dataclass

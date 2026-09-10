@@ -439,7 +439,8 @@ details.opgroup[open]>summary{border-bottom:1px solid var(--bd)}
 tr.attrib td{background:#f8fafc}
 .opj b{color:var(--mu);font-weight:600}
 </style>
-<script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
+<!-- Pyodide 改为运行时动态多镜像加载（见 initPy）：cdn.jsdelivr 在国内常不可达，
+     故依次回退到 npmmirror / unpkg；全部失败则明确提示，不再静默。 -->
 </head><body><div class="wrap">
 <h1>换电战略沙盘 <span class="note" id="pystat">精确模式：浏览器内重跑同一套 Python 模型；离线则显示生成快照，改参请回跑 python src/run.py</span></h1>
 
@@ -483,7 +484,9 @@ function b64utf8(s){
 const D = JSON.parse(b64utf8(__DATA_B64__));
 const S = {};                       // path -> 当前值（模型单位）
 Object.values(D.params).forEach(p=>S[p.path]=p.value*p.disp);
-D.arrays.forEach(a=>S[a.path]=0);   // 曲线型成员：S 存"整体加减偏移"（0=不动）
+/* 注意：曲线型（数组）成员**绝不**进 S——把它们写成标量 0 会在运行时被 _set_path
+   把 config 里的整个数组覆盖成 0，build_model 做 [year_index] 下标时崩。
+   数组只由轴 A（δ 逐元素位移）在 recompute 里管理，S 只管标量参数。 */
 const A = D.axes.map(()=>0);        // 轴的整体偏移 δ——**轴状态的唯一来源**
 const arrBy = {};                   // 曲线型成员按 path 索引
 D.arrays.forEach(a=>arrBy[a.path]=a);
@@ -517,30 +520,77 @@ const MODEL_BUNDLE = JSON.parse(b64utf8(__MODEL_BUNDLE_B64__));
 let currentE = {};                                   // 当前精确读数（供可行性"组合实时试算"复用）
 function snapshotMetrics(){ return D.tierValues[D.tiers[1]]; }   // 生成快照：中性档精确实跑值
 
+/* 动态加载单个 <script>，带超时；失败 reject，便于多镜像回退 */
+function loadScript(src, timeout=20000){
+  return new Promise((res,rej)=>{
+    const el=document.createElement("script"); el.src=src; el.async=true;
+    const t=setTimeout(()=>rej(new Error("timeout")),timeout);
+    el.onload=()=>{clearTimeout(t);res();};
+    el.onerror=()=>{clearTimeout(t);rej(new Error("network"));};
+    document.head.appendChild(el);
+  });
+}
+/* Pyodide 多镜像：cdn.jsdelivr 国内常被墙，依次回退到 npmmirror（阿里，国内稳）、unpkg。
+   每个 base 都是「完整发行目录」，既含 pyodide.js，也含 .wasm / 标准库 / 包，故 indexURL 指向它即可。 */
+const PYODIDE_BASES = [
+  "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/",
+  "https://fastly.jsdelivr.net/pyodide/v0.26.2/full/",
+  "https://registry.npmmirror.com/pyodide/0.26.2/files/full/",
+  "https://unpkg.com/pyodide@0.26.2/dist/"
+];
 async function initPy(){
   const s = document.getElementById("pystat");
-  try{
-    if(typeof loadPyodide !== "function") throw new Error("pyodide 脚本未加载");
-    const py = await loadPyodide();
-    py.FS.mkdir("/app"); py.FS.mkdir("/app/src"); py.FS.mkdir("/app/configs");
-    for(const [rel, content] of Object.entries(MODEL_BUNDLE.src)) py.FS.writeFile("/app/src/"+rel, content);
-    py.FS.writeFile("/app/configs/base.toml", MODEL_BUNDLE.config);
-    // 一页纸的问题文本与信源台账：少了它们，浏览器端重跑后解释列与外链渲染不出来
-    for(const [rel, content] of Object.entries(MODEL_BUNDLE.files||{})){
-      const i = rel.lastIndexOf("/");
-      if(i>0){ try{ py.FS.mkdir("/app/"+rel.slice(0,i)); }catch(e){} }
-      py.FS.writeFile("/app/"+rel, content);
+  for(const base of PYODIDE_BASES){
+    try{
+      if(s) s.textContent = "精确引擎加载中…（尝试 "+base+"）";
+      await loadScript(base+"pyodide.js");
+      if(typeof loadPyodide !== "function") throw new Error("loadPyodide 未定义");
+      const py = await loadPyodide({indexURL: base});
+      py.FS.mkdir("/app"); py.FS.mkdir("/app/src"); py.FS.mkdir("/app/configs");
+      for(const [rel, content] of Object.entries(MODEL_BUNDLE.src)) py.FS.writeFile("/app/src/"+rel, content);
+      py.FS.writeFile("/app/configs/base.toml", MODEL_BUNDLE.config);
+      // 一页纸的问题文本与信源台账：少了它们，浏览器端重跑后解释列与外链渲染不出来
+      for(const [rel, content] of Object.entries(MODEL_BUNDLE.files||{})){
+        const i = rel.lastIndexOf("/");
+        if(i>0){ try{ py.FS.mkdir("/app/"+rel.slice(0,i)); }catch(e){} }
+        py.FS.writeFile("/app/"+rel, content);
+      }
+      py.runPython(PY_BOOT);                            // 定义 recompute()
+      pyodide = py; pyReady = true;
+      if(s) s.textContent = "精确引擎已加载（"+base+"）：自定义态实时重跑同一套 Python 模型（与一页纸同源）";
+      if(curTier == null) render();                     // 自定义态立即用精确值刷新
+      return;
+    }catch(e){
+      if(s) s.textContent = "精确引擎加载中…（"+base+" 失败："+e.message+"，回退下一镜像）";
     }
-    py.runPython(PY_BOOT);                            // 定义 recompute()
-    pyodide = py; pyReady = true;
-    if(s) s.textContent = "精确引擎已加载：自定义态实时重跑同一套 Python 模型（与一页纸同源）";
-    if(curTier == null) render();                     // 自定义态立即用精确值刷新
-  }catch(e){
-    pyReady = false;
-    if(s) s.textContent = "精确引擎未加载（离线/出错）：显示生成快照精确值，改参后请回跑 python src/run.py 刷新";
   }
+  // 全部镜像失败：明确告知，绝不再静默
+  pyReady = false;
+  if(s) s.textContent = "精确引擎未加载（全部镜像不可达）：显示生成快照精确值；改参后请回跑 python src/run.py 重新生成，或在可联网环境打开本页";
+  if(!document.getElementById("engNote")){
+    const note=document.createElement("div"); note.id="engNote";
+    note.style.cssText="position:fixed;top:0;left:0;right:0;z-index:9998;background:#fffbeb;color:#92400e;padding:8px 14px;font:13px/1.5 system-ui;border-bottom:2px solid #f59e0b;text-align:center";
+    note.textContent="⚠ 精确引擎（Pyodide）未能加载，参数联动仅更新滑块位置、读数不会重算。请在联网环境打开本页，或改参后回跑 python src/run.py 重新生成。";
+    document.body.appendChild(note);
+  }
+  // 引擎未加载时，组合实时试算/读数应明确提示，而不是拿快照假装算过
+  comboRefresh();
 }
 
+/* 重算失败显形：把异常打到页面错误条 + 顶部状态，绝不静默（静默＝闭眼改界面） */
+function showRecompError(msg){
+  const s = document.getElementById("pystat");
+  if(s) s.innerHTML = '<span style="color:var(--bad)">⚠ '+msg+
+    '（请回跑 python src/run.py 重新生成，或在可联网环境打开本页）</span>';
+  let n = document.getElementById("recompErr");
+  if(!n){
+    n = document.createElement("div"); n.id="recompErr";
+    n.style.cssText="position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#fee2e2;"+
+      "color:#b91c1c;padding:10px 14px;font:13px/1.6 monospace;border-top:2px solid #b91c1c;white-space:pre-wrap";
+    document.body.appendChild(n);
+  }
+  n.textContent = "⚠ 重算错误：" + msg;
+}
 /* over：可选 {S:{path:模型单位值}, A:[轴δ...]}，用于可行性"设值试算"；省略=当前 S/A */
 async function recomputeExact(over){
   if(!pyReady) return null;
@@ -549,8 +599,15 @@ async function recomputeExact(over){
   // metrics 用 estMetrics（＝顶部 6 个读数 ∪ 一页纸全部指标）：
   // 一页纸「当前（实时）」列与顶部读数因此读的是**同一份重跑结果**。
   const state = { S: S2, A: A2, axes: D.axes, metrics: D.estMetrics.map(m=>m.key) };
-  const out = await pyodide.runPythonAsync("recompute(" + JSON.stringify(state) + ")");
-  return JSON.parse(out);
+  // 关键：把 state 作为**字符串**经 pyodide.globals 传入，由 recompute 用 json.loads 解析。
+  // 否则直接拼成 Python 字面量时，JSON 的 true/false/null 不是 Python 关键字
+  // （axes 里的 isArray 就是布尔），会抛 `NameError: name 'true' is not defined`——
+  // 这正是"勾选参数数字不重算"的真正根因（此前被 .catch 静默吞掉）。
+  pyodide.globals.set("__state_json", JSON.stringify(state));
+  const out = await pyodide.runPythonAsync("recompute(__state_json)");
+  const r = JSON.parse(out);
+  if(r && r.error) showRecompError("recompute：" + r.error);   // build_model 抛错也显形
+  return r;
 }
 
 function paintReadings(E, tag){
@@ -572,9 +629,13 @@ function paintReadings(E, tag){
 function render(){
   const exact = (curTier!=null && D.tierValues && D.tierValues[D.tiers[curTier]]);
   const E = exact ? D.tierValues[D.tiers[curTier]] : snapshotMetrics();   // 自定义态先显示快照精确值，绝不外推
+  // 离线（精确引擎未加载）且自定义态：必须明确标注"未重算/显示快照"，
+  // 否则面板（DOM）已联动、读数却停在中性快照，会被误读成"联动了但没重算"的 bug。
   const tag = exact
     ? ` · <b style="color:var(--ok)">${D.tiers[curTier]}档（精确实跑，＝一页纸该列）</b>`
-    : " · 自定义（生成快照精确值；精确引擎就绪后实时重跑同一套 Python 模型）";
+    : (!pyReady
+        ? " · 自定义（⚠ 精确引擎未加载，显示生成快照；改参后请回跑 python src/run.py 重新生成）"
+        : " · 自定义（生成快照精确值；精确引擎就绪后实时重跑同一套 Python 模型）");
   paintReadings(E, tag);
   renderPanel();
   renderOnePaper(E);
@@ -582,12 +643,17 @@ function render(){
     _recompBusy = true;
     recomputeExact().then(r=>{
       _recompBusy = false;
-      if(r){
+      if(r && r.metrics){
         paintReadings(r.metrics, " · 自定义（精确重跑，与一页纸同源）");
         renderOnePaperCurrent(r);          // 数值列 + 解释列一起用重跑结果刷新
         comboRefresh();   // 可行性视图用精确值重算（comboLive 未生成前 comboRefresh 自动 no-op）
+      }else if(r){        // 重算返回了但无指标（如 build_model 抛错）：显形，不再静默停在旧快照
+        showRecompError("重算返回空指标" + (r.error? "："+r.error : ""));
       }
-    }).catch(()=>{ _recompBusy = false; });
+    }).catch(e=>{        // 重算抛错：显形到页面，绝不静默吞掉（否则等于闭眼改界面）
+      _recompBusy = false;
+      showRecompError("重算异常：" + (e && e.message ? e.message : e));
+    });
   }
 }
 
@@ -858,6 +924,12 @@ function rowRefresh(i){
 /* 组合实时试算：直接读当前模型状态（= 已联动的勾选/设值），永远与顶部读数一致 */
 function comboRefresh(){
   const box=document.getElementById("comboLive"); if(!box) return;
+  if(!pyReady){   // 引擎未加载：明确说清楚，不拿快照假装算过
+    box.innerHTML='<b>组合实时试算</b>（需精确引擎）'
+      +'<span style="color:var(--bad)">：精确引擎（Pyodide）未加载，暂不可实时重算，此处显示生成快照值。</span>'
+      +'<span class="note">请联网打开本页，或改参后回跑 python src/run.py 重新生成。</span>';
+    return;
+  }
   const mk=anaMk; if(!mk) return;
   const m=D.metrics.find(x=>x.key===mk), d=m.decimals==null?2:m.decimals;
   const reading=currentE[mk]!=null?currentE[mk]:snapshotMetrics()[mk];   // 当前模型精确读数（＝顶部读数，不另行叠加）
@@ -947,13 +1019,12 @@ import json, sys
 # 否则下面的「from config_loader import ...」会因模块找不到而整体失败、
 # 精确重跑永远退回快照（界面不出假数，但自定义态实时重跑失效）。
 sys.path.insert(0, "/app/src")
-from config_loader import load_config, load_drivers, cloned_config, _set_path
+# 只 import 计算指标必须的件；tree/facts/onepager 仅用于"解释列"渲染，
+# 放进函数内的 try 块——万一它们在 Pyodide 里缺依赖而导入失败，
+# 绝不会让整个 recompute 未定义、每次调用都静默 NameError（那正是"面板动了数字不动"的根因之一）。
+from config_loader import load_config, cloned_config, _set_path
 from model import build_model
 from lab import read_metrics
-from dataclasses import asdict
-from tree import build_tree, walk, Ctx
-import facts
-import onepager
 
 def recompute(state_json):
     state = json.loads(state_json)
@@ -962,8 +1033,8 @@ def recompute(state_json):
     for path, val in S.items():
         try:
             _set_path(cfg, path, val)
-        except Exception:
-            pass
+        except Exception as exc:
+            print("set_path skip %s: %r" % (path, exc))
     A = state.get("A", [])
     axes = state.get("axes", [])
     for i, d in enumerate(A):
@@ -971,31 +1042,47 @@ def recompute(state_json):
             continue
         ax = axes[i]
         for p in ax.get("members", []):
-            base = ax["base"].get(p)
-            if isinstance(base, list):
+            # 数组成员用 ax["cur"][p]（build_data 里 _cur 已保留原始 list），
+            # 不能用 ax["base"][p]——base 对数组取了均值（标量），会误判成标量分支、
+            # 把 nev_rates 这类数组覆盖成标量，build_model 做 [year_index] 下标时崩。
+            # 标量成员才用 base（数值）按 [lo,hi] 钳制。
+            cur = ax.get("cur", {}).get(p)
+            if isinstance(cur, list):
                 cap = ax.get("cap")
-                new = [min(cap, max(0.0, x + d)) for x in base] if cap is not None else [x + d for x in base]
+                new = [min(cap, max(0.0, x + d)) for x in cur] if cap is not None else [x + d for x in cur]
             else:
+                base = ax.get("base", {}).get(p)
                 lo, hi = ax.get("lo"), ax.get("hi")
                 new = max(lo, min(hi, base + d)) if (lo is not None and hi is not None) else base + d
             try:
                 _set_path(cfg, p, new)
-            except Exception:
-                pass
-    snap = build_model(cfg)
-    mv = read_metrics(snap)
+            except Exception as exc:
+                print("set_path(skip) %s: %r" % (p, exc))
+    err = None
+    try:
+        snap = build_model(cfg)
+        mv = read_metrics(snap)
+    except Exception as exc:
+        # build_model 因某覆盖值抛错：返回空指标 + 错误，让前端显形，而不是整段静默失败
+        err = "build_model failed: %r" % (exc,)
+        print(err)
+        return json.dumps({"metrics": {}, "texts": [], "error": err})
     metrics = {k: (None if mv.get(k) is None else mv.get(k)) for k in state.get("metrics", [])}
     # 一页纸的**解释列**也在这里重渲染：同一份 narrative/一页纸.md ＋ 同一个信源索引表
     # （audit/信源审计台账.md）。只刷数值、不刷解释＝调完参数解释还是旧的，用户会不信。
+    # 解释列依赖 tree/facts/onepager，逐个 import 包在 try 内：任一失败只丢解释，不丢指标数字。
     texts = []
     try:
+        from dataclasses import asdict
+        import facts
+        import onepager
         groups = onepager.load_rows()
         snap_dict = asdict(snap)
         snap_dict["_extra"] = {"config": cfg}
         texts = onepager.render_texts(facts.build_facts(snap_dict, strict=False), groups)
     except Exception as exc:
-        print("onepaper texts failed: %r" % (exc,))
-    return json.dumps({"metrics": metrics, "texts": texts})
+        print("onepaper texts skipped: %r" % (exc,))
+    return json.dumps({"metrics": metrics, "texts": texts, "error": err})
 '''
 
 

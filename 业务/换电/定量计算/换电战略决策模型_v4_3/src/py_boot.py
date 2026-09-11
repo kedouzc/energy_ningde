@@ -81,7 +81,9 @@ def recompute(state_json):
     err = None
     try:
         snap = build_model(cfg)
-        mv = read_metrics(snap)
+        # cfg 必须一起传：有一批指标（外部锚、REIT 倍数等）需要 cfg 才算得出来，
+        # 不传则为 NaN——结论区会显示 [待补] 而不是悄悄给个错值。
+        mv = read_metrics(snap, cfg)
     except Exception as exc:
         # build_model 因某覆盖值抛错：返回空指标 + 错误，让前端显形，而不是整段静默失败
         err = "build_model failed: %r" % (exc,)

@@ -8,7 +8,8 @@
   "kind": "num",
   "watch": 0.03,
   "from": "_extra.config.financial_2025a.group_revenue_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "base.np_2025a": {
   "label": "集团净利（上一完整年度实绩）",
@@ -19,7 +20,8 @@
   "kind": "num",
   "watch": 0.03,
   "from": "_extra.config.financial_2025a.group_net_profit_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "base.cash_2025a": {
   "label": "货币资金＋交易性金融资产",
@@ -30,7 +32,8 @@
   "kind": "num",
   "watch": 0.03,
   "from": "_extra.config.financial_2025a.cash_and_trading_assets_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "base.group_np": {
   "label": "集团净利（模型期初）",
@@ -41,7 +44,8 @@
   "kind": "num",
   "watch": 0.03,
   "from": "ledger.baseline.group_net_profit_2026e_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "base.group_mktcap": {
   "label": "集团市值基准（A+H）",
@@ -52,7 +56,8 @@
   "kind": "num",
   "watch": 0.03,
   "from": "ledger.baseline.group_market_value_2026e_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "base.group_pe": {
   "label": "集团隐含PE",
@@ -63,7 +68,8 @@
   "kind": "x",
   "watch": 0.03,
   "from": "ledger.baseline.implied_group_pe",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "base.power_value_2026": {
   "label": "动力电池线现值（分摊口径）",
@@ -74,7 +80,8 @@
   "kind": "num",
   "watch": 0.03,
   "from": "ledger.baseline.power_market_value_2026e_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "base.wacc": {
   "label": "折现率",
@@ -85,7 +92,8 @@
   "kind": "pct",
   "watch": 0.03,
   "from": "meta.wacc",
-  "note": "蔚来换电ABS融资基准，直接采用，不作CAPM推导"
+  "note": "蔚来换电ABS融资基准，直接采用，不作CAPM推导",
+  "mirror": ""
  },
  "base.target_year": {
   "label": "终局年",
@@ -96,7 +104,8 @@
   "kind": "int",
   "watch": 1.0,
   "from": "meta.target_year",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "base.horizon_years": {
   "label": "模型分析期",
@@ -107,7 +116,8 @@
   "kind": "int",
   "watch": 1.0,
   "from": "_extra.config.finance.model_horizon_years",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "base.debt_ratio": {
   "label": "项目公司债务比例",
@@ -118,7 +128,8 @@
   "kind": "pct",
   "watch": 0.03,
   "from": "_extra.config.finance.debt_ratio",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "base.equity_share": {
   "label": "CATL建站持股比例",
@@ -129,7 +140,8 @@
   "kind": "pct",
   "watch": 0.03,
   "from": "_extra.config.finance.construction_ownership",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "base.ev_ebitda": {
   "label": "运营侧EV/EBITDA基准倍数",
@@ -140,7 +152,8 @@
   "kind": "x",
   "watch": 0.03,
   "from": "_extra.config.finance.swap_ev_ebitda",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "base.catl_blended_share": {
   "label": "CATL 综合自有出资比例",
@@ -151,7 +164,8 @@
   "kind": "pct",
   "watch": 0.03,
   "from": "派生",
-  "note": "=(1−债务比例)×建站持股比例。三族定位里'不是真 GP'那条判断的量化依据"
+  "note": "=(1−债务比例)×建站持股比例。三族定位里'不是真 GP'那条判断的量化依据",
+  "mirror": ""
  },
  "base.mfg_pe": {
   "label": "制造侧PE",
@@ -162,7 +176,8 @@
   "kind": "x",
   "watch": 0.03,
   "from": "_extra.config.finance.manufacturing_pe",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "base.cfo_gate": {
   "label": "换电现金占CFO体检线",
@@ -173,40 +188,44 @@
   "kind": "pct",
   "watch": 0.03,
   "from": "_extra.config.decision_thresholds.max_peak_swap_cash_to_cfo",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q1.st_heavy": {
   "label": "骐骥重卡站（终局合计）",
-  "v": 3596.0,
-  "text": "3,596座",
-  "bare": "3,596",
+  "v": 6662.0,
+  "text": "6,662座",
+  "bare": "6,662",
   "unit": "座",
   "kind": "int",
   "watch": 0.03,
   "from": "派生",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q1.st_heavy_short": {
   "label": "骐骥短途站",
-  "v": 281.0,
-  "text": "281座",
-  "bare": "281",
+  "v": 744.0,
+  "text": "744座",
+  "bare": "744",
   "unit": "座",
   "kind": "int",
   "watch": 0.03,
   "from": "scale.target_station_demand.qiji75_short",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q1.st_heavy_trunk": {
   "label": "骐骥干线站",
-  "v": 3315.0,
-  "text": "3,315座",
-  "bare": "3,315",
+  "v": 5918.0,
+  "text": "5,918座",
+  "bare": "5,918",
   "unit": "座",
   "kind": "int",
   "watch": 0.03,
   "from": "scale.target_station_demand.qiji75_trunk",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q1.st_choco": {
   "label": "巧克力站（终局合计）",
@@ -217,7 +236,8 @@
   "kind": "int",
   "watch": 0.03,
   "from": "派生",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q1.st_choco_pass": {
   "label": "巧克力乘用站",
@@ -228,7 +248,8 @@
   "kind": "int",
   "watch": 0.03,
   "from": "scale.target_station_demand.choco25_passenger",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q1.st_choco_city": {
   "label": "巧克力城配站",
@@ -239,29 +260,32 @@
   "kind": "int",
   "watch": 0.03,
   "from": "scale.target_station_demand.choco35_city",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q1.veh_total": {
   "label": "CATL换电车辆（终局）",
-  "v": 351.9,
-  "text": "351.9万辆",
-  "bare": "351.9",
+  "v": 394.20000000000005,
+  "text": "394.2万辆",
+  "bare": "394.2",
   "unit": "万辆",
   "kind": "num",
   "watch": 0.03,
   "from": "派生",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q1.veh_heavy": {
   "label": "换电重卡",
-  "v": 38.0,
-  "text": "38.0万辆",
-  "bare": "38.0",
+  "v": 80.3,
+  "text": "80.3万辆",
+  "bare": "80.3",
   "unit": "万辆",
   "kind": "num",
   "watch": 0.03,
   "from": "派生",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q1.veh_city": {
   "label": "换电城配物流车",
@@ -272,7 +296,8 @@
   "kind": "num",
   "watch": 0.03,
   "from": "派生",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q1.veh_taxi": {
   "label": "换电出租车",
@@ -283,7 +308,8 @@
   "kind": "num",
   "watch": 0.03,
   "from": "派生",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q1.veh_ridehail": {
   "label": "换电网约车",
@@ -294,7 +320,8 @@
   "kind": "num",
   "watch": 0.03,
   "from": "派生",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q1.veh_robotaxi": {
   "label": "换电Robotaxi",
@@ -305,7 +332,8 @@
   "kind": "num",
   "watch": 0.03,
   "from": "派生",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q1.veh_private": {
   "label": "换电私家车",
@@ -316,315 +344,368 @@
   "kind": "num",
   "watch": 0.03,
   "from": "派生",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q1.veh_ops": {
   "label": "换电营运车合计",
-  "v": 207.5,
-  "text": "207.5万辆",
-  "bare": "207.5",
+  "v": 249.8,
+  "text": "249.8万辆",
+  "bare": "249.8",
   "unit": "万辆",
   "kind": "num",
   "watch": 0.03,
   "from": "派生",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q1.gwh_total": {
   "label": "换电电池总装机",
-  "v": 378.87361130303026,
-  "text": "378.9GWh",
-  "bare": "378.9",
+  "v": 574.0132965530304,
+  "text": "574.0GWh",
+  "bare": "574.0",
   "unit": "GWh",
   "kind": "num",
   "watch": 0.03,
   "from": "派生",
-  "note": "车端＋站内周转，按各年新增装机汇总"
+  "note": "车端＋站内周转，按各年新增装机汇总",
+  "mirror": ""
  },
  "q1.gwh_vehicle": {
   "label": "换电装机·车端",
-  "v": 378.8709285714285,
-  "text": "378.9GWh",
-  "bare": "378.9",
+  "v": 574.1567455357143,
+  "text": "574.2GWh",
+  "bare": "574.2",
   "unit": "GWh",
   "kind": "num",
   "watch": 0.03,
   "from": "swap_business.rent_vehicle_gwh",
-  "note": ""
+  "note": "",
+  "mirror": ""
+ },
+ "q1.gwh_station": {
+  "label": "换电装机·站内周转",
+  "v": 34.665774,
+  "text": "34.7GWh",
+  "bare": "34.7",
+  "unit": "GWh",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "派生",
+  "note": "",
+  "mirror": "ops.battery_station"
  },
  "q1.energy": {
   "label": "年换电交易电量（成熟期）",
-  "v": 1450.37536,
-  "text": "1,450.4亿kWh",
-  "bare": "1,450.4",
+  "v": 2253.56236,
+  "text": "2,253.6亿kWh",
+  "bare": "2,253.6",
   "unit": "亿kWh",
   "kind": "num",
   "watch": 0.03,
   "from": "swap_business.annual_energy_yi_kwh",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q2.capex_initial": {
   "label": "初装CAPEX合计",
-  "v": 2632.079559419369,
-  "text": "2,632.1亿元",
-  "bare": "2,632.1",
+  "v": 3980.6460594023697,
+  "text": "3,980.6亿元",
+  "bare": "3,980.6",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "capex.total_initial_capex_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q2.lifecycle_base": {
   "label": "全周期资本底座（15年现值）",
-  "v": 4297.29166350831,
-  "text": "4,297.3亿元",
-  "bare": "4,297.3",
+  "v": 6489.427369111759,
+  "text": "6,489.4亿元",
+  "bare": "6,489.4",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "capex.lifecycle_capital_base_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q2.eac_factor": {
   "label": "全周期／初装倍数",
-  "v": 1.632660246963159,
+  "v": 1.6302447573261618,
   "text": "1.63倍",
   "bare": "1.63",
   "unit": "倍",
   "kind": "x",
   "watch": 0.03,
   "from": "派生",
-  "note": "电池更新推高的资本倍数，等价年金法的核心中间量"
+  "note": "电池更新推高的资本倍数，等价年金法的核心中间量",
+  "mirror": ""
  },
  "q2.equity_call": {
   "label": "CATL建设期累计资本调用",
-  "v": 447.5955076878396,
-  "text": "447.6亿元",
-  "bare": "447.6",
+  "v": 683.7011725477589,
+  "text": "683.7亿元",
+  "bare": "683.7",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "capex.catl_total_equity_call_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q2.peak_call": {
   "label": "单年峰值资本调用",
-  "v": 105.25104713254142,
-  "text": "105.3亿元",
-  "bare": "105.3",
+  "v": 158.83577465581857,
+  "text": "158.8亿元",
+  "bare": "158.8",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "capex.catl_peak_equity_call_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q2.peak_year": {
   "label": "峰值年",
   "v": 2030.0,
-  "text": "2,030",
-  "bare": "2,030",
-  "unit": "",
-  "kind": "int",
+  "text": "2030年",
+  "bare": "2030",
+  "unit": "年",
+  "kind": "year",
   "watch": 1.0,
   "from": "capex.peak_year",
-  "note": ""
+  "note": "CATL 单年权益出资最大的年份——年份不加千分位",
+  "mirror": "capex.peak_year"
  },
  "q2.commitment": {
   "label": "CATL全周期权益承诺",
-  "v": 687.5666661613297,
-  "text": "687.6亿元",
-  "bare": "687.6",
+  "v": 1038.3083790578814,
+  "text": "1,038.3亿元",
+  "bare": "1,038.3",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "capex.catl_lifecycle_equity_commitment_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q2.project_debt": {
   "label": "项目债务",
-  "v": 2578.374998104986,
-  "text": "2,578.4亿元",
-  "bare": "2,578.4",
+  "v": 3893.656421467055,
+  "text": "3,893.7亿元",
+  "bare": "3,893.7",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "capex.project_debt_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
+ },
+ "q2.external_equity": {
+  "label": "外部股权融资（合资方出资）",
+  "v": 1557.462568586822,
+  "text": "1,557.5亿元",
+  "bare": "1,557.5",
+  "unit": "亿元",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "capex.external_equity_yi",
+  "note": "全周期资本底座×(1−债务比例)×(1−建站持股比例)；合资方/外部股权出资，不占 CATL 出资",
+  "mirror": "capex.external_equity"
  },
  "q3.revenue": {
   "label": "换电业务年收入（成熟期）",
-  "v": 939.5154187157143,
-  "text": "939.5亿元",
-  "bare": "939.5",
+  "v": 1442.0773158848572,
+  "text": "1,442.1亿元",
+  "bare": "1,442.1",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "swap_business.revenue_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q3.rev_service": {
   "label": "　服务费收入",
-  "v": 435.112608,
-  "text": "435.1亿元",
-  "bare": "435.1",
+  "v": 676.0687079999999,
+  "text": "676.1亿元",
+  "bare": "676.1",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "swap_business.service_revenue_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q3.rev_rent": {
   "label": "　电池租金收入",
-  "v": 470.54480948571427,
-  "text": "470.5亿元",
-  "bare": "470.5",
+  "v": 713.9474519228572,
+  "text": "713.9亿元",
+  "bare": "713.9",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "swap_business.battery_rent_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q3.rev_arb": {
   "label": "　峰谷套利收入",
-  "v": 28.44278808,
-  "text": "28.4亿元",
-  "bare": "28.4",
+  "v": 44.64951691200001,
+  "text": "44.6亿元",
+  "bare": "44.6",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "swap_business.arbitrage_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q3.rev_anc": {
   "label": "　电网辅助服务收入",
-  "v": 5.4152131500000005,
-  "text": "5.4亿元",
-  "bare": "5.4",
+  "v": 7.41163905,
+  "text": "7.4亿元",
+  "bare": "7.4",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "swap_business.ancillary_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q3.opex": {
   "label": "运营OPEX",
-  "v": 89.10089430972361,
-  "text": "89.1亿元",
-  "bare": "89.1",
+  "v": 133.88104622410796,
+  "text": "133.9亿元",
+  "bare": "133.9",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "swap_business.opex_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q3.ebitda": {
   "label": "EBITDA",
-  "v": 850.4145244059907,
-  "text": "850.4亿元",
-  "bare": "850.4",
+  "v": 1308.1962696607493,
+  "text": "1,308.2亿元",
+  "bare": "1,308.2",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "swap_business.ebitda_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q3.dep": {
   "label": "年折旧",
-  "v": 342.4459640880685,
-  "text": "342.4亿元",
-  "bare": "342.4",
+  "v": 535.5209163524753,
+  "text": "535.5亿元",
+  "bare": "535.5",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "swap_business.depreciation_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q3.ebit": {
   "label": "EBIT",
-  "v": 507.96856031792225,
-  "text": "507.97亿元",
-  "bare": "507.97",
+  "v": 772.675353308274,
+  "text": "772.68亿元",
+  "bare": "772.68",
   "unit": "亿元",
   "kind": "num",
   "watch": 1.0,
   "from": "swap_business.ebit_yi",
-  "note": "接近零：折旧几乎吃掉全部EBITDA，估值口径讨论的起点"
+  "note": "接近零：折旧几乎吃掉全部EBITDA，估值口径讨论的起点",
+  "mirror": ""
  },
  "q3.required_ebitda": {
   "label": "资本回报要求EBITDA",
-  "v": 745.3096780056391,
-  "text": "745.3亿元",
-  "bare": "745.3",
+  "v": 1119.3785017048601,
+  "text": "1,119.4亿元",
+  "bare": "1,119.4",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "swap_business.required_ebitda_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q3.coverage": {
   "label": "EBITDA覆盖倍数",
-  "v": 1.1410217115140646,
-  "text": "1.14倍",
-  "bare": "1.14",
+  "v": 1.168680895397144,
+  "text": "1.17倍",
+  "bare": "1.17",
   "unit": "倍",
   "kind": "x",
   "watch": 0.03,
   "from": "swap_business.forward_to_required_ebitda",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q3.op_value": {
   "label": "运营侧直接增量（CATL归属）",
-  "v": 5496.641223759202,
-  "text": "5,496.6亿元",
-  "bare": "5,496.6",
+  "v": 8467.381667727435,
+  "text": "8,467.4亿元",
+  "bare": "8,467.4",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "ledger.direct_swap_increment_value_yi",
-  "note": "EV/EBITDA×倍数－债，再乘40%权益"
+  "note": "EV/EBITDA×倍数－债，再乘40%权益",
+  "mirror": ""
  },
  "q3.mfg_gap_value": {
   "label": "制造侧锁量锁价增量",
-  "v": 606.6508961377258,
-  "text": "606.7亿元",
-  "bare": "606.7",
+  "v": 1236.310051494139,
+  "text": "1,236.3亿元",
+  "bare": "1,236.3",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "ledger.full_manufacturing_scenario_gap_value_yi",
-  "note": "有换电制造净利 − 纯制造净利，再×制造PE；已综合锁单、虹吸与利润率保护"
+  "note": "有换电制造净利 − 纯制造净利，再×制造PE；已综合锁单、虹吸与利润率保护",
+  "mirror": ""
  },
  "q3.increment": {
   "label": "可归因换电增量价值",
-  "v": 6103.292119896928,
-  "text": "6,103.3亿元",
-  "bare": "6,103.3",
+  "v": 9703.691719221575,
+  "text": "9,703.7亿元",
+  "bare": "9,703.7",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "ledger.total_swap_increment_value_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q3.increment_pct": {
   "label": "增量价值／集团市值",
-  "v": 0.3051646059948464,
-  "text": "30.5%",
-  "bare": "30.5",
+  "v": 0.4851845859610788,
+  "text": "48.5%",
+  "bare": "48.5",
   "unit": "",
   "kind": "pct",
   "watch": 0.03,
   "from": "ledger.attributable_swap_value_to_current_group_market_cap",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q3.power_value_with": {
   "label": "2030E动力电池线价值（有换电）",
-  "v": 14732.745228260563,
-  "text": "14,732.7亿元",
-  "bare": "14,732.7",
+  "v": 18333.14482758521,
+  "text": "18,333.1亿元",
+  "bare": "18,333.1",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "ledger.power_value_2030_with_swap_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q3.power_value_no": {
   "label": "2030E动力电池线价值（无换电对照）",
@@ -635,18 +716,20 @@
   "kind": "num",
   "watch": 0.03,
   "from": "ledger.power_value_2030_no_swap_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q3.mfg_np_with": {
   "label": "2030E制造净利（有换电）",
-  "v": 461.8052002250681,
-  "text": "461.8亿元",
-  "bare": "461.8",
+  "v": 493.2881579928888,
+  "text": "493.3亿元",
+  "bare": "493.3",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "ledger.with_swap_manufacturing.net_profit_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q3.mfg_np_no": {
   "label": "2030E制造净利（无换电）",
@@ -657,7 +740,8 @@
   "kind": "num",
   "watch": 0.03,
   "from": "ledger.no_swap_manufacturing.net_profit_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q3.mfg_margin_no": {
   "label": "无换电制造净利率",
@@ -668,7 +752,8 @@
   "kind": "pct",
   "watch": 0.03,
   "from": "ledger.no_swap_manufacturing.net_margin",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q3.mfg_margin_with": {
   "label": "有换电制造净利率",
@@ -679,150 +764,164 @@
   "kind": "pct",
   "watch": 0.03,
   "from": "ledger.with_swap_manufacturing.net_margin",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q3.dist_cash": {
   "label": "CATL年可分派现金（成熟期）",
-  "v": 273.71036993150574,
-  "text": "273.7亿元",
-  "bare": "273.7",
+  "v": 422.22018568772324,
+  "text": "422.2亿元",
+  "bare": "422.2",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "swap_business.catl_forward_distributable_cash_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q3.payback": {
   "label": "全周期回收期",
-  "v": 2.839085571466358,
+  "v": 2.8402073173306803,
   "text": "2.8年",
   "bare": "2.8",
   "unit": "年",
   "kind": "num",
   "watch": 0.03,
   "from": "swap_business.catl_lifecycle_payback_years",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "dcf.fcff": {
   "label": "成熟期项目自由现金流 FCFF",
-  "v": 723.4223843265102,
-  "text": "723.4亿元",
-  "bare": "723.4",
+  "v": 1115.0274313336809,
+  "text": "1,115.0亿元",
+  "bare": "1,115.0",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "swap_business.forward_fcff_yi",
-  "note": "EBITDA×(1−税率)＋折旧×税率；全周期重置已由 CRF 年金化内含"
+  "note": "EBITDA×(1−税率)＋折旧×税率；全周期重置已由 CRF 年金化内含",
+  "mirror": ""
  },
  "dcf.ev_crf": {
   "label": "DCF企业价值·与门槛同源口径",
-  "v": 4822.815895510068,
-  "text": "4,822.8亿元",
-  "bare": "4,822.8",
+  "v": 7433.516208891206,
+  "text": "7,433.5亿元",
+  "bare": "7,433.5",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "swap_business.dcf_ev_at_crf_yi",
-  "note": "FCFF ÷ CRF。CRF 即设门槛 EBITDA 用的期望收益率年金因子，故与覆盖倍数完全同源"
+  "note": "FCFF ÷ CRF。CRF 即设门槛 EBITDA 用的期望收益率年金因子，故与覆盖倍数完全同源",
+  "mirror": ""
  },
  "dcf.ev_wacc": {
   "label": "DCF企业价值·成本线口径（上界）",
-  "v": 6385.736012690058,
-  "text": "6,385.7亿元",
-  "bare": "6,385.7",
+  "v": 9842.480655383075,
+  "text": "9,842.5亿元",
+  "bare": "9,842.5",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "swap_business.dcf_ev_at_wacc_yi",
-  "note": "FCFF × 年金因子(WACC 7.5%, 15年)。WACC 是成本下限，故本口径给出上界"
+  "note": "FCFF × 年金因子(WACC 7.5%, 15年)。WACC 是成本下限，故本口径给出上界",
+  "mirror": ""
  },
  "dcf.mult_crf": {
   "label": "现金流支持的倍数·与门槛同源",
-  "v": 5.671135378218963,
-  "text": "5.67×",
-  "bare": "5.67",
+  "v": 5.68226372547211,
+  "text": "5.68×",
+  "bare": "5.68",
   "unit": "×",
   "kind": "x",
   "watch": 0.03,
   "from": "swap_business.dcf_implied_multiple_at_crf",
-  "note": "几乎正好落在 v3.2 §4.1 引用的 Brookfield 6.7×（重资产基建运营族底部）"
+  "note": "几乎正好落在 v3.2 §4.1 引用的 Brookfield 6.7×（重资产基建运营族底部）",
+  "mirror": ""
  },
  "dcf.mult_wacc": {
   "label": "现金流支持的倍数·成本线上界",
-  "v": 7.508968661077907,
-  "text": "7.51×",
-  "bare": "7.51",
+  "v": 7.523703349143089,
+  "text": "7.52×",
+  "bare": "7.52",
   "unit": "×",
   "kind": "x",
   "watch": 0.03,
   "from": "swap_business.dcf_implied_multiple_at_wacc",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "dcf.premium": {
   "label": "拍的倍数 ÷ 现金流支持的倍数",
-  "v": 3.1739676095781992,
+  "v": 3.1677515985945326,
   "text": "3.17倍",
   "bare": "3.17",
   "unit": "倍",
   "kind": "x",
   "watch": 0.03,
   "from": "swap_business.dcf_multiple_premium",
-  "note": "这个倍数就是战略溢价的大小，是判断不是计算"
+  "note": "这个倍数就是战略溢价的大小，是判断不是计算",
+  "mirror": ""
  },
  "dcf.npv": {
   "label": "项目NPV·与门槛同源口径",
-  "v": 88.01420378148487,
-  "text": "88.0亿元",
-  "bare": "88.0",
+  "v": 279.5430722709616,
+  "text": "279.5亿元",
+  "bare": "279.5",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "swap_business.dcf_npv_at_crf_yi",
-  "note": "DCF企业价值 − 全周期资本底座。为正即已跑赢自设门槛"
+  "note": "DCF企业价值 − 全周期资本底座。为正即已跑赢自设门槛",
+  "mirror": ""
  },
  "dcf.catl_value": {
   "label": "CATL归属价值·现金流口径",
-  "v": 1398.7128636265163,
-  "text": "1,398.7亿元",
-  "bare": "1,398.7",
+  "v": 2165.8089953574854,
+  "text": "2,165.8亿元",
+  "bare": "2,165.8",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "swap_business.dcf_catl_value_at_crf_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "dcf.bet": {
   "label": "押注的那部分",
-  "v": 3472.76031326069,
-  "text": "3,472.8亿元",
-  "bare": "3,472.8",
+  "v": 5337.986893773203,
+  "text": "5,338.0亿元",
+  "bare": "5,338.0",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "swap_business.dcf_catl_value_gap_yi",
-  "note": "倍数法归属 − 现金流口径归属；报告第 5 章必须正面论证的就是这一块"
+  "note": "倍数法归属 − 现金流口径归属；报告第 5 章必须正面论证的就是这一块",
+  "mirror": ""
  },
  "q4.peak_to_cfo": {
   "label": "峰值年换电现金／CFO",
-  "v": 0.046778243170018406,
-  "text": "4.7%",
-  "bare": "4.7",
+  "v": 0.07059367762480825,
+  "text": "7.1%",
+  "bare": "7.1",
   "unit": "",
   "kind": "pct",
   "watch": 0.03,
   "from": "派生",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q4.closing_liquidity": {
   "label": "峰值年末可投资金结余",
-  "v": 8593.75294231216,
-  "text": "8,593.8亿元",
-  "bare": "8,593.8",
+  "v": 8357.64727745224,
+  "text": "8,357.6亿元",
+  "bare": "8,357.6",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "派生",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q4.min_reserve": {
   "label": "集团最低流动性储备线",
@@ -833,7 +932,8 @@
   "kind": "num",
   "watch": 0.03,
   "from": "派生",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q4.exposure": {
   "label": "待决战略敞口合计",
@@ -844,7 +944,8 @@
   "kind": "num",
   "watch": 0.03,
   "from": "strategic_exposure_yi",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "q4.verdict": {
   "label": "决策备忘录末端判断",
@@ -855,18 +956,20 @@
   "kind": "text",
   "watch": 1.0,
   "from": "派生",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "sens.private_low": {
   "label": "私家车换电车辆·悲观",
-  "v": 50.9,
-  "text": "50.9万辆",
-  "bare": "50.9",
+  "v": 43.3,
+  "text": "43.3万辆",
+  "bare": "43.3",
   "unit": "万辆",
   "kind": "num",
   "watch": 0.03,
   "from": "派生",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "sens.private_mid": {
   "label": "私家车换电车辆·中性",
@@ -877,150 +980,164 @@
   "kind": "num",
   "watch": 0.03,
   "from": "派生",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "sens.private_high": {
   "label": "私家车换电车辆·乐观",
-  "v": 250.6,
-  "text": "250.6万辆",
-  "bare": "250.6",
+  "v": 288.2,
+  "text": "288.2万辆",
+  "bare": "288.2",
   "unit": "万辆",
   "kind": "num",
   "watch": 0.03,
   "from": "派生",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "sens.increment_low": {
   "label": "可归因增量·悲观",
-  "v": 2846.727878664571,
-  "text": "2,846.7亿元",
-  "bare": "2,846.7",
+  "v": 913.686630404666,
+  "text": "913.7亿元",
+  "bare": "913.7",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "派生",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "sens.increment_high": {
   "label": "可归因增量·乐观",
-  "v": 9976.463725262123,
-  "text": "9,976.5亿元",
-  "bare": "9,976.5",
+  "v": 33597.93527413604,
+  "text": "33,597.9亿元",
+  "bare": "33,597.9",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "派生",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "sens.coverage_low": {
   "label": "EBITDA覆盖倍数·悲观",
-  "v": 0.9185048369308394,
+  "v": 0.8061122740518212,
+  "text": "0.81倍",
+  "bare": "0.81",
+  "unit": "倍",
+  "kind": "x",
+  "watch": 0.03,
+  "from": "派生",
+  "note": "",
+  "mirror": ""
+ },
+ "sens.coverage_high": {
+  "label": "EBITDA覆盖倍数·乐观",
+  "v": 1.5074263961845644,
+  "text": "1.51倍",
+  "bare": "1.51",
+  "unit": "倍",
+  "kind": "x",
+  "watch": 0.03,
+  "from": "派生",
+  "note": "",
+  "mirror": ""
+ },
+ "sens.ev14": {
+  "label": "增量价值 @运营14×",
+  "v": 7610.577687764375,
+  "text": "7,610.6亿元",
+  "bare": "7,610.6",
+  "unit": "亿元",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "派生",
+  "note": "",
+  "mirror": ""
+ },
+ "sens.ev18": {
+  "label": "增量价值 @运营18×（基准）",
+  "v": 9703.691719221575,
+  "text": "9,703.7亿元",
+  "bare": "9,703.7",
+  "unit": "亿元",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "派生",
+  "note": "",
+  "mirror": ""
+ },
+ "sens.ev22": {
+  "label": "增量价值 @运营22×",
+  "v": 11796.805750678774,
+  "text": "11,796.8亿元",
+  "bare": "11,796.8",
+  "unit": "亿元",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "派生",
+  "note": "",
+  "mirror": ""
+ },
+ "sens.ev25": {
+  "label": "增量价值 @运营25×",
+  "v": 13366.641274271671,
+  "text": "13,366.6亿元",
+  "bare": "13,366.6",
+  "unit": "亿元",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "派生",
+  "note": "",
+  "mirror": ""
+ },
+ "sens.fee_low": {
+  "label": "增量价值 @服务费租金×0.8",
+  "v": 7702.0684489326595,
+  "text": "7,702.1亿元",
+  "bare": "7,702.1",
+  "unit": "亿元",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "派生",
+  "note": "",
+  "mirror": ""
+ },
+ "sens.fee_low_cov": {
+  "label": "EBITDA覆盖倍数 @服务费租金×0.8",
+  "v": 0.9203259095177821,
   "text": "0.92倍",
   "bare": "0.92",
   "unit": "倍",
   "kind": "x",
   "watch": 0.03,
   "from": "派生",
-  "note": ""
- },
- "sens.coverage_high": {
-  "label": "EBITDA覆盖倍数·乐观",
-  "v": 1.3181937511624342,
-  "text": "1.32倍",
-  "bare": "1.32",
-  "unit": "倍",
-  "kind": "x",
-  "watch": 0.03,
-  "from": "派生",
-  "note": ""
- },
- "sens.ev14": {
-  "label": "增量价值 @运营14×",
-  "v": 4742.628880847342,
-  "text": "4,742.6亿元",
-  "bare": "4,742.6",
-  "unit": "亿元",
-  "kind": "num",
-  "watch": 0.03,
-  "from": "派生",
-  "note": ""
- },
- "sens.ev18": {
-  "label": "增量价值 @运营18×（基准）",
-  "v": 6103.292119896928,
-  "text": "6,103.3亿元",
-  "bare": "6,103.3",
-  "unit": "亿元",
-  "kind": "num",
-  "watch": 0.03,
-  "from": "派生",
-  "note": ""
- },
- "sens.ev22": {
-  "label": "增量价值 @运营22×",
-  "v": 7463.955358946512,
-  "text": "7,464.0亿元",
-  "bare": "7,464.0",
-  "unit": "亿元",
-  "kind": "num",
-  "watch": 0.03,
-  "from": "派生",
-  "note": ""
- },
- "sens.ev25": {
-  "label": "增量价值 @运营25×",
-  "v": 8484.4527882337,
-  "text": "8,484.5亿元",
-  "bare": "8,484.5",
-  "unit": "亿元",
-  "kind": "num",
-  "watch": 0.03,
-  "from": "派生",
-  "note": ""
- },
- "sens.fee_low": {
-  "label": "增量价值 @服务费租金×0.8",
-  "v": 4799.145438717498,
-  "text": "4,799.1亿元",
-  "bare": "4,799.1",
-  "unit": "亿元",
-  "kind": "num",
-  "watch": 0.03,
-  "from": "派生",
-  "note": ""
- },
- "sens.fee_low_cov": {
-  "label": "EBITDA覆盖倍数 @服务费租金×0.8",
-  "v": 0.8979932243732168,
-  "text": "0.90倍",
-  "bare": "0.90",
-  "unit": "倍",
-  "kind": "x",
-  "watch": 0.03,
-  "from": "派生",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "sens.batt_high": {
   "label": "增量价值 @电池价格×1.1",
-  "v": 6101.664160736174,
-  "text": "6,101.7亿元",
-  "bare": "6,101.7",
+  "v": 9732.206445704547,
+  "text": "9,732.2亿元",
+  "bare": "9,732.2",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "派生",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "sens.margin_zero": {
   "label": "增量价值 @制造净利率差取零",
-  "v": 5419.136267711641,
-  "text": "5,419.1亿元",
-  "bare": "5,419.1",
+  "v": 8972.894448120998,
+  "text": "8,972.9亿元",
+  "bare": "8,972.9",
   "unit": "亿元",
   "kind": "num",
   "watch": 0.03,
   "from": "派生",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "sens.ev14_x": {
   "label": "档位标签",
@@ -1031,7 +1148,8 @@
   "kind": "text",
   "watch": 1.0,
   "from": "派生",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "sens.ev18_x": {
   "label": "档位标签",
@@ -1042,7 +1160,8 @@
   "kind": "text",
   "watch": 1.0,
   "from": "派生",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "sens.ev22_x": {
   "label": "档位标签",
@@ -1053,7 +1172,8 @@
   "kind": "text",
   "watch": 1.0,
   "from": "派生",
-  "note": ""
+  "note": "",
+  "mirror": ""
  },
  "sens.ev25_x": {
   "label": "档位标签",
@@ -1064,7 +1184,332 @@
   "kind": "text",
   "watch": 1.0,
   "from": "派生",
-  "note": ""
+  "note": "",
+  "mirror": ""
+ },
+ "ext.storage_gwh_2025": {
+  "label": "最新全国新型储能累计装机",
+  "v": 351.0,
+  "text": "351GWh",
+  "bare": "351",
+  "unit": "GWh",
+  "kind": "int",
+  "watch": 1.0,
+  "from": "_extra.config.national_battery_market.storage_install_gwh_2025",
+  "note": "外部一手（国家能源局）；信源见台账 src.nea_storage_2026",
+  "mirror": ""
+ },
+ "ext.storage_gwh_2030": {
+  "label": "2030 全国新型储能装机预测",
+  "v": 780.0,
+  "text": "780GWh",
+  "bare": "780",
+  "unit": "GWh",
+  "kind": "int",
+  "watch": 1.0,
+  "from": "_extra.config.national_battery_market.storage_install_gwh_2030",
+  "note": "国务院文件推算（等效 2.6h 折算属经验假设）；信源见台账 src.gov_storage_2030",
+  "mirror": ""
+ },
+ "ext.elec_latest": {
+  "label": "最新年度全社会用电量",
+  "v": 103682.0,
+  "text": "103,682亿kWh",
+  "bare": "103,682",
+  "unit": "亿kWh",
+  "kind": "int",
+  "watch": 1.0,
+  "from": "_extra.config.national_power_market.society_electricity_yi_kwh_latest",
+  "note": "外部一手（国家能源局）；信源见台账 src.nea_elec_2025",
+  "mirror": ""
+ },
+ "ext.elec_2030": {
+  "label": "2030 全社会用电量预测",
+  "v": 135000.0,
+  "text": "135,000亿kWh",
+  "bare": "135,000",
+  "unit": "亿kWh",
+  "kind": "int",
+  "watch": 1.0,
+  "from": "_extra.config.national_power_market.society_electricity_yi_kwh_2030",
+  "note": "国网能源院口径（二手转引）；另有中电联 13 万亿口径差约 4%；信源见台账 src.society_elec_2030",
+  "mirror": ""
+ },
+ "thr.min_increment_yi": {
+  "label": "重注门槛·增量价值下限",
+  "v": 1000.0,
+  "text": "1,000亿元",
+  "bare": "1,000",
+  "unit": "亿元",
+  "kind": "int",
+  "watch": 1.0,
+  "from": "_extra.config.decision_thresholds.min_swap_increment_yi",
+  "note": "",
+  "mirror": ""
+ },
+ "thr.min_incr_pct": {
+  "label": "战略敞口门槛·增量占集团市值下限",
+  "v": 0.1,
+  "text": "10.0%",
+  "bare": "10.0",
+  "unit": "",
+  "kind": "pct",
+  "watch": 1.0,
+  "from": "_extra.config.decision_thresholds.min_increment_over_mktcap",
+  "note": "",
+  "mirror": ""
+ },
+ "thr.target_incr_pct": {
+  "label": "值得重注·增量占集团市值目标",
+  "v": 0.2,
+  "text": "20.0%",
+  "bare": "20.0",
+  "unit": "",
+  "kind": "pct",
+  "watch": 1.0,
+  "from": "_extra.config.decision_thresholds.target_increment_over_mktcap",
+  "note": "",
+  "mirror": ""
+ },
+ "thr.bet_low": {
+  "label": "押注占比·可坦然辩护的上限",
+  "v": 0.5,
+  "text": "50.0%",
+  "bare": "50.0",
+  "unit": "",
+  "kind": "pct",
+  "watch": 1.0,
+  "from": "_extra.config.decision_thresholds.max_bet_share_low",
+  "note": "",
+  "mirror": ""
+ },
+ "thr.bet_high": {
+  "label": "押注占比·结论靠倍数而非现金流的线",
+  "v": 0.7,
+  "text": "70.0%",
+  "bare": "70.0",
+  "unit": "",
+  "kind": "pct",
+  "watch": 1.0,
+  "from": "_extra.config.decision_thresholds.max_bet_share_high",
+  "note": "",
+  "mirror": ""
+ },
+ "thr.min_coverage": {
+  "label": "EBITDA 覆盖倍数体检线",
+  "v": 1.0,
+  "text": "1.00倍",
+  "bare": "1.00",
+  "unit": "倍",
+  "kind": "x",
+  "watch": 1.0,
+  "from": "_extra.config.decision_thresholds.min_forward_to_required_ebitda",
+  "note": "",
+  "mirror": ""
+ },
+ "thr.max_premium": {
+  "label": "战略溢价倍数上限（拍的倍数 ÷ 现金流支持的倍数）",
+  "v": 3.0,
+  "text": "3.00倍",
+  "bare": "3.00",
+  "unit": "倍",
+  "kind": "x",
+  "watch": 1.0,
+  "from": "_extra.config.decision_thresholds.min_swap_value_creation_multiple",
+  "note": "",
+  "mirror": ""
+ },
+ "op.net_profit": {
+  "label": "运营净利润（项目100%口径）",
+  "v": 534.8987896454261,
+  "text": "534.9亿元",
+  "bare": "534.9",
+  "unit": "亿元",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "swap_business.project_net_profit_yi",
+  "note": "分池计税、亏损池不跨池抵扣，故合计可能为负",
+  "mirror": "swap.net_profit"
+ },
+ "op.catl_net_profit": {
+  "label": "运营净利润（CATL归属）",
+  "v": 213.95951585817045,
+  "text": "214.0亿元",
+  "bare": "214.0",
+  "unit": "亿元",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "swap_business.catl_attributable_net_profit_yi",
+  "note": "",
+  "mirror": "swap.catl_net_profit"
+ },
+ "op.ev_multiple": {
+  "label": "运营企业价值 EV（倍数法，100%口径）",
+  "v": 23547.53285389349,
+  "text": "23,547.5亿元",
+  "bare": "23,547.5",
+  "unit": "亿元",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "swap_business.enterprise_value_yi",
+  "note": "未扣债、未乘持股比例；归属口径见 q3.op_value",
+  "mirror": "val.op_ev_multiple"
+ },
+ "op.equity_gross": {
+  "label": "运营项目权益价值（100%口径）",
+  "v": 21168.45416931859,
+  "text": "21,168.5亿元",
+  "bare": "21,168.5",
+  "unit": "亿元",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "swap_business.project_equity_value_yi",
+  "note": "",
+  "mirror": "val.op_equity_gross"
+ },
+ "dcf.ev_true": {
+  "label": "DCF内在价值·有限期EV",
+  "v": 9842.480655383073,
+  "text": "9,842.5亿元",
+  "bare": "9,842.5",
+  "unit": "亿元",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "swap_business.dcf_ev_true_yi",
+  "note": "15 年有限期、毛现金流资本化；不含 2030 年后增长",
+  "mirror": "val.ev_dcf_true"
+ },
+ "dcf.ev_perpetual": {
+  "label": "DCF内在价值·永续EV",
+  "v": 10415.022014638718,
+  "text": "10,415.0亿元",
+  "bare": "10,415.0",
+  "unit": "亿元",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "swap_business.dcf_ev_perpetual_yi",
+  "note": "规模冻结在 2030 的永续账：模型内的上限、真实世界的下限",
+  "mirror": "val.ev_dcf_perpetual"
+ },
+ "dcf.catl_true": {
+  "label": "CATL归属·DCF有限期",
+  "v": 3129.3947739542327,
+  "text": "3,129.4亿元",
+  "bare": "3,129.4",
+  "unit": "亿元",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "swap_business.dcf_catl_value_true_yi",
+  "note": "",
+  "mirror": "val.catl_dcf_true"
+ },
+ "dcf.catl_perpetual": {
+  "label": "CATL归属·DCF永续",
+  "v": 3214.377332025526,
+  "text": "3,214.4亿元",
+  "bare": "3,214.4",
+  "unit": "亿元",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "swap_business.dcf_catl_value_perpetual_yi",
+  "note": "",
+  "mirror": "val.catl_dcf_perpetual"
+ },
+ "q3.increment_np": {
+  "label": "合并增量净利润",
+  "v": 275.7750184328774,
+  "text": "275.8亿元",
+  "bare": "275.8",
+  "unit": "亿元",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "ledger.total_swap_increment_net_profit_yi",
+  "note": "",
+  "mirror": "val.increment_np"
+ },
+ "q3.increment_gross": {
+  "label": "合并增量价值（业务整体）",
+  "v": 22404.76422081273,
+  "text": "22,404.8亿元",
+  "bare": "22,404.8",
+  "unit": "亿元",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "派生",
+  "note": "运营项目权益（100%）＋制造增量价值；归属股东口径见 q3.increment",
+  "mirror": "val.increment_gross"
+ },
+ "q2.nominal_total": {
+  "label": "名义累计投入（不折现）",
+  "v": 8307.205905570385,
+  "text": "8,307.2亿元",
+  "bare": "8,307.2",
+  "unit": "亿元",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "capex.nominal_total_capex_yi",
+  "note": "实际花钱总额；与现值口径（q2.lifecycle_base）不同源，不可混用",
+  "mirror": "capex.nominal_total"
+ },
+ "q1.st_total": {
+  "label": "终局站数合计",
+  "v": 14351.0,
+  "text": "14,351座",
+  "bare": "14,351",
+  "unit": "座",
+  "kind": "int",
+  "watch": 0.03,
+  "from": "派生",
+  "note": "",
+  "mirror": "scale.stations_total"
+ },
+ "mk.share_storage_2025": {
+  "label": "站内装机GWh / 最新储能装机",
+  "v": 9.879999999999999,
+  "text": "9.88%",
+  "bare": "9.88",
+  "unit": "%",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "派生",
+  "note": "分子＝站内周转装机保有量 GWh（常驻站、可参与电网调度）；分母＝最新年度全国新型储能累计装机",
+  "mirror": "mk.share_storage_2025"
+ },
+ "mk.share_storage_2030": {
+  "label": "站内装机GWh / 2030储能装机预测",
+  "v": 4.44,
+  "text": "4.44%",
+  "bare": "4.44",
+  "unit": "%",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "派生",
+  "note": "",
+  "mirror": "mk.share_storage_2030"
+ },
+ "mk.share_elec_latest": {
+  "label": "年换电量 / 最新年度全社会用电量",
+  "v": 2.1735,
+  "text": "2.174%",
+  "bare": "2.174",
+  "unit": "%",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "派生",
+  "note": "分子＝成熟期年换电交易电量（亿kWh）；分母＝最新年度全社会用电量",
+  "mirror": "mk.share_elec_latest"
+ },
+ "mk.share_elec_2030": {
+  "label": "年换电量 / 2030全社会用电量预测",
+  "v": 1.6693,
+  "text": "1.669%",
+  "bare": "1.669",
+  "unit": "%",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "派生",
+  "note": "",
+  "mirror": "mk.share_elec_2030"
  },
  "ext.mult_infra_low": {
   "label": "重资产基建运营族·区间下沿",
@@ -1257,5 +1702,57 @@
   "from": "业务/换电/media/JPM_重卡电动化_英中对照.md",
   "as_of": "2026-08",
   "note": "JPM 正文；意味着换电当前的痛点强度里有一部分是 LNG 涨价送的，不是自己挣的"
+ },
+ "src.nea_storage_2026": {
+  "label": "国家能源局《中国新型储能发展报告（2026）》（2025 全国新型储能累计装机 136GW/351GWh）",
+  "v": "https://www.nea.gov.cn/20260821/f3fa895ecd23480a83547ca29b12f4cc/c.html",
+  "text": "[国家能源局《中国新型储能发展报告（2026）》（2025 全国新型储能累计装机 136GW/351GWh）](https://www.nea.gov.cn/20260821/f3fa895ecd23480a83547ca29b12f4cc/c.html)（抓取于 2026-09-09·一手）",
+  "bare": "[国家能源局《中国新型储能发展报告（2026）》（2025 全国新型储能累计装机 136GW/351GWh）](https://www.nea.gov.cn/20260821/f3fa895ecd23480a83547ca29b12f4cc/c.html)（抓取于 2026-09-09·一手）",
+  "unit": "",
+  "kind": "src",
+  "watch": 1.0,
+  "from": "https://www.nea.gov.cn/20260821/f3fa895ecd23480a83547ca29b12f4cc/c.html",
+  "as_of": "2026-09-09",
+  "note": "一手｜用于 `national_battery_market.storage_install_gwh_2025`；一页纸「装机 vs 最新储能装机」分母",
+  "mirror": ""
+ },
+ "src.gov_storage_2030": {
+  "label": "国务院顶层文件（2030 新型储能装机 3 亿千瓦；等效 2.6h 折算 780GWh 为经验假设推算）",
+  "v": "https://www.gov.cn/zhengce/202606/content_7073474.htm",
+  "text": "[国务院顶层文件（2030 新型储能装机 3 亿千瓦；等效 2.6h 折算 780GWh 为经验假设推算）](https://www.gov.cn/zhengce/202606/content_7073474.htm)（抓取于 2026-09-09·一手 + 假设（折算环节））",
+  "bare": "[国务院顶层文件（2030 新型储能装机 3 亿千瓦；等效 2.6h 折算 780GWh 为经验假设推算）](https://www.gov.cn/zhengce/202606/content_7073474.htm)（抓取于 2026-09-09·一手 + 假设（折算环节））",
+  "unit": "",
+  "kind": "src",
+  "watch": 1.0,
+  "from": "https://www.gov.cn/zhengce/202606/content_7073474.htm",
+  "as_of": "2026-09-09",
+  "note": "一手 + 假设（折算环节）｜用于 `national_battery_market.storage_install_gwh_2030`；一页纸「装机 vs 2030 储能装机」分母",
+  "mirror": ""
+ },
+ "src.nea_elec_2025": {
+  "label": "国家能源局：2025 年全社会用电量 103,682 亿千瓦时（同比 +5.0%）",
+  "v": "https://www.nea.gov.cn/20260121/715f79826488476a9162da7c8bd77c80/c.html",
+  "text": "[国家能源局：2025 年全社会用电量 103,682 亿千瓦时（同比 +5.0%）](https://www.nea.gov.cn/20260121/715f79826488476a9162da7c8bd77c80/c.html)（抓取于 2026-09-09·一手）",
+  "bare": "[国家能源局：2025 年全社会用电量 103,682 亿千瓦时（同比 +5.0%）](https://www.nea.gov.cn/20260121/715f79826488476a9162da7c8bd77c80/c.html)（抓取于 2026-09-09·一手）",
+  "unit": "",
+  "kind": "src",
+  "watch": 1.0,
+  "from": "https://www.nea.gov.cn/20260121/715f79826488476a9162da7c8bd77c80/c.html",
+  "as_of": "2026-09-09",
+  "note": "一手｜用于 `national_power_market.society_electricity_yi_kwh_latest`；一页纸「交易量 vs 最新年度用电量」分母",
+  "mirror": ""
+ },
+ "src.society_elec_2030": {
+  "label": "国网能源院预测：2030 年全国全社会用电量 13.5 万亿千瓦时（权威媒体转引）",
+  "v": "https://news.qq.com/rain/a/20260326A086D200",
+  "text": "[国网能源院预测：2030 年全国全社会用电量 13.5 万亿千瓦时（权威媒体转引）](https://news.qq.com/rain/a/20260326A086D200)（抓取于 2026-09-09·二手（原始出处＝国家电网能源研究院预测））",
+  "bare": "[国网能源院预测：2030 年全国全社会用电量 13.5 万亿千瓦时（权威媒体转引）](https://news.qq.com/rain/a/20260326A086D200)（抓取于 2026-09-09·二手（原始出处＝国家电网能源研究院预测））",
+  "unit": "",
+  "kind": "src",
+  "watch": 1.0,
+  "from": "https://news.qq.com/rain/a/20260326A086D200",
+  "as_of": "2026-09-09",
+  "note": "二手（原始出处＝国家电网能源研究院预测）｜用于 `national_power_market.society_electricity_yi_kwh_2030`；一页纸「交易量 vs 2030 用电量」分母",
+  "mirror": ""
  }
 }

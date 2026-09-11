@@ -44,7 +44,18 @@
   </section>
 </div>
 
-<!-- ④ 调参：拆为两个区域 —— 1) 假设参数（默认折叠）  2) 可行性验证 -->
+<!-- ④ 论证主链（0 + 八章）：每张结论卡与一页纸的每一行都可点击跳到这里对应的章。
+     章的编号、标题、回答什么、收口读数全部来自 configs/report_map.toml，
+     本文件不写任何内容——改骨架只改那个 toml 与 narrative/chapters/。 -->
+<section class="sec" id="secChapters">
+  <h2 style="margin-top:0">◈ 论证主链（0 + 八章）</h2>
+  <p class="note" style="margin-top:0">每章由 1–2 个读数<b>收口</b>（它翻了，这章的结论就翻），
+    另有若干<b>支撑</b>读数供你跟着算。点上方任一结论卡、或一页纸的任意一行，可跳到对应章。
+    目前是占位骨架，正文待写。</p>
+  <div id="chapters"></div>
+</section>
+
+<!-- ⑤ 调参：拆为两个区域 —— 1) 假设参数（默认折叠）  2) 可行性验证 -->
 <section class="sec" id="secConsole">
   <!-- 区域 1：假设参数（默认折叠；含 ①需求与规模 ②价格与运营 ③制造与估值，取消"其他"） -->
   <details class="subsec" id="secAssump">

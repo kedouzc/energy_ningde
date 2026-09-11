@@ -187,7 +187,7 @@ def build_context(tier: str = "中性"):
     snap_dict = asdict(snapshot)
     snap_dict["_extra"] = {"config": cfg}
     facts = facts_mod.build_facts(snap_dict, strict=False)
-    return cfg, drivers, snapshot, facts, read_metrics(snapshot)
+    return cfg, drivers, snapshot, facts, read_metrics(snapshot, cfg)
 
 
 def tier_metric_values(cfg, drivers, keys: list[str]) -> dict[str, dict]:
@@ -196,7 +196,7 @@ def tier_metric_values(cfg, drivers, keys: list[str]) -> dict[str, dict]:
     for tier in SCENARIO_ORDER:
         cfg2 = load_config()
         snapshot = build_model(cfg2, **apply_scenario(cfg2, drivers, tier))
-        values = read_metrics(snapshot)
+        values = read_metrics(snapshot, cfg2)
         out[tier] = {k: values.get(k) for k in keys}
     return out
 
@@ -271,7 +271,7 @@ def axis_tier_effect(config: dict, drivers: dict, neutral_kwargs: dict,
             kw = dict(neutral_kwargs)
             try:
                 kw.update(apply_scenario(cfg, {name: spec}, tier))
-                values = read_metrics(build_model(cfg, **kw))
+                values = read_metrics(build_model(cfg, **kw), cfg)
             except Exception:  # noqa: BLE001
                 continue
             d_abs = values.get(INFLUENCE_ANCHOR, 0.0) - base_values.get(INFLUENCE_ANCHOR, 0.0)

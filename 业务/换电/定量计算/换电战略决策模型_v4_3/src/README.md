@@ -12,6 +12,61 @@
 
 ---
 
+## 〇、先查这里：我要做 X，改哪里
+
+> 本节是**按用途**组织的（下面的"四层地图"是**按依赖**组织的）。
+> 不知道一个功能住在哪个文件里时，先查本节——它直接给"该改哪个文件"，不给架构课。
+
+| 我要做… | 改这里（**只此一处**） |
+|---|---|
+| 改顶部结论 / 定性逻辑的**文案、版面、卡片增删** | `narrative/沙盘结论区.md` |
+| 结论里加一个**已经有了的**数 | 该 MD 加 `{占位符}` ＋ `verdict.py` 的 `PLACEHOLDER_MAP` 加一行 |
+| 加一个**模型里还没有的**数 | 先 `lab.py` 的 `METRICS` 登记 → 再走上面两步 |
+| 改一页纸的问题 / 判断 / 信源锚 | `narrative/一页纸.md` |
+| 加 / 改一个**模型参数** | `configs/base.toml` |
+| 改**章节骨架**（编号、标题、每章由哪个数收口） | `configs/report_map.toml` |
+| 写 / 改**八章正文** | `narrative/chapters/*.src.md` |
+| 改**计算逻辑** | A 类（见下表定位） |
+| 改**颜色 / 字体 / 间距 / 版面** | `templates/sandbox.css`、`templates/sandbox.html` |
+| 改**交互行为**（滑块、点击、联动） | `templates/sandbox.js` |
+| 改**浏览器端重跑**的逻辑 | `src/py_boot.py` |
+| 加一道**门槛 / 门** | `configs/sandbox_dashboard.toml` 的 `[gates]` |
+
+三条硬判据（改完自查）：
+
+1. **改一个按钮的颜色，需不需要碰 `.py`？** 需要 → 没拆干净。
+2. **改结论区的段落划分，需不需要碰 `sandbox.py`？** 需要 → 也没拆干净
+   （结论区已整体搬进 `verdict.py`，与 `onepager.py` 同构）。
+3. **同一个数在两处出现，是不是从同一个 key 取出来的？** 不是 → 出现了第二套口径。
+
+### 两类分工：建模内核 vs 交付呈现
+
+`src/` 下 29 个 `.py` 按"谁负责算"和"谁负责变成人能读的"分成四类：
+
+| 类 | 职责 | 文件 | 数 |
+|---|---|---|---|
+| **A · 建模内核**（算数） | 参数 → 快照 | `config_loader` `model` `mna` `scale` `capex` `business` `tco` `consolidation` `capital_cycle` `group_constraints` `decision` `derived` `schemas` | 13 |
+| **B · 结果出口**（取数） | 快照 → 数 | **`lab`（METRICS 唯一注册表）** `facts` | 2 |
+| **C · 交付呈现**（变人话） | 数 → 页面 | `sandbox`（**纯组装器**）`verdict`（结论区）`onepager`（一页纸）`inject`（叙述层装配）`report`（骨架报告）`py_boot`（浏览器端） | 6 |
+| **D · 审计工具** | 检查 | `tree` `backscan` `v32_audit`(冻结) `app` `chain_table`(停用) | 5 |
+| **入口** | — | `run` `build` `__init__` | 3 |
+
+**C 类的每个区块都长成同一个样子**（`.py` + 自己的 `.md`）：
+
+```
+【组装器】sandbox.py   跑模型 → 收集各区块 payload → 读模板 → 替换 → 写 HTML
+                       ↑ 它不认识任何具体区块，只知道"有一堆区块要拼"
+【区块】  verdict.py   + narrative/沙盘结论区.md     （①顶部结论 + ②定性逻辑）
+         onepager.py  + narrative/一页纸.md          （③一页纸）
+         （chapters） + narrative/chapters/*.src.md  （④八章正文）
+```
+
+> `lab.py` 的 `METRICS` 是**唯一结果注册表**：所有视图（读数、门、一页纸、血缘 Excel、
+> 结论区）都经 `read_metrics()` 取数。下游不得再各自写一条取数路径——那正是
+> "一个数字两个出处"的根因（2026-09-11 把 `verdict` 里六处直读升格进来后已消除）。
+
+---
+
 ## 一、四层地图
 
 | 层 | 文件 | 职责 | 被谁调用 |

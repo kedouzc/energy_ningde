@@ -60,6 +60,20 @@ tr.attrib td{background:#f8fafc}
 .verdict b{color:var(--ac);font-weight:700}
 .verdict b.todo{color:var(--bad);font-weight:400;font-style:italic}
 
+/* A 类跳转：结论卡 / 一页纸行 → 对应章。用主色 + 细下划线，不引入新颜色。
+   为什么放在标题里而不是单独一列：跳转是"这个数/这张卡的去处"，不是又一个数据。 */
+a.jump{color:var(--ac);text-decoration:none;font-size:12px;font-weight:400;
+  border-bottom:1px dotted var(--ac);white-space:nowrap}
+a.jump:hover{text-decoration:none;border-bottom-style:solid}
+
+/* ④ 论证主链（0 + 八章）：每章一个可折叠块，id 即跳转锚点 */
+.chitem{border:1px solid var(--bd);border-left:3px solid var(--ac);border-radius:8px;
+  padding:8px 12px;margin-bottom:8px;background:#fff}
+.chitem>summary{cursor:pointer;font-size:14px}
+.chitem>summary::marker{color:var(--ac)}
+.chbody{margin-top:6px;font-size:13px;line-height:1.8}
+.chkey{color:var(--mu)}
+
 /* §4 关键读数：紧凑网格，一行多排，检验门槛挂在卡内（不单独成段） */
 .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
 .mcard{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--bg)}

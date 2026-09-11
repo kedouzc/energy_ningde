@@ -55,6 +55,9 @@ WHITELIST = [
     re.compile(r"^\s{0,3}\d{1,2}[.)、]\s"),                                # 有序列表 1. 2)
     re.compile(r"^\s*\|?[\s:|-]*$"),                                       # 表格分隔线
     re.compile(r"第\s*[一二三四五六七八九十百零〇\d]+[A-Z]?\s*[章节部分步条项层]"),  # 第三章 / 第 2 步 / 第 3A 章
+    # 标题里的章号："# 0 决策卡" / "## 3A 谁是真用户"。编号是导航件不是数据，
+    # 不允许的话，八章正文的每一行标题都会误报裸数字（2026-09-11 立八章骨架时踩到）。
+    re.compile(r"^\s{0,3}#{1,6}\s*\d{1,2}[A-Z]?(?=\s|$)"),
     re.compile(r"\|\s*\*{0,2}\d{1,2}\s*[·.、)]"),                          # 表格单元格里的序号 | **1 · |
     re.compile(r"[（(]\s*[①-⑳\d]+\s*[）)]"),                               # (1) （②）
     re.compile(r"\bQ\d\b"),                                                # Q1 Q2 必答问题编号
@@ -179,6 +182,108 @@ def state_of(text: str, facts: dict) -> dict:
     return out
 
 
+# ─────────────────────────────────────────── 收口恒等式（2026-09-11 新增）
+# 为什么要有这一条：既有的裸数字 lint 是 **≤ 型**——它只检查"文件里没有手打的数"，
+# 一份一个数字都不写的文件能满分通过。于是 13 份专题里 10 份与模型毫无连接却全程绿灯。
+# 恒等式版本：**每份叙述必须声明自己论证哪一个收口读数**（`- 收口: <metric_key>`），
+# 说不出来 → 它是素材不是正文。这是机械可判的，不靠记得检查。
+CLOSING_RE = re.compile(r"^[-*]\s*主张\s*[:：]\s*(.+)$")
+SUPPORT_RE = re.compile(r"^[-*]\s*支撑\s*[:：]\s*(.+)$")
+QUAL_RE = re.compile(r"^[-*]\s*定性收口\s*[:：]\s*(.+)$")
+
+
+_KEY_SHAPE = re.compile(r"^[A-Za-z_][A-Za-z0-9_.]*$")
+
+
+def _keys_of(line: str) -> list[str]:
+    """取逗号分隔的 key；**只认 key 的形状**。
+
+    为什么必须过滤形状：占位文件里会写 `- 主张: （纯定性章，无模型数收口）`
+    这类说明文字，不过滤就会把它当成指标名去查注册表，报出一堆
+    "主张 （纯定性章 不在 lab.METRICS 里"这种废话（2026-09-11 实际踩到）。
+    """
+    out = []
+    for k in re.split(r"[,，、]", line):
+        k = k.strip()
+        if _KEY_SHAPE.match(k):
+            out.append(k)
+    return out
+
+
+def closing_of(path: Path) -> list[str]:
+    """文件头 `- 收口:` 声明的收口读数（逗号分隔）。没有则空列表。"""
+    for raw in path.read_text("utf-8").splitlines()[:24]:
+        m = CLOSING_RE.match(raw.strip())
+        if m:
+            return _keys_of(m.group(1))
+    return []
+
+
+def support_of(path: Path) -> list[str]:
+    for raw in path.read_text("utf-8").splitlines()[:24]:
+        m = SUPPORT_RE.match(raw.strip())
+        if m:
+            return _keys_of(m.group(1))
+    return []
+
+
+def qual_of(path: Path) -> str:
+    """定性收口：纯定性章用它代替模型数（共识锚、操作触发条件等外部可观察的事实）。"""
+    for raw in path.read_text("utf-8").splitlines()[:24]:
+        m = QUAL_RE.match(raw.strip())
+        if m:
+            return m.group(1).strip()
+    return ""
+
+
+def lint_closing(sources: list[Path]) -> tuple[list[str], list[dict]]:
+    """收口恒等式检查 + 覆盖率表。返回 (问题清单, 覆盖率行)。
+
+    **先只报不中断**：13 份专题里 10 份会立刻失败，一次性阻塞全部管线不利于推进。
+    等八章占位建好、索引表定稿后切硬失败（与 `facts` 的 `strict` 开关同一手法）。
+    """
+    from lab import METRIC_BY_KEY          # 延迟 import，避免与 lab 形成环
+    problems: list[str] = []
+    rows: list[dict] = []
+    owner: dict[str, str] = {}
+    for src in sources:
+        keys = closing_of(src)
+        sup = support_of(src)
+        qual = qual_of(src)
+        rows.append({"file": src.name, "closing": keys, "support": len(sup), "qual": bool(qual)})
+        if not keys and not qual:
+            problems.append(
+                f"{src.name}：既没有定量收口也没有定性收口——这章就是散文。"
+                "定量章写 `- 主张: <metric_key>`；纯定性章写 `- 定性收口: <文字>`")
+        for k in keys:
+            if k not in METRIC_BY_KEY:
+                problems.append(f"{src.name}：主张 {k} 不在 lab.METRICS 里")
+            elif k in owner:
+                # 主张唯一性：跨章引用允许（写 - 引用:），但两章都主张同一个数不行
+                problems.append(f"{src.name}：{k} 已被 {owner[k]} 主张，本处应改为 `- 引用:`")
+            else:
+                owner[k] = src.name
+        if len(keys) > 2:
+            problems.append(f"{src.name}：主张 {len(keys)} 个，超过上限 2 个（多了等于没收口）")
+    return problems, rows
+
+
+def print_coverage(rows: list[dict]) -> None:
+    """覆盖率表：一眼看出哪些叙述接上了数、哪些还是孤儿。"""
+    print("\n收口覆盖率（每份叙述必须声明自己论证哪个读数）：")
+    print(f"  {'文件':<34} {'收口':<4} {'支撑':<4} 主张的读数（定性章另见「定性收口」）")
+    print("  " + "─" * 92)
+    for r in rows:
+        mark = "✓" if r["closing"] else ("定" if r["qual"] else "—")
+        keys = "、".join(r["closing"]) if r["closing"] else (
+            "（纯定性章）" if r["qual"] else "（未声明）")
+        print(f"  {r['file'][:34]:<34} {mark:<4} {r['support']:<4} {keys}")
+    n_ok = sum(1 for r in rows if r["closing"] or r["qual"])
+    print(f"  " + "─" * 92)
+    print(f"  合计 {len(rows)} 份，已收口 {n_ok} 份，孤儿 {len(rows) - n_ok} 份"
+          f"（✓＝定量主张　定＝纯定性收口　—＝孤儿）")
+
+
 # ─────────────────────────────────────────── 主流程
 def process(lint_only: bool = False) -> int:
     """返回 0 = 全部通过；1 = 有裸数字或未知占位符（应中断构建）。"""
@@ -235,6 +340,17 @@ def process(lint_only: bool = False) -> int:
                 print(f"    第{item['line']}行 {item['head']}")
                 for moved in item["moved"]:
                     print(f"        {moved}")
+
+    # 收口恒等式：**先只报不中断**（13 份专题里 10 份尚未被点名，一次性阻塞会卡死管线）。
+    # 判据改为硬失败的时点：八章索引表定稿之后。
+    closing_problems, closing_rows = lint_closing(sources)
+    print_coverage(closing_rows)
+    if closing_problems:
+        print(f"\n⚠ 收口检查 {len(closing_problems)} 处（当前不中断，仅登记）：")
+        for p in closing_problems[:20]:
+            print("   " + p)
+        if len(closing_problems) > 20:
+            print(f"    …… 另有 {len(closing_problems) - 20} 处")
 
     if not lint_only and not failed:
         STATE_PATH.write_text(

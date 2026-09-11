@@ -1,0 +1,199 @@
+# 报告骨架：读数池的三个索引
+#
+# ── 主语是「读数池」（src/lab.py 的 METRICS），不是「章」────────────────────
+# 三个视图（八章正文 / 顶部结论卡 / 一页纸）都从**同一个池子**里挑数，
+# 彼此是**重排关系**：八章按"决策问题"分组，卡片按"重要度"取主题，
+# 一页纸按"决策核对"分组（格式见 narrative/一页纸.md，不在此表）。
+#
+# ── 主张 vs 引用（2026-09-11 定）──────────────────────────────────────────
+#   owns = **主张**：这一章对它负责——论证它、给出它的推翻条件、它越阈值时标这一章待复核。
+#   uses = **引用**：借它做下一步推论，不对它负责。
+# 判据：**同一个 key 只能有一个 owns**（生成期机械校验）。这样跨章引用是允许的、
+# 而"两章都声称对这个数负责"会被拦住——这正是"一件事只能有一个家"在数值层的落地。
+#
+# ── 定量收口与定性收口 ────────────────────────────────────────────────────
+#   owns = 定量收口（必须是 METRICS key）
+#   qual = 定性收口（文字，用于纯定性章：它的收口是**外部可观察的事实**，模型算不出来）
+# 两者至少要有一样；定量章的 owns 上限 2 个（第 4 章例外，见它的 [[gate]]）。
+#
+# ── 为什么放 toml 而不是 .py / .md ────────────────────────────────────────
+# 它是"顺序与归属的声明"，属参数层；放 toml 才能被 Python 生成期与浏览器运行期
+# 读到**同一份**（configs/sandbox_dashboard.toml 是先例）。
+
+# ═══════════════════════════════════════════════ 索引一：八章正文（主链）
+
+[[chapter]]
+no = 0
+title = "决策卡"
+file = "0_决策卡.src.md"
+answers = "买不买、**几年几倍**、什么会推翻（开宗明义——最终判断在这里给，论证在后面各章）"
+owns = ["base.target_year", "val.incr_over_mktcap"]
+uses = ["val.swap_increment", "val.mfg_increment", "swap.coverage", "capex.peak_call"]
+support = []
+topics = ["非共识_类型判定与证据形态", "赔率与跟踪_从世界A到世界B"]
+
+[[chapter]]
+no = 1
+title = "非共识在哪"
+file = "1_非共识在哪.src.md"
+answers = "这个结论与市场普遍理解的差异在哪；断档接不上的**原因**是哪一类"
+# 纯定性章：收口是**共识锚三条外部观察**（卖方用不用 SOTP／换电有没有被单独列示／
+# 有没有机构给过独立估值）——这是外部形式证据，模型算不出来，也不该进 METRICS。
+owns = []
+uses = ["val.incr_over_mktcap", "val.op_ev_multiple", "val.ev_dcf_perpetual"]
+qual = "共识锚三条外部观察：卖方是否用 SOTP / 换电是否被单独列示 / 是否有机构给过独立估值（三个「否」＝市场没给它估值）"
+support = ["base.ev_ebitda_multiple", "val.swap_increment", "val.power_with_swap"]
+topics = ["非共识_类型判定与证据形态"]
+
+[[chapter]]
+no = 2
+title = "必要性"
+file = "2_必要性.src.md"
+answers = "不做会失去多少（**防守＝下限**）；以及为什么值得做成这么大（**愿景＝上限**，论证在第 6 章）"
+owns = ["val.mfg_increment"]
+uses = []
+support = ["mfg.with_swap_np", "mfg.no_swap_np", "val.power_with_swap", "val.power_no_swap",
+           "mfg.repl_gwh", "mfg.repl_share_pct"]
+topics = ["必要性_三条路为什么是换电", "增量价值_运营单体加制造影响"]
+
+[[chapter]]
+no = 3
+title = "目标市场"
+file = "3_目标市场.src.md"
+answers = "载体本质 → 关键指标 → 谁最敏感 → 谁是真用户、重心在哪（营运车是基本盘、重卡是重心）；这个市场撑多大（第 4 章的输入）"
+owns = ["ops.veh_ops", "tco.swap_wan"]
+uses = []
+support = ["ops.veh_heavy", "ops.veh_city", "ops.veh_passenger_ops", "ops.veh_private",
+           "ops.market_total", "ops.share_of_market", "ops.heavy_market_stock",
+           "ops.heavy_pen_pct", "tco.lng_wan", "tco.diesel_wan"]
+topics = ["业务本质_第一性原理拆解", "目标用户_谁的痛点"]
+
+[[chapter]]
+no = 4
+title = "可行性"
+file = "4_可行性.src.md"
+answers = "五道门：物理（含产能核查）／经济／资金／博弈／能力。定量门各有一个收口数，博弈与能力是纯定性"
+# 章级主收口取最关键的那一道（经济门）；五道门各自的收口见下面的 [[gate]]。
+owns = ["swap.coverage"]
+uses = []
+support = ["capex.initial_capex", "capex.equity_call", "capex.project_debt",
+           "fund.peak_cash_to_cfo", "fund.closing_liquidity", "swap.revenue", "swap.ebitda",
+           "scale.stations_total"]
+topics = ["竞争格局_三足鼎立与赛道内玩家", "用人信号_战略定力与执行跟踪"]
+
+# 五道门的形状：名字 / 通过？ / 余量 / 翻转参数 / 翻转阈值。
+# 定量门（physical / econ / capital）的 closing 必须是 METRICS key；
+# 定性门（game / capability）没有 closing，靠 topics 承载论证。
+[[gate]]
+chapter = 4
+name = "物理（含产能核查）"
+closing = "mfg.total_gwh_2030"
+qual = ""
+note = "终局年目标装机（换电+充电合计，占用全线产能）必须远小于现有＋规划产能，并给储能、AIDC 等留出余量"
+
+[[gate]]
+chapter = 4
+name = "经济"
+closing = "swap.coverage"
+qual = ""
+note = "可交付 EBITDA ÷ 门槛 EBITDA；这两条是**独立路径**，相除是安全边际不是误差"
+
+[[gate]]
+chapter = 4
+name = "资金"
+closing = "capex.peak_call"
+qual = ""
+note = "峰值年权益出资是否超出承受；含回购对照"
+
+[[gate]]
+chapter = 4
+name = "博弈"
+closing = ""
+qual = "会不会被替代、合作方配不配合（纯定性，无定量收口）"
+note = ""
+
+[[gate]]
+chapter = 4
+name = "能力"
+closing = ""
+qual = "自己干不干得了（纯定性；用人信号是「推」不是「拉」，能证明决心不能证明标准已立）"
+note = ""
+
+[[chapter]]
+no = 5
+title = "业绩"
+file = "5_业绩.src.md"
+answers = "终局年经营业绩 ＋ **业务口径**的市场地位（**不涉及**资本市场定价）"
+owns = ["swap.ebitda", "ops.battery_total"]
+uses = []
+support = ["ops.annual_energy", "scale.stations_total", "mk.share_storage_2025",
+           "mk.share_elec_latest", "swap.net_profit", "swap.catl_net_profit", "ops.veh_total"]
+topics = ["业务本质_第一性原理拆解"]
+
+[[chapter]]
+no = 6
+title = "冲击与重估"
+file = "6_冲击与重估.src.md"
+answers = "对现有业务线的冲击（**引用**制造侧增量）；会不会整体重估；拍定倍数凭什么站得住"
+owns = ["val.swap_increment", "val.op_ev_multiple"]
+uses = ["val.mfg_increment"]
+support = ["val.power_with_swap", "val.power_no_swap", "val.op_equity_gross",
+           "val.ev_dcf_true", "val.catl_dcf_perpetual", "base.ev_ebitda_multiple",
+           "val.ev_dcf_perpetual"]
+topics = ["估值_为什么拍这个倍数", "资本闭环_REITs与轻资产化", "增量价值_运营单体加制造影响"]
+
+[[chapter]]
+no = 7
+title = "投资建议与操作指引"
+file = "7_投资建议与操作指引.src.md"
+answers = "赢面多大；什么会变好/变差；加仓与清仓的触发条件（**不报期望值**）"
+owns = []
+uses = ["val.swap_increment", "val.incr_over_mktcap", "swap.coverage", "ops.share_of_market"]
+qual = "三段刻度的操作触发：中检看不到＝需求侧假设错；决断看不到＝论点被证伪，与价格无关；兑现看不到＝相变没发生"
+support = ["mk.share_storage_2025", "base.target_year"]
+topics = ["赔率与跟踪_从世界A到世界B", "并购_节奏与竞合"]
+
+[[chapter]]
+no = 8
+title = "反思与后续思考"
+file = "8_反思与后续思考.src.md"
+answers = "犯过什么错；现在还可能错在哪；下一步盯什么（**两半都由程序生成**）"
+owns = []
+uses = ["val.swap_increment"]
+qual = "犯过的错由 DECISIONS.md 生成，现在可能错在哪由 lab.py scan 的弹性排名生成"
+support = ["ops.veh_commercial", "swap.coverage", "base.ev_ebitda_multiple",
+           "ops.annual_energy", "ops.share_of_market"]
+topics = []
+
+# ═══════════════════════════════════════════════ 索引三：顶部结论卡
+# 每张卡 = 主题 + 主节（跳转落点）+ 借用的读数。卡只做指向与摘要，不写论证、不自己算数。
+
+[[card]]
+title = "必要性"
+chapter = 2
+closing = ["val.mfg_increment"]
+
+[[card]]
+title = "业绩"
+chapter = 5
+closing = ["swap.ebitda", "swap.revenue"]
+
+[[card]]
+title = "估值"
+chapter = 6
+closing = ["val.swap_increment", "val.incr_over_mktcap"]
+
+[[card]]
+title = "卡位"
+chapter = 5
+closing = ["mk.share_storage_2025", "mk.share_elec_latest"]
+
+[[card]]
+title = "ROI"
+chapter = 4
+closing = ["capex.peak_call", "swap.coverage"]
+
+[[card]]
+title = "重点市场"
+chapter = 3
+closing = ["ops.veh_ops", "ops.veh_heavy"]

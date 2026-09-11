@@ -187,9 +187,11 @@ function paintReadings(E, tag){
    vals 的三种来源，必须同源同刻（拖滑块/切档位时 ①② 区要跟 ③ 区一起动）：
      · 档位态：D.tierVals[档]      —— Python 预计算的精确实跑值
      · 自定义态：精确引擎重跑返回的 r.vals —— Pyodide 重跑同一套 build_model 后现算
-     · 离线兜底：D.verdict.baseVals —— 生成快照的精确值（并在读数百里标明未重算）
+     · 离线兜底：D.verdict.vals —— 生成快照的精确值（并在读数百里标明未重算）
    本文件**不写任何算式**，只做字符串替换——算式写两遍必然漂移。 */
-let curVals = (D.verdict && D.verdict.baseVals) || {};
+// 键名 vals：与 src/verdict.payload() 的返回、与 py_boot 重跑返回的 r.vals 同一命名，
+// 三处只认这一个名字（此前生成期叫 baseVals、重跑叫 vals，是两套名字、易漂移）。
+let curVals = (D.verdict && D.verdict.vals) || {};
 
 function _fillPlaceholders(t, v){
   // 与 src/sandbox.py 的 _PH_RE 同形态：小写字母开头，可含数字与下划线
@@ -216,9 +218,14 @@ function renderVerdict(vals){
     .map(s=>`<p class="vpara">${fill(s)}</p>`).join("");
   // 结论卡片（业绩／估值／卡位／ROI／重点）：段落在 MD 的 # 结论卡片 下，改文案不动程序。
   // 「重点」正文最长，占满整行，避免其它四张被撑成同一高度留下大片空白。
-  const cards = (D.verdict.cards||[]).map(c=>
-    `<div class="vcard${/重点/.test(c.title||"")?" wide":""}">`
-    + `<div class="vct">${c.title}</div><div class="vcb">${fill(c.body)}</div></div>`).join("");
+  // A 类跳转：卡 → 对应章。章号来自 D.cardJump（索引表的反查），本文件不写死"第几章"。
+  // 注意用 `n==null` 而不是 `!n`——第 0 章是有效值，!0 会把它误判成"没有落点"。
+  const cards = (D.verdict.cards||[]).map(c=>{
+    const n=(D.cardJump||{})[c.title];
+    const jump=(n==null)?"":` <a class="jump" href="#ch-${n}" title="看这一节的论证">§${n} →</a>`;
+    return `<div class="vcard${/重点/.test(c.title||"")?" wide":""}">`
+      + `<div class="vct">${c.title}${jump}</div><div class="vcb">${fill(c.body)}</div></div>`;
+  }).join("");
   let html = (paras?`<div class="verdict-lead">${paras}</div>`:"")
            + (cards?`<div class="vgrid">${cards}</div>`:"");
   const notes = D.verdict.notes || [];
@@ -249,7 +256,7 @@ function refreshVerdict(){
   if(tierName && D.tierVals && D.tierVals[tierName]){
     curVals = D.tierVals[tierName];
   }else{
-    curVals = lastExactVals || (D.verdict && D.verdict.baseVals) || {};
+    curVals = lastExactVals || (D.verdict && D.verdict.vals) || {};
   }
   renderVerdict(curVals);
   renderNarrative(curVals);
@@ -268,6 +275,7 @@ function render(){
   paintReadings(E, tag);
   renderPanel();
   renderOnePaper(E);
+  renderChapters(E);         // ④ 主链的收口读数必须和 ③ 区同源同刻
   refreshVerdict();          // ①② 区必须和 ③ 区同源同刻，否则读数自相矛盾
   if(!exact && pyReady && !_recompBusy){
     _recompBusy = true;
@@ -276,6 +284,7 @@ function render(){
       if(r && r.metrics){
         paintReadings(r.metrics, " · 自定义（精确重跑，与一页纸同源）");
         renderOnePaperCurrent(r);          // 数值列 + 解释列一起用重跑结果刷新
+        renderChapters(r.metrics);         // ④ 主链收口读数也用同一次重跑值
         comboRefresh();   // 可行性视图用精确值重算（comboLive 未生成前 comboRefresh 自动 no-op）
         if(r.vals && Object.keys(r.vals).length){
           lastExactVals = r.vals;          // 结论区用**同一次重跑**的 vals，不再另算一套
@@ -387,6 +396,47 @@ function setTier(i){
 // 注意：\n 在 Python 源里要写成双反斜杠，否则这个正则会被 Python 先解成真换行 → JS 语法错
 const nl2br=s=>String(s==null?"":s).replace(/\n/g,"<br>");
 let OP_INDEX=[];        // 全局行序 → 所属层/行，供自定义态回填（与 texts 数组同序）
+/* §4 论证主链（0 + 八章）：骨架来自 configs/report_map.toml，正文来自 narrative/chapters/*.src.md。
+   本函数只渲染骨架与**收口读数的当前值**——正文待写期间，这里就是跳转的落点：
+   点卡片或一页纸行跳进来，至少能看到"这一章由哪个数收口、它现在是多少、什么会让它翻"。 */
+function renderChapters(M){
+  const box=document.getElementById("chapters"); if(!box) return;
+  const chs=(D.chapters&&D.chapters.length)?D.chapters:null;
+  if(!chs){ box.innerHTML='<p class="note">（未读到 configs/report_map.toml 的章节索引）</p>'; return; }
+  // 取当前值：与 ③ 区同源同刻——优先用调用方给的（档位态＝Python 预计算三档值，
+  // 自定义态＝浏览器重跑值）；没给就退回生成快照精确值（绝不是外推）。
+  const exact=(curTier!=null&&D.tierValues&&D.tierValues[D.tiers[curTier]]);
+  const E=M||(exact?D.tierValues[D.tiers[curTier]]:snapshotMetrics());
+  const val=k=>{const v=(E||{})[k]; return (v==null||v!=v)?null:v;};
+  const cellOf=m=>{
+    const v=val(m.key);
+    return `<span class="chkey">${m.label}</span> <b>${v==null?"—":fmt(v,m.decimals)}</b>`
+         + (m.unit?`<span class="note"> ${m.unit}</span>`:"");
+  };
+  box.innerHTML=chs.map(c=>{
+    const owns=(c.owns||[]).map(cellOf).join("　·　");
+    const uses=(c.uses||[]).map(cellOf).join("　·　");
+    const sup=(c.support||[]).map(m=>m.label).join("、");
+    // 五道门：定量门给读数，定性门给文字——"门"本来就该有通过/不通过的形状
+    const gates=(c.gates||[]).map(g=>{
+      const v=g.closing?cellOf(g.closing):null;
+      return `<li><b>${g.name}</b>：${v?v+" "+g.closing.label:g.qual||"（待补）"}`
+           + (g.note?`<div class="note">${g.note}</div>`:"")+`</li>`;
+    }).join("");
+    return `<details class="chitem" id="ch-${c.no}">`
+      + `<summary><b>§${c.no} ${c.title}</b></summary>`
+      + `<div class="chbody">`
+      + `<div class="note" style="margin-bottom:6px"><b>回答什么</b>：${c.answers||"（待写）"}</div>`
+      + (owns?`<div style="margin-bottom:6px"><b>主张</b>（这一章对它负责，它翻了这章结论就翻）：${owns}</div>`:"")
+      + (c.qual?`<div style="margin-bottom:6px"><b>定性收口</b>：${c.qual}</div>`:"")
+      + (uses?`<div style="margin-bottom:6px" class="note"><b>引用</b>（不对它负责）：${uses}</div>`:"")
+      + (gates?`<div style="margin-bottom:6px"><b>门</b>：<ul style="margin:4px 0;padding-left:18px">${gates}</ul></div>`:"")
+      + (sup?`<div class="note"><b>支撑读数</b>：${sup}</div>`:"")
+      + `<div class="note" style="margin-top:6px">正文见 <code>narrative/chapters/${c.no}_${c.title}.src.md</code>（占位骨架，待写）</div>`
+      + `</div></details>`;
+  }).join("");
+}
+
 /* 一页纸：三层次分组表。列序＝阅读顺序：问题 → 答案（三情景＋当前实时）→ 解释 → 注意事项。
    停档位＝该档精确实跑值（与档列同源）；自定义态＝Pyodide 精确重跑（数值＋解释一起刷）。 */
 function renderOnePaper(E){
@@ -412,7 +462,10 @@ function renderOnePaper(E){
       const d=(r.decimals==null?2:r.decimals);
       const cur=(E&&E[r.metric]!=null)?E[r.metric]:null;
       const attrib=/归属|归母/.test(r.label||"")?" class='attrib'":"";
-      h+=`<tr${attrib}><td>${nl2br(r.q)}</td><td>${nl2br(r.label)}</td>`
+      // A 类跳转：这一行的读数归属哪一章（同样由索引表反查，不写死）
+      const jn=(D.metricJump||{})[r.metric];
+      const jlink=(jn==null)?"":` <a class="jump" href="#ch-${jn}" title="看这一节的论证">§${jn} →</a>`;
+      h+=`<tr${attrib}><td>${nl2br(r.q)}${jlink}</td><td>${nl2br(r.label)}</td>`
         + (r.vals||[]).map((v,k)=>`<td class="opv" data-t="${k}">${fmt(v,d)}</td>`).join("")
         + `<td class="opv" id="opc${i}"><b>${fmt(cur,d)}</b></td>`
         + `<td>${r.unit||""}</td>`
@@ -658,5 +711,6 @@ document.getElementById("tgtM").innerHTML=
 document.getElementById("tgtV").value=(D.metrics[0].value*1.2).toFixed(0);
 refreshVerdict();          // 启动时也走同一条路径，避免"初始渲染"与"联动渲染"两套逻辑
 renderOnePaper(snapshotMetrics());
+renderChapters(snapshotMetrics());
 render();
 initPy();   // 异步加载精确引擎（Pyodide）；失败则界面显示生成快照精确值

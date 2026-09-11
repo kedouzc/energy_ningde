@@ -263,6 +263,96 @@
     "type": "float"
   },
   {
+    "key": "tco_jpm.as_of",
+    "value": "2026-08",
+    "type": "str"
+  },
+  {
+    "key": "tco_jpm.purchase_price",
+    "value": 700000.0,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.purchase_tax_rate",
+    "value": 0.05,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.purchase_subsidy",
+    "value": 140000.0,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.maintenance",
+    "value": 15000.0,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.payload_loss",
+    "value": 70000.0,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.annual_gain_swap",
+    "value": 40000.0,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.annual_km",
+    "value": 150000.0,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.kwh_per_km",
+    "value": 1.5,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.ev_energy_cost_year",
+    "value": 191250.0,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.lng_energy_cost_year",
+    "value": 325500.0,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.lng_maintenance",
+    "value": 25000.0,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.lng_payload_loss",
+    "value": 15000.0,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.lng_purchase_total",
+    "value": 385000.0,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.diesel_energy_cost_year",
+    "value": 430806.0,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.diesel_maintenance",
+    "value": 30000.0,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.diesel_payload_loss",
+    "value": 0.0,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.diesel_purchase_total",
+    "value": 330000.0,
+    "type": "float"
+  },
+  {
     "key": "vehicles.heavy.label",
     "value": "重卡",
     "type": "str"
@@ -316,7 +406,7 @@
         "battery_pool": "qiji75_short",
         "weight": 0.38,
         "swap_penetration": 0.3,
-        "catl_swap_share": 0.3,
+        "catl_swap_share": 0.8,
         "daily_km": 130.0,
         "onboard_battery_kwh": 342.0,
         "energy_consumption_kwh_km": 1.5
@@ -326,7 +416,7 @@
         "battery_pool": "qiji75_trunk",
         "weight": 0.5,
         "swap_penetration": 0.5,
-        "catl_swap_share": 0.3,
+        "catl_swap_share": 0.8,
         "daily_km": 400.0,
         "onboard_battery_kwh": 513.0,
         "energy_consumption_kwh_km": 1.7
@@ -336,7 +426,7 @@
         "battery_pool": "qiji75_trunk",
         "weight": 0.12,
         "swap_penetration": 0.7,
-        "catl_swap_share": 0.7,
+        "catl_swap_share": 0.8,
         "daily_km": 650.0,
         "onboard_battery_kwh": 513.0,
         "energy_consumption_kwh_km": 1.7

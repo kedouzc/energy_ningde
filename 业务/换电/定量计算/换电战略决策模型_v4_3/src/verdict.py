@@ -1,8 +1,8 @@
-"""结论区（①顶部结论 + ②定性逻辑）的数值：唯一算法，生成期与浏览器共用。
+"""结论区（① 顶部结论 + ② 定性逻辑）：与 `onepager.py` 同构的**区块模块**。
 
-为什么单列这一个文件
---------------------
-顶部结论里那几句话的每个 {} 都是一个数。此前这些数由 `sandbox._build_verdict`
+为什么单列这一个文件、以及 2026-09-11 为什么要改它
+------------------------------------------------
+顶部结论里那几句话的每个 `{占位符}` 都是一个数。此前这些数由 `sandbox._build_verdict`
 在**生成期**用基线算一次就写死进 HTML——拖滑块、点三档时 ③ 定量看板区会动，
 ①② 区却纹丝不动（数值、滑块位置、档位高亮三者不同源同刻，信任归零）。
 
@@ -15,36 +15,95 @@
 JS 侧不写任何公式，只做字符串替换。这既守住「同源单程、绝不外推」，也让
 "改一处、两处都变"成为结构上的必然，而不是靠记得同步。
 
-本文件**不写任何定性文案**（那是 narrative/沙盘结论区.md 的事），只负责算数。
-"""
+**2026-09-11 升格**：以前本文件只管算数，`narrative/沙盘结论区.md` 的解析住在
+`sandbox.py` 的 `_load_sandbox_md()` 里——于是组装器知道了"顶部结论／结论卡片／
+定性逻辑／口径与信源"这些**区块专有名词**，违反它自己"只做打包"的声明。
+现在本文件与 `onepager.py` 长成同一个样子：
 
+    onepager.py = 读 narrative/一页纸.md     + 取数 + 渲染 + payload()
+    verdict.py  = 读 narrative/沙盘结论区.md + 取数 + 渲染 + payload()
+
+> 判据：**改一个按钮的颜色，需不需要碰 `.py`？** 需要 → 就没拆干净。
+> 同理：**改结论区的段落划分，需不需要碰 `sandbox.py`？** 需要 → 也没拆干净。
+
+三件事住在三个地方（不许串门）
+----------------------------
+* **定性文案** → `narrative/沙盘结论区.md`（人写、程序读）
+* **数值** → `lab.METRICS` 的 `read_metrics(snap, cfg)`。
+  **本文件不再出现任何从 `snap` 属性或 `cfg` 直接取数的路径**——那会让结论区
+  变成"第三套数值源"（一页纸与章取不到同一个数）。
+* **精度** → 由 `Metric.decimals` 决定（连小数位也只有一个家）。
+"""
 from __future__ import annotations
 
-from lab import read_metrics
-from scale import operating_market_total
+import re
+import sys
+from pathlib import Path
 
-# 占位符清单：与 narrative/沙盘结论区.md 里的 {key} 一一对应。
-# 生成期用它与模板实际出现的占位符做集合比对，缺一个就报错终止——
-# 不靠"记得填"，靠机器判。
-PLACEHOLDER_KEYS = frozenset({
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
+SRC = Path(__file__).resolve().parent
+ROOT = SRC.parent
+sys.path.insert(0, str(SRC))
+
+from lab import METRIC_BY_KEY, read_metrics  # noqa: E402
+
+MD_PATH = ROOT / "narrative" / "沙盘结论区.md"
+
+# 占位符 → METRICS key。
+# 为什么必须是**映射**而不是两个独立集合：占位符名是文案侧的名字（短、人读），
+# METRICS key 是数值侧的名字（带命名空间）。以前这两套名字各写一遍，于是
+# "结论区一个数"与"一页纸同一个数"在物理上是两个出处——第三套数值源就是这么来的。
+# 现在一一映射，取不到即 None（前端渲染 [待补]），绝不用 0 冒充。
+PLACEHOLDER_MAP: dict[str, str] = {
     # — 业绩 —
-    "target_year", "veh_ops", "veh_mkt", "share", "repl_gwh", "repl_share_pct",
+    "target_year": "base.target_year",
+    "veh_ops": "ops.veh_ops",
+    "veh_mkt": "ops.market_total",
+    "share": "ops.share_of_market",
+    "repl_gwh": "mfg.repl_gwh",
+    "repl_share_pct": "mfg.repl_share_pct",
+    # — 必要性（锁量 + 护价，落到钱上是制造侧增量）—
+    "mfg_increment": "val.mfg_increment",
     # — 估值 —
-    "dist_cash", "ebitda", "mult", "own_pct", "mktcap",
+    "dist_cash": "swap.dist_cash",
+    "ebitda": "swap.ebitda",
+    "mult": "base.ev_ebitda_multiple",
+    "own_pct": "base.ownership_pct",
+    "mktcap": "val.op_value_trillion",
     # — 卡位 —
-    "energy", "elec_share", "batt_station", "storage_share", "stations",
+    "energy": "ops.annual_energy",
+    "elec_share": "mk.share_elec_latest",
+    "batt_station": "ops.battery_station",
+    "storage_share": "mk.share_storage_2025",
+    "stations": "scale.stations_total",
     # — ROI —
-    "peak_call", "reit_mult",
+    "peak_call": "capex.peak_call",
+    "reit_mult": "val.reit_multiple",
     # — 重卡 —
-    "veh_heavy", "heavy_stock_wan", "heavy_pen_pct", "heavy_fleet_gwh",
-    "heavy_station_gwh", "heavy_repl_gwh", "heavy_life_yrs", "heavy_repl_cycle",
-    "energy_unit_kwh",
-    # — 全成本 TCO：N1=模型电池寿命 / N2=更新周期 —
-    "tco_swap_wan", "tco_swap_kwh", "tco_lng_wan", "tco_lng_kwh",
-    "tco_diesel_wan", "tco_diesel_kwh",
-    "tco_swap_wan_9", "tco_swap_kwh_9", "tco_lng_wan_9", "tco_lng_kwh_9",
-    "tco_diesel_wan_9", "tco_diesel_kwh_9",
-})
+    "veh_heavy": "ops.veh_heavy",
+    "heavy_stock_wan": "ops.heavy_market_stock",
+    "heavy_pen_pct": "ops.heavy_pen_pct",
+    "heavy_fleet_gwh": "ops.heavy_vehicle_gwh",
+    "heavy_station_gwh": "ops.heavy_station_gwh",
+    "heavy_repl_gwh": "mfg.repl_gwh_heavy",
+    "heavy_life_yrs": "ops.heavy_battery_life",
+    "heavy_repl_cycle": "ops.heavy_repl_cycle",
+    "price_swap_kwh": "ops.heavy_user_price",
+    "energy_unit_kwh": "ops.energy_unit_price",
+}
+# 重卡全成本 TCO：六字段 × 两个持有期（N1＝模型电池寿命 / N2＝重卡更新周期），
+# 命名完全规则，故用循环登记，避免 12 行手抄出错。
+for _f in ("swap_wan", "swap_kwh", "lng_wan", "lng_kwh", "diesel_wan", "diesel_kwh"):
+    PLACEHOLDER_MAP[f"tco_{_f}"] = f"tco.{_f}"
+    PLACEHOLDER_MAP[f"tco_{_f}_9"] = f"tco.{_f}_9"
+
+# 与 templates/sandbox.js 的渲染正则保持同一形态（小写字母开头 + 数字/下划线）。
+# 生成期用它扫 MD，把"模板里用了但程序没给"的键挡在构建阶段，而不是留到页面上 [待补]。
+_PH_RE = re.compile(r"\{([a-z_][a-z0-9_]*)\}")
+
+PLACEHOLDER_KEYS = frozenset(PLACEHOLDER_MAP)
 
 
 def _r(x, d: int = 1):
@@ -60,108 +119,144 @@ def _r(x, d: int = 1):
     return round(v, d)
 
 
-def _pct(num, den, d: int = 2):
-    if not num or not den:
-        return None
-    try:
-        return round(float(num) / float(den) * 100.0, d)
-    except (TypeError, ValueError, ZeroDivisionError):
-        return None
+# ─────────────────────────────────────────── md 解析
+def load_md(path: Path = MD_PATH) -> dict:
+    """解析 narrative/沙盘结论区.md：
+
+      # 顶部结论   —— 结论写在最前，空行分段
+      # 结论卡片   —— 下用 ## 分段：业绩／估值／卡位／ROI／重点
+      # 定性逻辑   —— 下用 ## 分段为三支柱
+      # 口径与信源 —— 逐条口径说明与外链
+
+    占位符 {key} 由 `build_vals` 算出的 vals 填（浏览器端由 JS 用同一套正则替换）。
+    """
+    if not path.exists():
+        raise SystemExit(f"结论区内容源不存在：{path}")
+    text = path.read_text("utf-8")
+    parts = re.split(r"^#\s+", text, flags=re.M)
+    tmpl, cards, narrative, notes = "", [], [], []
+    for part in parts[1:]:
+        lines = part.split("\n")
+        title = lines[0].strip()
+        body = "\n".join(lines[1:]).strip()
+        if title == "顶部结论":
+            tmpl = body
+        elif title == "结论卡片":
+            for s in re.split(r"^##\s+", body, flags=re.M)[1:]:
+                sl = s.split("\n")
+                cards.append({"title": sl[0].strip(), "body": "\n".join(sl[1:]).strip()})
+        elif title == "定性逻辑":
+            for s in re.split(r"^##\s+", body, flags=re.M)[1:]:
+                sl = s.split("\n")
+                narrative.append({"title": sl[0].strip(), "body": "\n".join(sl[1:]).strip()})
+        elif title == "口径与信源":
+            notes = [ln.strip() for ln in body.split("\n") if ln.strip()]
+    return {"tmpl": tmpl, "cards": cards, "narrative": narrative, "notes": notes}
 
 
+# ─────────────────────────────────────────── 校验
+def check_map() -> None:
+    """PLACEHOLDER_MAP 的**值**必须全部存在于 `lab.METRICS`（生成期硬失败）。
+
+    为什么必须硬失败：映射写错一个 key，`read_metrics` 会安静地返回 NaN，
+    页面上就是一个 [待补]——而它看起来和"这个数今天算不出来"一模一样。
+    **方向反过来也查**：程序算了却没人用的键，说明两侧已经漂移。
+    """
+    missing = sorted({k for k in PLACEHOLDER_MAP.values() if k not in METRIC_BY_KEY})
+    if missing:
+        raise SystemExit(
+            "✗ PLACEHOLDER_MAP 指向了 lab.METRICS 里不存在的 key："
+            + "、".join(missing)
+            + "\n  请在 src/lab.py 的 METRICS 里登记该指标，或修正映射。"
+        )
+
+
+def check_placeholders(md: dict) -> None:
+    """MD 占位符 ⊆ PLACEHOLDER_KEYS 的机械校验（缺一个就终止生成）。
+
+    为什么必须硬失败：静默 [待补] 等于"报告里出现一个说不清来源的数"，
+    而这类数一旦被引用进决策，事后极难追回。宁可生成失败，也不出半成品。
+    """
+    used: set[str] = set(_PH_RE.findall(md.get("tmpl", "")))
+    for card in md.get("cards", []):
+        used |= set(_PH_RE.findall(card.get("title", "")))
+        used |= set(_PH_RE.findall(card.get("body", "")))
+    for sec in md.get("narrative", []):
+        used |= set(_PH_RE.findall(sec.get("body", "")))
+    for ln in md.get("notes", []):
+        used |= set(_PH_RE.findall(ln))
+    missing = used - PLACEHOLDER_KEYS
+    if missing:
+        raise SystemExit(
+            "✗ 沙盘结论区模板引用了程序不认识的占位符："
+            + "、".join(sorted(missing))
+            + "\n  请在 src/verdict.py 的 PLACEHOLDER_MAP 里补上对应的 METRICS key，"
+              "或改 narrative/沙盘结论区.md 的写法。"
+        )
+    # 方向反过来也要查一次：映射了却没人用的键，说明 MD 与程序已经漂移
+    # （例如某个数被从文案里删掉了，但数值侧还在算它）。
+    unused = PLACEHOLDER_KEYS - used
+    if unused:
+        print("  · 结论区模板未用到的数据键：" + "、".join(sorted(unused)))
+
+
+# ─────────────────────────────────────────── 取数
 def build_vals(snap, cfg: dict) -> dict:
     """结论区全部占位符的取值。生成期与 Pyodide 复用同一函数。
 
-    取不到的键一律 None——前端渲染成 [待补]，而不是编一个数填上去。
+    **全部走 `read_metrics`**——本函数内不允许出现 `snap.xxx` 或 `cfg[...]` 的直读，
+    否则结论区就又变回"第三套数值源"（一页纸与章取不到同一个数）。
+    精度取 `Metric.decimals`，所以小数位也只有一个家。
     """
-    mv = read_metrics(snap)
-
-    def g(key: str):
-        return mv.get(key)
-
-    fin = cfg.get("finance") or {}
-    meta = cfg.get("meta") or {}
-    veh_heavy_cfg = (cfg.get("vehicles") or {}).get("heavy") or {}
-
-    # —— 业绩 ——
-    raw_ops = (g("ops.veh_commercial") or 0) + (g("ops.veh_passenger_ops") or 0)
-    veh_ops = _r(raw_ops, 1)
-    mkt = operating_market_total(cfg)
-    veh_mkt = _r(mkt, 1)
-    repl_gwh = g("mfg.repl_gwh")
-    # 2026E 出货分母在 [financial_2026e]（不是 [finance]），别写错段名
-    shipments = (cfg.get("financial_2026e") or {}).get("power_battery_shipments_gwh")
-
-    # —— 估值：倍数与持股是**可调 driver**，必须从传入的 cfg 现读，不能写死 ——
-    op_value = g("swap.operating_value")
-
-    # —— 重卡 ——
-    heavy_life = g("ops.heavy_battery_life")
-    heavy_stock = veh_heavy_cfg.get("stock_wan")
-
-    he = getattr(snap.swap_business, "heavy_economics", None)
-    n1 = getattr(he, "n1", None)
-    n2 = getattr(he, "n2", None)
-
-    def _tco(row, prefix: str) -> dict:
-        if not row:
-            return {k: None for k in (
-                f"tco_swap_wan{prefix}", f"tco_swap_kwh{prefix}",
-                f"tco_lng_wan{prefix}", f"tco_lng_kwh{prefix}",
-                f"tco_diesel_wan{prefix}", f"tco_diesel_kwh{prefix}")}
-        return {
-            f"tco_swap_wan{prefix}": _r(row.swap_wan, 1),
-            f"tco_swap_kwh{prefix}": _r(row.swap_kwh, 3),
-            f"tco_lng_wan{prefix}": _r(row.lng_wan, 1),
-            f"tco_lng_kwh{prefix}": _r(row.lng_kwh, 3),
-            f"tco_diesel_wan{prefix}": _r(row.diesel_wan, 1),
-            f"tco_diesel_kwh{prefix}": _r(row.diesel_kwh, 3),
-        }
-
-    # REIT 回笼倍数：把已算好的快照喂进去，避免 capital_cycle 内部再建一次模型
-    reit_mult = None
-    try:
-        from capital_cycle import reit_recycle_multiple
-        reit_mult = reit_recycle_multiple(
-            cfg, snap.scale, snap.capex, snap.swap_business, snap.ledger
-        )
-    except Exception:  # noqa: BLE001 —— 结论区不能因为一个派生数失败就整块空白
-        reit_mult = None
-
-    vals = {
-        "target_year": meta.get("target_year"),
-        "veh_ops": veh_ops,
-        "veh_mkt": veh_mkt,
-        "share": _pct(raw_ops, mkt),
-        "repl_gwh": _r(repl_gwh, 1),
-        "repl_share_pct": _pct(repl_gwh, shipments, 1),
-        "dist_cash": _r(g("swap.dist_cash"), 1),
-        "ebitda": _r(g("swap.ebitda"), 1),
-        "mult": _r(fin.get("swap_ev_ebitda"), 1),
-        "own_pct": _pct(fin.get("construction_ownership"), 1.0, 1),
-        "mktcap": _r(op_value / 10000, 3) if op_value is not None else None,
-        "energy": _r(g("ops.annual_energy"), 1),
-        "elec_share": _r(g("mk.share_elec_latest"), 3),
-        "batt_station": _r(g("ops.battery_station"), 0),
-        "storage_share": _r(g("mk.share_storage_2025"), 3),
-        "stations": _r(g("scale.stations_total"), 0),
-        "peak_call": _r(g("capex.peak_call"), 1),
-        "reit_mult": reit_mult,
-        "veh_heavy": _r(g("ops.veh_heavy"), 1),
-        "heavy_stock_wan": _r(heavy_stock, 0),
-        "heavy_pen_pct": _pct(g("ops.veh_heavy"), heavy_stock),
-        "heavy_fleet_gwh": _r(g("ops.heavy_vehicle_gwh"), 1),
-        "heavy_station_gwh": _r(g("ops.heavy_station_gwh"), 1),
-        "heavy_repl_gwh": _r(g("mfg.repl_gwh_heavy"), 1),
-        "heavy_life_yrs": _r(heavy_life, 2),
-        "heavy_repl_cycle": _r(veh_heavy_cfg.get("replacement_cycle_years"), 1),
-        "price_swap_kwh": _r(g("ops.heavy_user_price"), 3),
-        "energy_unit_kwh": _r(
-            float((cfg.get("swap_business") or {}).get("valley_power_price_rmb_kwh", 0.0))
-            + float((cfg.get("swap_business") or {}).get("grid_spread_rmb_kwh", 0.0)),
-            3,
-        ),
-    }
-    vals.update(_tco(n1, ""))       # N1 持有期 = 模型算出的重卡电池寿命
-    vals.update(_tco(n2, "_9"))     # N2 持有期 = 重卡更新周期（9 年）
+    mv = read_metrics(snap, cfg)
+    vals: dict[str, object] = {}
+    for ph, mkey in PLACEHOLDER_MAP.items():
+        m = METRIC_BY_KEY.get(mkey)
+        vals[ph] = _r(mv.get(mkey), m.decimals if m else 1)
     return vals
+
+
+# ─────────────────────────────────────────── 组装（与 onepager.payload 同构）
+def payload(snap=None, cfg: dict | None = None) -> dict:
+    """给沙盘 HTML 用的结论区数据包（模板 + 基线精确值）。
+
+    与 `onepager.payload()` 同构：读自己的 md → 取数 → 返回数据包。
+    不传 snap/cfg 时自己跑一次模型（自检用），但沙盘里应当传入已有的基线
+    snapshot，避免为同一个数多跑一次 `build_model`。
+    """
+    md = load_md()
+    check_map()
+    check_placeholders(md)
+    if snap is None or cfg is None:
+        from config_loader import load_config
+        from model import build_model
+        cfg = load_config()
+        snap = build_model(cfg)
+    return {**md, "vals": build_vals(snap, cfg)}
+
+
+# ─────────────────────────────────────────── 自检
+def main() -> None:
+    md = load_md()
+    check_map()
+    check_placeholders(md)
+    print("═" * 60)
+    print("结论区 · 自检（内容源 narrative/沙盘结论区.md）")
+    print("═" * 60)
+    print(f"结论分段 {len([p for p in md['tmpl'].split(chr(10)+chr(10)) if p.strip()])}　"
+          f"卡片 {len(md['cards'])} 张　定性支柱 {len(md['narrative'])} 段　"
+          f"口径与信源 {len(md['notes'])} 条")
+    print("✓ 占位符全部在 PLACEHOLDER_MAP 里有对应的 METRICS key")
+    # 跑一次模型取基线值，验证**每个占位符都真的取到了数**。
+    # 为什么要这一行：占位符写错会被拦截，但"映射对了、指标却算不出来"只会安静地
+    # 变成页面上的 [待补]——它看起来和"这个数今天算不出来"一模一样，事后极难追。
+    vals = payload()["vals"]
+    missing = sorted(k for k, v in vals.items() if v is None)
+    print(f"  占位符 {len(vals)} 个，取不到值 {len(missing)} 个"
+          + (f"：{'、'.join(missing)}" if missing else "　✓ 全部取到，页面不会出 [待补]"))
+    if missing:
+        raise SystemExit(1)
+
+
+if __name__ == "__main__":
+    main()

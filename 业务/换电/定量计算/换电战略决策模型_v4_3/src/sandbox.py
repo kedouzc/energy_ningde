@@ -87,8 +87,8 @@ from lab import (  # noqa: E402
 )
 from model import build_model  # noqa: E402
 from verdict import (  # noqa: E402
-    PLACEHOLDER_KEYS as _PLACEHOLDER_KEYS,
     build_vals,
+    payload as verdict_payload,
 )
 
 OUT = ROOT / "outputs" / "换电沙盘_v4.3.html"
@@ -98,6 +98,104 @@ OUT = ROOT / "outputs" / "换电沙盘_v4.3.html"
 # 改面板只改那个 toml，不用动本文件（打包层）。派生测算（分母 / REIT 倍数）
 # 住在它们本来的计算程序里（scale.py / capital_cycle.py），本文件只 import 取数。
 _DASH = load_config(ROOT / "configs" / "sandbox_dashboard.toml")
+
+
+# ── 报告骨架：节 ↔ 读数索引表（configs/report_map.toml）────────────────
+# 主语是"读数池"，不是"章"：三个视图（章 / 卡 / 一页纸）都从 lab.METRICS 挑数，
+# 彼此是重排关系。本文件只读它、校验它，不复制它的任何一条。
+def _load_report_map() -> dict:
+    """读索引表并做生成期机械校验（任一失败即终止）。"""
+    p = ROOT / "configs" / "report_map.toml"
+    if not p.exists():
+        return {"chapter": [], "card": []}
+    m = load_config(p)
+    chapters = m.get("chapter") or []
+    cards = m.get("card") or []
+    gates = m.get("gate") or []
+    nos = {c.get("no") for c in chapters}
+
+    def _bad(msg: str):
+        raise SystemExit("✗ report_map.toml：" + msg)
+
+    # ① 定量收口与定性收口至少要有一样（纯定性章允许定量收口为空）
+    # ② 定量收口上限 2 个（多了等于没收口）
+    for c in chapters:
+        no, owns = c.get("no"), list(c.get("owns") or [])
+        if not owns and not (c.get("qual") or "").strip():
+            _bad(f"第 {no} 节既没有定量收口也没有定性收口——这章就是散文")
+        if len(owns) > 2:
+            _bad(f"第 {no} 节定量收口 {len(owns)} 个，上限 2 个（多了等于没收口）")
+        for k in owns + list(c.get("uses") or []) + list(c.get("support") or []):
+            if k not in METRIC_BY_KEY:
+                _bad(f"第 {no} 节引用了不存在的指标：{k}")
+
+    # ③ **同一个 key 只能有一个 owns**——这正是"一件事只能有一个家"在数值层的落地。
+    #    跨章引用（uses）允许；两章都主张同一个数会被拦住。
+    owner: dict[str, int] = {}
+    for c in chapters:
+        for k in c.get("owns") or []:
+            if k in owner:
+                _bad(f"指标 {k} 被第 {owner[k]} 节与第 {c.get('no')} 节同时主张"
+                     f"（只能有一个 owns；另一个应改为 uses）")
+            owner[k] = c.get("no")
+
+    # ④ 门的形状：定量门必须有 key，定性门必须有文字
+    for g in gates:
+        if g.get("chapter") not in nos:
+            _bad(f"门「{g.get('name')}」挂在不存在的章上：{g.get('chapter')}")
+        if not g.get("closing") and not (g.get("qual") or "").strip():
+            _bad(f"门「{g.get('name')}」既没有定量收口也没有定性说明")
+        if g.get("closing") and g["closing"] not in METRIC_BY_KEY:
+            _bad(f"门「{g.get('name')}」引用了不存在的指标：{g['closing']}")
+
+    for c in cards:
+        t = c.get("title")
+        if c.get("chapter") not in nos:
+            _bad(f"卡片「{t}」指向了不存在的章：{c.get('chapter')}")
+        for k in c.get("closing") or []:
+            if k not in METRIC_BY_KEY:
+                _bad(f"卡片「{t}」引用了不存在的指标：{k}")
+    return {"chapter": chapters, "card": cards, "gate": gates}
+
+
+REPORT_MAP = _load_report_map()
+
+
+def _metric_cell(k: str) -> dict | None:
+    m = METRIC_BY_KEY.get(k)
+    return None if m is None else {"key": m.key, "label": m.label,
+                                   "unit": m.unit, "decimals": m.decimals}
+
+
+def _chapter_payload() -> dict:
+    """八章骨架 + 两张反查表（卡→章 / 读数→章），供 A 类跳转使用。
+
+    跳转为什么要反查表而不是写死：卡片与一页纸行**各自**知道自己的读数，
+    章号由索引表决定——两边一乘就是跳转目标，不需要任何一处手写"第几章"。
+    """
+    chapters, metric_jump = [], {}
+    for c in REPORT_MAP["chapter"]:
+        no = c.get("no")
+        owns = [x for k in (c.get("owns") or []) if (x := _metric_cell(k))]
+        # 跳转落点：主张它的那一章优先；纯引用的章不抢（否则同一个数会跳到两处）
+        for cell in owns:
+            metric_jump.setdefault(cell["key"], no)
+        for k in c.get("uses") or []:
+            metric_jump.setdefault(k, no)
+        gates = [{"name": g.get("name", ""),
+                  "closing": _metric_cell(g["closing"]) if g.get("closing") else None,
+                  "qual": g.get("qual", ""), "note": g.get("note", "")}
+                 for g in REPORT_MAP["gate"] if g.get("chapter") == no]
+        chapters.append({
+            "no": no, "title": c.get("title", ""), "answers": c.get("answers", ""),
+            "owns": owns,
+            "uses": [x for k in (c.get("uses") or []) if (x := _metric_cell(k))],
+            "qual": c.get("qual", ""),
+            "support": [x for k in (c.get("support") or []) if (x := _metric_cell(k))],
+            "gates": gates,
+        })
+    card_jump = {c.get("title"): c.get("chapter") for c in REPORT_MAP["card"]}
+    return {"chapters": chapters, "cardJump": card_jump, "metricJump": metric_jump}
 KEY_METRIC_KEYS = _DASH["key_metrics"]["keys"]
 GATES = [(g["key"], g["op"], g["thr"], g["why"]) for g in _DASH["gates"]["item"]]
 TOP_N = _DASH.get("top_n", 14)
@@ -198,7 +296,7 @@ def build_data(config: dict, base_values: dict, step: float) -> dict:
         kw = {} if tier == "中性" else apply_scenario(
             cfg2, load_drivers(cfg2), tier, check_neutral=False)
         snap2 = build_model(cfg2, **kw)
-        mv = read_metrics(snap2)
+        mv = read_metrics(snap2, cfg2)
         tier_metric_vals[tier] = {m.key: mv.get(m.key) for m in _embed_metrics()}
         tier_verdict_vals[tier] = build_vals(snap2, cfg2)
 
@@ -407,93 +505,15 @@ def build_data(config: dict, base_values: dict, step: float) -> dict:
             "tiers": list(SCENARIO_ORDER), "step": step,
             "tierValues": tier_metric_vals,
             "tierVals": tier_verdict_vals,
-            "verdict": _build_verdict()}
-    # 注：verdict.baseVals 由 main() 用基线 snapshot 补上（build_data 只拿到指标字典，
-    # 拿不到 snapshot；不为了它再跑一次模型）。
+            **_chapter_payload()}
+    # 注：结论区（①顶部结论 + ②定性逻辑）**不在本函数里**——由 verdict.payload() 在
+    # main() 里装配。本文件是打包层，不该认识"卡片/支柱/口径"这些区块内部概念
+    # （见 DECISIONS「2026-09-11」：组装器只知道"有一堆区块要拼"）。
 
 
-# ── 顶部结论区（①）+ 定性逻辑区（②）：文案住 MD，数值住程序 ──
-# 定性描述（论证文案 / 三支柱叙述）全部外置到 narrative/沙盘结论区.md，
-# 用户改文案不必动任何 .py；{占位符} 由 verdict.build_vals 算出的 vals 填。
-import re as _re
-from pathlib import Path as _Path
-
-def _load_sandbox_md() -> dict:
-    """读取 narrative/沙盘结论区.md：
-      # 顶部结论   —— 结论写在最前，空行分段
-      # 结论卡片   —— 下用 ## 分段：业绩／估值／卡位／ROI／重点（渲染成结论区下方卡片）
-      # 定性逻辑   —— 下用 ## 分段为三支柱
-      # 口径与信源 —— 逐条口径说明与外链（渲染成结论区下方小字，数看得见、口径也看得见）
-    占位符 {key} 由 verdict.build_vals 的 vals 填。"""
-    p = _Path(__file__).resolve().parent.parent / "narrative" / "沙盘结论区.md"
-    text = p.read_text("utf-8")
-    parts = _re.split(r"^#\s+", text, flags=_re.M)
-    verdict_tmpl, cards, narrative, notes = "", [], [], []
-    for part in parts[1:]:
-        lines = part.split("\n")
-        title = lines[0].strip()
-        body = "\n".join(lines[1:]).strip()
-        if title == "顶部结论":
-            verdict_tmpl = body
-        elif title == "结论卡片":
-            for s in _re.split(r"^##\s+", body, flags=_re.M)[1:]:
-                sl = s.split("\n")
-                cards.append({"title": sl[0].strip(), "body": "\n".join(sl[1:]).strip()})
-        elif title == "定性逻辑":
-            for s in _re.split(r"^##\s+", body, flags=_re.M)[1:]:
-                sl = s.split("\n")
-                narrative.append({"title": sl[0].strip(), "body": "\n".join(sl[1:]).strip()})
-        elif title == "口径与信源":
-            notes = [ln.strip() for ln in body.split("\n") if ln.strip()]
-    return {"verdict_tmpl": verdict_tmpl, "cards": cards,
-            "narrative": narrative, "notes": notes}
-
-_SANDBOX_MD = _load_sandbox_md()
-
-
-# 结论区的取值算法**只有 verdict.build_vals 一份**（生成期三档 + 浏览器 Pyodide 共用）；
-# 本文件（打包层）不再自己拼 vals，只负责把三档/基线的值塞进 bundle。
-
-# 占位符正则：与 templates/sandbox.js 的渲染正则保持同一形态（小写字母开头 + 数字/下划线）。
-# 生成期用它扫 MD，把"模板里用了但程序没给"的键挡在构建阶段，而不是留到页面上 [待补]。
-_PH_RE = _re.compile(r"\{([a-z_][a-z0-9_]*)\}")
-
-
-def _check_placeholders(verdict: dict) -> None:
-    """MD 占位符 ⊆ PLACEHOLDER_KEYS 的机械校验（缺一个就终止生成）。
-
-    为什么必须硬失败：静默 [待补] 等于"报告里出现一个说不清来源的数"，
-    而这类数一旦被引用进决策，事后极难追回。宁可生成失败，也不出半成品。
-    """
-    used: set[str] = set(_PH_RE.findall(verdict.get("tmpl", "")))
-    for card in verdict.get("cards", []):
-        used |= set(_PH_RE.findall(card.get("title", "")))
-        used |= set(_PH_RE.findall(card.get("body", "")))
-    for sec in verdict.get("narrative", []):
-        used |= set(_PH_RE.findall(sec.get("body", "")))
-    for ln in verdict.get("notes", []):
-        used |= set(_PH_RE.findall(ln))
-    missing = used - _PLACEHOLDER_KEYS
-    if missing:
-        raise SystemExit(
-            "✗ 沙盘结论区模板引用了程序不认识的占位符："
-            + "、".join(sorted(missing))
-            + "\n  请在 src/verdict.py 的 PLACEHOLDER_KEYS 与 build_vals 里补齐，"
-              "或改 narrative/沙盘结论区.md 的写法。"
-        )
-    unused = _PLACEHOLDER_KEYS - used
-    if unused:
-        # 只是提醒，不阻断：有些键是给三支柱以外的地方备用的
-        print("  · 结论区模板未用到的数据键：" + "、".join(sorted(unused)))
-
-
-def _build_verdict() -> dict:
-    """顶部结论区：只装模板与文案，数值全部交给 verdict.build_vals。"""
-    return {"tmpl": _SANDBOX_MD["verdict_tmpl"],
-            "cards": _SANDBOX_MD["cards"],
-            "vals": {},            # 由 main() 用基线 snapshot 填（baseVals）
-            "narrative": _SANDBOX_MD["narrative"],
-            "notes": _SANDBOX_MD["notes"]}
+# ── 结论区（①顶部结论 + ②定性逻辑）已整体搬进 src/verdict.py ──
+# 判据：**改结论区的段落划分，需不需要碰 sandbox.py？** 需要 → 就没拆干净。
+# 现在改文案与版面只改 narrative/沙盘结论区.md，本文件不认识"卡片/支柱/口径"。
 
 
 def _b64(obj) -> str:
@@ -579,12 +599,12 @@ def main() -> None:
     config = load_config()
     step = sensitivity_step(config)
     base_snap = rerun(config)
-    base_values = read_metrics(base_snap)
+    base_values = read_metrics(base_snap, config)
     data = build_data(config, base_values, step)
-    # 结论区基线值：用**同一个基线 snapshot** 走 verdict.build_vals，与三档、与浏览器
-    # 里 Pyodide 重跑完全同一套算法（离线兜底时页面显示的就是这套精确值）。
-    data["verdict"]["baseVals"] = build_vals(base_snap, config)
-    _check_placeholders(data["verdict"])
+    # 结论区（①顶部结论 + ②定性逻辑）：与 onepager 同构——verdict.payload() 自己读
+    # narrative/沙盘结论区.md、自己从 METRICS 取数（含机械校验），本文件只负责塞进
+    # 数据包。用的是**同一个基线 snapshot**，与三档、与浏览器 Pyodide 重跑同一套算法。
+    data["verdict"] = verdict_payload(base_snap, config)
     # 一页纸（三情景精确实跑值 + 四列判断）嵌入沙盘，免得在两个文件间跳读。
     # 快照式：本表是 Python 实跑的精确值，与沙盘的弹性插值估算不同源，页面里必须标注清楚。
     try:

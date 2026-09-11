@@ -36,7 +36,7 @@ def main() -> None:
     # 生成"参数与血缘"工作簿（用户可读的敏感性分析；裸 CSV 不可读，不在此产出）
     try:
         from lab import cmd_workbook, rerun, read_metrics
-        base_values = read_metrics(rerun(config))
+        base_values = read_metrics(rerun(config), config)
         cmd_workbook(config, base_values)
         print("参数与血缘工作簿: outputs/换电模型_参数与血缘_v4.3.xlsx")
     except Exception as exc:  # 敏感性/Excel 生成失败不应阻断主报告

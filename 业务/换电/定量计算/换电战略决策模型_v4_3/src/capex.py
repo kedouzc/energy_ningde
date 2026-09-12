@@ -727,6 +727,17 @@ def build_capex(
             for year in sorted(replacement_net)
             if replacement_net[year]
         },
+        steady_state_replacement_gwh_heavy=sum(
+            v for k, v in (steady_state_replacement_gwh_by_pool or {}).items()
+            if k.startswith("qiji75")
+        ),
+        repl_share_of_2026e_pct=(
+            steady_state_replacement_gwh
+            / float((config.get("financial_2026e") or {}).get("power_battery_shipments_gwh"))
+            * 100.0
+            if (config.get("financial_2026e") or {}).get("power_battery_shipments_gwh")
+            else float("nan")
+        ),
         station_targets=scale.target_station_demand.copy(),
         opening_station_stock=opening_stations.copy(),
         station_schedules_by_pool={

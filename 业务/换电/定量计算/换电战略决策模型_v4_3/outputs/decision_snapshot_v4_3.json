@@ -1403,7 +1403,25 @@
       "catl_swap_gwh": 0.81,
       "swap_frequency_per_day": 1.25,
       "note": "城配存量层·高不确定·单列不并入 headline 增量（类比 _archive v2 城配C 存量支线）"
-    }
+    },
+    "veh_heavy_wan": 80.3,
+    "veh_city_wan": 85.5,
+    "veh_commercial_wan": 165.8,
+    "veh_passenger_ops_wan": 84.0,
+    "veh_private_wan": 144.4,
+    "veh_ops_total_wan": 249.8,
+    "veh_total_wan": 394.20000000000005,
+    "swap_veh_2030_wan": 116.75069696969697,
+    "charge_veh_2030_wan": 856.6243075757575,
+    "total_veh_2030_wan": 973.3750045454544,
+    "swap_gwh_2030": 144.8209403030303,
+    "charge_gwh_2030": 549.9950372424242,
+    "total_gwh_2030": 694.8159775454545,
+    "market_total_wan": 2703.030303030303,
+    "share_of_market_pct": 9.241479820627802,
+    "heavy_pen_pct": 8.922222222222222,
+    "stations_total": 14351.0,
+    "daily_swaps_wan": 387.45
   },
   "capex": {
     "annual": [
@@ -2387,7 +2405,9 @@
       "choco25_passenger": 14.672028242365055,
       "choco35_city": 15.149531250000006
     },
-    "steady_state_replacement_gwh": 141.53777648455255
+    "steady_state_replacement_gwh": 141.53777648455255,
+    "steady_state_replacement_gwh_heavy": 111.7162169921875,
+    "repl_share_of_2026e_pct": 21.977915603191388
   },
   "swap_business": {
     "annual_energy_yi_kwh": 2253.56236,
@@ -2499,6 +2519,12 @@
     "insurance_yi": 7.91442573052143,
     "pooling_maintenance_yi": 7.184105730521429,
     "warehouse_logistics_yi": 1.7960264326303572,
+    "station_battery_gwh": 34.665774,
+    "battery_stock_total_gwh": 608.8225195357143,
+    "swap_gwh_cumulative_flow": 574.0132965530304,
+    "heavy_vehicle_gwh": 376.99774553571433,
+    "heavy_station_gwh": 27.340848,
+    "energy_unit_price_rmb_kwh": 0.7,
     "pool_operations": {
       "qiji75_short": {
         "annual_swaps_yi": 0.4998,
@@ -2827,6 +2853,12 @@
       "insurance_yi": 7.91442573052143,
       "pooling_maintenance_yi": 7.184105730521429,
       "warehouse_logistics_yi": 1.7960264326303572,
+      "station_battery_gwh": 34.665774,
+      "battery_stock_total_gwh": 608.8225195357143,
+      "swap_gwh_cumulative_flow": 574.0132965530304,
+      "heavy_vehicle_gwh": 376.99774553571433,
+      "heavy_station_gwh": 27.340848,
+      "energy_unit_price_rmb_kwh": 0.7,
       "pool_operations": {
         "qiji75_short": {
           "annual_swaps_yi": 0.4998,
@@ -3042,7 +3074,8 @@
     "attributable_swap_value_to_current_group_market_cap": 0.4851845859610788,
     "full_gap_to_current_group_market_cap": 0.48518458596107866,
     "power_value_cagr_2026_to_2030": 0.11263813983301763,
-    "value_bridge_error_yi": 0.0
+    "value_bridge_error_yi": 0.0,
+    "combined_increment_value_yi": 22404.76422081273
   },
   "light_asset": [
     {
@@ -3905,5 +3938,8 @@
       "swap_energy_share_of_society_electricity_latest": 0.021735,
       "swap_energy_share_of_society_electricity_2030": 0.016693
     }
-  }
+  },
+  "funding_peak_cash_to_cfo": 0.11443825844088956,
+  "funding_closing_liquidity": 8357.64727745224,
+  "reit_multiple": 6.05
 }

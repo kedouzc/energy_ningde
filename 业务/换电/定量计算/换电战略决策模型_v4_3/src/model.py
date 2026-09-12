@@ -14,10 +14,19 @@ from typing import Callable
 
 from business import build_2026_baseline, build_manufacturing_cases, build_swap_business
 from capex import build_capex
-from capital_cycle import build_light_asset_scenarios, strategic_exposure_total
+from capital_cycle import (  # noqa: E402
+    build_light_asset_scenarios,
+    reit_recycle_multiple,
+    strategic_exposure_total,
+)
+from group_constraints import (  # noqa: E402
+    build_capital_commitments,
+    build_funding_envelope,
+    funding_closing_liquidity,
+    funding_peak_cash_to_cfo,
+)
 from consolidation import build_consolidated_ledger
 from decision import build_decision_memos
-from group_constraints import build_capital_commitments, build_funding_envelope
 from mna import get_sourcing_adjustment
 from scale import build_scale
 from schemas import ModelSnapshot
@@ -118,6 +127,11 @@ def _build_core(
         funding=funding,
         capital_commitments=commitments,
         strategic_exposure_yi=exposure,
+        # 2026-09-12：资金包络与轻资产回笼的派生，计算逻辑分别在
+        # group_constraints / capital_cycle，这里只做装配（字典里不出现公式）
+        funding_peak_cash_to_cfo=funding_peak_cash_to_cfo(funding),
+        funding_closing_liquidity=funding_closing_liquidity(funding),
+        reit_multiple=reit_recycle_multiple(config, scale, capex, swap, ledger),
         memos=memos,
         sources=config["sources"].copy(),
         market_share=market_share,

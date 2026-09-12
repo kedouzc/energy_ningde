@@ -10,7 +10,7 @@ Excel 里这件事由"追踪引用单元格/从属单元格"解决；本模块�
 血缘关系因此不是人工登记的注释，而是每次跑出来的真值，模型改版不会失效。
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-一、数据流：先看懂这个，再看任何一行代码
+一、数据流与分工：数字在哪、逻辑在哪、本文件在哪
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     configs/base.toml  ──►  src/model.py  ──►  outputs/（报告·决策树·一页纸·血缘表）
@@ -28,6 +28,13 @@ Excel 里这件事由"追踪引用单元格/从属单元格"解决；本模块�
 所以：**调参数、改情景档位、加减不可调项 —— 全部去 base.toml，不要动 Python。**
 本文件里剩下的数字只是"怎么量"的方法参数（微扰幅度 step），而且它**也已经提到
 base.toml 的 [sensitivity] 段**了。
+
+**lab.py 的边界**：只负责「客观发现谁影响大」（数值法实测）；「是否把它做成情景轴、
+档位取多少、配什么外部信源」是人的主观判断，lab 不代劳。它的「漏网的轴」审计（弹性大却没进轴）
+只是提醒人去拍板，不是自动加轴。
+（另：`lab.py metrics` 是**输出字典查询器**——列出模型算出了哪些数、每个数在哪个程序
+ `src/<source>.py` 算出、写错中文名时给最像的 3 个候选；结果注册表 `METRICS`
+ 由 `configs/metrics.toml` 加载，lab.py 只当加载器，不写任何取数公式。）
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 二、两个"幅度"千万别搞混（最容易踩的坑）
@@ -56,6 +63,7 @@ base.toml 的 [sensitivity] 段**了。
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     python src/run.py                     ★一键出全部（报告+血缘+决策树+一页纸）
+    python src/lab.py metrics            查模型算出了哪些数、每个数在哪个程序算出（输出字典）
     python src/lab.py scan                谁最能撬动换电增量价值（看【表 0】【表 1】）
     python src/lab.py workbook            生成 outputs/换电模型_参数与血缘_v4.3.xlsx
     python src/lab.py impact <参数> +10%  改这一个参数，看所有结果怎么动
@@ -63,6 +71,10 @@ base.toml 的 [sensitivity] 段**了。
     python src/lab.py list                全部可调参数（值 + 为什么这么假设）
 
     scan / workbook 后可加 `--step 0.2` 临时换微扰幅度（不用改 base.toml）。
+
+输出约定：一律 UTF-8；每条命令都先打印“怎么用”再打印结果。
+`workbook` 产出的 Excel 含 01_假设参数、02_结果总表、03_敏感性矩阵、04_溯源、05_影响，
+对应用户熟悉的财务建模三表习惯。
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 四、弹性怎么读
@@ -75,23 +87,16 @@ base.toml 的 [sensitivity] 段**了。
      0.00 → 这个参数根本没进这条链，调它不影响该结果
 
 「总影响力」只取它对**最终投资指标** val.swap_increment（换电增量价值）的弹性，
-不做多项加总——理由见下方"口径修正"。
+不做多项加总——理由见下方"五、口径修正"。
 
-输出一律 UTF-8；所有列表先打印"怎么用"再打印结果。
+扫描方法：对 base.toml 的全部可调数值参数（当前约 200+ 个，随 [drivers] 轴增减）单独 +10%
+重跑，比对 37 个输出指标得弹性，全扫描约 1 秒（精确数量以 `lab.py list` 实跑打印为准，不硬编码）。
+**刻意不解析代码、不人工登记公式**：血缘是每次重跑出来的真值，模型改版后重跑即得新血缘，永不与代码脱钩。
 
-对每个可调参数单独 +10%，重跑 model._build_core 同一条计算链，比对全部输出指标得出弹性矩阵。
-刻意不解析代码、不人工登记公式，因此模型改版后重跑即得新血缘，永不与代码脱钩。
-实测 272 参数 × 37 指标全扫描约 1 秒。 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+五、四项关键口径修正（2026-09-08）
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-命令：workbook产出 outputs/换电模型_参数与血缘_v4.3.xlsx，
-含 01_假设参数、02_结果总表、03_敏感性矩阵、04_溯源、05_影响，
-对应用户熟悉的财务建模三表习惯。
-
-【分工（用户 2026-09-08 确认）】lab.py 只负责「客观发现谁影响大」（数值法实测）；
-「是否把它做成情景轴、档位取多少、配什么外部信源」是人的主观判断，lab 不代劳。
-lab 的「漏网的轴」审计（弹性大却没进轴）只是提醒人去拍板，不是自动加轴。
-
-【三项关键口径修正，2026-09-08】 
 1. 总影响力锚定在最终投资指标 val.swap_increment（换电增量价值合计），
 不再按「受影响指标个数/多个终端指标求和」加总，
 否则 rte 之类成本参数会顺着 电量→EBITDA→估值 链式传染、被虚高排名。 
@@ -110,6 +115,7 @@ lab 的「漏网的轴」审计（弹性大却没进轴）只是提醒人去拍�
 from __future__ import annotations
 
 import copy
+import difflib
 import fnmatch
 import inspect
 import re
@@ -357,7 +363,21 @@ def load_param_docs(path: Path = DEFAULT_CONFIG) -> dict[str, dict[str, str]]:
 
 
 # ══════════════════════════════════════════════════════════════════════
-# 三、指标注册表：要盯住哪些结果
+# 三、指标注册表：要盯住哪些结果（输出字典 configs/metrics.toml 的加载器）
+#
+# 数据流（2026-09-12 重构后）：
+#   计算程序（scale/capex/business/consolidation/group_constraints/capital_cycle）
+#     └─ 把结果算好、挂在快照的 dataclass 字段上（schemas.py）
+#   configs/metrics.toml（输出字典，纯声明、无公式）
+#     └─ 每条写 `at="scale.xxx"` 或 `at_cfg="meta.xxx"` ＋ `source="scale"`
+#   load_metrics()  ← 读 toml，逐条验证 at 路径在快照里找得到（审计①），建 METRICS
+#   read_metrics(snap, cfg)  ← 沿 at 路径取值，返回 {key: 数值}
+#   facts.build_facts(..., metrics_values=read_metrics(...))  ← 把数值灌进事实包
+#   叙述层（MD 的 {{中文名}}）← inject 经 resolve() 先译成中文名→内部 key→facts 取值
+#
+# 本文件**只做加载与取值**，不含任何"怎么算"的代码（计算都已下沉回各计算程序）。
+# 用户视角的取数：写中文名即可，resolve() 负责"中文名→key→容错"的语义寻址；
+# 找不到一律抛错并给 3 个最像的候选，绝不静默。source 字段让心算存疑时能直接定位程序。
 # ══════════════════════════════════════════════════════════════════════
 
 
@@ -372,6 +392,13 @@ class Metric:
     note＝口径说明：写清它是什么口径、与谁的区别（存量/流量、100%/归属、现值/名义），
     免得下游按自己的理解复用。
 
+    source＝**这个数在哪个程序里算出来的**（不是函数名，是模块文件名，如 scale / capex /
+    business / consolidation / group_constraints / capital_cycle / model / external）。
+    有了它，心算觉得不对时，直接 `python src/lab.py metrics 名字` 就能看到出处，
+    不用跳 README 去猜 `ops`/`swap`/`val`/`fund` 这些 key 前缀到底对应哪个程序。
+    `source` 由加载器从 configs/metrics.toml 的 `source` 字段读出；程序自动验证它对得上
+    （见 load_metrics 的审计），所以**不会写错**。
+
     needs_cfg=False 的量，getter 只收 snapshot；needs_cfg=True 的量（外部事实常量、
     跨模块派生）getter 收 (snapshot, cfg)，由 `read_metrics(snap, cfg)` 传入。**调用方
     必须传 cfg**，否则这些量为 NaN（而不是悄悄给一个错值）。
@@ -385,7 +412,7 @@ class Metric:
     def __init__(self, key: str, label: str, getter: Callable[..., float] | None = None,
                  decimals: int = 1, unit: str = "", group: str = "", note: str = "",
                  needs_cfg: bool = False, at: str = "", at_cfg: str = "",
-                 scale: float = 1.0):
+                 scale: float = 1.0, source: str = ""):
         if getter is None:
             if not (at or at_cfg):
                 raise ValueError(
@@ -394,6 +421,10 @@ class Metric:
         self.key = key
         self.label = label
         self.getter = getter
+        # 保留取值路径与出处：事实包与审计都要用（"这个数从哪儿来"要能说清）
+        self.at = at
+        self.at_cfg = at_cfg
+        self.source = source
         self.decimals = decimals
         self.unit = unit
         self.group = group
@@ -403,18 +434,6 @@ class Metric:
         # 两参 getter → TypeError → 安静地变成 NaN → 页面上就是 [待补]，
         # 看起来和"这个数今天算不出来"一模一样。**能机械判的就不要靠记得标。**
         self.needs_cfg = needs_cfg or len(inspect.signature(getter).parameters) >= 2
-
-
-def _daily_swaps_wan(s: ModelSnapshot) -> float:
-    return sum(s.scale.mature_daily_swaps.values()) / 1e4
-
-
-def _peak_cash_to_cfo(s: ModelSnapshot) -> float:
-    return max((row.swap_cash_to_cfo for row in s.funding), default=0.0)
-
-
-def _closing_liquidity(s: ModelSnapshot) -> float:
-    return s.funding[-1].closing_liquid_resources_before_uncommitted_strategy_yi if s.funding else 0.0
 
 
 # ── 存量口径 vs 流量口径（两个最容易混的口径，必须显式区分）──────────────
@@ -427,86 +446,10 @@ _PRIVATE = ("private",)                                # 私家车
 _ALL_VEHICLES = _COMMERCIAL + _PASSENGER_OPS + _PRIVATE
 
 
-def _stock_vehicles(keys: tuple[str, ...]) -> Callable[[ModelSnapshot], float]:
-    """终局覆盖车辆（存量口径，万辆）。"""
-    def get(s: ModelSnapshot) -> float:
-        return sum(s.scale.operating_stock_by_vehicle_wan.get(k, 0.0) for k in keys)
-    return get
-
-
-def _flow(field: str, keys: tuple[str, ...] | None = None,
-          year: int = 2030) -> Callable[[ModelSnapshot], float]:
-    """某年度出货量（流量口径）：车辆万辆 / 装车 GWh，取自 scale.rows。"""
-    def get(s: ModelSnapshot) -> float:
-        return sum(
-            getattr(row, field)
-            for row in s.scale.rows
-            if row.year == year and (keys is None or row.vehicle_key in keys)
-        )
-    return get
-
-
-def _station_battery_gwh(s: ModelSnapshot) -> float:
-    return sum(p.station_battery_gwh for p in s.swap_business.pool_operations.values())
-
-
-def _battery_stock_total(s: ModelSnapshot) -> float:
-    return s.swap_business.rent_vehicle_gwh + _station_battery_gwh(s)
-
-
-def _market_share(field: str, block: str, pct: bool = True) -> Callable[[ModelSnapshot], float]:
-    """从快照的 market_share 里取一个占比（分母是外部市场总量，已在 model.py 算好）。
-
-    分母（储能装机、全社会用电量）来自 config，model.py 已把它们算进
-    `market_share` —— 这里只做登记，不在 lab 里重算第二遍（避免第二个口径）。
-    pct=True 时返回百分数（便于展示），否则返回小数比值。
-    """
-
-    def get(s: ModelSnapshot) -> float:
-        raw = (s.market_share.get(block) or {}).get(field)
-        if raw is None:
-            return float("nan")
-        return float(raw) * 100.0 if pct else float(raw)
-
-    return get
-
-
-def _stations_total(s: ModelSnapshot) -> float:
-    return float(sum(s.scale.target_station_demand.values()))
-
-
-# 重卡池 = 骐骥 75#（短途 + 干线）。按前缀识别，与 business._heavy_pool_keys 同源口径。
-_HEAVY_POOL_PREFIX = "qiji75"
-
-
-def _repl_gwh(s: ModelSnapshot, heavy_only: bool = False) -> float:
-    """稳态年更新装机 GWh（车端 + 站内、分池；更新理论：Σ 池机队 GWh ÷ 池寿命）。"""
-    d = s.capex.steady_state_replacement_gwh_by_pool or {}
-    if heavy_only:
-        return sum(v for k, v in d.items() if k.startswith(_HEAVY_POOL_PREFIX))
-    return float(sum(d.values()))
-
-
-def _heavy_pool_sum(s: ModelSnapshot, attr: str) -> float:
-    return sum(
-        getattr(p, attr)
-        for k, p in (s.swap_business.pool_operations or {}).items()
-        if k.startswith(_HEAVY_POOL_PREFIX)
-    )
-
-
-def _heavy_economics(s: ModelSnapshot):
-    return getattr(s.swap_business, "heavy_economics", None)
-
-
-def _heavy_user_energy_price(s: ModelSnapshot) -> float:
-    he = _heavy_economics(s)
-    return float(he.user_energy_rmb_kwh) if he and he.user_energy_rmb_kwh is not None else float("nan")
-
-
-def _heavy_battery_life(s: ModelSnapshot) -> float:
-    he = _heavy_economics(s)
-    return float(he.battery_life_years) if he and he.battery_life_years is not None else float("nan")
+# 2026-09-12：以下派生函数已全部删除——它们的计算逻辑下沉回各自的计算程序：
+#   车辆/规模类 → scale.py        资本类 → capex.py        经营类 → business.py
+#   合并类     → consolidation.py  资金类 → group_constraints.py  轻资产 → capital_cycle.py
+# 本文件不再保留任何"怎么算"的代码，只做加载字典与沿路径取值。
 
 
 # ── 声明式取值：加指标不必再写函数 ─────────────────────────────────────────
@@ -548,321 +491,316 @@ def _at_cfg(path: str, scale: float = 1.0):
     return get
 
 
-# ── ⑨ 外部锚与跨模块派生（needs_cfg=True）──────────────────────────────────
-# 这一批 2026-09-11 从 `verdict.build_vals` 升格进来。此前它们只活在结论区，
-# 一页纸与八章都取不到——那就是"第三套数值源"。升格后三个视图取同一个 key。
-# 判据：`verdict.build_vals` 内部不再出现任何从 snap 属性 / cfg 直接取数的路径。
-def _cfg_num(section: str, key: str, scale: float = 1.0):
-    """读 base.toml 里的**外部事实常量**（不是模型算出来的量，故需要 cfg）。"""
-    def get(_s: ModelSnapshot, cfg: dict | None) -> float:
-        return float(((cfg or {}).get(section) or {}).get(key)) * scale
-    return get
+# 注：原「⑨ 外部锚与跨模块派生」那批 getter（_cfg_num / _cfg_heavy / _operating_market_total /
+# _reit_multiple / _energy_unit_price / _veh_ops / _total_gwh_2030 / _share_of_market /
+# _repl_share_pct / _heavy_pen_pct / _tco_field）已于 2026-09-12 随旧登记表一起删除——
+# 它们算的每一个量，现在都住在 configs/metrics.toml（用 at_cfg / at 声明、source 标程序），
+# 由上面的通用取值器 _at / _at_cfg 沿点分路径取。本文件不再保留任何"怎么算"的代码。
 
 
-def _cfg_heavy(key: str):
-    """读 base.toml `[vehicles.heavy]` 的常量。"""
-    def get(_s: ModelSnapshot, cfg: dict | None) -> float:
-        return float((((cfg or {}).get("vehicles") or {}).get("heavy") or {}).get(key))
-    return get
+# ══════════════════════════════════════════════════════════════════════════
+# 输出字典：模型算得出哪些数，住在 configs/metrics.toml（与 base.toml 输入输出对称）
+#
+# 本文件**不再登记任何指标**——那是字典的事。这里只负责：
+#   ① 加载字典  ② 通用取值器（沿点分路径取）  ③ 敏感性/血缘工具
+#
+# 这样做的原因（用户 2026-09-12 定的）：改一个论述要引用某个数时，
+# 只需要知道"这个数是什么意思"（中文名），不该需要知道程序里它叫什么、更不该来改本文件。
+# ══════════════════════════════════════════════════════════════════════════
+# 注意：config_loader.ROOT 指向 src/，项目根在它上一级
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+SRC_DIR = Path(__file__).resolve().parent
+METRICS_PATH = PROJECT_ROOT / "configs" / "metrics.toml"
 
 
-def _operating_market_total(_s: ModelSnapshot, cfg: dict | None) -> float:
-    """营运车总市场（万辆）——「我们覆盖了多少」的分母，来自 config 的运营事实。"""
-    from scale import operating_market_total
-    return float(operating_market_total(cfg or {}))
+def load_metrics(path: Path = METRICS_PATH) -> list[Metric]:
+    """读输出字典，逐条构造指标。
 
-
-def _reit_multiple(s: ModelSnapshot, cfg: dict | None) -> float:
-    """REIT/轻资产回笼倍数（跨模块派生，同时吃 cfg 与四个快照子块）。"""
-    from capital_cycle import reit_recycle_multiple
-    return float(reit_recycle_multiple(cfg or {}, s.scale, s.capex, s.swap_business, s.ledger))
-
-
-def _energy_unit_price(_s: ModelSnapshot, cfg: dict | None) -> float:
-    """用户侧度电用能成本 ＝ 谷电价 + 峰谷差（cfg 两个字段，非模型推导）。"""
-    sb = (cfg or {}).get("swap_business") or {}
-    return (float(sb.get("valley_power_price_rmb_kwh", 0.0))
-            + float(sb.get("grid_spread_rmb_kwh", 0.0)))
-
-
-def _veh_ops(s: ModelSnapshot) -> float:
-    """终局覆盖·营运车合计（商用营运 + 乘用营运）。"""
-    return _stock_vehicles(_COMMERCIAL)(s) + _stock_vehicles(_PASSENGER_OPS)(s)
-
-
-def _total_gwh_2030(s: ModelSnapshot) -> float:
-    """2030 出货合计（换电 + 充电）——**产能核查**要用的口径。
-
-    为什么必须合并：换电需求会占用 CATL 全线产能，只算换电出货会低估占用率。
-    用户 2026-09-11 定的理由："只有合并才是动力电池业务线的全部"。
+    **审计①**：每条必须给 `at`（模型结果路径）或 `at_cfg`（配置路径）之一，
+    且不能两者都没有——否则这条就是"想要但程序里不存在"的数，趁早失败好过页面 [待补]。
     """
-    return _flow("catl_swap_gwh")(s) + _flow("catl_charge_gwh")(s)
+    if not path.exists():
+        raise SystemExit(f"✗ 输出字典不存在：{path}")
+    conf = load_config(path)
+    items = conf.get("metric") or []
+    if not items:
+        raise SystemExit(f"✗ 输出字典里没有 [[metric]] 条目：{path}")
+
+    out: list[Metric] = []
+    seen: set[str] = set()
+    for i, item in enumerate(items, 1):
+        key = (item.get("key") or "").strip()
+        label = (item.get("label") or "").strip()
+        if not key:
+            raise SystemExit(f"✗ 输出字典第 {i} 条缺 key")
+        if not label:
+            raise SystemExit(f"✗ 输出字典第 {i} 条（{key}）缺 label——中文名是它唯一的查找名")
+        if key in seen:
+            raise SystemExit(f"✗ 输出字典里 key 重复：{key}（一词一名，重复会让人分不清）")
+        seen.add(key)
+        out.append(Metric(
+            key=key,
+            label=label,
+            at=(item.get("at") or "").strip(),
+            at_cfg=(item.get("at_cfg") or "").strip(),
+            scale=float(item.get("scale", 1.0)),
+            decimals=int(item.get("decimals", 1)),
+            unit=item.get("unit", ""),
+            group=item.get("group", ""),
+            note=item.get("note", ""),
+            source=(item.get("source") or "").strip(),
+        ))
+    _verify_source(out)
+    return out
 
 
-def _share_of_market(s: ModelSnapshot, cfg: dict | None) -> float:
-    mkt = _operating_market_total(s, cfg)
-    return _veh_ops(s) / mkt * 100.0 if mkt else float("nan")
+# source 允许的取值：必须是**真正算这个数的程序**（模块文件名，不含 .py）。
+# tco 是重卡全成本模块；external／derived 之类泛名字不许再出现（说了等于没说）。
+_SOURCE_CACHE: dict[str, tuple[str, list[str]]] = {}
 
 
-def _repl_share_pct(s: ModelSnapshot, cfg: dict | None) -> float:
-    """稳态年更新装机 ÷ 2026E 动力电池出货（更新需求占出货盘的比重）。"""
-    ship = ((cfg or {}).get("financial_2026e") or {}).get("power_battery_shipments_gwh")
-    return _repl_gwh(s) / float(ship) * 100.0 if ship else float("nan")
+def _source_text(source: str) -> tuple[str, list[str]]:
+    """返回 (源码文本, 里面的函数名列表)，带缓存避免逐条读文件。"""
+    if source not in _SOURCE_CACHE:
+        f = SRC_DIR / f"{source}.py"
+        text = f.read_text("utf-8") if f.exists() else ""
+        funcs = re.findall(r"^def\s+([A-Za-z_][A-Za-z0-9_]*)", text, flags=re.M)
+        _SOURCE_CACHE[source] = (text, funcs)
+    return _SOURCE_CACHE[source]
 
 
-def _heavy_pen_pct(s: ModelSnapshot, cfg: dict | None) -> float:
-    """换电重卡 ÷ 重卡保有量。"""
-    stock = (((cfg or {}).get("vehicles") or {}).get("heavy") or {}).get("stock_wan")
-    return _stock_vehicles(("heavy",))(s) / float(stock) * 100.0 if stock else float("nan")
+def _field_owner_classes() -> dict[str, set[str]]:
+    """字段名 → 定义它的 dataclass 们（全部定义在 schemas.py）。
+
+    为什么要查这张表：有些字段是**按位置构造**的（如 `TcoRow(None, None, …)`），
+    源码里根本没有字段名，只看字面量必然误判成"这条没算"。改看它属于哪个
+    dataclass、那个类又被谁构造，才是真的追到算式所在的程序。
+    """
+    cache = getattr(_field_owner_classes, "_cache", None)
+    if cache is not None:
+        return cache
+    owners: dict[str, set[str]] = {}
+    owner: str | None = None
+    for line in (SRC_DIR / "schemas.py").read_text("utf-8").splitlines():
+        if m := re.match(r"class\s+([A-Za-z_][A-Za-z0-9_]*)", line):
+            owner = m.group(1)
+            continue
+        if owner and (m := re.match(r"\s{4}([a-z_][a-z0-9_]*)\s*[:=]", line)):
+            owners.setdefault(m.group(1), set()).add(owner)
+    _field_owner_classes._cache = owners  # type: ignore[attr-defined]
+    return owners
 
 
-def _tco_field(field: str, horizon: str = "n1"):
-    """重卡全成本 TCO 六字段，按持有期取：n1＝模型电池寿命，n2＝重卡更新周期。"""
-    def get(s: ModelSnapshot) -> float:
-        row = getattr(_heavy_economics(s), horizon, None)
-        return float(getattr(row, field)) if row else float("nan")
-    return get
+def _verify_source(metrics: list) -> None:
+    """**审计②**：source 必须对得上它声称的程序，否则报错并指出去哪找。
+
+    为什么这条要硬失败（2026-09-12 立）：`source` 是"心算觉得不对时该去哪儿查"的
+    唯一线索。写错了不会让数字变错，但会让人**按图索骥走到错误的程序里**，
+    半天找不到算式的那种错误就是这么来的——它骗的不是程序，是人的时间。
+
+    三条判据，任一条对上就算找得到（依次试）：
+    ① 字面量：最后一段在 `src/<source>.py` 里出现——构造结果对象时传的关键字参数；
+    ② 归属类：最后一段是 schemas.py 里某个 dataclass 的字段，而那个类名出现在
+       `src/<source>.py` 里——字段按**位置**构造时源码里没有字面名，只能这么追
+       （如 `TcoRow(None, None, …)` 里的 `swap_wan`）；
+    ③ 近似函数：最后一段与 source.py 里某个函数名高度相似
+       （如 `reit_multiple` ← `reit_recycle_multiple()`）。
+    三条都对不上，才判"写错了"。
+    """
+    try:
+        base_text = (METRICS_PATH.parent / "base.toml").read_text("utf-8")
+    except Exception:
+        base_text = ""
+    problems: list[str] = []
+    for m in metrics:
+        if not m.source:
+            problems.append(f"{m.key}：缺 source（不知道它是哪个程序算出来的）")
+            continue
+        if not m.at:
+            # 走 at_cfg 的数不是程序算出来的（外部锚常量），source 允许写 external——
+            # 但它的路径必须在 configs/base.toml 里真实存在，否则也是指错路。
+            if m.source != "external":
+                problems.append(f"{m.key}：走 at_cfg 的量 source 只能写 external，"
+                                f"现在写的是 {m.source}")
+            tail = m.at_cfg.split(".")[-1]
+            if tail and tail not in base_text:
+                problems.append(
+                    f"{m.key}：「{tail}」在 configs/base.toml 里找不到"
+                    f"（at_cfg 必须指向真实存在的配置项）")
+            continue
+        text, funcs = _source_text(m.source)
+        if not text:
+            problems.append(f"{m.key}：source={m.source} —— src/{m.source}.py 不存在")
+            continue
+        tail = m.at.split(".")[-1]
+        if not tail:
+            continue
+        if m.at:
+            if tail in text:
+                continue                                        # ① 字面量
+            owners = _field_owner_classes().get(tail, set())
+            if any(cls in text for cls in owners):
+                continue                                        # ② 归属的 dataclass
+            if difflib.get_close_matches(tail, funcs, n=1, cutoff=0.6):
+                continue                                        # ③ 近似函数名
+            problems.append(
+                f"{m.key}：「{tail}」在 src/{m.source}.py 里找不到，"
+                f"也不像那里任何一个函数——它是别的模块算的吧？改 source，或去那里把它算出来")
+    if problems:
+        raise SystemExit(
+            f"✗ 输出字典的 source/at 对不上（{len(problems)} 处）——"
+            f"source 是「去哪个程序查」的唯一线索，写错等于指错路：\n  "
+            + "\n  ".join(problems))
 
 
-METRICS: list[Metric] = [
-    # — ① 运营业务规模（存量口径：终局在役多少、网络多大）—
-    Metric("ops.veh_commercial", "终局覆盖·商用营运车(重卡+城配)", _stock_vehicles(_COMMERCIAL), 1, "万辆", "①运营规模"),
-    Metric("ops.veh_passenger_ops", "终局覆盖·乘用营运车(出租+网约+Robotaxi)", _stock_vehicles(_PASSENGER_OPS), 1, "万辆", "①运营规模"),
-    Metric("ops.veh_heavy", "终局覆盖·换电重卡", _stock_vehicles(("heavy",)), 1, "万辆", "①运营规模"),
-    Metric("ops.veh_city", "终局覆盖·换电城配物流车", _stock_vehicles(("city",)), 1, "万辆", "①运营规模"),
-    Metric("ops.veh_private", "终局覆盖·私家车", _stock_vehicles(_PRIVATE), 1, "万辆", "①运营规模"),
-    Metric("ops.veh_total", "终局覆盖车辆合计", _stock_vehicles(_ALL_VEHICLES), 1, "万辆", "①运营规模"),
-    Metric("ops.battery_vehicle", "换电装机保有量·车端", at="swap_business.rent_vehicle_gwh",
-           decimals=1, unit="GWh", group="①运营规模"),
-    Metric("ops.battery_station", "换电装机保有量·站内周转", _station_battery_gwh, 1, "GWh", "①运营规模"),
-    Metric("ops.battery_total", "换电装机保有量合计", _battery_stock_total, 1, "GWh", "①运营规模"),
-    Metric("ops.annual_energy", "年换电交易电量", at="swap_business.annual_energy_yi_kwh",
-           decimals=1, unit="亿kWh", group="①运营规模"),
-    Metric("scale.daily_swaps", "成熟期日换电次数", _daily_swaps_wan, 1, "万次/日", "①运营规模"),
-    Metric("scale.heavy_stations", "终局重卡站数", at="scale.station_demand_by_category.heavy",
-           decimals=0, unit="座", group="①运营规模"),
-    Metric("scale.choco_stations", "终局巧克力站数", at="scale.station_demand_by_category.choco",
-           decimals=0, unit="座", group="①运营规模"),
-    # — ② 制造业务出货（流量口径：2030 当年交付多少，区分换电/充电）—
-    Metric("mfg.swap_veh_2030", "2030出货·换电车辆", _flow("catl_swap_vehicles_wan"), 1, "万辆", "②制造出货"),
-    Metric("mfg.charge_veh_2030", "2030出货·充电车辆", _flow("catl_charge_vehicles_wan"), 1, "万辆", "②制造出货"),
-    Metric("mfg.swap_gwh_2030", "2030出货·换电装车", _flow("catl_swap_gwh"), 1, "GWh", "②制造出货"),
-    Metric("mfg.charge_gwh_2030", "2030出货·充电装车", _flow("catl_charge_gwh"), 1, "GWh", "②制造出货"),
-    Metric("mfg.total_gwh_2030", "2030出货合计（换电+充电）", _total_gwh_2030, 1, "GWh", "②制造出货",
-           note="**产能核查**的口径：换电会占用全线产能，只算换电出货会低估占用率；"
-                "与规划产能相比的才是这个合计值"),
-    # — ②b 稳态年更新装机（建设期结束后只剩更新需求；分池算，含车端+站内）—
-    Metric("mfg.repl_gwh", "稳态年更新装机（车端+站内）", lambda s: _repl_gwh(s), 1, "GWh/年", "②制造出货",
-           note="Σ_池(池机队GWh ÷ 池寿命)；倒短8.37年 vs 干线2.94年差异极大，必须分池算完再相加"),
-    Metric("mfg.repl_gwh_heavy", "稳态年更新装机·重卡", lambda s: _repl_gwh(s, heavy_only=True), 1, "GWh/年", "②制造出货",
-           note="只含骐骥75#两池；重卡是更新需求的主力（干线池寿命仅2.94年）"),
-    # — ③ 资本层 —
-    Metric("capex.initial_capex", "终局初装CAPEX", at="capex.total_initial_capex_yi",
-           decimals=1, unit="亿元", group="③资本"),
-    Metric("capex.equity_call", "CATL权益出资合计", at="capex.catl_total_equity_call_yi",
-           decimals=1, unit="亿元", group="③资本"),
-    Metric("capex.peak_call", "峰值年权益出资", at="capex.catl_peak_equity_call_yi",
-           decimals=1, unit="亿元", group="③资本"),
-    Metric("capex.project_debt", "项目债务", at="capex.project_debt_yi",
-           decimals=1, unit="亿元", group="③资本"),
-    # — 运营层 —
-    Metric("swap.revenue", "运营年收入", at="swap_business.revenue_yi",
-           decimals=1, unit="亿元", group="④运营财务"),
-    Metric("swap.service_rev", "　服务费收入", at="swap_business.service_revenue_yi",
-           decimals=1, unit="亿元", group="④运营财务"),
-    Metric("swap.rent_rev", "　电池租金收入", at="swap_business.battery_rent_yi",
-           decimals=1, unit="亿元", group="④运营财务"),
-    Metric("swap.ancillary", "　辅助服务收入", at="swap_business.ancillary_yi",
-           decimals=1, unit="亿元", group="④运营财务"),
-    Metric("swap.opex", "运营OPEX", at="swap_business.opex_yi",
-           decimals=1, unit="亿元", group="④运营财务"),
-    Metric("swap.ebitda", "EBITDA", at="swap_business.ebitda_yi",
-           decimals=1, unit="亿元", group="④运营财务"),
-    Metric("swap.dist_cash", "CATL年可分派现金", at="swap_business.catl_forward_distributable_cash_yi",
-           decimals=1, unit="亿元", group="④运营财务"),
-    Metric("swap.required_ebitda", "资本回报要求EBITDA", at="swap_business.required_ebitda_yi",
-           decimals=1, unit="亿元", group="④运营财务",
-           note="门槛EBITDA＝(年化资本要求 − 折旧×税率)/(1−税率)；年化资本要求＝CAPEX×capital_multiplier×CRF(15%)，即按≈12.4%/15年要求回报计，非WACC 7.5%"),
-    Metric("swap.coverage", "EBITDA覆盖倍数", at="swap_business.forward_to_required_ebitda",
-           decimals=2, unit="×", group="④运营财务",
-           note="＝稳态EBITDA ÷ 资本要求回报(EBITDA口径)；资本要求回报按 CRF=15%（隐含≈12.4%/15年）计，非 WACC 7.5%（WACC 仅用于 DCF 净更新折现）"),
-    Metric("swap.operating_value", "运营权益价值(CATL归属)", at="swap_business.catl_attributable_value_yi",
-           decimals=1, unit="亿元", group="④运营财务"),
-    # — 制造与估值层 —
-    Metric("mfg.with_swap_np", "有换电制造净利", at="ledger.with_swap_manufacturing.net_profit_yi",
-           decimals=1, unit="亿元", group="⑤估值"),
-    Metric("mfg.no_swap_np", "无换电制造净利", at="ledger.no_swap_manufacturing.net_profit_yi",
-           decimals=1, unit="亿元", group="⑤估值"),
-    Metric("val.power_with_swap", "2030动力价值(有换电)", at="ledger.power_value_2030_with_swap_yi",
-           decimals=1, unit="亿元", group="⑤估值"),
-    Metric("val.power_no_swap", "2030动力价值(无换电)", at="ledger.power_value_2030_no_swap_yi",
-           decimals=1, unit="亿元", group="⑤估值"),
-    Metric("val.swap_increment", "换电增量价值合计", at="ledger.total_swap_increment_value_yi",
-           decimals=1, unit="亿元", group="⑤估值"),
-    Metric("val.incr_over_mktcap", "增量价值/集团市值",
-           at="ledger.attributable_swap_value_to_current_group_market_cap",
-           decimals=4, unit="倍", group="⑤估值"),
-    # — 资金层 —
-    Metric("scale.stations_total", "终局站数合计", _stations_total, 0, "座", "①运营规模",
-           note="四站型终局站数之和；= 重卡站 + 巧克力站"),
-    # — ⑦ 市场地位：本业务的量对外部市场总量是什么量级（分母＝外部锚，见 model.market_share）—
-    Metric("mk.share_storage_2025", "站内装机GWh / 最新储能装机", _market_share(
-        "swap_station_battery_share_of_national_storage_2025", "cross_check_vs_national"), 2, "%", "⑦市场地位",
-        note="分子＝站内周转装机保有量 GWh（常驻站、可参与电网调度）；分母＝最新年度全国新型储能累计装机（GWh，外部一手）"),
-    Metric("mk.share_storage_2030", "站内装机GWh / 2030储能装机预测", _market_share(
-        "swap_station_battery_share_of_national_storage_2030", "cross_check_vs_national"), 2, "%", "⑦市场地位",
-        note="分子＝站内周转装机；分母＝2030 全国新型储能装机预测（GWh，国务院文件推算，含经验假设折算）"),
-    Metric("mk.share_elec_latest", "年换电量 / 最新年度全社会用电量", _market_share(
-        "swap_energy_share_of_society_electricity_latest", "cross_check_vs_society_electricity"), 3, "%",
-        "⑦市场地位", note="分子＝成熟期年换电交易电量（亿kWh）；分母＝最新年度全社会用电量（亿kWh，一手）"),
-    Metric("mk.share_elec_2030", "年换电量 / 2030全社会用电量预测", _market_share(
-        "swap_energy_share_of_society_electricity_2030", "cross_check_vs_society_electricity"), 3, "%",
-        "⑦市场地位", note="分母＝2030 全社会用电量预测（亿kWh，国网能源院口径，二手转引）"),
-    # — 估值：业务整体（100%）与归属股东（×持股）必须成对看 —
-    Metric("val.op_ev_multiple", "运营企业价值 EV（倍数法，100%口径）",
-           at="swap_business.enterprise_value_yi", decimals=1, unit="亿元", group="⑤估值",
-           note="EBITDA × 拍定 EV/EBITDA；未扣债、未乘持股比例＝业务整体口径"),
-    Metric("val.op_equity_gross", "运营项目权益价值（100%口径）",
-           at="swap_business.project_equity_value_yi", decimals=1, unit="亿元", group="⑤估值",
-           note="= EV − 稳态债务；未乘持股比例。归属股东口径见 swap.operating_value"),
-    Metric("val.ev_dcf_true", "DCF内在价值·有限期EV",
-           at="swap_business.dcf_ev_true_yi", decimals=1, unit="亿元", group="⑤估值",
-           note="15 年有限期、毛现金流资本化；不含 2030 年后规模增长"),
-    Metric("val.ev_dcf_perpetual", "DCF内在价值·永续EV",
-           at="swap_business.dcf_ev_perpetual_yi", decimals=1, unit="亿元", group="⑤估值",
-           note="规模冻结在 2030 的永续账：模型内的上限、真实世界的下限"),
-    Metric("val.catl_dcf_true", "CATL归属·DCF有限期",
-           at="swap_business.dcf_catl_value_true_yi", decimals=1, unit="亿元", group="⑤估值",
-           note="= max(0, 有限期EV + 期末残值 − 稳态债务) × 持股比例"),
-    Metric("val.catl_dcf_perpetual", "CATL归属·DCF永续",
-           at="swap_business.dcf_catl_value_perpetual_yi", decimals=1, unit="亿元", group="⑤估值",
-           note="= max(0, 永续EV − 稳态债务) × 持股比例"),
-    Metric("val.mfg_increment", "制造侧增量价值",
-           at="ledger.full_manufacturing_scenario_gap_value_yi", decimals=1, unit="亿元", group="⑤估值",
-           note="有换电制造净利 − 无换电制造净利，再 × 制造PE；悲观可为负（虹吸大于锁量）"),
-    Metric("val.increment_np", "合并增量净利润",
-           at="ledger.total_swap_increment_net_profit_yi", decimals=1, unit="亿元", group="⑤估值",
-           note="运营 + 制造两侧的净利影响合计（区别于价值口径 val.swap_increment）"),
-    Metric("val.increment_gross", "合并增量价值（业务整体）",
-           lambda s: (s.swap_business.project_equity_value_yi
-                      + s.ledger.full_manufacturing_scenario_gap_value_yi), 1, "亿元", "⑤估值",
-           note="运营项目权益（100%）+ 制造增量价值；归属股东口径见 val.swap_increment"),
-    # — 运营财务：净利润（EBITDA 强正但折旧≈EBITDA，会计净利可能为负，是重资本基建常态）—
-    Metric("swap.net_profit", "运营净利润（项目100%口径）",
-           at="swap_business.project_net_profit_yi", decimals=1, unit="亿元", group="④运营财务",
-           note="分池计税、亏损池不产生跨池税盾；故合计可能为负"),
-    Metric("swap.catl_net_profit", "运营净利润（CATL归属）",
-           at="swap_business.catl_attributable_net_profit_yi", decimals=1, unit="亿元", group="④运营财务",
-           note="= 项目净利润 × 建站持股比例"),
-    # — 资本：名义口径与峰值年（代价那层要"花了多少钱、哪年最吃紧"）—
-    Metric("capex.lifecycle_base", "全周期资本底座（现值）",
-           at="capex.lifecycle_capital_base_yi", decimals=1, unit="亿元", group="③资本",
-           note="初装 + 全周期电池更新净额（折现）；门槛口径，与估值口径 valuation_capital_pv 不同源"),
-    Metric("capex.nominal_total", "名义累计投入（不折现）",
-           at="capex.nominal_total_capex_yi", decimals=1, unit="亿元", group="③资本",
-           note="不折现的实际花钱总额；与现值口径 capex 初装/全周期不同源，不可混用"),
-    Metric("capex.peak_year", "峰值年", at="capex.peak_year", decimals=0, unit="年", group="③资本",
-           note="CATL 单年权益出资最大的年份；配合 capex.peak_call 看资金吃紧程度"),
-    Metric("capex.external_equity", "外部股权融资（合资方出资）",
-           at="capex.external_equity_yi", decimals=1, unit="亿元", group="③资本",
-           note="全周期资本底座 ×(1−债务比例)×(1−建站持股比例)；合资方/外部股权出资，不占 CATL 出资"),
-    Metric("fund.peak_cash_to_cfo", "换电出资峰值/CFO", _peak_cash_to_cfo, 3, "倍", "⑥资金"),
-    Metric("fund.closing_liquidity", "2030期末可动用资金", _closing_liquidity, 1, "亿元", "⑥资金"),
-    Metric("fund.exposure", "待决战略敞口", at="strategic_exposure_yi",
-           decimals=1, unit="亿元", group="⑥资金"),
-    # — ⑧ 重卡专项（结论区「重点：重卡」一段取这里；随服务费/租金滑块实时变）—
-    Metric("ops.heavy_vehicle_gwh", "重卡装机保有量·车端", lambda s: _heavy_pool_sum(s, "rent_vehicle_gwh"), 1, "GWh", "⑧重卡"),
-    Metric("ops.heavy_station_gwh", "重卡装机保有量·站内周转", lambda s: _heavy_pool_sum(s, "station_battery_gwh"), 1, "GWh", "⑧重卡"),
-    Metric("ops.heavy_user_price", "重卡用户能源单价", _heavy_user_energy_price, 3, "元/kWh", "⑧重卡",
-           note="电费(谷电，平价转嫁) + 服务费 + 电池租金摊薄；与 LNG/柴油「年能源成本」同为含燃料口径，可直接比"),
-    Metric("ops.heavy_battery_life", "重卡加权电池寿命", _heavy_battery_life, 2, "年", "⑧重卡",
-           note="骐骥两池按机队GWh加权；倒短8.37 vs 干线2.94年，加权后由干线主导"),
-    Metric("ops.veh_ops", "终局覆盖·营运车合计", _veh_ops, 1, "万辆", "①运营规模",
-           note="商用营运(重卡+城配) + 乘用营运(出租+网约+Robotaxi)；不含私家车"),
-    # — ⑨ 外部锚：`base.toml` 里的外部事实常量与可调 driver，不是模型算出来的 —
-    # 下面这批**不写函数**，只声明取值路径（改字段名改这里一行即可）
-    Metric("base.target_year", "终局年", at_cfg="meta.target_year", decimals=0, unit="年",
-           group="⑨外部锚",
-           note="决策时点「我什么时候来看」；与运营期限（这门生意能活多久）是两件事"),
-    Metric("base.power_shipments_2026e", "2026E动力电池出货",
-           at_cfg="financial_2026e.power_battery_shipments_gwh", decimals=1, unit="GWh",
-           group="⑨外部锚"),
-    Metric("base.ev_ebitda_multiple", "拍定EV/EBITDA倍数", at_cfg="finance.swap_ev_ebitda",
-           decimals=1, unit="×", group="⑨外部锚",
-           note="是「声明」不是测量值；且是可调 driver，必须现读 cfg，绝不能写死"),
-    Metric("base.ownership_pct", "建站持股比例", at_cfg="finance.construction_ownership",
-           decimals=1, unit="%", group="⑨外部锚", scale=100.0),
-    Metric("ops.heavy_market_stock", "重卡保有量", at_cfg="vehicles.heavy.stock_wan",
-           decimals=0, unit="万辆", group="⑨外部锚",
-           note="分母侧的外部事实：换电重卡 ÷ 它 ＝ 重卡电动化+换电的合计渗透"),
-    Metric("ops.heavy_repl_cycle", "重卡更新周期", at_cfg="vehicles.heavy.replacement_cycle_years",
-           decimals=1, unit="年", group="⑨外部锚"),
-    Metric("ops.market_total", "营运车总市场", _operating_market_total, 1, "万辆", "⑨外部锚",
-           needs_cfg=True, note="重卡保有÷更新周期 + 出租/网约里程池反推；是「覆盖率」的分母"),
-    Metric("ops.energy_unit_price", "用户侧度电用能成本", _energy_unit_price, 3, "元/kWh", "⑨外部锚",
-           needs_cfg=True, note="谷电价 + 峰谷差；与重卡用户能源单价（含服务费与租金摊薄）不同口径"),
-    # — ⑦ 市场地位：占外部市场的比重（分子来自模型，分母来自外部锚）—
-    Metric("ops.share_of_market", "营运车覆盖率", _share_of_market, 2, "%", "⑦市场地位",
-           needs_cfg=True, note="终局覆盖营运车 ÷ 营运车总市场"),
-    Metric("mfg.repl_share_pct", "稳态更新装机/2026E出货", _repl_share_pct, 1, "%", "⑦市场地位",
-           needs_cfg=True, note="更新需求占出货盘的比重；换电把一次性出货变成持续更新订单"),
-    Metric("ops.heavy_pen_pct", "换电重卡/重卡保有量", _heavy_pen_pct, 2, "%", "⑦市场地位",
-           needs_cfg=True),
-    # — ⑤ 估值：派生与口径换算 —
-    Metric("val.reit_multiple", "REIT回笼倍数", _reit_multiple, 2, "×", "⑤估值", needs_cfg=True,
-           note="轻资产退出的回笼倍数；跨模块派生（capital_cycle），失败时为 NaN 不冒充"),
-    Metric("val.op_value_trillion", "运营权益价值(CATL归属·万亿)",
-           at="swap_business.catl_attributable_value_yi", decimals=3, unit="万亿元", group="⑤估值",
-           scale=1e-4, note="= swap.operating_value × 1e-4，仅换单位便于与集团市值同量纲比读"),
-    # — ⑧ 重卡 TCO：六字段 × 两个持有期（N1=模型电池寿命 / N2=重卡更新周期）—
-    # 全部用 `at=` 声明路径，不写函数：`_tco_field` 那类样板已被通用取值器取代。
-    Metric("tco.swap_wan", "重卡TCO·换电(N1持有期)",
-           at="swap_business.heavy_economics.n1.swap_wan", decimals=1, unit="万元", group="⑧重卡"),
-    Metric("tco.swap_kwh", "重卡TCO·换电度电(N1)",
-           at="swap_business.heavy_economics.n1.swap_kwh", decimals=3, unit="元/kWh", group="⑧重卡"),
-    Metric("tco.lng_wan", "重卡TCO·LNG(N1持有期)",
-           at="swap_business.heavy_economics.n1.lng_wan", decimals=1, unit="万元", group="⑧重卡"),
-    Metric("tco.lng_kwh", "重卡TCO·LNG度电(N1)",
-           at="swap_business.heavy_economics.n1.lng_kwh", decimals=3, unit="元/kWh", group="⑧重卡"),
-    Metric("tco.diesel_wan", "重卡TCO·柴油(N1持有期)",
-           at="swap_business.heavy_economics.n1.diesel_wan", decimals=1, unit="万元", group="⑧重卡"),
-    Metric("tco.diesel_kwh", "重卡TCO·柴油度电(N1)",
-           at="swap_business.heavy_economics.n1.diesel_kwh", decimals=3, unit="元/kWh", group="⑧重卡"),
-    Metric("tco.swap_wan_9", "重卡TCO·换电(N2=更新周期)",
-           at="swap_business.heavy_economics.n2.swap_wan", decimals=1, unit="万元", group="⑧重卡"),
-    Metric("tco.swap_kwh_9", "重卡TCO·换电度电(N2)",
-           at="swap_business.heavy_economics.n2.swap_kwh", decimals=3, unit="元/kWh", group="⑧重卡"),
-    Metric("tco.lng_wan_9", "重卡TCO·LNG(N2=更新周期)",
-           at="swap_business.heavy_economics.n2.lng_wan", decimals=1, unit="万元", group="⑧重卡"),
-    Metric("tco.lng_kwh_9", "重卡TCO·LNG度电(N2)",
-           at="swap_business.heavy_economics.n2.lng_kwh", decimals=3, unit="元/kWh", group="⑧重卡"),
-    Metric("tco.diesel_wan_9", "重卡TCO·柴油(N2=更新周期)",
-           at="swap_business.heavy_economics.n2.diesel_wan", decimals=1, unit="万元", group="⑧重卡"),
-    Metric("tco.diesel_kwh_9", "重卡TCO·柴油度电(N2)",
-           at="swap_business.heavy_economics.n2.diesel_kwh", decimals=3, unit="元/kWh", group="⑧重卡"),
-]
+METRICS: list[Metric] = load_metrics()
+
+# （旧登记表已于 2026-09-12 删除——指标现在只住在 configs/metrics.toml，
+#  留第二份就是"一个数两个家"，正是要根除的病。）
 
 METRIC_BY_KEY = {m.key: m for m in METRICS}
+METRIC_BY_LABEL = {m.label: m for m in METRICS}
 
 
-def read_metrics(snapshot: ModelSnapshot, cfg: dict | None = None) -> dict[str, float]:
+def _norm(text: str) -> str:
+    """归一化：去掉空格、标点与括号内容，用于**容错匹配**。
+
+    不是别名机制——字典里仍是一词一名；这里只是让人少写几个字也能命中
+    （例如把"年换电交易电量"写成"年换电量"）。
+    """
+    s = (text or "").strip().replace("　", "")
+    s = re.sub(r"[（(][^）)]*[）)]", "", s)          # 去括号及其中内容
+    s = re.sub(r"[\s·、,，.。:：/\\\-—_+*%()（）]", "", s)
+    return s
+
+
+def resolve(name: str) -> Metric:
+    """按 **中文名 → 内部 key → 归一化容错** 找一个指标。
+
+    这是"语义寻址"：写论述的人只要知道"这个数是什么意思"，不需要知道程序里它叫什么。
+    找不到一律抛错（绝不静默），由调用方用 `suggest()` 给出最像的候选。
+    """
+    key = (name or "").strip()
+    if not key:
+        raise KeyError("（空）")
+    m = METRIC_BY_LABEL.get(key) or METRIC_BY_KEY.get(key)
+    if m is not None:
+        return m
+    nk = _norm(key)
+    if nk:
+        for m in METRICS:
+            if _norm(m.label) == nk:
+                return m
+        # 包含关系：写得比全名短（或长）也能命中，但**必须唯一**，否则算找不到
+        hit = [m for m in METRICS if nk and (nk in _norm(m.label) or _norm(m.label) in nk)]
+        if len(hit) == 1:
+            return hit[0]
+    raise KeyError(key)
+
+
+def suggest(name: str, n: int = 3) -> list[tuple[str, str]]:
+    """给最像的 n 个候选，返回 [(中文名, key)]，按相似度从高到低。"""
+    nk = _norm(name)
+    scored: list[tuple[int, str, str]] = []
+    for m in METRICS:
+        ml = _norm(m.label)
+        if not nk or not ml:
+            score = 0
+        elif nk == ml:
+            score = 100
+        elif nk in ml or ml in nk:
+            score = 60
+        else:
+            score = len(set(nk) & set(ml))          # 公共字符数
+        scored.append((score, m.label, m.key))
+    scored.sort(key=lambda x: (-x[0], x[1]))
+    return [(label, key) for score, label, key in scored[:n] if score > 0]
+
+
+_NAN_SETS_SEEN: set[frozenset] = set()
+
+
+def _report_nan(metrics: list) -> None:
+    """取值为 NaN 的条目，报一次就够（同一组合不重复刷屏）。
+
+    为什么只报不中断：有些量的 NaN 是**设计如此**（REIT 回笼倍数跨模块派生失败时
+    宁可空着也不冒充，见 metrics.toml 该条 note）。但"值为 NaN"必须让人看见——
+    它渲染出来是 `nan亿元` 或一个破折号，与"这个数今天算不出来"长得一模一样。
+    """
+    if not metrics:
+        return
+    sig = frozenset(m.key for m in metrics)
+    if sig in _NAN_SETS_SEEN:
+        return
+    _NAN_SETS_SEEN.add(sig)
+    lines = [f"    {m.key:26} {m.label}（at={m.at or m.at_cfg}）" for m in metrics[:12]]
+    tail = f"\n    ……另有 {len(metrics) - 12} 条" if len(metrics) > 12 else ""
+    print(f"⚠ {len(metrics)} 个输出字典条目本次没有值（渲染成 nan／—）：\n"
+          + "\n".join(lines) + tail)
+
+
+def read_metrics(snapshot: ModelSnapshot, cfg: dict | None = None,
+                 strict: bool = True) -> dict[str, float]:
     """按注册表取全部指标的值。
 
-    `cfg` 给不给，决定 `needs_cfg=True` 的那批量算不算得出来：
-    - 沙盘生成期、`py_boot` 浏览器重跑、`onepager.build_context` 都有 cfg，**必须传**；
-    - `lab` 的敏感性扫描只有 config→rerun，可以传也可以不传，不传时那几个量为 NaN
-      （它们不参与弹性排名，故不影响扫描结论——锚点是 `val.swap_increment`）。
+    `cfg` 给不给，决定 `needs_cfg=True` 的那批量算不算得出来——**必须给**。
+
+    **strict（默认 True）：取不到就中断并点名。**
+    为什么要由参数改为默认中断（2026-09-12 立）：以前 `except → NaN` 是完全静默的，
+    `build.py` 一句 `read_metrics(snapshot)` 漏传 cfg，就让 6 条外部锚指标变成
+    NaN，facts.json 里直接落成 `'nanGWh'`——一个 nan 和"这个数今天算不出来"
+    在页面上长得一模一样，事后极难追回。**没值和值为零是两件事，都不能靠沉默打发。**
+
+    两类失败分开处理：
+    * **结构性失败**（`at` 路径走不通／调用方没传 cfg）→ 默认中断，列出每一条
+      并指明去哪个程序查；
+    * **数值为 NaN**（路径走通、程序主动给空，如 REIT 回笼倍数派生失败）→
+      集中报一次，不中断（metrics.toml 的 note 里已写明它允许为空）。
 
     取不到一律 NaN，绝不用 0 或其他值冒充（"没有值"和"值为零"是两件事）。
     """
     values: dict[str, float] = {}
+    broken: list[tuple] = []
+    nans: list = []
     for metric in METRICS:
-        try:
-            values[metric.key] = float(
-                metric.getter(snapshot, cfg) if metric.needs_cfg else metric.getter(snapshot))
-        except Exception:
+        if metric.needs_cfg and cfg is None:
+            # 必须显式判：这批量的 getter 遇到 cfg=None 会**安静地返回 NaN**
+            # （不是抛错），只靠 try/except 抓不到——这正是 bug 藏了这么久的原因。
+            broken.append((metric, "调用方没传 cfg，这条配置侧（at_cfg）的量取不到"))
             values[metric.key] = float("nan")
+            continue
+        try:
+            v = float(
+                metric.getter(snapshot, cfg) if metric.needs_cfg else metric.getter(snapshot))
+        except Exception as exc:
+            broken.append((metric, f"{type(exc).__name__}: {exc}"))
+            v = float("nan")
+        else:
+            if v != v:
+                nans.append(metric)
+        values[metric.key] = v
+
+    _report_nan(nans)
+
+    if broken and strict:
+        raise SystemExit(_fmt_broken_metrics(broken, cfg is None))
     return values
+
+
+def _fmt_broken_metrics(broken: list[tuple], no_cfg: bool) -> str:
+    """把"取不到值"写成能照着修的话：每条给出处路径与去哪个程序查。"""
+    head = f"✗ 输出字典里有 {len(broken)} 条取不到值（路径走不通，与值为空是两回事）："
+    lines = []
+    for metric, err in broken:
+        where = f"at={metric.at}" if metric.at else f"at_cfg={metric.at_cfg}"
+        lines.append(f"  - {metric.key}（{metric.label}）\n"
+                     f"      {where}　source={metric.source or '—'}　错误：{err}")
+    hint = ("\n  全部都报 KeyError 且 source 标了 external/at_cfg：调用方没传 cfg。"
+            if no_cfg else "")
+    fix = ("\n  怎么办：① 路径写错——去 metrics.toml 改 `at`；"
+           "② 程序没算出这个数——去 `src/<source>.py` 里把它算出来；"
+           "③ 确实是允许缺值的量——调用方显式写 `strict=False`。")
+    return head + "\n" + "\n".join(lines) + hint + fix
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -918,6 +856,47 @@ def _fmt(value: float, decimals: int) -> str:
 # ══════════════════════════════════════════════════════════════════════
 
 
+def cmd_metrics(query: str = "") -> None:
+    """查输出字典（configs/metrics.toml）。
+
+    - 不带参数：列出全部指标（中文名 / 单位 / 分组），一眼看全模型算出了什么。
+    - 带参数：按中文名查它对应哪个数（语义寻址），查不到就给最像的候选。
+    """
+    print("═" * 72)
+    print(f"输出字典 configs/metrics.toml　共 {len(METRICS)} 个指标")
+    print("═" * 72)
+    if not query:
+        by_group: dict[str, list[Metric]] = {}
+        for m in METRICS:
+            by_group.setdefault(m.group or "（未分组）", []).append(m)
+        for group in sorted(by_group):
+            print(f"\n【{group}】")
+            for m in by_group[group]:
+                unit = f" {m.unit}" if m.unit else ""
+                src = f"　（src/{m.source}.py）" if m.source else ""
+                print(f"  {m.label}{unit}　← {m.key}{src}")
+        return
+    try:
+        m = resolve(query)
+    except KeyError:
+        print(f"\n✗ 「{query}」在字典里找不到")
+        cands = suggest(query, 3)
+        if cands:
+            print("  最像的是：")
+            for i, (label, key) in enumerate(cands, 1):
+                print(f"   {i}. {label}　← {key}")
+        else:
+            print("  没有相似的条目——确实缺这个数的话，去 configs/metrics.toml 登记，")
+            print("  并确认对应计算程序已把它算出来。")
+        return
+    print(f"\n✓ 「{query}」→ {m.label}　（内部名 {m.key}）")
+    print(f"  单位 {m.unit or '—'}　精度 {m.decimals} 位　分组 {m.group or '—'}")
+    print(f"  出处：src/{m.source}.py"
+          if m.source else "  出处：（未登记 source）")
+    if m.note:
+        print(f"  口径：{m.note}")
+
+
 def cmd_list(config: dict) -> None:
     docs = load_param_docs()
     params = iter_numeric_params(config)
@@ -949,7 +928,9 @@ def cmd_impact(config: dict, base_values: dict[str, float], path: str, spec: str
 
     print(f"\n改动：{path}    {how}\n")
     try:
-        values = read_metrics(rerun(new_config))
+        # 扫描/微扰线路允许缺值：某些参数组合会让某个分部本身不存在
+        # （如 heavy_economics 在重卡规模为零时没有值），那不是注册表写错。
+        values = read_metrics(rerun(new_config), new_config, strict=False)
     except AssertionError as exc:
         print(f"✗ 该取值触发模型硬约束，未通过校验：\n  {exc}")
         print("  这不是程序错误——模型在告诉你这个参数不能单独这么调。")
@@ -1175,7 +1156,9 @@ def compute_elasticity(
         new_config = copy.deepcopy(config)
         set_path(new_config, path, _perturb(old, step))
         try:
-            values = read_metrics(rerun(new_config))
+            # 扫描/微扰线路允许缺值：某些参数组合会让某个分部本身不存在
+            # （如 heavy_economics 在重卡规模为零时没有值），那不是注册表写错。
+            values = read_metrics(rerun(new_config), new_config, strict=False)
         except Exception:  # noqa: BLE001
             elasticity[path] = {}
             continue
@@ -1234,7 +1217,9 @@ def compute_axis_matrix(
             if not used:
                 out[name] = {}  # 纯档位选择器，无数值旋钮可摆
                 continue
-            values = read_metrics(rerun(new_config))
+            # 扫描/微扰线路允许缺值：某些参数组合会让某个分部本身不存在
+            # （如 heavy_economics 在重卡规模为零时没有值），那不是注册表写错。
+            values = read_metrics(rerun(new_config), new_config, strict=False)
         except Exception:  # noqa: BLE001  # 触发模型硬约束的轴记为不可算
             out[name] = {}
             continue
@@ -1271,7 +1256,7 @@ def axis_tier_effect(config: dict, drivers: dict, neutral_kwargs: dict,
             kw = dict(neutral_kwargs)
             try:
                 kw.update(apply_scenario(cfg, {name: spec}, tier))
-                values = read_metrics(build_model(cfg, **kw))
+                values = read_metrics(build_model(cfg, **kw), cfg, strict=False)
             except Exception:  # noqa: BLE001
                 continue
             d_abs = values.get(INFLUENCE_ANCHOR, 0.0) - base_values.get(INFLUENCE_ANCHOR, 0.0)
@@ -1586,7 +1571,7 @@ def cmd_workbook(config: dict, base_values: dict[str, float], step: float = 0.10
     demo_old = float(get_path(config, demo_param))
     demo_cfg = copy.deepcopy(config)
     set_path(demo_cfg, demo_param, demo_old * (1.0 + step))
-    demo_after = read_metrics(rerun(demo_cfg))[demo_metric]
+    demo_after = read_metrics(rerun(demo_cfg), demo_cfg, strict=False)[demo_metric]
     demo_before = base_values[demo_metric]
     demo_diff = demo_after - demo_before
     demo_pct = (demo_diff / demo_before) if demo_before else 0.0
@@ -1651,7 +1636,7 @@ def cmd_workbook(config: dict, base_values: dict[str, float], step: float = 0.10
     _drv = load_drivers(_cfg)
     _nk = apply_scenario(_cfg, _drv, "中性")
     export_axis_sheet(wb, axis_tier_effect(
-        _cfg, _drv, _nk, read_metrics(build_model(_cfg, **_nk))))
+        _cfg, _drv, _nk, read_metrics(build_model(_cfg, **_nk), _cfg, strict=False)))
 
     print(f"\n已生成：{xlsx_path}")
     print("  00_怎么用 / 01_假设参数 / 02_结果总表 / 03_敏感性矩阵 / 03b_轴级影响 / 04_溯源 / 05_影响")
@@ -1771,7 +1756,7 @@ def cmd_trial(config: dict, base_values: dict[str, float]) -> None:
     trial_config = copy.deepcopy(config)
     for path, (cur, trial) in feasible.items():
         set_path(trial_config, path, trial)
-    trial_values = read_metrics(rerun(trial_config))
+    trial_values = read_metrics(rerun(trial_config), trial_config, strict=False)
 
     wb = load_workbook(xlsx_path)
     if "07_试算对比" in wb.sheetnames:
@@ -2020,9 +2005,14 @@ def main(argv: list[str]) -> int:
         cmd_list(config)
         return 0
 
+    if command == "metrics":
+        # 查输出字典：python src/lab.py metrics [要查的名字]
+        cmd_metrics(argv[2] if len(argv) > 2 else "")
+        return 0
+
     print("正在跑基准情景…", flush=True)
     t0 = time.time()
-    base_values = read_metrics(rerun(config))
+    base_values = read_metrics(rerun(config), config)
     print(f"基准完成（{time.time() - t0:.1f}s）")
 
     if command == "impact":

@@ -658,6 +658,24 @@ def build_swap_business(config: dict, scale: ScaleResult, capex: CapexResult) ->
     return SwapBusinessResult(
         annual_energy_yi_kwh=annual_energy,
         rent_vehicle_gwh=cumulative_vehicle_gwh,
+        # 2026-09-12 从 lab.py 下沉：装机口径汇总（分池求和属于经营口径，算在这里）
+        station_battery_gwh=sum(p.station_battery_gwh for p in pool_ops.values()),
+        battery_stock_total_gwh=(
+            cumulative_vehicle_gwh + sum(p.station_battery_gwh for p in pool_ops.values())
+        ),
+        # 流量口径的累计装机：各年新增装机逐年累加（不含站内周转、也不含期初存量站的补差）。
+        # 它比"车端保有量"少 0.2 GWh、比"在网电池合计"少 34.8 GWh——三个口径都在用，
+        # 必须各有名字、各有出处，不能靠"看着差不多"互相顶替。
+        swap_gwh_cumulative_flow=sum(r.catl_swap_gwh for r in scale.rows),
+        heavy_vehicle_gwh=sum(
+            p.rent_vehicle_gwh for k, p in pool_ops.items() if k.startswith("qiji75")),
+        heavy_station_gwh=sum(
+            p.station_battery_gwh for k, p in pool_ops.items() if k.startswith("qiji75")),
+        # 用户侧度电用能成本：谷电价 + 峰谷价差（换电站有套利收入，该价差必须计入真实成本）
+        energy_unit_price_rmb_kwh=(
+            float(business.get("valley_power_price_rmb_kwh", 0.0))
+            + float(business.get("grid_spread_rmb_kwh", 0.0))
+        ),
         rent_station_external_gwh=station_external_rent_gwh,
         rent_eligible_gwh=rent_gwh,
         revenue_yi=revenue,

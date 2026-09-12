@@ -32,6 +32,7 @@ ROOT = SRC.parent
 sys.path.insert(0, str(SRC))
 
 import facts as facts_mod  # noqa: E402
+from lab import read_metrics  # noqa: E402
 import inject as inject_mod  # noqa: E402
 from config_loader import SCENARIO_ORDER, load_config  # noqa: E402
 from model import build_model, build_scenarios  # noqa: E402
@@ -75,7 +76,10 @@ def main() -> None:
             if scen in snapshots
         }
     }
-    facts = facts_mod.build_facts(snap_data)
+    # 输出字典的条目也要进事实包：MD 里写中文名时，靠它们取值。
+    # **cfg 必须传**：否则依赖配置的那批外部锚（2026E 出货、重卡保有量、拍定倍数……）
+    # 全是 NaN，facts.json 里会落成 'nanGWh' 这种字符串，页面上与"算不出来"无法分辨。
+    facts = facts_mod.build_facts(snap_data, metrics_values=read_metrics(snapshot, config))
     facts_mod.FACTS_PATH.write_text(
         json.dumps(facts, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
     )

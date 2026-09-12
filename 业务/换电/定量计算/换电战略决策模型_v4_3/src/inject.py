@@ -4,8 +4,8 @@
 
 1. **裸数字检查（lint）**
    叙述源文件（``narrative/*.src.md``）里不允许出现字面数字。
-   数字只能写成 ``{{q3.increment}}``（规范写法，带单位）或
-   ``{{q3.increment:n}}``（只要数字，用于表格列已标单位的场合）。
+   数字只能写成 ``{{换电增量价值合计}}``（规范写法，带单位）或
+   ``{{换电增量价值合计:n}}``（只要数字，用于表格列已标单位的场合）。
    白名单：年份、章节号、版本号、有序列表序号、行内代码与代码块。
 
 2. **注入（inject）**
@@ -41,7 +41,10 @@ OUTPUT_DIR = ROOT / "outputs"
 FACTS_PATH = OUTPUT_DIR / "facts.json"
 STATE_PATH = OUTPUT_DIR / "narrative_state.json"
 
-TOKEN_RE = re.compile(r"\{\{\s*([A-Za-z0-9_.]+)\s*(?::\s*([a-z]+)\s*)?\}\}")
+# 占位符：既认内部 key（swap.coverage），也认**中文名**（年换电交易电量）。
+# 中文名里可能含空格与斜杠（如"站内装机GWh / 最新储能装机"），故用"非 {} 与冒号"的宽匹配。
+# 这一条是"语义寻址"的入口：写论述的人不必知道程序里那个数叫什么。
+TOKEN_RE = re.compile(r"\{\{\s*([^{}:]+?)\s*(?::\s*([a-z]+)\s*)?\}\}")
 FENCE_RE = re.compile(r"^\s*(```|~~~)")
 INLINE_CODE_RE = re.compile(r"`[^`]*`")
 LINK_TARGET_RE = re.compile(r"\]\([^)]*\)")   # 链接目标里的文件名／锚点不算正文数字
@@ -93,18 +96,55 @@ def lint(path: Path) -> list[tuple[int, str]]:
 
 # ─────────────────────────────────────────── 注入
 def inject(text: str, facts: dict) -> tuple[str, list[str]]:
-    """替换占位符，返回 (结果文本, 未知key列表)。"""
+    """替换占位符，返回 (结果文本, 未知key列表)。
+
+    查找顺序：**facts 精确 → 输出字典（中文名／key／容错）**。
+    facts 优先是为了不破坏既有写法；字典是"模型算得出什么"的唯一真相，
+    所以写中文名也能命中，找不到就进 unknown（由调用方报错并给出候选）。
+    """
     unknown: list[str] = []
 
     def _sub(m: re.Match) -> str:
-        key, mode = m.group(1), (m.group(2) or "")
+        key, mode = (m.group(1) or "").strip(), (m.group(2) or "")
         fact = facts.get(key)
+        if fact is not None:
+            return fact["bare"] if mode == "n" else fact["text"]
+        # 退一步：去输出字典里按中文名找（语义寻址），拿到它的内部 key 再取值
+        try:
+            from lab import resolve                    # 延迟 import，避免与 lab 形成环
+            metric = resolve(key)
+        except Exception:
+            unknown.append(key)
+            return m.group(0)
+        fact = facts.get(metric.key)
         if fact is None:
             unknown.append(key)
             return m.group(0)
         return fact["bare"] if mode == "n" else fact["text"]
 
     return TOKEN_RE.sub(_sub, text), unknown
+
+
+def metric_unknown_detail(names: list[str]) -> list[str]:
+    """把"找不到的占位符"变成**能照着改**的提示：每个都给最像的 3 个候选。
+
+    为什么不静默：一个 [待补] 和"这个数今天算不出来"长得一模一样，事后极难追回。
+    """
+    try:
+        from lab import suggest
+    except Exception:
+        return [f"「{n}」找不到（输出字典不可用）" for n in names]
+    out = []
+    for n in names:
+        cands = suggest(n, 3)
+        if not cands:
+            out.append(f"「{n}」在输出字典里找不到，且没有相似的条目——确实缺这个数的话，"
+                       f"去 configs/metrics.toml 登记（并确认对应计算程序已把它算出来）")
+        else:
+            lines = "；".join(f"{lab}（{key}）" for lab, key in cands)
+            out.append(f"「{n}」找不到。最像的是：{lines}。"
+                       f"改成其中任一个即可")
+    return out
 
 
 def tokens_in(text: str) -> list[str]:

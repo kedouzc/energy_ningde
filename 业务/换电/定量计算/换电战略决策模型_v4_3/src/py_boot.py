@@ -109,7 +109,8 @@ def recompute(state_json):
         groups = onepager.load_rows()
         snap_dict = asdict(snap)
         snap_dict["_extra"] = {"config": cfg}
-        texts = onepager.render_texts(facts.build_facts(snap_dict, strict=False), groups)
+        texts = onepager.render_texts(
+            facts.build_facts(snap_dict, strict=False, metrics_values=mv), groups)
     except Exception as exc:
         print("onepaper texts skipped: %r" % (exc,))
     return json.dumps({"metrics": metrics, "texts": texts, "vals": vals, "error": err})

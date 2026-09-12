@@ -61,6 +61,9 @@ def build_consolidated_ledger(
         no_swap_manufacturing=no_swap,
         with_swap_manufacturing=with_swap,
         swap_business=swap,
+        # 2026-09-12 从 lab.py 下沉：合并增量价值（业务整体口径）
+        # = 运营项目权益价值(100%) + 制造侧增量价值；归属股东口径见 total_swap_increment_value_yi
+        combined_increment_value_yi=swap.project_equity_value_yi + full_mfg_value_gap,
         power_net_profit_2030_no_swap_yi=power_np_no,
         power_net_profit_2030_with_swap_yi=power_np_with,
         power_value_2030_no_swap_yi=power_value_no,

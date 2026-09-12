@@ -97,6 +97,29 @@ class ScaleResult:
     battery_pool_life_years: dict[str, float]  # 四池寿命（按池EFC强度推算，非硬编码；键=qiji75_short等）
     city_stock_layer: dict = field(default_factory=dict)  # 城配存量层（高不确定·单列·不并入headline）
 
+    # ---- 车辆/规模口径的**结果**（2026-09-12 从 lab.py 下沉）------------------------
+    # 为什么这些汇总要落在这里而不是留在取数层：它们是**规模口径的一部分**
+    # （"营运车合计含哪几类"本身就是口径），且改车辆分类时必须跟着改。
+    # 落快照后，输出字典 configs/metrics.toml 只需写 `at="scale.xxx"`，不含任何公式。
+    veh_heavy_wan: float = 0.0            # 终局覆盖·换电重卡
+    veh_city_wan: float = 0.0             # 终局覆盖·换电城配物流车
+    veh_commercial_wan: float = 0.0       # 商用营运车（重卡+城配）
+    veh_passenger_ops_wan: float = 0.0    # 乘用营运车（出租+网约+Robotaxi）
+    veh_private_wan: float = 0.0          # 私家车
+    veh_ops_total_wan: float = 0.0        # 营运车合计（商业营运+乘用营运，不含私家车）
+    veh_total_wan: float = 0.0            # 全部车辆合计
+    swap_veh_2030_wan: float = 0.0        # 终局年出货·换电车辆
+    charge_veh_2030_wan: float = 0.0      # 终局年出货·充电车辆
+    total_veh_2030_wan: float = 0.0       # 终局年出货合计·车辆数（产能核查口径：换电+充电）
+    swap_gwh_2030: float = 0.0            # 终局年出货·换电装车 GWh
+    charge_gwh_2030: float = 0.0          # 终局年出货·充电装车 GWh
+    total_gwh_2030: float = 0.0           # 终局年出货合计 GWh（产能核查口径：换电+充电）
+    market_total_wan: float = 0.0         # 营运车总市场（分母，来自 config 运营事实）
+    share_of_market_pct: float = float("nan")   # 营运车覆盖率 = veh_ops_total / market_total
+    heavy_pen_pct: float = float("nan")   # 换电重卡 ÷ 重卡保有量（分母是外部事实）
+    stations_total: float = 0.0           # 终局站数合计（四站型之和）
+    daily_swaps_wan: float = 0.0          # 成熟期日换电次数合计（万次/日）
+
     # ---- 两大类汇总（重卡=短途+中长途、巧克力=乘用+城配）：仅派生展示，不落快照 ----
 
     @property
@@ -249,6 +272,11 @@ class CapexResult:
     mature_fleet_gwh_by_pool: dict[str, float] = field(default_factory=dict)
     steady_state_replacement_gwh_by_pool: dict[str, float] = field(default_factory=dict)
     steady_state_replacement_gwh: float = 0.0
+    # 2026-09-12 从 lab.py 下沉：重卡池（qiji75*）单独汇总——干线池寿命仅 2.94 年，
+    # 是更新需求的主力，必须单列（与 steady_state_replacement_gwh 同口径的两个切片）。
+    steady_state_replacement_gwh_heavy: float = 0.0
+    # 稳态年更新装机 ÷ 2026E 动力电池出货：换电把一次性出货变成持续更新订单的量化。
+    repl_share_of_2026e_pct: float = float("nan")
 
 
 @dataclass
@@ -426,6 +454,17 @@ class SwapBusinessResult:
     warehouse_logistics_yi: float = 0.0
     # v4.3 新增：四站型分池经营明细（键=池键）。总量字段=四池之和，
     # report 的 operating_table/cash_return_table 分站型列直接读这里。
+    # 2026-09-12 从 lab.py 下沉：装机口径的汇总（分池求和属于经营口径，算在 business.py）
+    station_battery_gwh: float = 0.0            # 站内周转电池装机保有量
+    battery_stock_total_gwh: float = 0.0        # 在网电池合计 = 车端 + 站内
+    # 2026-09-12 新增：**流量口径**的累计装机 = 各年新增装机（scale.rows.catl_swap_gwh）逐年累加。
+    # 与上面的`battery_stock_total_gwh`（存量口径，含站内周转）**不是同一个数**，不可互换：
+    # 存量 608.8 GWh vs 本口径 574.0 GWh，而"车端"又是 574.2 GWh——三者两两接近却不同源，
+    # 最容易在论述里被当成同一个数读。故在此显式登记、写明口径，不让它在别处另起一个算式。
+    swap_gwh_cumulative_flow: float = 0.0
+    heavy_vehicle_gwh: float = 0.0              # 重卡池·车端装机
+    heavy_station_gwh: float = 0.0              # 重卡池·站内周转装机
+    energy_unit_price_rmb_kwh: float = float("nan")  # 用户侧度电用能成本 = 谷电价 + 峰谷价差
     pool_operations: dict[str, PoolOperations] = field(default_factory=dict)
     # 【新增 2026-09-10】重卡用户经济性（结论区 ①「用户 TCO」一句取这里）。
     # 未配置 [tco_jpm] 时为 None，页面按 [待补] 显示，不编数。
@@ -534,6 +573,9 @@ class ConsolidatedLedger:
     full_gap_to_current_group_market_cap: float
     power_value_cagr_2026_to_2030: float
     value_bridge_error_yi: float
+    # 2026-09-12 从 lab.py 下沉：合并增量价值（业务整体口径）
+    # = 运营项目权益价值(100%) + 制造侧增量价值；归属股东口径见 total_swap_increment_value_yi
+    combined_increment_value_yi: float = 0.0
 
 
 @dataclass
@@ -603,6 +645,11 @@ class ModelSnapshot:
     sensitivity: list[dict[str, Any]] = field(default_factory=list)
     sources: dict[str, str] = field(default_factory=dict)
     market_share: dict[str, Any] = field(default_factory=dict)
+    # 2026-09-12 从 lab.py 下沉：资金包络与轻资产回笼的派生。
+    # 计算逻辑分别在 group_constraints.py 与 capital_cycle.py，这里只挂装配好的结果。
+    funding_peak_cash_to_cfo: float = float("nan")
+    funding_closing_liquidity: float = float("nan")
+    reit_multiple: float = float("nan")
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

@@ -724,6 +724,31 @@ def build_scale(
         ]
     # 【新增】结束
 
+    # ── 车辆/规模口径的汇总（2026-09-12 从 lab.py 下沉）──────────────────────
+    # 这些"合计"属于**规模口径的一部分**（营运车含哪几类本身就是口径判断），
+    # 所以算在这里；输出字典只引用结果，不再出现任何公式。
+    _COMMERCIAL = ("heavy", "city")
+    _PASSENGER_OPS = ("taxi", "ridehail", "robotaxi")
+    _PRIVATE = ("private",)
+
+    def _sum_stock(keys: tuple[str, ...]) -> float:
+        return float(sum(operating_stock.get(k, 0.0) for k in keys))
+
+    def _flow(field: str, year: int | None = None) -> float:
+        y = year if year is not None else years[-1]
+        return float(sum(
+            getattr(r, field) for r in rows if r.year == y
+        ))
+
+    veh_commercial = _sum_stock(_COMMERCIAL)
+    veh_passenger_ops = _sum_stock(_PASSENGER_OPS)
+    veh_ops_total = veh_commercial + veh_passenger_ops
+    market_total = operating_market_total(config)
+    swap_gwh = _flow("catl_swap_gwh")
+    charge_gwh = _flow("catl_charge_gwh")
+    swap_veh_2030_wan = _flow("catl_swap_vehicles_wan")
+    charge_veh_2030_wan = _flow("catl_charge_vehicles_wan")
+
     return ScaleResult(
         years=years,
         rows=rows,
@@ -739,4 +764,28 @@ def build_scale(
         route_identity_error=identity_error,
         battery_pool_life_years=battery_pool_life,
         city_stock_layer=_city_stock_layer(config),
+        veh_heavy_wan=_sum_stock(("heavy",)),
+        veh_city_wan=_sum_stock(("city",)),
+        veh_commercial_wan=veh_commercial,
+        veh_passenger_ops_wan=veh_passenger_ops,
+        veh_private_wan=_sum_stock(_PRIVATE),
+        veh_ops_total_wan=veh_ops_total,
+        veh_total_wan=_sum_stock(_COMMERCIAL + _PASSENGER_OPS + _PRIVATE),
+        swap_veh_2030_wan=swap_veh_2030_wan,
+        charge_veh_2030_wan=charge_veh_2030_wan,
+        swap_gwh_2030=swap_gwh,
+        charge_gwh_2030=charge_gwh,
+        # 产能核查口径：换电需求占用全线产能，只算换电会低估占用率
+        total_gwh_2030=swap_gwh + charge_gwh,
+        total_veh_2030_wan=swap_veh_2030_wan + charge_veh_2030_wan,
+        market_total_wan=market_total,
+        share_of_market_pct=(veh_ops_total / market_total * 100.0) if market_total else float("nan"),
+        # 换电重卡 ÷ 重卡保有量：分母是外部事实（config），分子是本程序推算，互不循环
+        heavy_pen_pct=(
+            _sum_stock(("heavy",)) / float(config["vehicles"]["heavy"]["stock_wan"]) * 100.0
+            if (config.get("vehicles", {}).get("heavy", {}).get("stock_wan"))
+            else float("nan")
+        ),
+        stations_total=float(sum(stations.values())),
+        daily_swaps_wan=float(sum(daily_swaps.values())) / 1e4,
     )

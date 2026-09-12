@@ -47,13 +47,14 @@ def get_base() -> dict:
 
 @st.cache_data
 def get_base_metrics(cfg: dict) -> dict:
-    return read_metrics(rerun(cfg))
+    # cfg 必须传给 read_metrics：否则外部锚那一批（at_cfg）取不到，静默变 NaN
+    return read_metrics(rerun(cfg), cfg)
 
 
 @st.cache_data
 def get_influence(cfg: dict) -> dict:
     """基准情景下各参数的总影响力（终端口径），用于排名与高亮。"""
-    base_metrics = read_metrics(rerun(cfg))
+    base_metrics = read_metrics(rerun(cfg), cfg)
     elast = compute_elasticity(cfg, base_metrics)
     return {p: total_influence(row) for p, row in elast.items()}
 
@@ -95,7 +96,7 @@ with st.sidebar:
 
 # ── 主区：实时结果 ─────────────────────────────────
 try:
-    M = read_metrics(rerun(CFG))
+    M = read_metrics(rerun(CFG), CFG)
 except Exception as exc:  # noqa: BLE001
     st.error(f"当前参数组合触发模型硬约束，结果未刷新：{exc}")
     M = BASE_METRICS

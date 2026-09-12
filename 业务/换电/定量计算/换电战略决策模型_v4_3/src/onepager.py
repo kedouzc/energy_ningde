@@ -159,16 +159,9 @@ def check(groups, facts: dict, metric_values: dict) -> list[str]:
             elif key not in METRIC_BY_KEY:
                 problems.append(f"metric 不存在：{key}（不在 lab.METRICS 里）")
 
-    # ④ facts 与 METRICS 的镜像必须同值
-    for key, item in facts.items():
-        m = item.get("mirror")
-        if not m:
-            continue
-        b = metric_values.get(m)
-        if b is None or b != b:
-            continue
-        if abs(item["v"] - b) > 1e-9 * max(1.0, abs(b)):
-            problems.append(f"镜像不一致：facts.{key}={item['v']:,.6g} vs METRICS.{m}={b:,.6g}")
+    # ④ facts 与 METRICS 的镜像必须同值（规则只有一个家：`facts.check_mirrors`，
+    #   它同时守着 build.py 那条管线；此处不再另写一份判定）
+    problems.extend(facts_mod.check_mirrors(facts, metric_values))
 
     return problems
 
@@ -186,8 +179,9 @@ def build_context(tier: str = "中性"):
     snapshot = build_model(cfg, **apply_scenario(cfg, drivers, tier))
     snap_dict = asdict(snapshot)
     snap_dict["_extra"] = {"config": cfg}
-    facts = facts_mod.build_facts(snap_dict, strict=False)
-    return cfg, drivers, snapshot, facts, read_metrics(snapshot, cfg)
+    metric_values = read_metrics(snapshot, cfg)
+    facts = facts_mod.build_facts(snap_dict, strict=False, metrics_values=metric_values)
+    return cfg, drivers, snapshot, facts, metric_values
 
 
 def tier_metric_values(cfg, drivers, keys: list[str]) -> dict[str, dict]:

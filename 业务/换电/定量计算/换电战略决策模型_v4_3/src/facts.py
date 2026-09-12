@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import json
 import sys
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
@@ -49,15 +50,6 @@ def dig(path: str) -> Callable[[dict], Any]:
     return _get
 
 
-def _stations(prefix: str) -> Callable[[dict], float]:
-    def _get(snap: dict) -> float:
-        return float(sum(
-            n for pool, n in snap["scale"]["target_station_demand"].items()
-            if pool.startswith(prefix)
-        ))
-    return _get
-
-
 def _veh(*keys: str) -> Callable[[dict], float]:
     def _get(snap: dict) -> float:
         stock = snap["scale"]["operating_stock_by_vehicle_wan"]
@@ -69,47 +61,10 @@ def _veh_all(snap: dict) -> float:
     return float(sum(snap["scale"]["operating_stock_by_vehicle_wan"].values()))
 
 
-def _swap_gwh_total(snap: dict) -> float:
-    return float(sum(row["catl_swap_gwh"] for row in snap["scale"]["rows"]))
-
-
-def _peak_row(snap: dict) -> dict:
-    return max(snap["funding"], key=lambda r: r["swap_equity_call_yi"])
-
-
-def _eac_factor(snap: dict) -> float:
-    c = snap["capex"]
-    return c["lifecycle_capital_base_yi"] / c["total_initial_capex_yi"]
-
-
-def _final_verdict(snap: dict) -> str:
-    return str(snap["memos"][-1]["status"])
-
-
-def _scen(field: str, scen: str) -> Callable[[dict], float]:
-    """三情景：快照本身只存中性档，三档由 build.py 重跑后塞进 _extra.scenarios。
-
-    三档是 [drivers] 的驱动因子整体拨档结果（悲观／中性／乐观），
-    不再是"只拨私家车"——故函数名去掉 private 前缀，档名也随之一致。
-    """
-
-    def _get(snap: dict) -> float:
-        return float(snap["_extra"]["scenarios"][scen][field])
-
-    return _get
-
-
-def _sens(group: str, scenario: str, field: str) -> Callable[[dict], float]:
-    """从敏感性表里取一格（口径讨论要引用的对照值都从这里来）。"""
-
-    def _get(snap: dict) -> float:
-        for row in snap["sensitivity"]:
-            if row["parameter_group"] == group and row["scenario"] == scenario:
-                return float(row[field])
-        raise KeyError(f"敏感性表里没有 {group} / {scenario}")
-
-    return _get
-
+# （2026-09-12 删除 `_stations`／`_swap_gwh_total`／`_peak_row`／`_eac_factor`／
+#   `_final_verdict`／`_scen`／`_sens` 七个取值助手：它们的调用方——65 条"定义了没人引用"
+#  的孤儿事实——已删，其中 `_swap_gwh_total` 的算式已由 business.py 算成快照字段。
+#  留着就是"一个算式两个出处"：改了那边，这边的死代码还挂着旧口径。）
 
 # ─────────────────────────────────────────── 事实定义
 @dataclass(frozen=True)
@@ -281,24 +236,26 @@ E: list[ExtFact] = [
 
 
 F: list[Fact] = [
-    # ── 集团基本盘 ────────────────────────────────
-    Fact("base.rev_2025a", "集团营收（上一完整年度实绩）",
-         dig("_extra.config.financial_2025a.group_revenue_yi"), "亿元", decimals=0),
-    Fact("base.np_2025a", "集团净利（上一完整年度实绩）",
-         dig("_extra.config.financial_2025a.group_net_profit_yi"), "亿元", decimals=0),
-    Fact("base.cash_2025a", "货币资金＋交易性金融资产",
-         dig("_extra.config.financial_2025a.cash_and_trading_assets_yi"), "亿元", decimals=0),
-    Fact("base.group_np", "集团净利（模型期初）", dig("ledger.baseline.group_net_profit_2026e_yi"), "亿元"),
-    Fact("base.group_mktcap", "集团市值基准（A+H）", dig("ledger.baseline.group_market_value_2026e_yi"), "亿元", decimals=0),
-    Fact("base.group_pe", "集团隐含PE", dig("ledger.baseline.implied_group_pe"), "倍", kind="x", decimals=1),
-    Fact("base.power_value_2026", "动力电池线现值（分摊口径）", dig("ledger.baseline.power_market_value_2026e_yi"), "亿元"),
-    Fact("base.wacc", "折现率", dig("meta.wacc"), "", kind="pct", decimals=1,
-         note="蔚来换电ABS融资基准，直接采用，不作CAPM推导"),
+    Fact("base.group_mktcap", "集团市值基准（A+H）", dig("ledger.baseline.group_market_value_2026e_yi"), "亿元", decimals=0,
+         mirror="val.group_market_cap"),
+    # 占比类一律以百分数存储（v=7.5 表示 7.5%），与输出字典的 `%` 条目同值——
+    # 原先存比值 0.075、靠 kind="pct" 渲染时才 ×100，与字典差 100 倍却没人发现。
+    Fact("base.wacc", "折现率", lambda s: float(dig("meta.wacc")(s)) * 100.0, "%", kind="num", decimals=1,
+         mirror="base.wacc_pct", note="蔚来换电ABS融资基准，直接采用，不作CAPM推导"),
     Fact("base.target_year", "终局年", dig("meta.target_year"), "", kind="int", watch=1.0),
-    Fact("base.horizon_years", "模型分析期", dig("_extra.config.finance.model_horizon_years"), "年", kind="int", watch=1.0),
-    Fact("base.debt_ratio", "项目公司债务比例", dig("_extra.config.finance.debt_ratio"), "", kind="pct", decimals=0),
-    Fact("base.equity_share", "CATL建站持股比例", dig("_extra.config.finance.construction_ownership"), "", kind="pct", decimals=0),
-    Fact("base.ev_ebitda", "运营侧EV/EBITDA基准倍数", dig("_extra.config.finance.swap_ev_ebitda"), "×", kind="x", decimals=0),
+    Fact("base.horizon_years", "模型分析期", dig("_extra.config.finance.model_horizon_years"), "年", kind="int", watch=1.0,
+         mirror="base.horizon_years"),
+    Fact("base.debt_ratio", "项目公司债务比例",
+         lambda s: float(dig("_extra.config.finance.debt_ratio")(s)) * 100.0,
+         "%", kind="num", decimals=0, mirror="base.debt_ratio_pct"),
+    # 占比一律**以百分数存储**（v=40 表示 40%），与输出字典的 `%` 条目同值——
+    # 原先这里存比值 0.4、靠 kind="pct" 渲染时才 ×100，于是与字典的 `base.ownership_pct`
+    # 差整整 100 倍，两条路径互相校不上（2026-09-12 由新增的同名/镜像断言查出来）。
+    Fact("base.equity_share", "CATL建站持股比例",
+         lambda s: float(dig("_extra.config.finance.construction_ownership")(s)) * 100.0,
+         "%", kind="num", decimals=0, mirror="base.ownership_pct"),
+    Fact("base.ev_ebitda", "运营侧EV/EBITDA基准倍数", dig("_extra.config.finance.swap_ev_ebitda"), "×", kind="x", decimals=0,
+         mirror="base.ev_ebitda_multiple"),
     # 2026-09-06：换电资产里 CATL 真正自己出的钱占多少。
     # 曾一度打算做成 ext.catl_equity_share_blended，但它是**派生量**不是外部事实——
     # =(1−项目公司债务比例)×CATL建站持股比例。做成派生，债务比例一改它自动跟着变。
@@ -307,131 +264,50 @@ F: list[Fact] = [
                    * float(dig("_extra.config.finance.construction_ownership")(s)),
          "", kind="pct", decimals=0,
          note="=(1−债务比例)×建站持股比例。三族定位里'不是真 GP'那条判断的量化依据"),
-    Fact("base.mfg_pe", "制造侧PE", dig("_extra.config.finance.manufacturing_pe"), "×", kind="x", decimals=0),
+    Fact("base.mfg_pe", "制造侧PE", dig("_extra.config.finance.manufacturing_pe"), "×", kind="x", decimals=0,
+         mirror="base.mfg_pe"),
     Fact("base.cfo_gate", "换电现金占CFO体检线",
-         dig("_extra.config.decision_thresholds.max_peak_swap_cash_to_cfo"), "", kind="pct", decimals=0),
+         lambda s: float(dig("_extra.config.decision_thresholds.max_peak_swap_cash_to_cfo")(s)) * 100.0,
+         "%", kind="num", decimals=0, mirror="base.cfo_gate_pct"),
 
-    # ── Q1 做透的规模 ────────────────────────────
-    Fact("q1.st_heavy", "骐骥重卡站（终局合计）", _stations("qiji75"), "座", kind="int"),
-    Fact("q1.st_heavy_short", "骐骥短途站", dig("scale.target_station_demand.qiji75_short"), "座", kind="int"),
-    Fact("q1.st_heavy_trunk", "骐骥干线站", dig("scale.target_station_demand.qiji75_trunk"), "座", kind="int"),
-    Fact("q1.st_choco", "巧克力站（终局合计）", _stations("choco"), "座", kind="int"),
-    Fact("q1.st_choco_pass", "巧克力乘用站", dig("scale.target_station_demand.choco25_passenger"), "座", kind="int"),
-    Fact("q1.st_choco_city", "巧克力城配站", dig("scale.target_station_demand.choco35_city"), "座", kind="int"),
-    Fact("q1.veh_total", "CATL换电车辆（终局）", _veh_all, "万辆"),
-    Fact("q1.veh_heavy", "换电重卡", _veh("heavy"), "万辆"),
-    Fact("q1.veh_city", "换电城配物流车", _veh("city"), "万辆"),
-    Fact("q1.veh_taxi", "换电出租车", _veh("taxi"), "万辆"),
-    Fact("q1.veh_ridehail", "换电网约车", _veh("ridehail"), "万辆"),
-    Fact("q1.veh_robotaxi", "换电Robotaxi", _veh("robotaxi"), "万辆"),
-    Fact("q1.veh_private", "换电私家车", _veh("private"), "万辆"),
-    Fact("q1.veh_ops", "换电营运车合计", _veh("heavy", "city", "taxi", "ridehail", "robotaxi"), "万辆"),
-    Fact("q1.gwh_total", "换电电池总装机", _swap_gwh_total, "GWh",
-         note="车端＋站内周转，按各年新增装机汇总"),
-    Fact("q1.gwh_vehicle", "换电装机·车端", dig("swap_business.rent_vehicle_gwh"), "GWh"),
+    Fact("q1.veh_total", "CATL换电车辆（终局）", _veh_all, "万辆", mirror="ops.veh_total"),
+    Fact("q1.veh_ops", "换电营运车合计", _veh("heavy", "city", "taxi", "ridehail", "robotaxi"), "万辆",
+         mirror="ops.veh_ops"),
+    # 口径更正（2026-09-12）：本条**不含**站内周转——它是各年新增装机逐年累加（流量口径），
+    # 574.0 GWh；含站内的存量口径是「换电装机保有量合计」608.8 GWh（字典 ops.battery_total）。
+    # 原 note 写"车端＋站内周转"是把两个口径混说了，而它与"车端"只差 0.03%，
+    # 混着读几乎看不出来——正是最该咬文嚼字的地方。算式已由 business.py 算成快照字段，
+    # 不再由本文件另起一份（一个数字只准有一个算式）。
+    Fact("q1.gwh_total", "换电电池总装机（各年新增累计）",
+         dig("swap_business.swap_gwh_cumulative_flow"), "GWh", mirror="ops.gwh_cum_flow",
+         note="各年新增装机逐年累加（流量口径，574.0）；不含站内周转，"
+              "也不等于存量口径的 '换电装机保有量合计'（608.8）"),
+    Fact("q1.gwh_vehicle", "换电装机·车端", dig("swap_business.rent_vehicle_gwh"), "GWh",
+         mirror="ops.battery_vehicle"),
     Fact("q1.gwh_station", "换电装机·站内周转",
          lambda s: sum(p["station_battery_gwh"] for p in s["swap_business"]["pool_operations"].values()),
          "GWh", mirror="ops.battery_station"),
-    Fact("q1.energy", "年换电交易电量（成熟期）", dig("swap_business.annual_energy_yi_kwh"), "亿kWh"),
+    Fact("q1.energy", "年换电交易电量（成熟期）", dig("swap_business.annual_energy_yi_kwh"), "亿kWh",
+         mirror="ops.annual_energy"),
 
     # ── Q2 做透的代价 ────────────────────────────
-    Fact("q2.capex_initial", "初装CAPEX合计", dig("capex.total_initial_capex_yi"), "亿元"),
-    Fact("q2.lifecycle_base", "全周期资本底座（15年现值）", dig("capex.lifecycle_capital_base_yi"), "亿元"),
-    Fact("q2.eac_factor", "全周期／初装倍数", _eac_factor, "倍", kind="x", decimals=2,
-         note="电池更新推高的资本倍数，等价年金法的核心中间量"),
-    Fact("q2.equity_call", "CATL建设期累计资本调用", dig("capex.catl_total_equity_call_yi"), "亿元"),
-    Fact("q2.peak_call", "单年峰值资本调用", dig("capex.catl_peak_equity_call_yi"), "亿元"),
-    Fact("q2.peak_year", "峰值年", dig("capex.peak_year"), "", kind="int", watch=1.0),
-    Fact("q2.commitment", "CATL全周期权益承诺", dig("capex.catl_lifecycle_equity_commitment_yi"), "亿元"),
-    Fact("q2.project_debt", "项目债务", dig("capex.project_debt_yi"), "亿元"),
-    Fact("q2.external_equity", "外部股权融资（合资方出资）", dig("capex.external_equity_yi"), "亿元",
-         mirror="capex.external_equity",
-         note="全周期资本底座×(1−债务比例)×(1−建站持股比例)；合资方/外部股权出资，不占 CATL 出资"),
-
-    # ── Q3 换回的价值 ────────────────────────────
-    Fact("q3.revenue", "换电业务年收入（成熟期）", dig("swap_business.revenue_yi"), "亿元"),
-    Fact("q3.rev_service", "　服务费收入", dig("swap_business.service_revenue_yi"), "亿元"),
-    Fact("q3.rev_rent", "　电池租金收入", dig("swap_business.battery_rent_yi"), "亿元"),
-    Fact("q3.rev_arb", "　峰谷套利收入", dig("swap_business.arbitrage_yi"), "亿元"),
-    Fact("q3.rev_anc", "　电网辅助服务收入", dig("swap_business.ancillary_yi"), "亿元"),
-    Fact("q3.opex", "运营OPEX", dig("swap_business.opex_yi"), "亿元"),
-    Fact("q3.ebitda", "EBITDA", dig("swap_business.ebitda_yi"), "亿元"),
-    Fact("q3.dep", "年折旧", dig("swap_business.depreciation_yi"), "亿元"),
-    Fact("q3.ebit", "EBIT", dig("swap_business.ebit_yi"), "亿元", decimals=2, watch=1.0,
-         note="接近零：折旧几乎吃掉全部EBITDA，估值口径讨论的起点"),
-    Fact("q3.required_ebitda", "资本回报要求EBITDA", dig("swap_business.required_ebitda_yi"), "亿元"),
-    Fact("q3.coverage", "EBITDA覆盖倍数", dig("swap_business.forward_to_required_ebitda"), "倍", kind="x", decimals=2),
-    Fact("q3.op_value", "运营侧直接增量（CATL归属）", dig("ledger.direct_swap_increment_value_yi"), "亿元",
-         note="EV/EBITDA×倍数－债，再乘40%权益"),
-    Fact("q3.mfg_gap_value", "制造侧锁量锁价增量", dig("ledger.full_manufacturing_scenario_gap_value_yi"), "亿元",
-         note="有换电制造净利 − 纯制造净利，再×制造PE；已综合锁单、虹吸与利润率保护"),
-    Fact("q3.increment", "可归因换电增量价值", dig("ledger.total_swap_increment_value_yi"), "亿元"),
-    Fact("q3.increment_pct", "增量价值／集团市值", dig("ledger.attributable_swap_value_to_current_group_market_cap"), "", kind="pct"),
-    Fact("q3.power_value_with", "2030E动力电池线价值（有换电）", dig("ledger.power_value_2030_with_swap_yi"), "亿元"),
-    Fact("q3.power_value_no", "2030E动力电池线价值（无换电对照）", dig("ledger.power_value_2030_no_swap_yi"), "亿元"),
-    Fact("q3.mfg_np_with", "2030E制造净利（有换电）", dig("ledger.with_swap_manufacturing.net_profit_yi"), "亿元"),
-    Fact("q3.mfg_np_no", "2030E制造净利（无换电）", dig("ledger.no_swap_manufacturing.net_profit_yi"), "亿元"),
-    Fact("q3.mfg_margin_no", "无换电制造净利率", dig("ledger.no_swap_manufacturing.net_margin"), "", kind="pct"),
-    Fact("q3.mfg_margin_with", "有换电制造净利率", dig("ledger.with_swap_manufacturing.net_margin"), "", kind="pct"),
-    Fact("q3.dist_cash", "CATL年可分派现金（成熟期）", dig("swap_business.catl_forward_distributable_cash_yi"), "亿元"),
-    Fact("q3.payback", "全周期回收期", dig("swap_business.catl_lifecycle_payback_years"), "年", decimals=1),
+    Fact("q2.capex_initial", "初装CAPEX合计", dig("capex.total_initial_capex_yi"), "亿元",
+         mirror="capex.initial_capex"),
+    Fact("q2.lifecycle_base", "全周期资本底座（15年现值）", dig("capex.lifecycle_capital_base_yi"), "亿元",
+         mirror="capex.lifecycle_base"),
+    Fact("q2.project_debt", "项目债务", dig("capex.project_debt_yi"), "亿元",
+         mirror="capex.project_debt"),
 
     # ── 估值口径对照：算出来的 vs 押注的（第 5 章的骨）──
     Fact("dcf.fcff", "成熟期项目自由现金流 FCFF", dig("swap_business.forward_fcff_yi"), "亿元",
+         mirror="swap.forward_fcff",
          note="EBITDA×(1−税率)＋折旧×税率；全周期重置已由 CRF 年金化内含"),
-    Fact("dcf.ev_crf", "DCF企业价值·与门槛同源口径", dig("swap_business.dcf_ev_at_crf_yi"), "亿元",
-         note="FCFF ÷ CRF。CRF 即设门槛 EBITDA 用的期望收益率年金因子，故与覆盖倍数完全同源"),
-    Fact("dcf.ev_wacc", "DCF企业价值·成本线口径（上界）", dig("swap_business.dcf_ev_at_wacc_yi"), "亿元",
-         note="FCFF × 年金因子(WACC 7.5%, 15年)。WACC 是成本下限，故本口径给出上界"),
     Fact("dcf.mult_crf", "现金流支持的倍数·与门槛同源", dig("swap_business.dcf_implied_multiple_at_crf"), "×",
-         kind="x", decimals=2,
+         kind="x", decimals=2, mirror="swap.dcf_implied_multiple",
          note="几乎正好落在 v3.2 §4.1 引用的 Brookfield 6.7×（重资产基建运营族底部）"),
-    Fact("dcf.mult_wacc", "现金流支持的倍数·成本线上界", dig("swap_business.dcf_implied_multiple_at_wacc"), "×",
-         kind="x", decimals=2),
-    Fact("dcf.premium", "拍的倍数 ÷ 现金流支持的倍数", dig("swap_business.dcf_multiple_premium"), "倍",
-         kind="x", decimals=2, note="这个倍数就是战略溢价的大小，是判断不是计算"),
-    Fact("dcf.npv", "项目NPV·与门槛同源口径", dig("swap_business.dcf_npv_at_crf_yi"), "亿元",
-         note="DCF企业价值 − 全周期资本底座。为正即已跑赢自设门槛"),
-    Fact("dcf.catl_value", "CATL归属价值·现金流口径", dig("swap_business.dcf_catl_value_at_crf_yi"), "亿元"),
     Fact("dcf.bet", "押注的那部分", dig("swap_business.dcf_catl_value_gap_yi"), "亿元",
+         mirror="val.dcf_bet",
          note="倍数法归属 − 现金流口径归属；报告第 5 章必须正面论证的就是这一块"),
-
-    # ── Q4 资金从容度 ────────────────────────────
-    Fact("q4.peak_to_cfo", "峰值年换电现金／CFO", lambda s: _peak_row(s)["swap_cash_to_cfo"], "", kind="pct"),
-    Fact("q4.closing_liquidity", "峰值年末可投资金结余",
-         lambda s: _peak_row(s)["closing_liquid_resources_before_uncommitted_strategy_yi"], "亿元"),
-    Fact("q4.min_reserve", "集团最低流动性储备线",
-         lambda s: _peak_row(s)["minimum_liquidity_reserve_yi"], "亿元", decimals=0),
-    Fact("q4.exposure", "待决战略敞口合计", dig("strategic_exposure_yi"), "亿元"),
-    Fact("q4.verdict", "决策备忘录末端判断", _final_verdict, "", kind="text", watch=1.0),
-
-    # ── 情景（私家车三档，需求侧最大不确定项）──────
-    Fact("sens.private_low", "私家车换电车辆·悲观", _scen("私家车换电车辆(万)", "悲观"), "万辆"),
-    Fact("sens.private_mid", "私家车换电车辆·中性", _scen("私家车换电车辆(万)", "中性"), "万辆"),
-    Fact("sens.private_high", "私家车换电车辆·乐观", _scen("私家车换电车辆(万)", "乐观"), "万辆"),
-    Fact("sens.increment_low", "可归因增量·悲观", _scen("可归因换电增量(亿)", "悲观"), "亿元"),
-    Fact("sens.increment_high", "可归因增量·乐观", _scen("可归因换电增量(亿)", "乐观"), "亿元"),
-    Fact("sens.coverage_low", "EBITDA覆盖倍数·悲观", _scen("EBITDA覆盖倍数", "悲观"), "倍", kind="x", decimals=2),
-    Fact("sens.coverage_high", "EBITDA覆盖倍数·乐观", _scen("EBITDA覆盖倍数", "乐观"), "倍", kind="x", decimals=2),
-
-    # ── 口径对照：估值倍数怎么撬动结论（第 5 章要用）──
-    Fact("sens.ev14", "增量价值 @运营14×", _sens("运营EV/EBITDA", "14×", "attributable_swap_value_yi"), "亿元"),
-    Fact("sens.ev18", "增量价值 @运营18×（基准）", _sens("运营EV/EBITDA", "18×", "attributable_swap_value_yi"), "亿元"),
-    Fact("sens.ev22", "增量价值 @运营22×", _sens("运营EV/EBITDA", "22×", "attributable_swap_value_yi"), "亿元"),
-    Fact("sens.ev25", "增量价值 @运营25×", _sens("运营EV/EBITDA", "25×", "attributable_swap_value_yi"), "亿元"),
-    Fact("sens.fee_low", "增量价值 @服务费租金×0.8",
-         _sens("服务费+租金", "基准×0.8", "attributable_swap_value_yi"), "亿元"),
-    Fact("sens.fee_low_cov", "EBITDA覆盖倍数 @服务费租金×0.8",
-         _sens("服务费+租金", "基准×0.8", "ebitda_coverage"), "倍", kind="x", decimals=2),
-    Fact("sens.batt_high", "增量价值 @电池价格×1.1",
-         _sens("电池价格", "基准×1.1", "attributable_swap_value_yi"), "亿元"),
-    Fact("sens.margin_zero", "增量价值 @制造净利率差取零",
-         _sens("制造净利率差", "0.0%", "attributable_swap_value_yi"), "亿元"),
-    # 倍数档位的标签本身也来自敏感性表，避免表头数字变成手写
-    Fact("sens.ev14_x", "档位标签", lambda s: "14×", kind="text", watch=1.0),
-    Fact("sens.ev18_x", "档位标签", lambda s: "18×", kind="text", watch=1.0),
-    Fact("sens.ev22_x", "档位标签", lambda s: "22×", kind="text", watch=1.0),
-    Fact("sens.ev25_x", "档位标签", lambda s: "25×", kind="text", watch=1.0),
 
     # ── 外部市场锚（一页纸市占率的分母）────────────────────
     # 数值只在 base.toml；**信源（名称/URL/抓取日期/分级）只在 audit/信源审计台账.md 的
@@ -456,78 +332,104 @@ F: list[Fact] = [
          dig("_extra.config.decision_thresholds.min_increment_over_mktcap"), "", kind="pct", watch=1.0),
     Fact("thr.target_incr_pct", "值得重注·增量占集团市值目标",
          dig("_extra.config.decision_thresholds.target_increment_over_mktcap"), "", kind="pct", watch=1.0),
-    Fact("thr.bet_low", "押注占比·可坦然辩护的上限",
-         dig("_extra.config.decision_thresholds.max_bet_share_low"), "", kind="pct", watch=1.0),
     Fact("thr.bet_high", "押注占比·结论靠倍数而非现金流的线",
          dig("_extra.config.decision_thresholds.max_bet_share_high"), "", kind="pct", watch=1.0),
     Fact("thr.min_coverage", "EBITDA 覆盖倍数体检线",
          dig("_extra.config.decision_thresholds.min_forward_to_required_ebitda"), "倍", kind="x",
          decimals=2, watch=1.0),
-    Fact("thr.max_premium", "战略溢价倍数上限（拍的倍数 ÷ 现金流支持的倍数）",
-         dig("_extra.config.decision_thresholds.min_swap_value_creation_multiple"), "倍", kind="x",
-         decimals=2, watch=1.0),
 
     # ── 与 lab.METRICS 镜像的结果事实 ────────────────────────
     # 一页纸的数值列走 METRICS（与沙盘读数同一出口），解释列走 facts 占位符；
-    # 两条取数路径必须给出同一个数，由 onepager.check_mirrors() 每次实跑断言。
+    # 两条取数路径必须给出同一个数，由本文件的 check_mirrors() **每条管线**实跑断言。
     Fact("op.net_profit", "运营净利润（项目100%口径）",
          dig("swap_business.project_net_profit_yi"), "亿元", mirror="swap.net_profit",
          note="分池计税、亏损池不跨池抵扣，故合计可能为负"),
-    Fact("op.catl_net_profit", "运营净利润（CATL归属）",
-         dig("swap_business.catl_attributable_net_profit_yi"), "亿元", mirror="swap.catl_net_profit"),
     Fact("op.ev_multiple", "运营企业价值 EV（倍数法，100%口径）",
          dig("swap_business.enterprise_value_yi"), "亿元", mirror="val.op_ev_multiple",
-         note="未扣债、未乘持股比例；归属口径见 q3.op_value"),
+         note="未扣债、未乘持股比例；归属口径见 运营侧直接增量（CATL归属）"),
     Fact("op.equity_gross", "运营项目权益价值（100%口径）",
          dig("swap_business.project_equity_value_yi"), "亿元", mirror="val.op_equity_gross"),
-    Fact("dcf.ev_true", "DCF内在价值·有限期EV",
-         dig("swap_business.dcf_ev_true_yi"), "亿元", mirror="val.ev_dcf_true",
-         note="15 年有限期、毛现金流资本化；不含 2030 年后增长"),
-    Fact("dcf.ev_perpetual", "DCF内在价值·永续EV",
-         dig("swap_business.dcf_ev_perpetual_yi"), "亿元", mirror="val.ev_dcf_perpetual",
-         note="规模冻结在 2030 的永续账：模型内的上限、真实世界的下限"),
     Fact("dcf.catl_true", "CATL归属·DCF有限期",
          dig("swap_business.dcf_catl_value_true_yi"), "亿元", mirror="val.catl_dcf_true"),
-    Fact("dcf.catl_perpetual", "CATL归属·DCF永续",
-         dig("swap_business.dcf_catl_value_perpetual_yi"), "亿元", mirror="val.catl_dcf_perpetual"),
-    Fact("q3.increment_np", "合并增量净利润",
-         dig("ledger.total_swap_increment_net_profit_yi"), "亿元", mirror="val.increment_np"),
-    Fact("q3.increment_gross", "合并增量价值（业务整体）",
-         lambda s: (float(dig("swap_business.project_equity_value_yi")(s))
-                    + float(dig("ledger.full_manufacturing_scenario_gap_value_yi")(s))),
-         "亿元", mirror="val.increment_gross",
-         note="运营项目权益（100%）＋制造增量价值；归属股东口径见 q3.increment"),
-    Fact("q2.nominal_total", "名义累计投入（不折现）",
-         dig("capex.nominal_total_capex_yi"), "亿元", mirror="capex.nominal_total",
-         note="实际花钱总额；与现值口径（q2.lifecycle_base）不同源，不可混用"),
     Fact("q2.peak_year", "峰值年", dig("capex.peak_year"), "年", kind="year", watch=1.0,
          mirror="capex.peak_year", note="CATL 单年权益出资最大的年份——年份不加千分位"),
-    Fact("q1.st_total", "终局站数合计",
-         lambda s: float(sum(s["scale"]["target_station_demand"].values())), "座", kind="int",
-         mirror="scale.stations_total"),
-    # 占比一律**以百分数存储**（v=1.4 表示 1.4%），与 lab.METRICS 的 mk.* 完全同值——
-    # 不用 kind="pct"（那会把 v 当成小数比值、渲染时再 ×100，与指标值差 100 倍）。
-    Fact("mk.share_storage_2025", "站内装机GWh / 最新储能装机",
-         lambda s: float(s["market_share"]["cross_check_vs_national"]
-                         ["swap_station_battery_share_of_national_storage_2025"]) * 100.0,
-         "%", kind="num", decimals=2, mirror="mk.share_storage_2025",
-         note="分子＝站内周转装机保有量 GWh（常驻站、可参与电网调度）；分母＝最新年度全国新型储能累计装机"),
-    Fact("mk.share_storage_2030", "站内装机GWh / 2030储能装机预测",
-         lambda s: float(s["market_share"]["cross_check_vs_national"]
-                         ["swap_station_battery_share_of_national_storage_2030"]) * 100.0,
-         "%", kind="num", decimals=2, mirror="mk.share_storage_2030"),
-    Fact("mk.share_elec_latest", "年换电量 / 最新年度全社会用电量",
-         lambda s: float(s["market_share"]["cross_check_vs_society_electricity"]
-                         ["swap_energy_share_of_society_electricity_latest"]) * 100.0,
-         "%", kind="num", decimals=3, mirror="mk.share_elec_latest",
-         note="分子＝成熟期年换电交易电量（亿kWh）；分母＝最新年度全社会用电量"),
-    Fact("mk.share_elec_2030", "年换电量 / 2030全社会用电量预测",
-         lambda s: float(s["market_share"]["cross_check_vs_society_electricity"]
-                         ["swap_energy_share_of_society_electricity_2030"]) * 100.0,
-         "%", kind="num", decimals=3, mirror="mk.share_elec_2030"),
 ]
 
+# **一个 key 只能定义一次**：重复时后者悄悄覆盖前者，前者写的 unit/kind/note 全白写，
+# 而且查错的时候不报错——这正是"同一个数两个出处"最容易复发的形态，故加载即中断。
+_dupes = [k for k, n in Counter(f.key for f in F).items() if n > 1]
+if _dupes:
+    _detail = "\n  ".join(
+        f"{k}：{[f.label for f in F if f.key == k]}" for k in _dupes)
+    raise SystemExit(
+        f"✗ facts.py 里有 {len(_dupes)} 个 key 定义了两次（后者覆盖前者）：\n  {_detail}\n"
+        "  怎么办：保留口径最新、带 mirror 的那条（另一个 numbers 已在输出字典里有家），删掉另一个。")
+
 FACT_BY_KEY = {f.key: f for f in F}
+
+
+def check_mirrors(facts: dict, metric_values: dict) -> list[str]:
+    """手写事实 ↔ 输出字典：两条取数路径必须给出同一个数。
+
+    2026-09-12 下沉到本文件（原先只住在 `onepager.check()` 里）：
+    * 只在 onepager 跑 ⇒ `build.py` 那条管线（facts.json 落盘）完全没校到；
+    * 原来 `mirror` 指向字典里没有的 key 时会**静默 continue**——写着"互校"，
+      实际什么也没校。这就是"key 在 source 里找不到还能读到数吗"的答案：
+      读不到，而且没人告诉你。
+    """
+    problems: list[str] = []
+    for fact in F:
+        if not fact.mirror:
+            continue
+        item = facts.get(fact.key)
+        if item is None:
+            continue                      # 本次没取到（strict=False 的场合）
+        if fact.mirror not in metric_values:
+            problems.append(
+                f"facts.{fact.key} 的 mirror={fact.mirror} 不在输出字典里——"
+                f"两条路径根本校不上（写着互校，等于没校）。"
+                f"把它改成 configs/metrics.toml 里真实存在的 key，或删掉这条手写事实")
+            continue
+        a, b = item["v"], metric_values[fact.mirror]
+        if b != b and a == a:
+            # 事实有值、字典那头却是空的：等于"写着互校，实际只有一条路有数"。
+            # 典型原因就是 at_cfg 路径写错（finance.wacc 写成了 meta.wacc），
+            # 而 read_metrics 对 NaN 只报不中断——这里必须补上这一刀。
+            problems.append(
+                f"镜像那头是空的：facts.{fact.key}={a:,.6g} 有值，"
+                f"METRICS.{fact.mirror} 却是 NaN——去 configs/metrics.toml 查 "
+                f"{fact.mirror} 的 `at`/`at_cfg` 路径写对没有")
+            continue
+        if a != a or b != b:
+            continue                      # 两头都空：read_metrics 已 ⚠ 报过，不重复刷屏
+        if abs(a - b) > 1e-9 * max(1.0, abs(b)):
+            where = getattr(fact.get, "__doc__", "") or "派生"
+            if abs(a * 100.0 - b) < 1e-9 * max(1.0, abs(b)) or abs(a - b * 100.0) < 1e-9 * max(1.0, abs(a)):
+                problems.append(
+                    f"百倍差（比值 vs 百分数）：facts.{fact.key}={a:,.6g}"
+                    f" vs METRICS.{fact.mirror}={b:,.6g}——两边差的正好是 100 倍。"
+                    f"本仓库的规矩是**占比一律以百分数存储**（v=40 表示 40%），"
+                    f"请把 facts.{fact.key} 改成存百分数（unit='%'、kind='num'）")
+                continue
+            problems.append(
+                f"镜像不一致：facts.{fact.key}={a:,.6g}（{where}）"
+                f" vs METRICS.{fact.mirror}={b:,.6g}——同一个数两条路径算出两个值，"
+                f"先确认两者是不是同一个口径（现值/名义、%/比值、存量/流量）")
+
+    # **同名即为镜像**：手写事实与字典撞了同一个 key 时，`build_facts` 会保留手写事实、
+    # 静默丢掉字典那条——两条互不照面，正是最隐蔽的"一个数两个家"。
+    # 同名不像别名那样眼可见，故此处一并断言：撞 key 就必须同值。
+    for fact in F:
+        if fact.key in facts and fact.key in metric_values and not fact.mirror:
+            a, b = facts[fact.key]["v"], metric_values[fact.key]
+            if a != a or b != b:
+                continue
+            if abs(a - b) > 1e-9 * max(1.0, abs(b)):
+                problems.append(
+                    f"同名不同值：facts.{fact.key}={a:,.6g} vs METRICS.{fact.key}={b:,.6g}"
+                    f"——撞了同一个 key 却算出两个数（事实包会悄悄用前者）。"
+                    f"改其中一个的名字，或补 `mirror=` 声明它们本就是一个数")
+    return problems
 
 
 # ─────────────────────────────────────────── 呈现
@@ -560,7 +462,8 @@ def render_bare(fact: Fact, value: Any) -> str:
 
 
 # ─────────────────────────────────────────── 生成
-def build_facts(snapshot: dict | None = None, strict: bool = True) -> dict:
+def build_facts(snapshot: dict | None = None, strict: bool = True,
+                metrics_values: dict | None = None) -> dict:
     """装配事实包。
 
     strict=True（默认，build.py 走这条路）：任何一条事实取不到就中断——
@@ -597,6 +500,13 @@ def build_facts(snapshot: dict | None = None, strict: bool = True) -> dict:
     if missing:
         print(f"　（strict=False：{len(missing)} 条事实取不到已跳过，"
               f"多为依赖敏感性表/三情景表的 sens.*）")
+
+    # 两条取数路径必须对得上：手写事实 vs 输出字典。
+    # 放在这里而不是某一张页面里，是因为 **每条管线都要校**（build.py / run.py / 浏览器重跑）。
+    if metrics_values:
+        _mirror_bad = check_mirrors(out, metrics_values)
+        if _mirror_bad:
+            raise ValueError("事实包与输出字典互相校不上：\n  " + "\n  ".join(_mirror_bad))
 
     # ── 合并外部引用事实 ────────────────────────────────
     bad: list[str] = []
@@ -644,6 +554,36 @@ def build_facts(snapshot: dict | None = None, strict: bool = True) -> dict:
             "note": f"{r.grade}｜用于 {r.used_by}",
             "mirror": "",
         }
+
+    # ── 合并输出字典指标（2026-09-12：字典条目自动进事实包，键＝指标内部名）────
+    # MD 里写 {{中文名}} 时，inject 经 resolve() 把中文名→指标 key→这里取值。
+    # 已有手写 Fact（如 val.* 镜像项）的 key 优先，不覆盖；其余字典指标并入事实包。
+    if metrics_values:
+        try:
+            from lab import METRIC_BY_KEY
+        except Exception:
+            METRIC_BY_KEY = {}
+        for _k, _v in metrics_values.items():
+            if _k in out or _k not in METRIC_BY_KEY:
+                continue
+            _m = METRIC_BY_KEY[_k]
+            # Metric 无 kind 字段：按单位推断（%→pct，其余→num；×/倍 用 num 也正确）
+            _kind = "pct" if (_m.unit or "").strip() == "%" else "num"
+            _f = Fact(_m.key, _m.label, lambda s: None,
+                      _m.unit or "", _kind, _m.decimals or 1,
+                      watch=0.03, note=_m.note or "")
+            out[_k] = {
+                "label": _m.label,
+                "v": float(_v),
+                "text": render(_f, _v),
+                "bare": render_bare(_f, _v),
+                "unit": _m.unit,
+                "kind": _kind,
+                "watch": 0.03,
+                "from": _m.source,
+                "note": _m.note,
+                "mirror": "",
+            }
 
     if bad:
         raise ValueError("外部事实（ext.* / src.*）不合规：\n  " + "\n  ".join(bad))

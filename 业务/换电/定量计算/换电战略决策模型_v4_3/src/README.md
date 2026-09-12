@@ -19,18 +19,35 @@
 
 | 我要做… | 改这里（**只此一处**） |
 |---|---|
+| **在论述里引用一个数** | 写 **中文名** 即可：`{{年换电交易电量}}`；想只显示数字用 `{{年换电交易电量:n}}`。**不用知道参数名** |
+| 查这个数叫什么、模型算出了哪些数 | `python src/lab.py metrics` ／ `python src/lab.py metrics 年换电量` |
+| 加一个**模型已在算、但字典没登记**的数 | `configs/metrics.toml` 加一条（**只写取哪个，不写怎么算**） |
+| 加一个**模型根本没算过**的数 | 先在对应计算程序里把它算出来（见下方"派生该放哪"），再登记进字典 |
 | 改顶部结论 / 定性逻辑的**文案、版面、卡片增删** | `narrative/沙盘结论区.md` |
-| 结论里加一个**已经有了的**数 | 该 MD 加 `{占位符}` ＋ `verdict.py` 的 `PLACEHOLDER_MAP` 加一行 |
-| 加一个**模型里还没有的**数 | 先 `lab.py` 的 `METRICS` 登记 → 再走上面两步 |
 | 改一页纸的问题 / 判断 / 信源锚 | `narrative/一页纸.md` |
-| 加 / 改一个**模型参数** | `configs/base.toml` |
-| 改**章节骨架**（编号、标题、每章由哪个数收口） | `configs/report_map.toml` |
+| 加 / 改一个**模型参数**（输入） | `configs/base.toml` |
+| 改**章节骨架**（编号、标题、每章主张哪个数） | `configs/report_map.toml`（可写中文名） |
 | 写 / 改**八章正文** | `narrative/chapters/*.src.md` |
 | 改**计算逻辑** | A 类（见下表定位） |
 | 改**颜色 / 字体 / 间距 / 版面** | `templates/sandbox.css`、`templates/sandbox.html` |
 | 改**交互行为**（滑块、点击、联动） | `templates/sandbox.js` |
 | 改**浏览器端重跑**的逻辑 | `src/py_boot.py` |
 | 加一道**门槛 / 门** | `configs/sandbox_dashboard.toml` 的 `[gates]` |
+
+#### 派生计算该放哪（字典里不许有公式）
+
+| 量的性质 | 放哪个文件 |
+|---|---|
+| 车辆数、站数、出货、频次、市场分母 | `scale.py` |
+| 资本开支、更新装机、稳态债务、峰值出资 | `capex.py` |
+| 收入、成本、EBITDA、装机、重卡池汇总 | `business.py` |
+| 制造与运营的合并增量 | `consolidation.py` |
+| 资金包络、峰值/CFO、期末可动用资金 | `group_constraints.py` |
+| 轻资产回笼（REIT） | `capital_cycle.py` |
+
+放好后：在 `schemas.py` 对应 dataclass 加字段 → 在 `configs/metrics.toml` 登记一行 `at="..."`。
+**注意**：带默认值的字段必须放在 dataclass 字段列表**末尾**，否则 Python 报
+`non-default argument follows default argument`。
 
 三条硬判据（改完自查）：
 
@@ -64,6 +81,17 @@
 > `lab.py` 的 `METRICS` 是**唯一结果注册表**：所有视图（读数、门、一页纸、血缘 Excel、
 > 结论区）都经 `read_metrics()` 取数。下游不得再各自写一条取数路径——那正是
 > "一个数字两个出处"的根因（2026-09-11 把 `verdict` 里六处直读升格进来后已消除）。
+>
+> **"读不到"必须闹出动静**（2026-09-12c 立的三道闸门，全部默认中断，不靠记得小心）：
+> ① `read_metrics(snap, cfg, strict=True)`——`at` 走不通或调用方没传 cfg 就逐条点名；
+> ② `load_metrics` 的 source 审计——`source` 与 `at` 尾段对不上就中断（指错程序比给错数更难查）；
+> ③ `facts.check_mirrors`——手写事实与字典同数异名时**每条管线**互相断言
+> （含"mirror 指向不存在的 key"与"差整整 100 倍的比值/百分数"两种静默态）。
+> 需要放宽的只有扫描线路（显式 `strict=False` 并写明理由）。
+>
+> 配套两条结构纪律（2026-09-12d）：**一个 key 一个定义**（`facts.py` 重复即加载中断）；
+> **孤儿即删**——没人引用的事实是负债不是资产（本轮删 65 条，随之死掉的 7 个取值助手一并删，
+> `facts.json` 233 → 180 条、零 nan）。要引用时再从字典登记。
 
 ---
 

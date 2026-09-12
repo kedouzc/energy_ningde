@@ -8,6 +8,23 @@ def build_capital_commitments(config: dict) -> list[dict]:
     return [item.copy() for item in config["capital_commitments"]]
 
 
+def funding_peak_cash_to_cfo(rows: list[FundingRow]) -> float:
+    """换电出资峰值 ÷ CFO：整条资金包络里**最吃紧的那一年**。
+
+    2026-09-12 从 lab.py 下沉——它读的是本模块产出的资金包络，
+    理应由本模块回答"哪一年最紧"，而不是让取数层去遍历。
+    """
+    return max((row.swap_cash_to_cfo for row in rows), default=float("nan"))
+
+
+def funding_closing_liquidity(rows: list[FundingRow]) -> float:
+    """期末可动用资金（未计入待决战略敞口前）。"""
+    return (
+        rows[-1].closing_liquid_resources_before_uncommitted_strategy_yi
+        if rows else float("nan")
+    )
+
+
 def build_funding_envelope(
     config: dict,
     capex: CapexResult,

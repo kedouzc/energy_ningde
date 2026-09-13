@@ -690,11 +690,17 @@ def build_capex(
     steady_state_debt_by_pool = {
         pk: steady_state_debt_base_by_pool[pk] * finance["debt_ratio"] for pk in BATTERY_POOLS
     }
+    # 【2026-09-13】全周期电池更新净额现值：底座−初装的差额。底座中各电池批次锚自身
+    # t=0 的 PV＝初装×(1+更新现值倍数)，减去名义初装后只剩更新净投入现值；站体两边
+    # 都按名义全额计入、相减为零（站体无重置）。tree「cap.replacement」节点读此字段，
+    # 差额算式只准在这里出现一次。
+    battery_replacement_net_pv = lifecycle_capital - total_initial
     return CapexResult(
         annual=annual,
         total_initial_capex_yi=total_initial,
         first_replacement_net_capex_yi=sum(replacement_net[year] for year in years),
         lifecycle_capital_base_yi=lifecycle_capital,
+        battery_replacement_net_pv_yi=battery_replacement_net_pv,
         valuation_capital_pv_yi=valuation_capital_pv,
         nominal_total_capex_yi=nominal_total_capex,
         gross_total_capex_yi=gross_total_capex,
@@ -722,6 +728,8 @@ def build_capex(
         catl_total_equity_call_yi=sum(row.catl_equity_call_yi for row in annual),
         catl_peak_equity_call_yi=peak.catl_equity_call_yi,
         peak_year=peak.year,
+        # CATL 综合自有出资比例（L360 已算）：随快照落盘，输出字典按 scale=100 取百分数
+        catl_equity_factor=equity_factor,
         lifecycle_replacement_schedule_yi={
             year: replacement_net[year]
             for year in sorted(replacement_net)

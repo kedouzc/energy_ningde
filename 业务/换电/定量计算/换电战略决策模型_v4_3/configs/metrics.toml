@@ -1,9 +1,10 @@
 # ══════════════════════════════════════════════════════════════════════════
 # 输出字典：模型跑完之后，一共算出了哪些数
 #
-# 与 configs/base.toml（输入字典）配套：
-#   base.toml   —— 管**进**：用什么假设去算（＋外部查来的事实，如全国储能装机）
-#   metrics.toml —— 管**出**：算出来了哪些结果
+# 模型按用途只有两层（2026-09-13 归并）：
+#   base.toml   —— 管**进**：功能段存参数值（含外部查来的事实，如全国储能装机），
+#                   末尾 [[input_fact]] 登记被叙述引用的输入名片与外部引述（quote）；
+#   metrics.toml —— 管**出**：算出来了哪些结果（本文件只有 at 取快照的输出）。
 #
 # ── 三条规矩 ──────────────────────────────────────────────────────────────
 # 1. **这里不写任何公式。** 需要计算的量，一律在跟它关系最紧密的那个程序里算好
@@ -12,7 +13,7 @@
 # 2. **一词一名。** label 是唯一的中文名，写 MD 时就写它；不设别名（别名多了会混）。
 #    写错了程序会报错并列出最像的 3 个候选，照着改即可。
 # 3. **每条都要在程序里找得到。** 加载时逐条验证并中断指名，共三道：
-#    审计① 有没有取数路径（`at` / `at_cfg` 至少一个）；
+#    审计① 有没有取数路径（`at`；配置侧路径已随输入名片迁至 base.toml [[input_fact]]）；
 #    审计② `source` 写的程序里，真能找到这条路径的最后一段；
 #    审计③ 实跑时某条值为 NaN → 集中报一次（"`at` 走通但没值"与"值为零"是两件事）。
 #
@@ -20,24 +21,27 @@
 # key      = 程序内部的名字（MD 里也可以写这个，兼容旧写法）
 # label    = 唯一的中文名（MD 里推荐写这个）
 # at       = 从**模型结果**里取值，点分路径（dict 也用 `.` 递进）
-# at_cfg   = 从**配置**里取值（外部事实常量、可调 driver），不是算出来的
 # source   = 这个数**在哪个程序里算出来的**（模块文件名：scale/capex/business/tco/
-#            consolidation/group_constraints/capital_cycle/model/external）。
+#            consolidation/group_constraints/capital_cycle/model）。
 #            心算觉得不对时，`python src/lab.py metrics 名字` 会把它打出来，
 #            直接去那个 .py 查计算逻辑，不用猜 key 前缀（ops/swap/val/fund 都不是程序名）。
 #            **加载时由 `lab.load_metrics` 的审计②机械核对**（2026-09-12 立）：
 #            路径最后一段必须在 `src/<source>.py` 里找得到（字面量／它归属的 dataclass／
 #            近似函数名三者之一），对不上就中断——source 写错不会让数字变错，但会让人
 #            按图索骥走到错误的程序里；它骗的不是程序，是人的时间。
-#            **定位具体函数**：在 `src/<source>.py` 里 grep `at`（或 `at_cfg`）路径的**最后一段**
+#            **定位具体函数**：在 `src/<source>.py` 里 grep `at` 路径的**最后一段**
 #            （字段名，如 `total_veh_2030_wan`）即到。
 #            **不要在此登记函数名**（函数重命名会使记录变错，比"只到模块"更误导）。
-#            走 `at_cfg` 的量（外部锚常量）source 一律写 `external`，它们的路径以
-#            configs/base.toml 为准核对。
+#            （从配置取值的输入名片与 external source 已在 2026-09-13 迁至
+#             base.toml [[input_fact]]，本文件不再出现 at_cfg 条目。）
 # scale    = 取值后乘的系数（做单位换算，如比值→百分比用 100）
 # decimals = 显示几位小数
-# unit     = 单位（MD 里**不要再手写单位**——`{{名称}}` 自带单位；手写会和字典不一致）
-# group    = 分组（①运营规模 … ⑨外部锚）
+# fmt      = format呈现格式，缺省为普通千分位数值；"year"＝年份，整数且**不加千分位**
+#            （2030，不是 2,030）。facts 事实包与沙盘 verdict vals 的渲染共用此规则，
+#            改格式只改 lab.Metric 这一处。
+# unit     = 单位（MD 里**不要再手写单位**——`{{名称}}` 自带单位；手写会和字典不一致；
+#            需要裸数字时写 `{{名称:n}}`）
+# group    = 分组（①运营规模 … ⑧重卡）
 # note     = 口径说明：它是什么口径、和谁的区别（存量/流量、100%/归属、现值/名义）
 # ══════════════════════════════════════════════════════════════════════════
 
@@ -45,25 +49,27 @@
 [[metric]]
 key = "ops.veh_commercial"
 source = "scale"
-label = "终局覆盖·商用营运车(重卡+城配)"
+label = "换电车辆商用营运车合计终局"
 at = "scale.veh_commercial_wan"
 unit = "万辆"
 decimals = 1
 group = "①运营规模"
+note = "重卡+城配"
 
 [[metric]]
 key = "ops.veh_passenger_ops"
 source = "scale"
-label = "终局覆盖·乘用营运车(出租+网约+Robotaxi)"
+label = "换电车辆乘用营运车合计终局"
 at = "scale.veh_passenger_ops_wan"
 unit = "万辆"
 decimals = 1
 group = "①运营规模"
+note = "出租+网约+Robotaxi"
 
 [[metric]]
 key = "ops.veh_heavy"
 source = "scale"
-label = "终局覆盖·换电重卡"
+label = "换电车辆重卡合计终局"
 at = "scale.veh_heavy_wan"
 unit = "万辆"
 decimals = 1
@@ -72,7 +78,7 @@ group = "①运营规模"
 [[metric]]
 key = "ops.veh_city"
 source = "scale"
-label = "终局覆盖·换电城配物流车"
+label = "换电车辆城配物流车合计终局"
 at = "scale.veh_city_wan"
 unit = "万辆"
 decimals = 1
@@ -81,7 +87,7 @@ group = "①运营规模"
 [[metric]]
 key = "ops.veh_private"
 source = "scale"
-label = "终局覆盖·私家车"
+label = "换电车辆私家车合计终局"
 at = "scale.veh_private_wan"
 unit = "万辆"
 decimals = 1
@@ -90,7 +96,7 @@ group = "①运营规模"
 [[metric]]
 key = "ops.veh_total"
 source = "scale"
-label = "终局覆盖车辆合计"
+label = "换电车辆合计终局"
 at = "scale.veh_total_wan"
 unit = "万辆"
 decimals = 1
@@ -99,7 +105,7 @@ group = "①运营规模"
 [[metric]]
 key = "ops.veh_ops"
 source = "scale"
-label = "终局覆盖·营运车合计"
+label = "换电车辆营运车合计终局"
 at = "scale.veh_ops_total_wan"
 unit = "万辆"
 decimals = 1
@@ -109,7 +115,7 @@ note = "商用营运(重卡+城配) + 乘用营运(出租+网约+Robotaxi)；不
 [[metric]]
 key = "ops.battery_vehicle"
 source = "business"
-label = "换电装机保有量·车端"
+label = "换电装机保有量车端"
 at = "swap_business.rent_vehicle_gwh"
 unit = "GWh"
 decimals = 1
@@ -118,7 +124,7 @@ group = "①运营规模"
 [[metric]]
 key = "ops.battery_station"
 source = "business"
-label = "换电装机保有量·站内周转"
+label = "换电装机保有量站内"
 at = "swap_business.station_battery_gwh"
 unit = "GWh"
 decimals = 1
@@ -136,7 +142,7 @@ group = "①运营规模"
 [[metric]]
 key = "ops.gwh_cum_flow"
 source = "business"
-label = "累计装机·各年新增累加（流量口径）"
+label = "车端累计新增装机"
 at = "swap_business.swap_gwh_cumulative_flow"
 unit = "GWh"
 decimals = 1
@@ -193,7 +199,7 @@ note = "四站型终局站数之和；= 重卡站 + 巧克力站"
 [[metric]]
 key = "mfg.swap_veh_2030"
 source = "scale"
-label = "2030出货·换电车辆"
+label = "终局年出货·换电车辆"
 at = "scale.swap_veh_2030_wan"
 unit = "万辆"
 decimals = 1
@@ -202,7 +208,7 @@ group = "②制造出货"
 [[metric]]
 key = "mfg.charge_veh_2030"
 source = "scale"
-label = "2030出货·充电车辆"
+label = "终局年出货·充电车辆"
 at = "scale.charge_veh_2030_wan"
 unit = "万辆"
 decimals = 1
@@ -211,7 +217,7 @@ group = "②制造出货"
 [[metric]]
 key = "mfg.swap_gwh_2030"
 source = "scale"
-label = "2030出货·换电装车"
+label = "终局年出货·换电装车"
 at = "scale.swap_gwh_2030"
 unit = "GWh"
 decimals = 1
@@ -220,7 +226,7 @@ group = "②制造出货"
 [[metric]]
 key = "mfg.charge_gwh_2030"
 source = "scale"
-label = "2030出货·充电装车"
+label = "终局年出货·充电装车"
 at = "scale.charge_gwh_2030"
 unit = "GWh"
 decimals = 1
@@ -229,7 +235,7 @@ group = "②制造出货"
 [[metric]]
 key = "mfg.total_gwh_2030"
 source = "scale"
-label = "2030出货合计（换电+充电）"
+label = "终局年出货合计·车辆装机"
 at = "scale.total_gwh_2030"
 unit = "GWh"
 decimals = 1
@@ -239,7 +245,7 @@ note = "**产能核查**的口径：换电会占用全线产能，只算换电�
 [[metric]]
 key = "mfg.total_veh_2030"
 source = "scale"
-label = "2030出货合计·车辆数（换电+充电）"
+label = "终局年出货合计·车辆数"
 at = "scale.total_veh_2030_wan"
 unit = "万辆"
 decimals = 1
@@ -311,7 +317,17 @@ at = "capex.lifecycle_capital_base_yi"
 unit = "亿元"
 decimals = 1
 group = "③资本"
-note = "初装 + 全周期电池更新净额（折现）；门槛口径，与估值口径 valuation_capital_pv 不同源"
+note = "初装 + 全周期电池更新净额现值；门槛口径，与估值口径 valuation_capital_pv 不同源"
+
+[[metric]]
+key = "capex.repl_net_pv"
+source = "capex"
+label = "全周期电池更新净额现值"
+at = "capex.battery_replacement_net_pv_yi"
+unit = "亿元"
+decimals = 1
+group = "③资本"
+note = "全周期资本底座 − 初装CAPEX合计；各批次按届时电池价、扣回收残值后锚自身t=0折现；只含电池（站体无重置）"
 
 [[metric]]
 key = "capex.nominal_total"
@@ -330,6 +346,7 @@ label = "峰值年"
 at = "capex.peak_year"
 unit = "年"
 decimals = 0
+fmt = "year"
 group = "③资本"
 note = "CATL 单年权益出资最大的年份；配合 capex.peak_call 看资金吃紧程度"
 
@@ -342,6 +359,17 @@ unit = "亿元"
 decimals = 1
 group = "③资本"
 note = "全周期资本底座 ×(1−债务比例)×(1−建站持股比例)；合资方/外部股权出资，不占 CATL 出资"
+
+[[metric]]
+key = "base.catl_blended_share"
+source = "capex"
+label = "CATL 综合自有出资比例"
+at = "capex.catl_equity_factor"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "③资本"
+note = "=(1−项目公司债务比例)×建站持股比例。派生量（capex 构建时算好随快照落盘），不是外部事实：债务比例一改它自动跟着变。三族定位里「不是真 GP」那条判断的量化依据"
 
 # ── ④ 运营财务 ────────────────────────────────────────────────────────────
 [[metric]]
@@ -489,7 +517,7 @@ group = "⑤估值"
 [[metric]]
 key = "val.power_with_swap"
 source = "consolidation"
-label = "2030动力价值(有换电)"
+label = "终局年动力价值(有换电)"
 at = "ledger.power_value_2030_with_swap_yi"
 unit = "亿元"
 decimals = 1
@@ -498,7 +526,7 @@ group = "⑤估值"
 [[metric]]
 key = "val.power_no_swap"
 source = "consolidation"
-label = "2030动力价值(无换电)"
+label = "终局年动力价值(无换电)"
 at = "ledger.power_value_2030_no_swap_yi"
 unit = "亿元"
 decimals = 1
@@ -590,7 +618,7 @@ at = "swap_business.dcf_ev_true_yi"
 unit = "亿元"
 decimals = 1
 group = "⑤估值"
-note = "15 年有限期、毛现金流资本化；不含 2030 年后规模增长"
+note = "15 年有限期、毛现金流资本化；不含终局年后规模增长"
 
 [[metric]]
 key = "val.ev_dcf_perpetual"
@@ -600,7 +628,7 @@ at = "swap_business.dcf_ev_perpetual_yi"
 unit = "亿元"
 decimals = 1
 group = "⑤估值"
-note = "规模冻结在 2030 的永续账：模型内的上限、真实世界的下限"
+note = "规模冻结在终局年的永续账：模型内的上限、真实世界的下限"
 
 [[metric]]
 key = "val.catl_dcf_true"
@@ -656,7 +684,7 @@ group = "⑥资金"
 [[metric]]
 key = "fund.closing_liquidity"
 source = "group_constraints"
-label = "2030期末可动用资金"
+label = "终局年期末可动用资金"
 at = "funding_closing_liquidity"
 unit = "亿元"
 decimals = 1
@@ -686,13 +714,13 @@ note = "分子＝站内周转装机保有量 GWh（常驻站、可参与电网�
 [[metric]]
 key = "mk.share_storage_2030"
 source = "model"
-label = "站内装机GWh / 2030储能装机预测"
+label = "站内装机GWh / 终局年储能装机预测"
 at = "market_share.cross_check_vs_national.swap_station_battery_share_of_national_storage_2030"
 unit = "%"
 decimals = 2
 group = "⑦市场地位"
 scale = 100.0
-note = "分子＝站内周转装机；分母＝2030 全国新型储能装机预测（国务院文件推算，含经验假设折算）"
+note = "分子＝站内周转装机；分母＝终局年全国新型储能装机预测（国务院文件推算，含经验假设折算）"
 
 [[metric]]
 key = "mk.share_elec_latest"
@@ -708,13 +736,13 @@ note = "分子＝成熟期年换电交易电量（亿kWh）；分母＝最新年
 [[metric]]
 key = "mk.share_elec_2030"
 source = "model"
-label = "年换电量 / 2030全社会用电量预测"
+label = "年换电量 / 终局年全社会用电量预测"
 at = "market_share.cross_check_vs_society_electricity.swap_energy_share_of_society_electricity_2030"
 unit = "%"
 decimals = 3
 group = "⑦市场地位"
 scale = 100.0
-note = "分母＝2030 全社会用电量预测（国网能源院口径，二手转引）"
+note = "分母＝终局年全社会用电量预测（国网能源院口径，二手转引）"
 
 [[metric]]
 key = "ops.share_of_market"
@@ -724,7 +752,7 @@ at = "scale.share_of_market_pct"
 unit = "%"
 decimals = 2
 group = "⑦市场地位"
-note = "终局覆盖营运车 ÷ 营运车总市场"
+note = "换电车辆营运车合计终局 ÷ 营运车总市场"
 
 [[metric]]
 key = "mfg.repl_share_pct"
@@ -784,11 +812,11 @@ decimals = 2
 group = "⑧重卡"
 note = "骐骥两池按机队GWh加权；倒短8.37 vs 干线2.94年，加权后由干线主导"
 
-# 重卡全成本 TCO：六字段 × 两个持有期（N1＝模型电池寿命 / N2＝重卡更新周期）
+# 重卡全成本 TCO：六字段 × 两个持有期（模型电池寿命 / 重卡更新周期）
 [[metric]]
 key = "tco.swap_wan"
 source = "tco"
-label = "重卡TCO·换电(N1持有期)"
+label = "重卡TCO·换电总额(模型寿命)"
 at = "swap_business.heavy_economics.n1.swap_wan"
 unit = "万元"
 decimals = 1
@@ -797,7 +825,7 @@ group = "⑧重卡"
 [[metric]]
 key = "tco.swap_kwh"
 source = "tco"
-label = "重卡TCO·换电度电(N1)"
+label = "重卡TCO·换电度电(模型寿命)"
 at = "swap_business.heavy_economics.n1.swap_kwh"
 unit = "元/kWh"
 decimals = 3
@@ -806,7 +834,7 @@ group = "⑧重卡"
 [[metric]]
 key = "tco.lng_wan"
 source = "tco"
-label = "重卡TCO·LNG(N1持有期)"
+label = "重卡TCO·LNG总额(模型寿命)"
 at = "swap_business.heavy_economics.n1.lng_wan"
 unit = "万元"
 decimals = 1
@@ -815,7 +843,7 @@ group = "⑧重卡"
 [[metric]]
 key = "tco.lng_kwh"
 source = "tco"
-label = "重卡TCO·LNG度电(N1)"
+label = "重卡TCO·LNG度电(模型寿命)"
 at = "swap_business.heavy_economics.n1.lng_kwh"
 unit = "元/kWh"
 decimals = 3
@@ -824,7 +852,7 @@ group = "⑧重卡"
 [[metric]]
 key = "tco.diesel_wan"
 source = "tco"
-label = "重卡TCO·柴油(N1持有期)"
+label = "重卡TCO·柴油总额(模型寿命)"
 at = "swap_business.heavy_economics.n1.diesel_wan"
 unit = "万元"
 decimals = 1
@@ -833,7 +861,7 @@ group = "⑧重卡"
 [[metric]]
 key = "tco.diesel_kwh"
 source = "tco"
-label = "重卡TCO·柴油度电(N1)"
+label = "重卡TCO·柴油度电(模型寿命)"
 at = "swap_business.heavy_economics.n1.diesel_kwh"
 unit = "元/kWh"
 decimals = 3
@@ -842,7 +870,7 @@ group = "⑧重卡"
 [[metric]]
 key = "tco.swap_wan_9"
 source = "tco"
-label = "重卡TCO·换电(N2=更新周期)"
+label = "重卡TCO·换电总额(更新周期)"
 at = "swap_business.heavy_economics.n2.swap_wan"
 unit = "万元"
 decimals = 1
@@ -851,7 +879,7 @@ group = "⑧重卡"
 [[metric]]
 key = "tco.swap_kwh_9"
 source = "tco"
-label = "重卡TCO·换电度电(N2)"
+label = "重卡TCO·换电度电(更新周期)"
 at = "swap_business.heavy_economics.n2.swap_kwh"
 unit = "元/kWh"
 decimals = 3
@@ -860,7 +888,7 @@ group = "⑧重卡"
 [[metric]]
 key = "tco.lng_wan_9"
 source = "tco"
-label = "重卡TCO·LNG(N2=更新周期)"
+label = "重卡TCO·LNG总额(更新周期)"
 at = "swap_business.heavy_economics.n2.lng_wan"
 unit = "万元"
 decimals = 1
@@ -869,7 +897,7 @@ group = "⑧重卡"
 [[metric]]
 key = "tco.lng_kwh_9"
 source = "tco"
-label = "重卡TCO·LNG度电(N2)"
+label = "重卡TCO·LNG度电(更新周期)"
 at = "swap_business.heavy_economics.n2.lng_kwh"
 unit = "元/kWh"
 decimals = 3
@@ -878,7 +906,7 @@ group = "⑧重卡"
 [[metric]]
 key = "tco.diesel_wan_9"
 source = "tco"
-label = "重卡TCO·柴油(N2=更新周期)"
+label = "重卡TCO·柴油总额(更新周期)"
 at = "swap_business.heavy_economics.n2.diesel_wan"
 unit = "万元"
 decimals = 1
@@ -887,122 +915,15 @@ group = "⑧重卡"
 [[metric]]
 key = "tco.diesel_kwh_9"
 source = "tco"
-label = "重卡TCO·柴油度电(N2)"
+label = "重卡TCO·柴油度电(更新周期)"
 at = "swap_business.heavy_economics.n2.diesel_kwh"
 unit = "元/kWh"
 decimals = 3
 group = "⑧重卡"
 
-# ── ⑨ 外部锚：base.toml 里的外部事实常量与可调 driver，不是算出来的 ──────────
-[[metric]]
-key = "base.target_year"
-source = "external"
-label = "终局年"
-at_cfg = "meta.target_year"
-unit = "年"
-decimals = 0
-group = "⑨外部锚"
-note = "决策时点「我什么时候来看」；与运营期限（这门生意能活多久）是两件事"
-
-[[metric]]
-key = "base.power_shipments_2026e"
-source = "external"
-label = "2026E动力电池出货"
-at_cfg = "financial_2026e.power_battery_shipments_gwh"
-unit = "GWh"
-decimals = 1
-group = "⑨外部锚"
-
-[[metric]]
-key = "base.ev_ebitda_multiple"
-source = "external"
-label = "拍定EV/EBITDA倍数"
-at_cfg = "finance.swap_ev_ebitda"
-unit = "×"
-decimals = 1
-group = "⑨外部锚"
-note = "是「声明」不是测量值；且是可调 driver，必须现读 cfg，绝不能写死"
-
-[[metric]]
-key = "base.ownership_pct"
-source = "external"
-label = "建站持股比例"
-at_cfg = "finance.construction_ownership"
-unit = "%"
-decimals = 1
-group = "⑨外部锚"
-scale = 100.0
-
-[[metric]]
-key = "base.debt_ratio_pct"
-source = "external"
-label = "项目公司债务比例"
-at_cfg = "finance.debt_ratio"
-unit = "%"
-decimals = 0
-group = "⑨外部锚"
-scale = 100.0
-note = "占比类一律以百分数存储（60 表示 60%），与 facts 同值，由镜像断言"
-
-[[metric]]
-key = "base.mfg_pe"
-source = "external"
-label = "制造PE"
-at_cfg = "finance.manufacturing_pe"
-unit = "×"
-decimals = 0
-group = "⑨外部锚"
-
-[[metric]]
-key = "base.wacc_pct"
-source = "external"
-label = "WACC"
-at_cfg = "finance.wacc"
-unit = "%"
-decimals = 1
-group = "⑨外部锚"
-scale = 100.0
-note = "蔚来换电ABS融资基准，直接采用，不作CAPM推导"
-
-[[metric]]
-key = "base.horizon_years"
-source = "external"
-label = "运行年数"
-at_cfg = "finance.model_horizon_years"
-unit = "年"
-decimals = 0
-group = "⑨外部锚"
-
-[[metric]]
-key = "base.cfo_gate_pct"
-source = "external"
-label = "现金投入占比体检线"
-at_cfg = "decision_thresholds.max_peak_swap_cash_to_cfo"
-unit = "%"
-decimals = 0
-group = "⑨外部锚"
-scale = 100.0
-note = "峰值现金÷CFO，集团内部风险口径，判断值不是测量值"
-
-[[metric]]
-key = "ops.heavy_market_stock"
-source = "external"
-label = "重卡保有量"
-at_cfg = "vehicles.heavy.stock_wan"
-unit = "万辆"
-decimals = 0
-group = "⑨外部锚"
-note = "分母侧的外部事实：换电重卡 ÷ 它 ＝ 重卡电动化+换电的合计渗透"
-
-[[metric]]
-key = "ops.heavy_repl_cycle"
-source = "external"
-label = "重卡更新周期"
-at_cfg = "vehicles.heavy.replacement_cycle_years"
-unit = "年"
-decimals = 1
-group = "⑨外部锚"
-
+# ── 以下两条是算出来的输出（at 取快照），只是历史上搭车在外部锚组里登记；
+#    真正的输入名片（终局年/driver/外锚/阈值）已全部迁至 base.toml [[input_fact]]，
+#    本字典只保留模型输出（2026-09-13 两层归并）。
 [[metric]]
 key = "ops.market_total"
 source = "scale"
@@ -1010,7 +931,7 @@ label = "营运车总市场"
 at = "scale.market_total_wan"
 unit = "万辆"
 decimals = 1
-group = "⑨外部锚"
+group = "①运营规模"
 note = "重卡保有+城配+出租/网约里程池反推+Robotaxi；是「覆盖率」的分母，非模型推导"
 
 [[metric]]
@@ -1020,7 +941,7 @@ label = "用户侧度电用能成本"
 at = "swap_business.energy_unit_price_rmb_kwh"
 unit = "元/kWh"
 decimals = 3
-group = "⑨外部锚"
+group = "④运营财务"
 note = "谷电价 + 峰谷差；与重卡用户能源单价（含服务费与租金摊薄）不同口径"
 
 # ── ③ 资本（决策树补登：此前只在 tree.py 各自登记，属第二套口径）──────────────
@@ -1042,7 +963,7 @@ at = "capex.steady_state_debt_yi"
 unit = "亿元"
 decimals = 1
 group = "③资本"
-note = "2030年在役资产历史成本×债务比例；倍数法与DCF两线共用同一数（T3已解决）"
+note = "终局年在役资产历史成本×债务比例；倍数法与DCF两线共用同一数（T3已解决）"
 
 [[metric]]
 key = "capex.preperiod_capex"
@@ -1192,7 +1113,7 @@ source = "consolidation"
 label = "集团市值基准"
 at = "ledger.baseline.group_market_value_2026e_yi"
 unit = "亿元"
-decimals = 1
+decimals = 0
 group = "⑤估值"
 note = "增量价值÷集团市值的分母；外部事实（2026E 集团市值，A+H）"
 

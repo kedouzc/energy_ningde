@@ -369,8 +369,12 @@ def load_param_docs(path: Path = DEFAULT_CONFIG) -> dict[str, dict[str, str]]:
 #   计算程序（scale/capex/business/consolidation/group_constraints/capital_cycle）
 #     └─ 把结果算好、挂在快照的 dataclass 字段上（schemas.py）
 #   configs/metrics.toml（输出字典，纯声明、无公式）
-#     └─ 每条写 `at="scale.xxx"` 或 `at_cfg="meta.xxx"` ＋ `source="scale"`
-#   load_metrics()  ← 读 toml，逐条验证 at 路径在快照里找得到（审计①），建 METRICS
+#     └─ 每条写 `at="scale.xxx"` ＋ `source="scale"`（只有 at，没有公式）
+#   configs/base.toml 末尾 [[input_fact]]（输入事实，2026-09-13 归并）
+#     └─ kind="config"：参数名片（`at="meta.xxx"` 指向功能段，值不重复登记）
+#        kind="quote" ：ext.* 外部引述（不进本表，由 facts 直接装配）
+#   load_metrics()  ← 读 metrics.toml＋把 config 名片升格进同一注册表（内部以 at_cfg 取值器
+#                     现读 base），逐条验证路径找得到（审计①），建 METRICS
 #   read_metrics(snap, cfg)  ← 沿 at 路径取值，返回 {key: 数值}
 #   facts.build_facts(..., metrics_values=read_metrics(...))  ← 把数值灌进事实包
 #   叙述层（MD 的 {{中文名}}）← inject 经 resolve() 先译成中文名→内部 key→facts 取值
@@ -403,8 +407,10 @@ class Metric:
     跨模块派生）getter 收 (snapshot, cfg)，由 `read_metrics(snap, cfg)` 传入。**调用方
     必须传 cfg**，否则这些量为 NaN（而不是悄悄给一个错值）。
 
-    为什么允许 needs_cfg：有些量根本不是模型算出来的——它们是 `base.toml` 里的外部锚
-    （目标年份、2026E 出货、重卡保有量）或需要 cfg 才能算的跨模块派生（REIT 回笼倍数）。
+    为什么允许 needs_cfg：有些量根本不是模型算出来的——它们是 `base.toml` 功能段里的
+    外部锚（目标年份、2026E 出货、重卡保有量）或需要 cfg 才能算的跨模块派生（REIT 回笼
+    倍数）。2026-09-13 归并后，外部锚的名片住在 base.toml 末尾 `[[input_fact]]`
+    （kind="config"，at 指向功能段），加载时升格进本注册表、内部走 at_cfg 取值器现读；
     以前这些只存在于 `verdict.build_vals` 里，一页纸与章取不到，就是"第三套数值源"。
     升格进本表后，"一个数只有一个家"才对全部视图成立。
     """
@@ -412,12 +418,17 @@ class Metric:
     def __init__(self, key: str, label: str, getter: Callable[..., float] | None = None,
                  decimals: int = 1, unit: str = "", group: str = "", note: str = "",
                  needs_cfg: bool = False, at: str = "", at_cfg: str = "",
-                 scale: float = 1.0, source: str = ""):
+                 scale: float = 1.0, source: str = "", fmt: str = ""):
         if getter is None:
             if not (at or at_cfg):
                 raise ValueError(
                     f"指标 {key} 必须给 getter、at（快照路径）或 at_cfg（配置路径）之一")
             getter = _at(at, scale) if at else _at_cfg(at_cfg, scale)
+        # fmt＝呈现格式（2026-09-13 立）："" 普通千分位数值；"year" 年份＝整数无千分位
+        # （2030，不是 2,030.0）。渲染规则只此一家：facts 事实包、verdict 沙盘 vals、
+        # JS 占位符替换全部调用本类的 format_text/format_bare，不再各写一套格式化。
+        if fmt not in ("", "year"):
+            raise ValueError(f"指标 {key} 的 fmt={fmt!r} 非法，只允许 '' 或 'year'")
         self.key = key
         self.label = label
         self.getter = getter
@@ -429,11 +440,33 @@ class Metric:
         self.unit = unit
         self.group = group
         self.note = note
+        self.fmt = fmt
         # needs_cfg **由 getter 的参数个数兜底**：写了第二个参数就必然需要 cfg。
         # 为什么不能只靠手工标：2026-09-11 一次漏标了 6 个，read_metrics 于是按一参调用
         # 两参 getter → TypeError → 安静地变成 NaN → 页面上就是 [待补]，
         # 看起来和"这个数今天算不出来"一模一样。**能机械判的就不要靠记得标。**
         self.needs_cfg = needs_cfg or len(inspect.signature(getter).parameters) >= 2
+
+    # ── 呈现（facts / verdict / 沙盘 JS 三侧同源，改规则只改这里）──────────────
+    def format_bare(self, value: float) -> str:
+        """裸数字串（`{{中文名:n}}`）：只做数字格式化，不带单位。
+
+        年份（fmt="year"）取整且**不加千分位**；NaN 如实给 "nan"
+        （上游 read_metrics 已集中报过，这里不静默改成破折号冒充零值）。
+        """
+        v = float(value)
+        if v != v:
+            return "nan"
+        if self.fmt == "year":
+            return f"{int(round(v))}"
+        return f"{v:,.{self.decimals}f}"
+
+    def format_text(self, value: float) -> str:
+        """完整呈现（`{{中文名}}`）：裸数字后直接拼字典里的 unit。
+
+        MD 里因此不必手写单位——单位改了，所有引用处跟着变，不会两边漂移。
+        """
+        return self.format_bare(value) + (self.unit or "")
 
 
 # ── 存量口径 vs 流量口径（两个最容易混的口径，必须显式区分）──────────────
@@ -455,7 +488,8 @@ _ALL_VEHICLES = _COMMERCIAL + _PASSENGER_OPS + _PRIVATE
 # ── 声明式取值：加指标不必再写函数 ─────────────────────────────────────────
 # 以前每个指标都要写一个 `lambda s: s.a.b.c`——60 多个指标里有八成是这种纯样板，
 # 快照字段名一改就要来改代码，改漏了还是静默的 NaN。
-# 现在这类写成 `at="a.b.c"`（或 cfg 侧的 `at_cfg="meta.target_year"`）即可，
+# 现在输出量写成 `at="a.b.c"` 即可（metrics.toml 只有 at）；cfg 侧输入名片在
+# base.toml `[[input_fact]]` 写 `at="meta.target_year"`，加载时升格为内部 at_cfg 取值器，
 # 由下面的通用取值器沿点分路径取；**只有真正需要计算的派生量才写函数**。
 #
 # 判据：**加一个"只是取个已有字段"的指标，应该只改一行，不写函数。**
@@ -494,8 +528,10 @@ def _at_cfg(path: str, scale: float = 1.0):
 # 注：原「⑨ 外部锚与跨模块派生」那批 getter（_cfg_num / _cfg_heavy / _operating_market_total /
 # _reit_multiple / _energy_unit_price / _veh_ops / _total_gwh_2030 / _share_of_market /
 # _repl_share_pct / _heavy_pen_pct / _tco_field）已于 2026-09-12 随旧登记表一起删除——
-# 它们算的每一个量，现在都住在 configs/metrics.toml（用 at_cfg / at 声明、source 标程序），
-# 由上面的通用取值器 _at / _at_cfg 沿点分路径取。本文件不再保留任何"怎么算"的代码。
+# 模型输出量住在 configs/metrics.toml（at 声明、source 标程序）；cfg 侧外部锚/阈值的名片
+# 2026-09-13 归并进 configs/base.toml 的 [[input_fact]]（kind="config"，at 指向功能段，
+# 加载时升格为内部 at_cfg 取值器）。都由上面的通用取值器 _at / _at_cfg 沿点分路径取，
+# 本文件不再保留任何"怎么算"的代码。
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -511,13 +547,74 @@ def _at_cfg(path: str, scale: float = 1.0):
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SRC_DIR = Path(__file__).resolve().parent
 METRICS_PATH = PROJECT_ROOT / "configs" / "metrics.toml"
+BASE_PATH = PROJECT_ROOT / "configs" / "base.toml"
+
+
+def load_input_facts(path: Path = BASE_PATH) -> list[dict]:
+    """读 base.toml 末尾的 ``[[input_fact]]`` 输入事实登记表（2026-09-13 立）。
+
+    模型按用途只有两层：**输入住 base.toml、输出住 metrics.toml**。被叙述层引用的
+    输入参数在此登记「名片」（中文名/单位/口径/信源），分两类：
+      * kind="config"：值在 base.toml 上方功能段，本表给 at 点分路径，
+        由 load_metrics 升格成 Metric（source="external"、at_cfg=at）；
+      * kind="quote"：外部原文引述（倍数/TCO），自带 value/text，不进计算、
+        不进结果注册表，由 facts.build_facts 装配成 ext.* 事实包条目。
+
+    本函数只做**表内字段级校验**（必填、kind 合法、key 唯一）；与输出字典之间的
+    跨表撞名（一词一名）由 load_metrics 合并时统一拦——两处只在那里碰一次面。
+    """
+    if not path.exists():
+        raise SystemExit(f"✗ 输入字典不存在：{path}")
+    conf = load_config(path)
+    items = conf.get("input_fact") or []
+    if not items:
+        raise SystemExit(f"✗ {path.name} 里没有 [[input_fact]] 条目（输入事实登记表缺失）")
+    out: list[dict] = []
+    seen_key: set[str] = set()
+    seen_label: dict[str, str] = {}
+    for i, item in enumerate(items, 1):
+        key = (item.get("key") or "").strip()
+        label = (item.get("label") or "").strip()
+        kind = (item.get("kind") or "").strip()
+        if not key:
+            raise SystemExit(f"✗ base.toml [[input_fact]] 第 {i} 条缺 key")
+        if not label:
+            raise SystemExit(f"✗ base.toml [[input_fact]] 第 {i} 条（{key}）缺 label")
+        if kind not in ("config", "quote"):
+            raise SystemExit(f"✗ {key}：kind 只能是 config/quote，现在是 {kind!r}")
+        if key in seen_key:
+            raise SystemExit(f"✗ [[input_fact]] key 重复：{key}（一词一名）")
+        if label in seen_label:
+            raise SystemExit(
+                f"✗ [[input_fact]] label 重复：「{label}」（{seen_label[label]} / {key}）")
+        if kind == "config" and not (item.get("at") or "").strip():
+            raise SystemExit(f"✗ {key}：config 型必须给 at（base.toml 内点分路径）")
+        if kind == "quote":
+            if not key.startswith("ext."):
+                raise SystemExit(f"✗ {key}：quote 型 key 必须以 ext. 开头（命名空间隔离）")
+            for field in ("text", "value", "src", "as_of"):
+                if not str(item.get(field) or "").strip():
+                    raise SystemExit(f"✗ {key}：quote 型缺 {field}（引述必须给显示形式/代表值/信源/时点）")
+            if not str(item["src"]).strip().startswith("src."):
+                raise SystemExit(
+                    f"✗ {key}：quote 的 src 必须是台账机读表 key（src. 开头），"
+                    f"信源 URL 的唯一家是 audit/信源审计台账.md")
+        seen_key.add(key)
+        seen_label[label] = key
+        out.append(item)
+    return out
 
 
 def load_metrics(path: Path = METRICS_PATH) -> list[Metric]:
-    """读输出字典，逐条构造指标。
+    """读输出字典，逐条构造指标；并把 base.toml [[input_fact]] 的 config 型升格并入。
 
-    **审计①**：每条必须给 `at`（模型结果路径）或 `at_cfg`（配置路径）之一，
+    合并后注册表＝**模型输出**（metrics.toml 的 [[metric]]，at 取快照）＋
+    **被叙述引用的输入参数名片**（base.toml [[input_fact]] kind="config"，
+    at_cfg 取配置）。quote 型引述不进本表（不是数值指标），由 facts 直接装配。
+
+    **审计①**：每条必须给 `at`（模型结果路径）或 config 型的 `at`（配置路径）之一，
     且不能两者都没有——否则这条就是"想要但程序里不存在"的数，趁早失败好过页面 [待补]。
+    **一词一名**：输出字典与输入登记之间 key/label 撞名即中断（quote 型同样拦）。
     """
     if not path.exists():
         raise SystemExit(f"✗ 输出字典不存在：{path}")
@@ -527,7 +624,19 @@ def load_metrics(path: Path = METRICS_PATH) -> list[Metric]:
         raise SystemExit(f"✗ 输出字典里没有 [[metric]] 条目：{path}")
 
     out: list[Metric] = []
-    seen: set[str] = set()
+    seen_key: set[str] = set()
+    seen_label: dict[str, str] = {}
+
+    def _check_name(key: str, label: str, where: str) -> None:
+        """key/label 跨表唯一性检查（输出字典 ↔ 输入登记共用一个裁判）。"""
+        if key in seen_key:
+            raise SystemExit(f"✗ 注册表 key 重复：{key}（{where}；一词一名）")
+        if label in seen_label:
+            raise SystemExit(
+                f"✗ 注册表 label 重复：「{label}」（{seen_label[label]} 与 {where} 撞名）")
+        seen_key.add(key)
+        seen_label[label] = where
+
     for i, item in enumerate(items, 1):
         key = (item.get("key") or "").strip()
         label = (item.get("label") or "").strip()
@@ -535,9 +644,7 @@ def load_metrics(path: Path = METRICS_PATH) -> list[Metric]:
             raise SystemExit(f"✗ 输出字典第 {i} 条缺 key")
         if not label:
             raise SystemExit(f"✗ 输出字典第 {i} 条（{key}）缺 label——中文名是它唯一的查找名")
-        if key in seen:
-            raise SystemExit(f"✗ 输出字典里 key 重复：{key}（一词一名，重复会让人分不清）")
-        seen.add(key)
+        _check_name(key, label, "metrics.toml")
         out.append(Metric(
             key=key,
             label=label,
@@ -549,7 +656,24 @@ def load_metrics(path: Path = METRICS_PATH) -> list[Metric]:
             group=item.get("group", ""),
             note=item.get("note", ""),
             source=(item.get("source") or "").strip(),
+            fmt=(item.get("fmt") or "").strip(),
         ))
+
+    # 输入名片：config 型升格为 Metric（at_cfg 现读 base.toml），quote 型只做撞名检查
+    for f in load_input_facts():
+        _check_name(f["key"].strip(), f["label"].strip(), "base.toml [[input_fact]]")
+        if f.get("kind") == "config":
+            out.append(Metric(
+                key=f["key"].strip(),
+                label=f["label"].strip(),
+                at_cfg=(f.get("at") or "").strip(),
+                scale=float(f.get("scale", 1.0)),
+                decimals=int(f.get("decimals", 1)),
+                unit=f.get("unit", ""),
+                note=f.get("note", ""),
+                source="external",
+                fmt=(f.get("fmt") or "").strip(),
+            ))
     _verify_source(out)
     return out
 
@@ -654,6 +778,8 @@ def _verify_source(metrics: list) -> None:
 
 
 METRICS: list[Metric] = load_metrics()
+# 输入事实登记原文（含 quote 型；config 型已升格进 METRICS），facts 装配 ext.* 时读
+INPUT_FACTS: list[dict] = load_input_facts()
 
 # （旧登记表已于 2026-09-12 删除——指标现在只住在 configs/metrics.toml，
 #  留第二份就是"一个数两个家"，正是要根除的病。）
@@ -1487,9 +1613,12 @@ def cmd_workbook(config: dict, base_values: dict[str, float], step: float = 0.10
         column.sort(key=lambda c: abs(c[1]), reverse=True)
         drivers = "；".join(f"{_short(p)} {v:+.2f}" for p, v in column[:3]) or "（不受单参数显著影响）"
         ws.append([metric.group, metric.label, base_values[metric.key], metric.unit, drivers])
-        ws.cell(row=row_index, column=3).number_format = (
-            f"#,##0.{'0' * metric.decimals}" if metric.decimals > 0 else "#,##0"
-        )
+        # 年份整数无千分位（2030，不是 2,030）；其余按 decimals 给千分位格式
+        if metric.fmt == "year":
+            number_format = "0"
+        else:
+            number_format = f"#,##0.{'0' * metric.decimals}" if metric.decimals > 0 else "#,##0"
+        ws.cell(row=row_index, column=3).number_format = number_format
         ws.cell(row=row_index, column=5).alignment = WRAP
     set_widths(ws, [8, 26, 16, 10, 62])
 

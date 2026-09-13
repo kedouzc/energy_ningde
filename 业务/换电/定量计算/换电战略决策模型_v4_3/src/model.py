@@ -28,7 +28,7 @@ from group_constraints import (  # noqa: E402
 from consolidation import build_consolidated_ledger
 from decision import build_decision_memos
 from mna import get_sourcing_adjustment
-from scale import build_scale
+from scale import build_scale, build_yearly_stock, assert_yearly_stock_aligned
 from schemas import ModelSnapshot
 from tco import build_heavy_economics
 
@@ -45,6 +45,10 @@ def _build_core(
     swap = build_swap_business(config, scale, capex)
     # TCO 已在 tco.py 独立（build_heavy_economics）；在装配层挂载到快照，business 不再依赖 tco。
     swap.heavy_economics = build_heavy_economics(config, scale, capex, swap.pool_operations)
+    # 逐年存量/流量明细矩阵（2026-09-13）：明细落快照（ScaleResult.yearly_stock），
+    # 标量仍走输出字典；终局列与⑧组在网电池标量硬对齐，口径漂移在此刻中断而不是在页面暴露。
+    scale.yearly_stock = build_yearly_stock(config, scale, capex)
+    assert_yearly_stock_aligned(scale, swap)
     no_swap, with_swap = build_manufacturing_cases(config, scale, capex)
     ledger = build_consolidated_ledger(config, baseline, no_swap, with_swap, swap)
     light = build_light_asset_scenarios(config, scale, capex, swap, ledger)

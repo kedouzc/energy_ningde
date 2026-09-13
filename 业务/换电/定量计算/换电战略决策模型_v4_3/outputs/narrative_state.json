@@ -9,56 +9,24 @@
  "7_投资建议与操作指引.src.md": {},
  "8_反思与后续思考.src.md": {},
  "业务本质_第一性原理拆解.src.md": {
-  "38cdfed46488": {
-   "ext.batt_share_of_truck": 0.45,
-   "ext.pack_400kwh_price": 35.0
-  }
+  "38cdfed46488": {}
  },
  "估值_为什么拍这个倍数.src.md": {
-  "f647574a447b": {
-   "q1.gwh_total": 574.0132965530304,
-   "q1.veh_ops": 249.8
-  },
-  "fcb05700a725": {
-   "base.catl_blended_share": 0.16000000000000003,
-   "ext.mult_gp_high": 22.0,
-   "ext.mult_gp_low": 18.0,
-   "ext.mult_infra_high": 14.0,
-   "ext.mult_infra_low": 6.7,
-   "ext.mult_tsla": 89.7
-  },
-  "7be8df4aa5eb": {
-   "ext.mult_byd": 6.5,
-   "ext.mult_catl_self": 13.0
-  },
-  "c80be9c57edd": {
-   "base.ev_ebitda": 18.0
-  },
-  "2e559827c840": {
-   "base.ev_ebitda": 18.0
-  },
-  "8a27c371cbad": {
-   "dcf.bet": 5337.986893773203
-  }
+  "f647574a447b": {},
+  "fcb05700a725": {},
+  "7be8df4aa5eb": {},
+  "c80be9c57edd": {},
+  "2e559827c840": {},
+  "8a27c371cbad": {}
  },
  "增量价值_运营单体加制造影响.src.md": {},
  "并购_节奏与竞合.src.md": {},
  "必要性_三条路为什么是换电.src.md": {},
  "用人信号_战略定力与执行跟踪.src.md": {},
  "目标用户_谁的痛点.src.md": {
-  "e028bfed9690": {
-   "ext.lng_price_rise": 0.48,
-   "ext.tco_ev_vs_diesel_5y": -0.25,
-   "ext.tco_ev_vs_lng_3y": -0.04,
-   "ext.tco_ev_vs_lng_5y": -0.11
-  },
-  "94c7993af93c": {
-   "ext.payload_loss_ev": 7.0
-  },
-  "d011160387f9": {
-   "ext.baas_capex_cut": 0.45,
-   "ext.revenue_uplift_per_truck": 4.0
-  }
+  "e028bfed9690": {},
+  "94c7993af93c": {},
+  "d011160387f9": {}
  },
  "竞争格局_三足鼎立与赛道内玩家.src.md": {},
  "终局年_为什么是2030.src.md": {},

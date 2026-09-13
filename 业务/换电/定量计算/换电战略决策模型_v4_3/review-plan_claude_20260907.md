@@ -458,12 +458,13 @@ xlsx 保留为可存档/可导出的产物，但不再是决策主界面——Ex
 | 20 | **把源码直接内嵌进 `<script>` 不转义，页面泄漏 JS 代码** | 用户打开 HTML 看到满屏代码/乱码，标题和按钮之外全是源码文本 | 为了浏览器内 Pyodide 重跑，把 `MODEL_BUNDLE`/`PY_BOOT` 用 `json.dumps` 直接塞进 `<script>` 标签；但 `MODEL_BUNDLE` 里打包了 `sandbox.py` 自身的 HTML 模板，其中含 `</script>` 结束标签 → HTML 解析器**在 JS 字符串内部就提前闭合 `<script>`**，后续 JS 全部变成正文文本 | **内嵌任意字符串到 `<script>` 必须先转义或 base64**：把 `D` / `PY_BOOT` / `MODEL_BUNDLE` 先 JSON（**`ensure_ascii=True`**，中文转 `\uXXXX` 纯 ASCII）再 **base64**，浏览器里用 **`TextDecoder("utf-8")` 真解码**（封装成 `b64utf8()`），再 `JSON.parse()`——① base64 字母表不含 `<>`/`/`，从物理上避免 `</script>` 提前闭合；② **绝不能裸 `atob()`**：`atob` 按 Latin-1 解释字节，中文（及一切非 ASCII）会乱码，必须用 `TextDecoder` 走 UTF-8。这是前端注入的硬纪律 |
 | 21 | **同源单程的"引擎实现正确性"三坑：recompute 把方向做反、类型丢光** | 用户把换电增量价值 6103 设目标 10000、勾选 `CATL充电市占率`（推荐 δ=+0.1754），读数非但不升反跌到 −451、且勾得越多越负；此前两轮错误还被静默吞掉，表现一直是"面板联动了、数字不动" | 三个独立 bug 都藏在「克隆 config → `_set_path` 覆盖 S/A → `build_model`」这段 `recompute` 路径，且异常被静默：① `recomputeExact` 把 `JSON.stringify(state)` 直接拼进 Python `recompute({...})`，轴里 `isArray` 布尔（true/false）不是 Python 关键字 → `NameError`，被 `.catch` 吞；② JS 把数组型参数（nev_rates）在 `S` 里设成 `0`，`_set_path` 把 config 整条数组替换成 0，`build_model` 做 `[year_index]` 下标 → `'float' object is not subscriptable`；③ recompute 标量分支 `max(lo,min(hi,base+d))` 把轴 `lo/hi`（**δ 范围**）当值范围钳，正向 δ 被压回基线以下、价值暴跌为负 | **防复发**：① state 经 `pyodide.globals.set("__state_json", JSON.stringify(state))` 传字符串、Python 内 `json.loads` 解析（true/false/null 原生支持），绝不当字面量拼装；② 删 `D.arrays.forEach(a=>S[a.path]=0)`（数组只由轴 `A` 管理），recompute 数组分支改读 `ax["cur"][p]`（保留原始 list）逐元素位移；③ 标量分支先 `d=clamp(d,lo,hi)` 再 `new=base+d`、最后 `clamp(new,0,cap)`。统一"错误显形"：`recompute` 的 try 把异常打到页面红条、绝不静默。根源见 DECISIONS「2026-09-10」 |
 | 23 | **①② 结论区是生成期死数，拖滑块时只有 ③ 区在动** | 用户拖"CATL持股比例 / EV-EBITDA倍数"滑块，③ 定量看板读数全变，① 顶部结论、② 定性逻辑里"持股 40%""×18 倍"纹丝不动——同一个页面里两个数字互相打架 | `_build_verdict`（`sandbox.py`）在**生成期**用基线算一次 vals 就写死进 HTML；`renderVerdict()/renderNarrative()` 只在初始化被调一次，`render()` 里**没有**它们。违反"实时反馈 / 数值-滑块-档位同源同刻，任一不动＝信任归零" | **vals 抽成单一函数 `src/verdict.py::build_vals(snap,cfg)`，生成期与浏览器共用**：生成期对三档复用已有 snapshot 算出 `D.tierVals`；`py_boot.recompute` 重跑后一并返回 `vals`；JS 侧 `refreshVerdict()` 在 `render()` 与重跑回调里都调，**不写任何算式**（算式写两遍必然漂移）。配套：占位符正则放宽为 `{a-z_0-9}`（原正则导致 `{{target_year}}` 渲染成 `{2030}`、含点路径与空 `{}` 原样输出）；生成期 `_check_placeholders` 做"MD 占位符 ⊆ PLACEHOLDER_KEYS"的机械校验，缺一个即终止生成 |
-| 24 | **占位符语法撑不住 MD 实际写法** | `{{target_year}}` 页面显示成 `{2030}`（多一个花括号）、`{{vehicles.heavy.stock_wan}}`（含点）完全不匹配原样输出、17 处空 `{}` 原样输出 | JS 渲染正则只有 `/\{([a-z_]+)\}/g`，只认小写字母+下划线 | 取消 `{{a.b.c}}` 写法，全部改**扁平具名**占位符（`{target_year}`、`{heavy_stock_wan}`…）；正则放宽为 `/\{([a-z_][a-z0-9_]*)\}/gi`，并与 Python 侧 `_PH_RE` 同形态，生成期扫描比对 |
+| 24 | **占位符语法撑不住 MD 实际写法** | `{{target_year}}` 页面显示成 `{2030}`（多一个花括号）、`{{vehicles.heavy.stock_wan}}`（含点）完全不匹配原样输出、17 处空 `{}` 原样输出 | JS 渲染正则只有 `/\{([a-z_]+)\}/g`，只认小写字母+下划线 | 取消 `{{a.b.c}}` 写法，全部改**扁平具名**占位符（`{target_year}`、`{heavy_stock_wan}`…）；正则放宽为 `/\{([a-z_][a-z0-9_]*)\}/gi`，并与 Python 侧 `_PH_RE` 同形态，生成期扫描比对。**（2026-09-12 再进一步：扁平具名仍是"程序里的名字"，已统一改成中文名 `{{中文名}}`，见坑 29）** |
 | 22 | **Python 源码里嵌 HTML/CSS/JS，四层语言嵌套、单文件千行** | 用户看到 `sandbox.py` 一千多行就本能警惕："不同语言堆在一起，是不是本身就比较难维护？"——且改一个按钮颜色要动 Python；IDE 把字符串里的 JS 当普通文本，无高亮、无补全、无 lint，语法错要等浏览器里跑才暴露 | 终产物需要 HTML，于是把 HTML/CSS/JS 全写成 Python 字符串常量：`HTML = """..."""`（约 600 行，其中 JS 约 535 行），另有 `PY_BOOT`（约 80 行）是**"Python 字符串里写 Python"**——`PY_BOOT` 本身又是给浏览器端 Pyodide 执行的启动脚本，共四层嵌套 | **模板外置，语言不混写**：HTML／CSS／JS 各自进 `templates/`；`PY_BOOT` 抽成 `src/py_boot.py`（变成真 `.py` 后可被 IDE 检查、可单测）；生成器只做"跑模型 → 打包 → 读模板 → 替换 → 写文件"。**判据：改一个按钮的颜色，需不需要碰 `.py` 文件？需要 → 就没拆干净。** 另：这同时让"把 HTML 删掉重写，报告结论一个字不变"（`框架提案.md` §7 第 4 条）这条完工标准重新可执行——此前删 HTML 等于删 Python 的一部分。已进 `研究项目约定.md` §6.1 与 `框架提案.md` §3，根源见 DECISIONS「2026-09-10b」 |
 | 25 | **取不到值时一声不响（静默 NaN）** | 用户问"这些 key 在源里找不到，能读到数据吗"；实测 `facts.json` 里躺着 `'nanGWh'`/`'nan×'`/`'nan%'`——页面上和"这个数今天算不出来"完全同形，事后极难追回 | `read_metrics` 的 `except → NaN` 不报错；`build.py` 一句 `read_metrics(snapshot)` 漏传 cfg，6 条外部锚（`at_cfg` 侧）全变 NaN | **取不到必须闹出动静**：`read_metrics(snap, cfg, strict=True)`——路径走通不了／没传 cfg 就逐条点名并中断；路径通但程序主动给空的（REIT 回笼倍数）单独 ⚠ 报一次。`build.py`/`app.py` 一律补传 cfg；扫描线路显式 `strict=False` 并写明理由。根源见 DECISIONS「2026-09-12c」 |
 | 26 | **一个 key 两个定义／一个数两个家** | `q2.peak_year` 定义了两次（后者静默覆盖前者）；23 条同值同单位的手写事实与字典条目互不相识；而"镜像互校"只住在 `onepager`，`build.py` 那条管线根本没跑，mirror 指向不存在的 key 时还是 `continue`——**写着互校，实际没校** | 一个量在 `facts.py` 与 `metrics.toml` 各登记一遍，是"第二套口径"的旧病；校验又是"某张页面里的一段循环"，不是全管线的闸门 | **一个 key 一个定义**（`facts.py` 重复即加载中断）；`check_mirrors()` 下沉到 `facts.build_facts`，**每条管线**都校，并补上"mirror 指向不存在的 key"与"差 100 倍的比值 vs 百分数"两种静默态；25 条手写事实补 `mirror=` |
 | 27 | **字典的 `source` 指错程序** | 14 条重卡 TCO 指标写 `source="business"`，实际是 `tco.py` 算的（其中 12 条字段按位置构造，源码里连字段名都搜不到）——数字没错，但按图索骥会走到错误的程序里 | `source` 只是注释字段，从来没人核过它与 `at` 对不对得上 | **加载期核对**：`load_metrics` 要求 `at` 路径最后一段在 `src/<source>.py` 里找得到（字面量／归属的 dataclass／近似函数名三选一），对不上即中断；`at_cfg` 侧则核 `base.toml` 里有没有这一项（写错时当场抓到，如 `meta.wacc` 实为 `finance.wacc`） |
 | 28 | **两个口径差 0.03%，被当成同一个数读** | `q1.gwh_total` 的 note 写"车端＋站内周转"，实际只是各年新增装机累加 574.0 GWh，不含站内周转；含站内的存量口径是 608.8，车端又是 574.2——**差得越少越危险**，没人会起疑 | 口径说明是手写的、且没有对应的字典条目，谁也没法校它 | 三个口径各自有名字、有出处：`swap_gwh_cumulative_flow` 在 `business.py` 算成快照字段 → 进字典 `ops.gwh_cum_flow`，note 写清"不含站内、不等于存量合计"；**差得少的，才更要写清** |
+| 29 | **MD 占位符写的是程序内部名，结论区还另有一份名字表** | 用户改文案被要求记住 `base.ev_ebitda` / `swap.ebitda` 这类程序 key（"显然还是在用程序里的参数名"）；`沙盘结论区.md` 用的是另一套短名 `{target_year}`，与叙述层 `{{中文名}}` 两套写法并存，靠 `verdict.PLACEHOLDER_MAP` 手工同步——MD 加一个数忘了登记，页面就是一个说不清来源的 [待补] | 名字本来有两套：**内部 key**（程序用）与 **label**（人用）；此前只有指标支持按 label 寻址（`lab.resolve`），手写事实（`base.*`／`q1.*`／`thr.*`／`ext.*`）只能写 key；结论区在自己文件里维护"短名→key"映射，是名字的**第三居所** | **占位符一律写中文名**：`inject` 新增按 facts 的 `label` 反查（撞名时按"手写事实优先"取值并**报一次**，渲染不同则报错）；新增 `inject.lint_names()`——写内部 key 即中断，唯一例外 `src.*` 信源（它引的是台账那一行，名字就是台账主键）。`verdict.PLACEHOLDER_MAP` 删除，改由 `lab.resolve()` 按 label 寻址，`PH_RE` 直接取 `inject.TOKEN_RE`，`vals` 以中文名为键（浏览器端因此不必再读一遍 md）。顺带堵掉一个 100 倍坑：字典指标并入事实包时 `kind` 按单位推断成 `pct`，而本仓库占比以百分数存储 → 写中文名会渲染成 `988.00%`，现一律 `kind="num"`。验证方式：**改前/改后渲染逐字一致**（`git show HEAD:` 取旧文本对渲染结果做 diff） |
 
 **三条贯穿性的教训：**
 
@@ -493,10 +494,10 @@ xlsx 保留为可存档/可导出的产物，但不再是决策主界面——Ex
 | **布局/用户视角** | 关键总览卡（组合实时试算）贴着顶部读数放（列表上方）；批量按钮主色高亮；默认全不选时总览 = 真实读数。**① 结论区＝「结论写在最前 + 五张卡片」**（业绩/估值/卡位/ROI/重点，`# 结论卡片` 的每个 `##` 一张卡，`重点` 正文最长占整行，`grid` 窄屏一列、≥760px 两列）；卡片数量/顺序/措辞随 MD 变，不动 `.py`/`.js`。**次序**：「定量支撑」在「定性逻辑」之前（先看数站不站得住，再看为什么）。触发点：原六行 bullet 连排，用户评"一堆文字数字看晕了"（2026-09-11） |
 | **一页纸** | 原 `换电一页纸_v4.3.xlsx` 的 17 行核心指标已**重构为 32 行、三层分组**（①业务值多少钱 ②规模与市场地位 ③要付出多大代价）并**并入沙盘 HTML（唯一出口，xlsx 已停产、outputs/换电一页纸_v4.3.xlsx 留作旧存档不再生成）**；内容源 `narrative/一页纸.md`（不带 .src.md 后缀，由 onepager 显式 lint/inject，零硬编码、信源只引 `{{src.xxx}}`）。表内是**三情景精确实跑值**。**同源单程无例外**：档位态"一键三档"直接取 Python 预计算的 `tierValues`（＝一页纸对应档列，同源同一套 `build_model`）；**自定义态也由 Pyodide 在浏览器内重跑同一套 `build_model` 取精确值**（离线时退回生成快照精确值并提示回跑 `run.py`），**任何位置都不外推、不标 ≈±30%**。`check_tier_direction` 每次 `run.py` 校验经营类 driver 的档位方向（成本类须反向填），违反打印 ⚠。**一页纸「当前（实时）」列＝全套 32 行精确值**：停在档上＝该档精确实跑值、自定义态＝Pyodide 精确重跑（数值列与解释列一并刷新）——**无"—"、无"≈"、无外推字样**（此前"当前列只有 7/17 行、还标≈±30%"是让用户觉得调参不严肃、难相信的根因，已根除，见 §3.6.1 坑 19）。 |
 | **防呆** | `window.onerror` 把脚本错误直接显示在页面底部——前端异常不再静默 |
-| **取数与注册**（2026-09-12 立，见坑 25–28） | **取不到必须闹出动静**：`read_metrics(snap, cfg, strict=True)` 路径不通／没传 cfg 即中断点名，NaN 只报一次不冒充；`load_metrics` 加载期核 `source` 与 `at` 尾段；**一个 key 一个定义**（`facts.py` 重复即中断）；`check_mirrors()` 下沉到 `build_facts`——**每条管线**断言手写事实与字典同值，含"mirror 指向不存在的 key"与"差 100 倍的比值 vs 百分数"两态；**孤儿即删**（65 条没人引用的事实与随之死掉的 7 个取值助手已删，`facts.json` 233 → 180 条，零 nan）；口径相近的两个数（574.0／574.2／608.8 GWh）各自有名字、有出处 |
+| **取数与注册**（2026-09-12 立，见坑 25–29） | **取不到必须闹出动静**：`read_metrics(snap, cfg, strict=True)` 路径不通／没传 cfg 即中断点名，NaN 只报一次不冒充；`load_metrics` 加载期核 `source` 与 `at` 尾段；**一个 key 一个定义**（`facts.py` 重复即中断）；`check_mirrors()` 下沉到 `build_facts`——**每条管线**断言手写事实与字典同值，含"mirror 指向不存在的 key"与"差 100 倍的比值 vs 百分数"两态；**孤儿即删**（65 条没人引用的事实与随之死掉的 7 个取值助手已删，`facts.json` 233 → 180 条，零 nan）；口径相近的两个数（574.0／574.2／608.8 GWh）各自有名字、有出处；**占位符一律写中文名**（`inject.lint_names()` 拦内部 key，`src.*` 信源除外），事实包新增 `origin` 字段供撞名时判定"手写事实优先" |
 | **文件构成（生成期／运行期分开）** | **生成期**（本机 `python src/sandbox.py`）：`src/sandbox.py` 只做"跑模型算基线 → 打包 bundle → 读模板替换占位符 → 写 HTML"；`templates/sandbox.html`（骨架）／`.css`（长什么样）／`.js`（行为）／`src/py_boot.py`（浏览器端 Python 启动脚本）。**运行期**（浏览器）：JS 管 DOM 与转发状态，Pyodide＋`build_model` 管计算。**语言不混写**——详见 `框架提案.md` §3 与 §3.6.1 坑 22 |
 | **沙盘＝报告容器（目标态）** | 不只调参玩具，最终承载四块：① 定性分析论证（`chapters/`＋`topics/`）② 定量计算链（过程折叠、关键读数常显）③ 一页纸（T 字概要）④ 补充定性。**四块共用同一份 `facts`**——用户调完参数四块数字一起变，是结构保证不是同步维护。叙述层读 `facts`（内存对象）而非 JSON 文件，故浏览器端重跑即得当前 facts，无需经过快照文件（见 DECISIONS「2026-09-10b」） |
-| **定性内容外置 MD（沙盘）** | 沙盘①顶部结论、②定性逻辑三支柱的论证文案住 `narrative/沙盘结论区.md`（`# 顶部结论` 空行分段＝**结论**（写在最前）、`# 结论卡片` 下 `##` 分段＝业绩/估值/卡位/ROI/重点 五张卡、`# 定性逻辑` 下 `##` 分段＝三支柱）；`sandbox.py` 读 MD、`{key}` 占位符由模型算出的 `vals` 填；`templates/` 只含格式，**任何定性描述不进 `.py`**。改文案**与版面**＝改 MD＋重生成 HTML（与一页纸同源） |
+| **定性内容外置 MD（沙盘）** | 沙盘①顶部结论、②定性逻辑三支柱的论证文案住 `narrative/沙盘结论区.md`（`# 顶部结论` 空行分段＝**结论**（写在最前）、`# 结论卡片` 下 `##` 分段＝业绩/估值/卡位/ROI/重点 五张卡、`# 定性逻辑` 下 `##` 分段＝三支柱）；`src/verdict.py` 读 MD、`{{中文名}}` 占位符由模型算出的 `vals` 填（vals 的键＝中文名，与一页纸、章同一套写法）；`templates/` 只含格式，**任何定性描述不进 `.py`**。改文案**与版面**＝改 MD＋重生成 HTML（与一页纸同源） |
 | **定量支撑紧凑＋检验内嵌** | ③ 关键读数用紧凑网格（`repeat(auto-fill,minmax(160px,1fr))`，一行多排不滚屏）；三道门（检验门槛）直接内嵌到对应指标卡（✓/✗＋阈值＋hover 解释），删除独立 #gates 段——用户一眼看到"指标过没过门槛" |
 | **可复现＝产物字节稳定** | `axis_members` 用保序列表（原 `set` 受 Python 哈希随机化影响导致产物顺序漂移）；四种哈希种子下产物 md5 一致，diff/复现可信（坑源见 DECISIONS「2026-09-10c」） |
 
@@ -1115,15 +1116,15 @@ def resolve(name: str) -> Metric:
   - 用途：审核输出字典的设计——每条是否**可证伪**（能回答"什么会推翻它"）、是否**简约**（一词一名，不因怕写错而滥加别名；报错给候选优于静默补别名）。
   - 预期产出：字典字段规范定稿（哪些字段必填、note 该写什么），以及"写错即报错给候选"的交互判据。
 
-## TODOS
+## TODOS（2026-09-13 已全部清账，处置演变见文末追记）
 
-- [ ] 用 [subagent:code-explorer] 列出全部派生函数，产出「下沉对照表」（函数→目标模块→新字段名→下游引用点）
-- [ ] 把车辆/规模类派下沉到 src/scale.py 与 schemas.py（营运车合计、各车种口径、出货口径、站数、日换电次数），每挪一个跑一次验证
-- [ ] 把资本/经营/合并/资金/配置类派生下沉到 capex.py、business.py、consolidation.py、group_constraints.py（含更新装机、市场占比、重卡池、资金峰值、REIT 倍数、合并增量），每挪一个跑一次验证
-- [ ] 建 configs/metrics.toml 输出字典（纯声明，无公式），改 src/lab.py 为加载器＋通用取值器，用 [skill:falsifiability-simplicity] 定字段规范
-- [ ] 实现中文寻址 resolve()（key→中文名→归一化模糊），接入 src/inject.py 占位符解析；失败即报错并列出最像的 3 个候选，不静默不存别名
-- [ ] 用 [skill:mwsm-single-model] 统一命名空间：一页纸 metric: 与 report_map.toml 的 owns/uses 支持中文；建双向审计（字典每条在快照中存在、报告每个引用在字典中存在）；facts 带 mirror 项回归、外部事实归 base.toml
-- [ ] 端到端验证：run.py/build.py/sandbox.py 全绿且三情景数字不变（913.7 / 9,703.7 / 33,597.9 亿）；更新 src/README.md、框架提案.md、chapters/README.md；补 DECISIONS 条目
+- [x] 用 [subagent:code-explorer] 列出全部派生函数，产出「下沉对照表」（函数→目标模块→新字段名→下游引用点）
+- [x] 把车辆/规模类派下沉到 src/scale.py 与 schemas.py（营运车合计、各车种口径、出货口径、站数、日换电次数），每挪一个跑一次验证
+- [x] 把资本/经营/合并/资金/配置类派生下沉到 capex.py、business.py、consolidation.py、group_constraints.py（含更新装机、市场占比、重卡池、资金峰值、REIT 倍数、合并增量），每挪一个跑一次验证
+- [x] 建 configs/metrics.toml 输出字典（纯声明，无公式），改 src/lab.py 为加载器＋通用取值器，用 [skill:falsifiability-simplicity] 定字段规范
+- [x] 实现中文寻址 resolve()（key→中文名→归一化模糊），接入 src/inject.py 占位符解析；失败即报错并列出最像的 3 个候选，不静默不存别名
+- [x] 用 [skill:mwsm-single-model] 统一命名空间：一页纸 metric: 与 report_map.toml 的 owns/uses 支持中文；建双向审计（字典每条在快照中存在、报告每个引用在字典中存在）；~~facts 带 mirror 项回归、外部事实归 base.toml~~ **处置已变，见 2026-09-13 追记**
+- [x] 端到端验证：run.py/build.py/sandbox.py 全绿且三情景数字不变（913.7 / 9,703.7 / 33,597.9 亿；EBITDA 覆盖 0.81 / 1.17 / 1.51）；更新 src/README.md、框架提案.md、chapters/README.md；补 DECISIONS 条目
 
 ---
 
@@ -1145,3 +1146,39 @@ def resolve(name: str) -> Metric:
 本轮另立了四条取数闸门，见 §3.6.1 坑 25–28 与 §3.6.2「取数与注册」行；
 根源记录见 `DECISIONS.md` 2026-09-12c／d，我（用户）的视角记在
 `投研/能源/宁德时代/业务/换电/工作记录/研究历史记录.md` 的 2026-09-12 条。
+
+---
+
+## 追记（2026-09-13）：TODOS 清账——mirror 方案被否，facts 纯装配；逐年矩阵落快照
+
+TODOS 七项已全部完成，但第 6 项里设想的两个处置（"facts 带 mirror 项回归"、
+"外部事实归 base.toml"）在 09-12 实施中被证伪、09-13 正式改写，决策全文见
+`DECISIONS.md` 2026-09-13a/b/c，要点：
+
+1. **mirror 互校 → 禁撞**。手写事实层整体删除（09-12e 的 7 镜像遗留随之关闭）：
+   参数/口径回 `metrics.toml`，只供叙述引用的外部引述（研报倍数、JPM TCO 共 16 条）
+   住**第三个家** `configs/external_facts.toml`（判据：改这个数改不改模型输出——
+   不改就不是参数，不进 base.toml）。`facts.py` 零字面量、零口径 note、零取值 lambda，
+   `build_facts(metrics_values)` 只做装配；撞名由 `check_no_duplicate()` 直接中断。
+2. **渲染单一居所**。`Metric.format_text/format_bare` 三侧同源（facts/verdict/JS），
+   新增 `fmt="year"` 治住"2,030"；问题 4 拍板方案 B：verdict vals 携带
+   `{v, text, bare}`，JS 零手写单位（裸数用 `{{名:n}}`）。
+3. **明细落快照、标量进字典**。逐年 6 类×4 指标×flow/stock 矩阵住
+   `ScaleResult.yearly_stock`，不灌进 metrics.toml；终局列与既有标量硬对齐
+   （中性档 574.157/34.666/608.822GWh、394.2 万辆，三档断言全过）。
+4. 实测现状（接 09-12 追记的表）：facts.json **157 条**（输出字典全量＋16 外部引述＋
+   src 信源），孤儿仍为 0；一页纸 33 行**四条**校验（原第 5 条镜像同值校验随单路径取消）；
+   结论区 43 个占位符全部命中。基线数字不变：增量 **913.7 / 9,703.7 / 33,597.9 亿**、
+   EBITDA 覆盖 **0.81 / 1.17 / 1.51**；峰值年浏览器渲染为 2030（三档＋实时列实测）。
+
+5. **2026-09-13 下午再追记：上方第 1 点的"第三个家"当日即被推翻——两层归并。**
+   用户判据：模型按用途只有输入/输出两类，base.toml 里本就有大量外部信源参数，单立
+   external_facts.toml 没道理。现状：`external_facts.toml` 已删，16 条引述与 metrics.toml
+   ⑨组 20 条 `at_cfg` 名片一并迁入 **`base.toml` 末尾 `[[input_fact]]`**（`kind="quote"`
+   /`kind="config"`）；metrics.toml 只剩 `at` 真输出（组号止于⑧）；信源 URL 全归
+   `audit/信源审计台账.md`（quote 条目只存 `src` key；台账允许仓库内相对路径，如 JPM 归档
+   报告）。facts.json 现 **163 条**＝118 输出＋20 config 名片＋16 quote＋9 src。
+   本文上方（§3.6 及 L460 段、L1024/L1039/L1062/L1089）关于 `at_cfg` 与 external_facts
+   的设计原文保留不改，以此追记为准。另：新增输出指标「全周期电池更新净额现值」
+   （capex.repl_net_pv，底座−初装，中性 2,508.8 亿）；叙述层 label/占位符去 2030 硬编码、
+   统一为「终局年」（程序 key 保留 2030）。决策全文：`DECISIONS.md`「2026-09-13」。

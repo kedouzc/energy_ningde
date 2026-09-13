@@ -1404,6 +1404,391 @@
       "swap_frequency_per_day": 1.25,
       "note": "城配存量层·高不确定·单列不并入 headline 增量（类比 _archive v2 城配C 存量支线）"
     },
+    "yearly_stock": {
+      "years": [
+        2026,
+        2027,
+        2028,
+        2029,
+        2030
+      ],
+      "categories": [
+        "heavy",
+        "city",
+        "passenger_ops",
+        "private",
+        "ops_total",
+        "total"
+      ],
+      "category_labels": {
+        "heavy": "换电重卡",
+        "city": "换电城配物流车",
+        "passenger_ops": "乘用营运车",
+        "private": "私家车",
+        "ops_total": "营运车合计",
+        "total": "总计"
+      },
+      "flow": {
+        "vehicles_wan": {
+          "2026": {
+            "heavy": 13.244,
+            "city": 11.25,
+            "passenger_ops": 5.14,
+            "private": 20.634,
+            "ops_total": 29.634,
+            "total": 50.268
+          },
+          "2027": {
+            "heavy": 15.411,
+            "city": 14.625,
+            "passenger_ops": 6.326,
+            "private": 22.354,
+            "ops_total": 36.362,
+            "total": 58.715
+          },
+          "2028": {
+            "heavy": 16.486,
+            "city": 18.0,
+            "passenger_ops": 12.116,
+            "private": 27.512,
+            "ops_total": 46.603,
+            "total": 74.115
+          },
+          "2029": {
+            "heavy": 17.203,
+            "city": 20.25,
+            "passenger_ops": 22.512,
+            "private": 34.39,
+            "ops_total": 59.965,
+            "total": 94.355
+          },
+          "2030": {
+            "heavy": 17.92,
+            "city": 21.375,
+            "passenger_ops": 37.907,
+            "private": 39.549,
+            "ops_total": 77.202,
+            "total": 116.751
+          }
+        },
+        "onboard_gwh": {
+          "2026": {
+            "heavy": 62.179,
+            "city": 9.113,
+            "passenger_ops": 2.878,
+            "private": 11.555,
+            "ops_total": 74.17,
+            "total": 85.725
+          },
+          "2027": {
+            "heavy": 72.354,
+            "city": 11.846,
+            "passenger_ops": 3.542,
+            "private": 12.518,
+            "ops_total": 87.742,
+            "total": 100.26
+          },
+          "2028": {
+            "heavy": 77.401,
+            "city": 14.58,
+            "passenger_ops": 6.785,
+            "private": 15.407,
+            "ops_total": 98.767,
+            "total": 114.173
+          },
+          "2029": {
+            "heavy": 80.767,
+            "city": 16.402,
+            "passenger_ops": 12.607,
+            "private": 19.258,
+            "ops_total": 109.776,
+            "total": 129.034
+          },
+          "2030": {
+            "heavy": 84.132,
+            "city": 17.314,
+            "passenger_ops": 21.228,
+            "private": 22.147,
+            "ops_total": 122.674,
+            "total": 144.821
+          }
+        },
+        "station_gwh": {
+          "2026": {
+            "heavy": 2.852,
+            "city": 0.159,
+            "passenger_ops": 1.443,
+            "private": 0.0,
+            "ops_total": 4.454,
+            "total": 4.454
+          },
+          "2027": {
+            "heavy": 11.618,
+            "city": 2.021,
+            "passenger_ops": 0.441,
+            "private": 0.0,
+            "ops_total": 14.08,
+            "total": 14.08
+          },
+          "2028": {
+            "heavy": 11.618,
+            "city": 2.022,
+            "passenger_ops": 0.441,
+            "private": 0.0,
+            "ops_total": 14.081,
+            "total": 14.081
+          },
+          "2029": {
+            "heavy": 0.0,
+            "city": 0.0,
+            "passenger_ops": 0.0,
+            "private": 0.0,
+            "ops_total": 0.0,
+            "total": 0.0
+          },
+          "2030": {
+            "heavy": 0.0,
+            "city": 0.0,
+            "passenger_ops": 0.0,
+            "private": 0.0,
+            "ops_total": 0.0,
+            "total": 0.0
+          }
+        },
+        "total_gwh": {
+          "2026": {
+            "heavy": 65.031,
+            "city": 9.272,
+            "passenger_ops": 4.321,
+            "private": 11.555,
+            "ops_total": 78.624,
+            "total": 90.179
+          },
+          "2027": {
+            "heavy": 83.972,
+            "city": 13.867,
+            "passenger_ops": 3.983,
+            "private": 12.518,
+            "ops_total": 101.822,
+            "total": 114.34
+          },
+          "2028": {
+            "heavy": 89.019,
+            "city": 16.602,
+            "passenger_ops": 7.226,
+            "private": 15.407,
+            "ops_total": 112.847,
+            "total": 128.254
+          },
+          "2029": {
+            "heavy": 80.767,
+            "city": 16.402,
+            "passenger_ops": 12.607,
+            "private": 19.258,
+            "ops_total": 109.776,
+            "total": 129.034
+          },
+          "2030": {
+            "heavy": 84.132,
+            "city": 17.314,
+            "passenger_ops": 21.228,
+            "private": 22.147,
+            "ops_total": 122.674,
+            "total": 144.821
+          }
+        }
+      },
+      "stock": {
+        "vehicles_wan": {
+          "2026": {
+            "heavy": 13.2,
+            "city": 11.2,
+            "passenger_ops": 5.2,
+            "private": 20.6,
+            "ops_total": 29.6,
+            "total": 50.2
+          },
+          "2027": {
+            "heavy": 28.7,
+            "city": 25.9,
+            "passenger_ops": 11.5,
+            "private": 43.0,
+            "ops_total": 66.1,
+            "total": 109.1
+          },
+          "2028": {
+            "heavy": 45.1,
+            "city": 43.9,
+            "passenger_ops": 23.6,
+            "private": 70.5,
+            "ops_total": 112.6,
+            "total": 183.1
+          },
+          "2029": {
+            "heavy": 62.3,
+            "city": 64.1,
+            "passenger_ops": 46.0,
+            "private": 104.9,
+            "ops_total": 172.4,
+            "total": 277.3
+          },
+          "2030": {
+            "heavy": 80.3,
+            "city": 85.5,
+            "passenger_ops": 84.0,
+            "private": 144.4,
+            "ops_total": 249.8,
+            "total": 394.2
+          }
+        },
+        "onboard_gwh": {
+          "2026": {
+            "heavy": 61.972,
+            "city": 9.072,
+            "passenger_ops": 2.912,
+            "private": 11.536,
+            "ops_total": 73.956,
+            "total": 85.492
+          },
+          "2027": {
+            "heavy": 134.743,
+            "city": 20.979,
+            "passenger_ops": 6.44,
+            "private": 24.08,
+            "ops_total": 162.162,
+            "total": 186.242
+          },
+          "2028": {
+            "heavy": 211.738,
+            "city": 35.559,
+            "passenger_ops": 13.216,
+            "private": 39.48,
+            "ops_total": 260.513,
+            "total": 299.993
+          },
+          "2029": {
+            "heavy": 292.49,
+            "city": 51.921,
+            "passenger_ops": 25.76,
+            "private": 58.744,
+            "ops_total": 370.171,
+            "total": 428.915
+          },
+          "2030": {
+            "heavy": 376.998,
+            "city": 69.255,
+            "passenger_ops": 47.04,
+            "private": 80.864,
+            "ops_total": 493.293,
+            "total": 574.157
+          }
+        },
+        "station_gwh": {
+          "2026": {
+            "heavy": 4.104,
+            "city": 0.159,
+            "passenger_ops": 2.242,
+            "private": 0.0,
+            "ops_total": 6.505,
+            "total": 6.505
+          },
+          "2027": {
+            "heavy": 15.722,
+            "city": 2.18,
+            "passenger_ops": 2.683,
+            "private": 0.0,
+            "ops_total": 20.585,
+            "total": 20.585
+          },
+          "2028": {
+            "heavy": 27.341,
+            "city": 4.201,
+            "passenger_ops": 3.123,
+            "private": 0.0,
+            "ops_total": 34.666,
+            "total": 34.666
+          },
+          "2029": {
+            "heavy": 27.341,
+            "city": 4.201,
+            "passenger_ops": 3.123,
+            "private": 0.0,
+            "ops_total": 34.666,
+            "total": 34.666
+          },
+          "2030": {
+            "heavy": 27.341,
+            "city": 4.201,
+            "passenger_ops": 3.123,
+            "private": 0.0,
+            "ops_total": 34.666,
+            "total": 34.666
+          }
+        },
+        "total_gwh": {
+          "2026": {
+            "heavy": 66.076,
+            "city": 9.231,
+            "passenger_ops": 5.154,
+            "private": 11.536,
+            "ops_total": 80.461,
+            "total": 91.997
+          },
+          "2027": {
+            "heavy": 150.465,
+            "city": 23.159,
+            "passenger_ops": 9.123,
+            "private": 24.08,
+            "ops_total": 182.747,
+            "total": 206.827
+          },
+          "2028": {
+            "heavy": 239.079,
+            "city": 39.76,
+            "passenger_ops": 16.339,
+            "private": 39.48,
+            "ops_total": 295.178,
+            "total": 334.658
+          },
+          "2029": {
+            "heavy": 319.831,
+            "city": 56.122,
+            "passenger_ops": 28.883,
+            "private": 58.744,
+            "ops_total": 404.836,
+            "total": 463.58
+          },
+          "2030": {
+            "heavy": 404.339,
+            "city": 73.456,
+            "passenger_ops": 50.163,
+            "private": 80.864,
+            "ops_total": 527.958,
+            "total": 608.822
+          }
+        }
+      },
+      "opening_2025": {
+        "station_gwh": {
+          "heavy": 1.252,
+          "city": 0.0,
+          "passenger_ops": 0.8,
+          "private": 0.0,
+          "ops_total": 2.051,
+          "total": 2.051
+        },
+        "station_gwh_by_pool": {
+          "qiji75_short": 0.14,
+          "qiji75_trunk": 1.112,
+          "choco25_passenger": 0.8,
+          "choco35_city": 0.0
+        }
+      },
+      "tolerance": {
+        "gwh": 0.5,
+        "vehicles_wan": 0.2
+      }
+    },
     "veh_heavy_wan": 80.3,
     "veh_city_wan": 85.5,
     "veh_commercial_wan": 165.8,
@@ -1519,6 +1904,7 @@
     "total_initial_capex_yi": 3980.6460594023697,
     "first_replacement_net_capex_yi": 340.2395290211229,
     "lifecycle_capital_base_yi": 6489.427369111759,
+    "battery_replacement_net_pv_yi": 2508.781309709389,
     "valuation_capital_pv_yi": 5626.530686572865,
     "nominal_total_capex_yi": 8307.205905570385,
     "gross_total_capex_yi": 11708.15726548295,
@@ -1537,6 +1923,7 @@
     "catl_total_equity_call_yi": 683.7011725477589,
     "catl_peak_equity_call_yi": 158.83577465581857,
     "peak_year": 2030,
+    "catl_equity_factor": 0.16000000000000003,
     "lifecycle_replacement_schedule_yi": {
       "2029": 134.97111106356618,
       "2030": 205.26841795755672,

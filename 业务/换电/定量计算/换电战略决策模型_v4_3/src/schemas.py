@@ -96,6 +96,14 @@ class ScaleResult:
     route_identity_error: float
     battery_pool_life_years: dict[str, float]  # 四池寿命（按池EFC强度推算，非硬编码；键=qiji75_short等）
     city_stock_layer: dict = field(default_factory=dict)  # 城配存量层（高不确定·单列·不并入headline）
+    # 逐年（2026—2030）存量/流量明细矩阵，2026-09-13 新增：
+    # 六类（重卡/城配/乘用营运/私家/营运合计/总计）× 四指标（车辆万辆、车端GWh、
+    # 站内GWh、合计GWh）× 两口径（flow 当年新增 / stock 年末存量）。
+    # 分层原则：**明细落快照、标量进字典**——逐年明细只住这里（快照 JSON），
+    # 输出字典 configs/metrics.toml 仍只注册终局标量，不把逐年矩阵灌进字典。
+    # 由 scale.build_yearly_stock() 在 model 装配层（capex/swap 就绪后）挂载；
+    # asdict 自动收录，Pyodide 端同源生成。结构见该函数 docstring。
+    yearly_stock: dict = field(default_factory=dict)
 
     # ---- 车辆/规模口径的**结果**（2026-09-12 从 lab.py 下沉）------------------------
     # 为什么这些汇总要落在这里而不是留在取数层：它们是**规模口径的一部分**
@@ -182,6 +190,11 @@ class CapexResult:
     total_initial_capex_yi: float
     first_replacement_net_capex_yi: float
     lifecycle_capital_base_yi: float
+    # 【2026-09-13】全周期电池更新净额现值（门槛口径）＝lifecycle_capital_base_yi
+    #   − total_initial_capex_yi。各批次按届时电池价、扣回收残值后锚自身 t=0 折现的
+    #   更新净投入；只含电池（站体无重置），与 tree「cap.replacement」节点同源——
+    #   差额算式只允许存在于 capex.py 这一处，下游一律读本字段。
+    battery_replacement_net_pv_yi: float
     # 【2026-09-02】三个资本数，三个用途，永不共用：
     #   lifecycle_capital_base_yi —— 门槛口径。各批次锚在自身 t=0 的 PV 之和，×CRF 得年资本要求。
     #     这是「单站 EAC 往上聚合」的结果，比值无量纲，跨年份加总不影响它。
@@ -210,6 +223,11 @@ class CapexResult:
     catl_total_equity_call_yi: float
     catl_peak_equity_call_yi: float
     peak_year: int
+    # 【2026-09-13】CATL 综合自有出资比例＝(1−债务比例)×建设期权益持股。
+    # 派生量（非外部锚、非手工参数）：两个入参都在 finance 配置，这里在构建时算一次
+    # 随快照落盘，供输出字典 base.catl_blended_share 直接读取（scale=100 存百分数），
+    # 避免事实装配层再做任何算术。
+    catl_equity_factor: float
     lifecycle_replacement_schedule_yi: dict[int, float]
     station_targets: dict[str, int]
     opening_station_stock: dict[str, int]

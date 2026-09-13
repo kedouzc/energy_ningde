@@ -42,7 +42,9 @@ let curTier=1;
 let applyingTier=false;     // setTier 套用期间，put/setAxisDelta 暂不清 curTier
 function markCustom(){ if(!applyingTier) curTier=null; }
 
-const fmt=(v,d)=> (v==null||isNaN(v))?"—":Number(v).toLocaleString("zh",{maximumFractionDigits:d});
+// kind 为渲染形态："" 普通数字（千分位＋d 位小数）；"year" 年份＝四舍五入整数、
+// 无千分位（2030 不得渲染成 2,030）。形态由 Python 端 Metric.fmt 下发，JS 不自行判断。
+const fmt=(v,d,kind)=> (v==null||isNaN(v))?"—":(kind==="year"?String(Math.round(v)):Number(v).toLocaleString("zh",{maximumFractionDigits:d}));
 const disp=(p,v)=> v/(p.disp||1);
 const put=(p,v)=>{ markCustom(); S[p.path]=v*(p.disp||1); };
 function clamp(v,lo,hi){return Math.min(hi,Math.max(lo,v));}
@@ -91,6 +93,9 @@ async function initPy(){
       py.FS.mkdir("/app"); py.FS.mkdir("/app/src"); py.FS.mkdir("/app/configs");
       for(const [rel, content] of Object.entries(MODEL_BUNDLE.src)) py.FS.writeFile("/app/src/"+rel, content);
       py.FS.writeFile("/app/configs/base.toml", MODEL_BUNDLE.config);
+      // metrics.toml（lab 模块加载即读）与 external_facts.toml（ext.* 事实的唯一家）
+      for(const [name, content] of Object.entries(MODEL_BUNDLE.configs||{}))
+        py.FS.writeFile("/app/configs/"+name, content);
       // 一页纸的问题文本与信源台账：少了它们，浏览器端重跑后解释列与外链渲染不出来
       for(const [rel, content] of Object.entries(MODEL_BUNDLE.files||{})){
         const i = rel.lastIndexOf("/");
@@ -194,10 +199,18 @@ function paintReadings(E, tag){
 let curVals = (D.verdict && D.verdict.vals) || {};
 
 function _fillPlaceholders(t, v){
-  // 与 src/sandbox.py 的 _PH_RE 同形态：小写字母开头，可含数字与下划线
-  return String(t).replace(/\{([a-z_][a-z0-9_]*)\}/gi, (m,k)=>{
-    const x=v[k];
-    return (x===null||x===undefined||x==="") ? '<b class="todo">[待补]</b>' : '<b>'+x+'</b>';
+  // 与叙述层同一形态 {{中文名}}（中文名＝configs/metrics.toml 的 label，
+  // 由 src/verdict.py 的 PH_RE＝inject.TOKEN_RE 定义，含第二捕获组 :n）；vals 的键就是中文名。
+  // 2026-09-13 方案B：vals[label] 是 {v, text, bare}——
+  //   {{名}}  → text（数字＋单位，单位字典自带，MD 不再手写）；
+  //   {{名:n}}→ bare（裸数字，用于 MD 已手写单位/列名带单位的场合）；
+  // 年份 fmt="year" 的无千分位规则在 Python Metric.format_bare 里，JS 零格式化。
+  return String(t).replace(/\{\{\s*([^{}:]+?)\s*(?::\s*([a-z]+)\s*)?\}\}/g, (m,k,mode)=>{
+    const x=v[k.trim()];
+    if(x===null||x===undefined) return '<b class="todo">[待补]</b>';
+    const val=(typeof x==="object") ? (mode==="n" ? x.bare : x.text) : x;
+    if(val===null||val===undefined||val===""||val==="[待补]") return '<b class="todo">[待补]</b>';
+    return '<b>'+val+'</b>';
   });
 }
 
@@ -460,14 +473,15 @@ function renderOnePaper(E){
     g.rows.forEach((r,ri)=>{
       const i=idx++; OP_INDEX.push([gi,ri]);
       const d=(r.decimals==null?2:r.decimals);
+      const fy=r.fmt||"";
       const cur=(E&&E[r.metric]!=null)?E[r.metric]:null;
       const attrib=/归属|归母/.test(r.label||"")?" class='attrib'":"";
       // A 类跳转：这一行的读数归属哪一章（同样由索引表反查，不写死）
       const jn=(D.metricJump||{})[r.metric];
       const jlink=(jn==null)?"":` <a class="jump" href="#ch-${jn}" title="看这一节的论证">§${jn} →</a>`;
       h+=`<tr${attrib}><td>${nl2br(r.q)}${jlink}</td><td>${nl2br(r.label)}</td>`
-        + (r.vals||[]).map((v,k)=>`<td class="opv" data-t="${k}">${fmt(v,d)}</td>`).join("")
-        + `<td class="opv" id="opc${i}"><b>${fmt(cur,d)}</b></td>`
+        + (r.vals||[]).map((v,k)=>`<td class="opv" data-t="${k}">${fmt(v,d,fy)}</td>`).join("")
+        + `<td class="opv" id="opc${i}"><b>${fmt(cur,d,fy)}</b></td>`
         + `<td>${r.unit||""}</td>`
         + `<td class="opj" id="opm${i}">${nl2br(r.mag)}</td>`
         + `<td class="opj" id="opf${i}"><div style="margin-bottom:4px"><b>什么会推翻它</b>：${nl2br(r.fals)}</div>`
@@ -489,7 +503,7 @@ function renderOnePaperCurrent(cur){
     const r=g.rows[ri]; if(!r) return;
     const d=(r.decimals==null?2:r.decimals);
     const el=document.getElementById("opc"+i);
-    if(el) el.innerHTML="<b>"+fmt(metrics[r.metric],d)+"</b>";
+    if(el) el.innerHTML="<b>"+fmt(metrics[r.metric],d,r.fmt||"")+"</b>";
     const t=texts[i]; if(!t) return;
     const m=document.getElementById("opm"+i); if(m) m.innerHTML=nl2br(t[0]);
     const f=document.getElementById("opf"+i);

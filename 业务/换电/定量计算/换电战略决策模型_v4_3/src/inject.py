@@ -8,11 +8,19 @@
    ``{{换电增量价值合计:n}}``（只要数字，用于表格列已标单位的场合）。
    白名单：年份、章节号、版本号、有序列表序号、行内代码与代码块。
 
+   名字一律**中文名**（``{{可归因换电增量价值}}``），写内部 key（``{{val.swap_increment}}``）
+   由 ``lint_names`` 拦下——理由见 README「写 MD 一律写中文名」。
+
 2. **注入（inject）**
    用 facts.json 把占位符换成真值，写出最终 md。
    改一个参数重跑，所有数字自动更新，不需要重写一个字。
 
-3. **待复核（review）**
+3. **占位符不许写程序内部名（`lint_names`）**
+   占位符一律写**中文名**：输出字典写 `configs/metrics.toml` 的 `label`，手写事实
+   写 `src/facts.py` 的 `label`。写 `{{base.wacc}}` 这种内部 key 一律中断并点名。
+   例外只有一类：`src.*` 信源——它的名字是 `audit/信源审计台账.md` 的机读主键。
+
+4. **待复核（review）**
    每个段落记住它引用了哪些事实、当时的值是多少（存 narrative_state.json）。
    重跑后某个事实的相对变动超过它的 watch 阈值，或文字类事实变了，
    引用它的段落被标成「待复核」——数字自动更新，但**判断需要人重看**。
@@ -48,6 +56,14 @@ TOKEN_RE = re.compile(r"\{\{\s*([^{}:]+?)\s*(?::\s*([a-z]+)\s*)?\}\}")
 FENCE_RE = re.compile(r"^\s*(```|~~~)")
 INLINE_CODE_RE = re.compile(r"`[^`]*`")
 LINK_TARGET_RE = re.compile(r"\]\([^)]*\)")   # 链接目标里的文件名／锚点不算正文数字
+
+# CJK 统一汉字「基本区」码位区间：一＝U+4E00、鿿＝U+9FFF（这不是乱码——
+# 鿿 是 U+9FFF 这个汉字的字形，多数字体里不显形，但码位真实有效）。
+# 用途（lint_names）：占位符名里只要含一个汉字，就认定它是给人读的中文名并放行；
+# 纯 ASCII 的内部 key（如 {{swap.ebitda}}）一律判违规并点名，`src.*` 信源键除外。
+# 判据是"含不含汉字"而不是"是不是合法 label"——合法性留给 lab.resolve 在注入时寻址，
+# 这里只管把"写程序内部名"的形态在 lint 阶段拦下来。
+CJK_RE = re.compile(r"[一-鿿]")
 
 # 允许出现的数字：年份、章节/小节号、版本号、有序列表序号、表格分隔线
 WHITELIST = [
@@ -94,19 +110,118 @@ def lint(path: Path) -> list[tuple[int, str]]:
     return problems
 
 
+# 占位符名里允许不是中文的**唯一**一类：`src.*` 信源。
+# 理由：它的名字是 audit/信源审计台账.md「信源索引（机读）」表的主键——
+# 要引的是"台账里那一行"（名称/URL/抓取日期/分级四件套），不是某个数；
+# 它的中文名（label）是整句信源名，写进占位符反而不可读。
+NAME_WHITELIST_PREFIX = ("src.",)
+
+
+def lint_names(path: Path, facts: dict | None = None) -> list[tuple[int, str]]:
+    """返回 [(行号, 原始行)]：占位符写了**程序内部 key** 的行。空列表 = 通过。
+
+    判据是"这个名字在事实包/输出字典里是 key 而不是 label"：
+    能按 key 直接命中 → 它写的是内部名 → 报错。于是 `{{EBITDA}}`、`{{WACC}}`
+    这类本身就叫这个名字的 label 不会被误伤，误伤会让人绕开检查。
+    """
+    keys = set(facts or {})
+    if not keys:
+        try:
+            from lab import METRIC_BY_KEY           # 延迟 import，避免与 lab 形成环
+            keys |= set(METRIC_BY_KEY)
+        except Exception:                            # noqa: BLE001
+            pass
+    problems: list[tuple[int, str]] = []
+    in_fence = False
+    for lineno, line in enumerate(path.read_text("utf-8").splitlines(), 1):
+        if FENCE_RE.match(line):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        text = INLINE_CODE_RE.sub(" ", line)        # 行内代码里的 `{{key}}` 是示例，不是引用
+        for m in TOKEN_RE.finditer(text):
+            name = (m.group(1) or "").strip()
+            if CJK_RE.search(name) or name.startswith(NAME_WHITELIST_PREFIX):
+                continue
+            if name in keys or (not keys and re.fullmatch(r"[a-z_][A-Za-z0-9_.]*", name)):
+                problems.append((lineno, line.strip()))
+                break
+    return problems
+
+
+# ─────────────────────────────────────────── 中文名寻址
+def label_index(facts: dict) -> dict[str, list[str]]:
+    """中文名（label）→ 事实 key 列表。
+
+    为什么要有这一条：`facts` 的**键**是程序内部名（`base.wacc`），而纪律要求 MD 里
+    一律写中文名。此前只有输出字典的指标支持中文名（`lab.resolve`），手写事实
+    （`base.*` / `q1.*` / `thr.*` / `ext.*` / `src.*`）只能写内部 key——于是"写中文名"
+    这条规矩在一多半事实上根本做不到。现在按 label 反查，两类事实一个写法。
+    """
+    idx: dict[str, list[str]] = {}
+    for k, f in facts.items():
+        lb = (f.get("label") or "").strip()
+        if lb:
+            idx.setdefault(lb, []).append(k)
+    return idx
+
+
+_AMBIGUOUS_SEEN: set[str] = set()
+
+
+def _pick(name: str, keys: list[str], facts: dict) -> str | None:
+    """中文名撞名时挑一条；挑不出来返回 None（由调用方报错，绝不静默取第一个）。
+
+    顺序是**判据而不是偏好**：
+      ① 手写事实（`origin` 为 fact / ext / src）优先于字典自动并入的指标——
+         手写事实带显式 kind 与口径 note（如"峰值年"按年渲染不加千分位），
+         字典合并项只有单位推断；
+      ② 剩下的若渲染结果完全相同（互为镜像的两条），取哪条都一样；
+      ③ 都不满足 → None：撞名且渲染不同，必须去 facts.py / metrics.toml 改开 label。
+    """
+    if len(keys) == 1:
+        return keys[0]
+    hand = [k for k in keys if (facts[k].get("origin") or "fact") != "metric"]
+    if len(hand) == 1:
+        _warn_ambiguous(facts, name, keys, hand[0])
+        return hand[0]
+    if len({facts[k].get("text") for k in keys}) == 1:
+        _warn_ambiguous(facts, name, keys, keys[0])
+        return keys[0]
+    return None
+
+
+def _warn_ambiguous(facts: dict, name: str, keys: list[str], picked: str) -> None:
+    """撞名要**看得见**：静默取一条，等于把"一词一名"的破口藏起来。报一次就够。"""
+    if name in _AMBIGUOUS_SEEN:
+        return
+    _AMBIGUOUS_SEEN.add(name)
+    print(f"  · 中文名「{name}」在事实包里对应 {'/'.join(keys)}，本次取 {picked}"
+          f"（渲染「{facts[picked].get('text')}」）。"
+          f"要根治就把 src/facts.py 或 configs/metrics.toml 的 label 改开（一词一名）")
+
+
 # ─────────────────────────────────────────── 注入
 def inject(text: str, facts: dict) -> tuple[str, list[str]]:
     """替换占位符，返回 (结果文本, 未知key列表)。
 
-    查找顺序：**facts 精确 → 输出字典（中文名／key／容错）**。
-    facts 优先是为了不破坏既有写法；字典是"模型算得出什么"的唯一真相，
-    所以写中文名也能命中，找不到就进 unknown（由调用方报错并给出候选）。
+    查找顺序：**facts 精确 → facts 的中文名 → 输出字典（中文名／key／容错）**。
+    精确优先是为了不破坏既有写法（内部 key 仍然认）；中文名是给人写的，
+    字典是"模型算得出什么"的唯一真相，找不到就进 unknown（由调用方报错并给出候选）。
     """
     unknown: list[str] = []
+    index = label_index(facts)
 
     def _sub(m: re.Match) -> str:
         key, mode = (m.group(1) or "").strip(), (m.group(2) or "")
         fact = facts.get(key)
+        if fact is None and key in index:
+            picked = _pick(key, index[key], facts)
+            if picked is None:
+                unknown.append(f"{key}（中文名撞名且渲染不同：{'/'.join(index[key])}）")
+                return m.group(0)
+            fact = facts.get(picked)
         if fact is not None:
             return fact["bare"] if mode == "n" else fact["text"]
         # 退一步：去输出字典里按中文名找（语义寻址），拿到它的内部 key 再取值
@@ -353,6 +468,14 @@ def process(lint_only: bool = False) -> int:
                 print(f"    {lineno:>4}| {line[:96]}")
             if len(problems) > 12:
                 print(f"    …… 另有 {len(problems) - 12} 行")
+            continue
+        key_names = lint_names(src, facts)
+        if key_names:
+            failed = True
+            print(f"\n✗ {src.name} 有 {len(key_names)} 行占位符写了程序内部名"
+                  f"（一律写中文名；信源 `src.*` 除外）：")
+            for lineno, line in key_names[:12]:
+                print(f"    {lineno:>4}| {line[:96]}")
             continue
 
         text = src.read_text("utf-8")

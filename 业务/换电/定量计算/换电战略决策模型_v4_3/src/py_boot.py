@@ -103,14 +103,11 @@ def recompute(state_json):
     # 解释列依赖 tree/facts/onepager，逐个 import 包在 try 内：任一失败只丢解释，不丢指标数字。
     texts = []
     try:
-        from dataclasses import asdict
         import facts
         import onepager
         groups = onepager.load_rows()
-        snap_dict = asdict(snap)
-        snap_dict["_extra"] = {"config": cfg}
-        texts = onepager.render_texts(
-            facts.build_facts(snap_dict, strict=False, metrics_values=mv), groups)
+        # 2026-09-13 起 facts 纯装配输出字典，不再需要快照 dict
+        texts = onepager.render_texts(facts.build_facts(mv), groups)
     except Exception as exc:
         print("onepaper texts skipped: %r" % (exc,))
     return json.dumps({"metrics": metrics, "texts": texts, "vals": vals, "error": err})

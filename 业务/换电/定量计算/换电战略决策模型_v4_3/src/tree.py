@@ -428,9 +428,8 @@ def build_tree(c: Ctx) -> Node:
                     "Σ_年Σ_池( 当年新增站数 × 该站型单站站体造价 )"),
               ]),
             N("cap.replacement", "全周期更新净额（现值）", "亿元",
-              lambda c: (c.m("capex.lifecycle_capital_base_yi")
-                         - c.m("capex.total_initial_capex_yi")),
-              "全周期资本底座 − 初装 CAPEX（差额即更新净投入）"),
+              lambda c: c.m("capex.battery_replacement_net_pv_yi"),
+              "全周期电池更新净额现值＝底座−初装（差额算式只住 capex.py 一处）"),
         ],
     )
 

@@ -19,9 +19,12 @@
 四条机械校验（任一失败即中断，不静默降级）
 ----------------------------------------
 1. md 有裸数字 → `inject.lint()` 报行号；
-2. md 引用了算不出来的占位符 → 报 key（含浏览器端取不到的 `sens.*` 与不存在的 `src.*`）；
-3. 行里的 `metric:` 不在 `METRICS` → 报行；
-4. facts 与 METRICS 的镜像值不相等 → 报两个值（两条取数路径必须给出同一个数）。
+2. md 的占位符写了程序内部名 → `inject.lint_names()` 报行号（一律写中文名，`src.*` 除外）；
+3. md 引用了算不出来的占位符 → 报 key（含浏览器端取不到的 `sens.*` 与不存在的 `src.*`）；
+4. 行里的 `metric:` 不在 `METRICS` → 报行。
+
+（2026-09-13 起原第 5 条"facts↔METRICS 镜像同值"取消：手写事实已全部删除，
+只剩一条取数路径；一词一名改由 `facts.check_no_duplicate()` 在每条管线拦截。）
 
 运行
 ----
@@ -31,7 +34,6 @@ from __future__ import annotations
 
 import copy
 import sys
-from dataclasses import asdict
 from pathlib import Path
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -140,6 +142,10 @@ def check(groups, facts: dict, metric_values: dict) -> list[str]:
     for lineno, text in inject_mod.lint(MD_PATH):
         problems.append(f"裸数字 第{lineno}行：{text}")
 
+    # ①b 占位符写了程序内部名（与叙述层同一函数：一律写中文名，`src.*` 信源除外）
+    for lineno, text in inject_mod.lint_names(MD_PATH, facts):
+        problems.append(f"占位符写了程序内部名 第{lineno}行：{text}")
+
     # ② 占位符算不出来（含浏览器端取不到的键、不存在的 src.*）
     #    指标 / 问题 也会渲染占位符（如 {{base.horizon_years}}），一并校验。
     for _title, _desc, rows in groups:
@@ -159,9 +165,9 @@ def check(groups, facts: dict, metric_values: dict) -> list[str]:
             elif key not in METRIC_BY_KEY:
                 problems.append(f"metric 不存在：{key}（不在 lab.METRICS 里）")
 
-    # ④ facts 与 METRICS 的镜像必须同值（规则只有一个家：`facts.check_mirrors`，
-    #   它同时守着 build.py 那条管线；此处不再另写一份判定）
-    problems.extend(facts_mod.check_mirrors(facts, metric_values))
+    # ④ 一词一名已由 facts.build_facts 内的 check_no_duplicate() 在每条管线机械拦截
+    #   （base.toml [[input_fact]] 的 quote/src. 撞 metrics.toml 的 key/label 即中断）；
+    #   旧的手写事实↔字典镜像互校随手写事实删除（2026-09-13），这里不再有第二条取数路径。
 
     return problems
 
@@ -170,17 +176,17 @@ def check(groups, facts: dict, metric_values: dict) -> list[str]:
 def build_context(tier: str = "中性"):
     """一次实跑拿齐：配置 / 驱动 / 快照 / 事实包 / 指标值。
 
-    **与浏览器端 PY_BOOT 走同一段代码**：只跑一次 build_model，事实包用
-    `strict=False`（没有敏感性表与三情景表），所以这里渲染得出来的占位符，
-    浏览器里也一定渲染得出来——校验 ② 的意义就在这里。
+    **与浏览器端 PY_BOOT 走同一段代码**：只跑一次 build_model，事实包由
+    build_facts 纯装配输出字典（不依赖敏感性表/三情景表），所以这里渲染得出来的
+    占位符，浏览器里也一定渲染得出来——校验 ② 的意义就在这里。
     """
     cfg = load_config()
     drivers = load_drivers(cfg)
     snapshot = build_model(cfg, **apply_scenario(cfg, drivers, tier))
-    snap_dict = asdict(snapshot)
-    snap_dict["_extra"] = {"config": cfg}
     metric_values = read_metrics(snapshot, cfg)
-    facts = facts_mod.build_facts(snap_dict, strict=False, metrics_values=metric_values)
+    # facts 只做装配：值全部来自结果注册表（模型输出＋base [[input_fact]] 的 config 名片）
+    # 与 quote 引述，不需要快照（2026-09-13 起）
+    facts = facts_mod.build_facts(metric_values)
     return cfg, drivers, snapshot, facts, metric_values
 
 
@@ -241,6 +247,9 @@ def payload() -> dict:
                 "q": render_field(facts, r["问题"]),
                 "unit": m.unit if m else "",
                 "decimals": m.decimals if m else 2,
+                # 渲染形态（"" 普通数字 / "year" 年份无千分位）：与 facts/verdict
+                # 同源走 Metric.fmt，JS 只按此标记选择格式，不自己猜哪个是年份。
+                "fmt": m.fmt if m else "",
                 "vals": [tiers[t].get(r["metric"]) for t in SCENARIO_ORDER],
                 "mag": mag,
                 "fals": fals,
@@ -325,7 +334,7 @@ def main() -> None:
         for p in problems[:30]:
             print("   " + p)
         raise SystemExit(1)
-    print("✓ 四条校验通过：无裸数字、占位符全部可解析、metric 全部在注册表、facts↔指标镜像一致")
+    print("✓ 四条校验通过：无裸数字、占位符全写中文名、占位符全部可解析、metric 全部在注册表")
     print("  出口：outputs/换电沙盘_v4.3.html（xlsx 已停产，旧文件留作存档）")
 
     # 档位方向：三档是投资价值的三档，成本类须反向填（资本结构参数标 structure 跳过）

@@ -119,7 +119,7 @@
 | | `build.py` | **一条命令串起三步**（跑模型 → 出事实包 → 叙述层） | 命令行 |
 | | `sandbox.py` | **交互沙盘的生成器**：跑模型算基线 → 打包装进 HTML → 读 `templates/` 替换占位符 → 写出 `outputs/换电沙盘_v4.3.html`。**只做打包，不写任何界面** | 命令行 |
 | | `py_boot.py` | **浏览器端（Pyodide）启动脚本**：`import` 模型、定义 `recompute()` 供 JS 调用。只被 `sandbox.py` 当**文本**读取并 base64 下发，**不被 import** | 浏览器 |
-| | `verdict.py` | **结论区取值（①顶部读数 + ②定性逻辑）**：顶部结论里每个 `{占位符}` 的唯一算法 `build_vals(snap, cfg)`；生成期三档 + 基线 + 浏览器 Pyodide 共用同一份，杜绝"生成期一套、浏览器一套"。`PLACEHOLDER_KEYS` 是程序键集，`_check_placeholders` 校验 MD 占位符 ⊆ 程序键集。定性描述不在这里，只出数 | `sandbox`（生成期 tier/base 值）/ `py_boot`（浏览器重跑） |
+| | `verdict.py` | **结论区取值（①顶部读数 + ②定性逻辑）**：顶部结论里每个 `{{中文名}}` 的唯一算法 `build_vals(snap, cfg)`；生成期三档 + 基线 + 浏览器 Pyodide 共用同一份，杜绝"生成期一套、浏览器一套"。占位符按**中文名**（`configs/metrics.toml` 的 `label`）经 `lab.resolve()` 寻址，**不再维护自己的名字表**；`check_placeholders` 校验"MD 中文名 ⊆ 输出字典"，缺一个即终止生成。`vals` 以中文名为键，浏览器端按同名取值。定性描述不在这里，只出数 | `sandbox`（生成期 tier/base 值）/ `py_boot`（浏览器重跑） |
 | **检查与探索** | `tree.py` | 决策树 + 链路审计：每个内部节点跑「父 = f(子)」 | 命令行 |
 | | `lab.py` | 参数实验室：数值法血缘（212 参数 × 37 指标）、Excel 七表、试算→落盘闭环 | 命令行 / `tree` / `app` |
 | | `app.py` | Streamlit 实时沙盘：改参即重跑同一条链 | `streamlit run` |

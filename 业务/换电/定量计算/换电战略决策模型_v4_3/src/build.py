@@ -34,9 +34,9 @@ sys.path.insert(0, str(SRC))
 import facts as facts_mod  # noqa: E402
 from lab import read_metrics  # noqa: E402
 import inject as inject_mod  # noqa: E402
-from config_loader import SCENARIO_ORDER, load_config  # noqa: E402
+from config_loader import load_config  # noqa: E402
 from model import build_model, build_scenarios  # noqa: E402
-from report import PRIVATE_SCENARIO_METRICS, write_outputs  # noqa: E402
+from report import write_outputs  # noqa: E402
 
 REPORT_NAME = "换电战略决策报告_v4.3.md"
 
@@ -62,24 +62,10 @@ def main() -> None:
 
     # ── 2. 生成事实包 ────────────────────────────
     _step(2, "生成事实包")
-    snap_data = json.loads(Path(paths["snapshot"]).read_text("utf-8"))
-    # 三情景不在快照里（快照只存中性档），这里重跑后挂进 _extra 供事实取用
-    snap_data["_extra"] = {
-        # 历史财务实绩只住在 config，不进快照；叙述层要引用，这里挂过来
-        "config": config,
-        "scenarios": {
-            scen: {
-                label: getter(snapshots[scen])
-                for label, getter, _dec in PRIVATE_SCENARIO_METRICS
-            }
-            for scen in SCENARIO_ORDER
-            if scen in snapshots
-        }
-    }
-    # 输出字典的条目也要进事实包：MD 里写中文名时，靠它们取值。
-    # **cfg 必须传**：否则依赖配置的那批外部锚（2026E 出货、重卡保有量、拍定倍数……）
-    # 全是 NaN，facts.json 里会落成 'nanGWh' 这种字符串，页面上与"算不出来"无法分辨。
-    facts = facts_mod.build_facts(snap_data, metrics_values=read_metrics(snapshot, config))
+    # facts 只做纯装配：值全部由输出字典算好后整包传入（模型输出 + base [[input_fact]]
+    # 的 config 名片/quote 引述），不再从快照/配置里另取数。cfg 必须传给 read_metrics，
+    # 否则输入名片那批全成 NaN。
+    facts = facts_mod.build_facts(read_metrics(snapshot, config))
     facts_mod.FACTS_PATH.write_text(
         json.dumps(facts, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
     )

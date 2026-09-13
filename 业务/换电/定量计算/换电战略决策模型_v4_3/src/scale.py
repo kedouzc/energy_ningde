@@ -789,3 +789,271 @@ def build_scale(
         stations_total=float(sum(stations.values())),
         daily_swaps_wan=float(sum(daily_swaps.values())) / 1e4,
     )
+
+
+# ===================== 逐年存量/流量明细矩阵（2026-09-13 新增）=====================
+# 分层原则：**明细落快照、标量进字典**——逐年六类矩阵只落 ScaleResult.yearly_stock
+# （随快照 JSON 序列化、Pyodide 同源生成）；configs/metrics.toml 只注册终局标量，
+# 不把逐年矩阵灌进输出字典。
+#
+# 六类口径（顺序即矩阵列序；ops_total/total 为加总行，不允许另有来源）：
+YEARLY_STOCK_CATEGORIES = (
+    "heavy", "city", "passenger_ops", "private", "ops_total", "total",
+)
+YEARLY_STOCK_CATEGORY_LABELS = {
+    "heavy": "换电重卡",
+    "city": "换电城配物流车",
+    "passenger_ops": "乘用营运车",
+    "private": "私家车",
+    "ops_total": "营运车合计",
+    "total": "总计",
+}
+# 车端：电池跟车走——车型键 → 六类（乘用营运=出租/网约/Robotaxi）。
+_VEHICLE_KEY_TO_STOCK_CATEGORY = {
+    "heavy": "heavy",
+    "city": "city",
+    "taxi": "passenger_ops",
+    "ridehail": "passenger_ops",
+    "robotaxi": "passenger_ops",
+    "private": "private",
+}
+# 站内：巧克力25#池站网按营运口径建设（私家车只填规划冗余、不单独建站），
+# 故乘用池站内电池 100% 归乘用营运车，私家车类站内存量恒为 0（用户 2026-09-13 确认）。
+_POOL_TO_STATION_CATEGORY = {
+    "qiji75_short": "heavy",
+    "qiji75_trunk": "heavy",
+    "choco35_city": "city",
+    "choco25_passenger": "passenger_ops",
+}
+_STOCK_OPS_CATEGORIES = ("heavy", "city", "passenger_ops")
+# 硬校验容差：车端存量 574.x（毛估估取整与加权顺序带来 ≤0.3GWh 尾差），取 0.5GWh；
+# 车辆合计对 veh_total_wan 容差 0.2 万辆（同为分量各自取整后加总，正常应为 0）。
+YEARLY_STOCK_TOLERANCE_GWH = 0.5
+YEARLY_STOCK_TOLERANCE_VEH_WAN = 0.2
+
+
+def _blank_yearly_table(years: list[int]) -> dict:
+    """生成 {年字符串: {六类: 0.0}} 的空表（JSON 键必须是字符串，年不做 int 键）。"""
+    return {str(year): {category: 0.0 for category in YEARLY_STOCK_CATEGORIES} for year in years}
+
+
+def _finish_yearly_table(table: dict) -> dict:
+    """补 ops_total/total 两个加总行并做 3 位小数取整（只取整展示，不回灌计算）。"""
+    for by_category in table.values():
+        by_category["ops_total"] = sum(by_category[c] for c in _STOCK_OPS_CATEGORIES)
+        by_category["total"] = by_category["ops_total"] + by_category["private"]
+        for category in YEARLY_STOCK_CATEGORIES:
+            by_category[category] = round(by_category[category], 3)
+    return table
+
+
+def build_yearly_stock(config: dict, scale: ScaleResult, capex) -> dict:
+    """组装逐年（2026—2030）存量/流量明细矩阵。只做**同口径重排**，不引入新假设。
+
+    返回结构（全部 JSON 友好，年键为字符串）::
+
+        {
+          "years": [2026, ...],
+          "categories": ("heavy", ..., "total"),
+          "category_labels": {键: 中文名},
+          "flow":  {  # 当年新增（流量）
+            "vehicles_wan": {年: {六类: 值}}, "onboard_gwh": ...,
+            "station_gwh": ..., "total_gwh": ...},
+          "stock": {  # 年末存量（2025 底座 + 截至年末累计，不扣退役）
+            同上四个指标},
+          "opening_2025": {"station_gwh": {六类: 值},
+                           "station_gwh_by_pool": {四池: 值}},
+          "tolerance": {"gwh": 0.5, "vehicles_wan": 0.2},
+        }
+
+    口径契约（四个对齐维度；要改公式先改这里的说明）：
+
+    - **数据源**：车端＝scale.rows（与 capex 的 vehicle battery_cohorts 同源）；
+      站内＝capex.station_schedules_by_pool（当年新增站）＋opening_station_stock_by_pool
+      （2025 底座站）× config[stations] 块参数；
+    - **采样期**：年。flow＝当日历年新增；stock＝2025 底座＋截至该年累计。
+      2025 底座**只进存量、不进流量**（它不是 2026—2030 的新增支出，同 capex 口径）；
+    - **公式口径**：存量**不扣车辆/电池退役**（replacement_cycle 只管更新流量，
+      不冲保有量——存量/流量不可混）。车端存量 GWh 逐年复刻
+      business.build_swap_business 中 rent_vehicle_gwh 的算法：终局取整车辆存量×
+      池内车辆份额×池内车辆数加权装车电量÷100，保证 2030 列与⑧组标量同源；
+      站内单池 GWh＝站数×inventory_blocks×block_kwh/1e6（与 capex
+      _append_station_pool_cohorts 同式）。城配 city_stock_layer 高不确定支线单列，
+      **不并入**本矩阵的 city 类；
+    - **展示口径**：万辆/GWh，单元保留 3 位小数（"毛估估 1 位"在引用侧做）。
+    """
+    years = list(scale.years)
+    pools = list(BATTERY_POOLS)
+    vehicle_decimals = config["modeling"]["rounding"]["terminal_vehicle_decimals"]
+
+    # 单站站内库存 GWh（四池各用各的站参数；与 capex 站内电池 cohort 完全同式）。
+    per_station_gwh = {
+        pk: (
+            config["stations"][pk]["inventory_blocks"]
+            * config["stations"][pk]["block_kwh"] / 1e6
+        )
+        for pk in pools
+    }
+
+    flow_vehicles = _blank_yearly_table(years)
+    flow_onboard = _blank_yearly_table(years)
+    flow_station = _blank_yearly_table(years)
+    stock_vehicles = _blank_yearly_table(years)
+    stock_onboard = _blank_yearly_table(years)
+    stock_station = _blank_yearly_table(years)
+
+    # ── 车端流量：当年 rows 直接按车型键归入六类（rows 已含摊入首年的 2025 车辆底座，
+    #    与 capex vehicle cohort 登记口径一致，故车端不另设 opening 行）─────────────
+    for row in scale.rows:
+        year_key = str(row.year)
+        category = _VEHICLE_KEY_TO_STOCK_CATEGORY[row.vehicle_key]
+        flow_vehicles[year_key][category] += row.catl_swap_vehicles_wan
+        flow_onboard[year_key][category] += row.catl_swap_gwh
+
+    # ── 车端存量：逐年累计 rows，按 business 的 rent_vehicle_gwh 同式滚动重算 ─────────
+    # 不复用 flow_onboard 累加：终局标量用的是"取整车数×池份额×加权电量"，
+    # 直接累加未取整 GWh 会因取整与加权顺序产生系统性偏差（见口径契约）。
+    for index, year in enumerate(years):
+        year_key = str(year)
+        cumulative_rows = [row for row in scale.rows if row.year <= year]
+        rows_by_vehicle: dict[str, list[ScaleRow]] = {}
+        for row in cumulative_rows:
+            rows_by_vehicle.setdefault(row.vehicle_key, []).append(row)
+        for vehicle_key, relevant in rows_by_vehicle.items():
+            category = _VEHICLE_KEY_TO_STOCK_CATEGORY[vehicle_key]
+            total_vehicles = sum(r.catl_swap_vehicles_wan for r in relevant)
+            if total_vehicles <= 0:
+                continue
+            # 车辆存量：毛估估在车型节点取整（与 scale.operating_stock_by_vehicle_wan 同口）。
+            stock_vehicles_year = round(total_vehicles, vehicle_decimals)
+            stock_vehicles[year_key][category] += stock_vehicles_year
+            # 车端 GWh 存量：车型可能跨池（重卡短途/中长途），逐池拆份额×池内加权电量。
+            for pool_key in sorted({r.battery_pool for r in relevant}):
+                pool_rows = [r for r in relevant if r.battery_pool == pool_key]
+                pool_vehicles = sum(r.catl_swap_vehicles_wan for r in pool_rows)
+                if pool_vehicles <= 0:
+                    continue
+                pool_weighted_onboard_kwh = (
+                    sum(r.catl_swap_vehicles_wan * r.onboard_battery_kwh for r in pool_rows)
+                    / pool_vehicles
+                )
+                stock_onboard[year_key][category] += (
+                    stock_vehicles_year
+                    * (pool_vehicles / total_vehicles)
+                    * pool_weighted_onboard_kwh / 100.0
+                )
+
+    # ── 站内流量/存量：当年新增站走流量；2025 底座 + 累计新增站走存量 ────────────────
+    opening_by_pool = capex.opening_station_stock_by_pool
+    schedules_by_pool = capex.station_schedules_by_pool
+    opening_gwh_by_pool = {
+        pk: float(opening_by_pool.get(pk, 0)) * per_station_gwh[pk] for pk in pools
+    }
+    opening_gwh_by_category = {
+        category: 0.0 for category in YEARLY_STOCK_CATEGORIES
+    }
+    for pk in pools:
+        opening_gwh_by_category[_POOL_TO_STATION_CATEGORY[pk]] += opening_gwh_by_pool[pk]
+    # 补两个加总行（与矩阵主表同一加总规则：营运=重卡+城配+乘用营运，总计含私家0）。
+    opening_gwh_by_category["ops_total"] = sum(
+        opening_gwh_by_category[c] for c in _STOCK_OPS_CATEGORIES
+    )
+    opening_gwh_by_category["total"] = opening_gwh_by_category["ops_total"]
+    for index, year in enumerate(years):
+        year_key = str(year)
+        for pk in pools:
+            category = _POOL_TO_STATION_CATEGORY[pk]
+            new_stations = float(schedules_by_pool[pk][index])
+            flow_station[year_key][category] += new_stations * per_station_gwh[pk]
+            cumulative_stations = (
+                float(opening_by_pool.get(pk, 0))
+                + sum(float(n) for n in schedules_by_pool[pk][:index + 1])
+            )
+            stock_station[year_key][category] += cumulative_stations * per_station_gwh[pk]
+
+    # ── 加总行与取整；合计 GWh＝车端＋站内 ─────────────────────────────────────────
+    for table in (
+        flow_vehicles, flow_onboard, flow_station,
+        stock_vehicles, stock_onboard, stock_station,
+    ):
+        _finish_yearly_table(table)
+    flow_total = _blank_yearly_table(years)
+    stock_total = _blank_yearly_table(years)
+    for year_key in flow_total:
+        for category in YEARLY_STOCK_CATEGORIES:
+            flow_total[year_key][category] = (
+                flow_onboard[year_key][category] + flow_station[year_key][category]
+            )
+            stock_total[year_key][category] = (
+                stock_onboard[year_key][category] + stock_station[year_key][category]
+            )
+    _finish_yearly_table(flow_total)
+    _finish_yearly_table(stock_total)
+
+    return {
+        "years": years,
+        "categories": list(YEARLY_STOCK_CATEGORIES),
+        "category_labels": dict(YEARLY_STOCK_CATEGORY_LABELS),
+        "flow": {
+            "vehicles_wan": flow_vehicles,
+            "onboard_gwh": flow_onboard,
+            "station_gwh": flow_station,
+            "total_gwh": flow_total,
+        },
+        "stock": {
+            "vehicles_wan": stock_vehicles,
+            "onboard_gwh": stock_onboard,
+            "station_gwh": stock_station,
+            "total_gwh": stock_total,
+        },
+        # 2025 底座单列：只进站内存量，不进任何一年的流量（口径见 docstring）。
+        "opening_2025": {
+            "station_gwh": {
+                category: round(opening_gwh_by_category[category], 3)
+                for category in YEARLY_STOCK_CATEGORIES
+            },
+            "station_gwh_by_pool": {
+                pk: round(opening_gwh_by_pool[pk], 3) for pk in pools
+            },
+        },
+        "tolerance": {
+            "gwh": YEARLY_STOCK_TOLERANCE_GWH,
+            "vehicles_wan": YEARLY_STOCK_TOLERANCE_VEH_WAN,
+        },
+    }
+
+
+def assert_yearly_stock_aligned(scale: ScaleResult, swap_business) -> None:
+    """矩阵 2030 终局列与既有标量硬对齐（同源校验，失败即中断、不静默放行）。
+
+    对齐对象（SwapBusinessResult ⑧组在网电池口径，均为 2030 终局）：
+    车端存量 ↔ rent_vehicle_gwh；站内存量 ↔ station_battery_gwh；
+    在网合计 ↔ battery_stock_total_gwh；车辆合计 ↔ scale.veh_total_wan。
+    容差写在矩阵 tolerance 里（毛估估取整尾差，非口径差异）。
+    """
+    matrix = scale.yearly_stock
+    if not matrix:
+        raise AssertionError("yearly_stock 为空：build_yearly_stock 未挂载")
+    terminal_year = str(scale.years[-1])
+    tol_gwh = matrix["tolerance"]["gwh"]
+    tol_vehicles = matrix["tolerance"]["vehicles_wan"]
+    checks = [
+        (matrix["stock"]["onboard_gwh"][terminal_year]["total"],
+         swap_business.rent_vehicle_gwh, tol_gwh, "车端存量GWh", "rent_vehicle_gwh"),
+        (matrix["stock"]["station_gwh"][terminal_year]["total"],
+         swap_business.station_battery_gwh, tol_gwh, "站内存量GWh", "station_battery_gwh"),
+        (matrix["stock"]["total_gwh"][terminal_year]["total"],
+         swap_business.battery_stock_total_gwh, tol_gwh, "在网合计GWh", "battery_stock_total_gwh"),
+        (matrix["stock"]["vehicles_wan"][terminal_year]["total"],
+         scale.veh_total_wan, tol_vehicles, "车辆合计万辆", "veh_total_wan"),
+    ]
+    failures = [
+        f"{description}: 矩阵 {matrix_value:.3f} vs {anchor_name} {anchor_value:.3f}，差 {abs(matrix_value - anchor_value):.3f} 超容差 {tol:g}"
+        for matrix_value, anchor_value, tol, description, anchor_name in checks
+        if abs(matrix_value - anchor_value) > tol
+    ]
+    if failures:
+        raise AssertionError(
+            "逐年存量矩阵终局列与⑧组标量对不上（存量/流量口径可能被污染）：\n  "
+            + "\n  ".join(failures)
+        )

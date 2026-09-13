@@ -2,7 +2,7 @@
 
 为什么单列这一个文件、以及 2026-09-11 为什么要改它
 ------------------------------------------------
-顶部结论里那几句话的每个 `{占位符}` 都是一个数。此前这些数由 `sandbox._build_verdict`
+顶部结论里那几句话的每个 `{{中文名}}` 都是一个数。此前这些数由 `sandbox._build_verdict`
 在**生成期**用基线算一次就写死进 HTML——拖滑块、点三档时 ③ 定量看板区会动，
 ①② 区却纹丝不动（数值、滑块位置、档位高亮三者不同源同刻，信任归零）。
 
@@ -28,11 +28,17 @@ JS 侧不写任何公式，只做字符串替换。这既守住「同源单程�
 
 三件事住在三个地方（不许串门）
 ----------------------------
-* **定性文案** → `narrative/沙盘结论区.md`（人写、程序读）
+* **定性文案** → `narrative/沙盘结论区.md`（人写、程序读）。
+  **占位符一律写中文名**（`configs/metrics.toml` 的 `label`），写法与叙述层同一形态
+  `{{中文名}}`——写程序内部 key（`{{swap.ebitda}}`、`{ebitda}`）一律中断并给出最像的
+  3 个候选。**理由**：改文案的人不该被要求记住程序里这个数叫什么（2026-09-12 立）。
 * **数值** → `lab.METRICS` 的 `read_metrics(snap, cfg)`。
   **本文件不再出现任何从 `snap` 属性或 `cfg` 直接取数的路径**——那会让结论区
   变成"第三套数值源"（一页纸与章取不到同一个数）。
 * **精度** → 由 `Metric.decimals` 决定（连小数位也只有一个家）。
+
+`vals` 的键＝MD 里写的中文名（不是内部 key），这样浏览器端**不需要再读一遍 md**
+（`narrative/沙盘结论区.md` 并没有打进 Pyodide 的 bundle），按同名取值即可。
 """
 from __future__ import annotations
 
@@ -47,76 +53,15 @@ SRC = Path(__file__).resolve().parent
 ROOT = SRC.parent
 sys.path.insert(0, str(SRC))
 
-from lab import METRIC_BY_KEY, read_metrics  # noqa: E402
+from lab import METRICS, read_metrics, resolve  # noqa: E402
+import inject as inject_mod  # noqa: E402
 
 MD_PATH = ROOT / "narrative" / "沙盘结论区.md"
 
-# 占位符 → METRICS key。
-# 为什么必须是**映射**而不是两个独立集合：占位符名是文案侧的名字（短、人读），
-# METRICS key 是数值侧的名字（带命名空间）。以前这两套名字各写一遍，于是
-# "结论区一个数"与"一页纸同一个数"在物理上是两个出处——第三套数值源就是这么来的。
-# 现在一一映射，取不到即 None（前端渲染 [待补]），绝不用 0 冒充。
-PLACEHOLDER_MAP: dict[str, str] = {
-    # — 业绩 —
-    "target_year": "base.target_year",
-    "veh_ops": "ops.veh_ops",
-    "veh_mkt": "ops.market_total",
-    "share": "ops.share_of_market",
-    "repl_gwh": "mfg.repl_gwh",
-    "repl_share_pct": "mfg.repl_share_pct",
-    # — 必要性（锁量 + 护价，落到钱上是制造侧增量）—
-    "mfg_increment": "val.mfg_increment",
-    # — 估值 —
-    "dist_cash": "swap.dist_cash",
-    "ebitda": "swap.ebitda",
-    "mult": "base.ev_ebitda_multiple",
-    "own_pct": "base.ownership_pct",
-    "mktcap": "val.op_value_trillion",
-    # — 卡位 —
-    "energy": "ops.annual_energy",
-    "elec_share": "mk.share_elec_latest",
-    "batt_station": "ops.battery_station",
-    "storage_share": "mk.share_storage_2025",
-    "stations": "scale.stations_total",
-    # — ROI —
-    "peak_call": "capex.peak_call",
-    "reit_mult": "val.reit_multiple",
-    # — 重卡 —
-    "veh_heavy": "ops.veh_heavy",
-    "heavy_stock_wan": "ops.heavy_market_stock",
-    "heavy_pen_pct": "ops.heavy_pen_pct",
-    "heavy_fleet_gwh": "ops.heavy_vehicle_gwh",
-    "heavy_station_gwh": "ops.heavy_station_gwh",
-    "heavy_repl_gwh": "mfg.repl_gwh_heavy",
-    "heavy_life_yrs": "ops.heavy_battery_life",
-    "heavy_repl_cycle": "ops.heavy_repl_cycle",
-    "price_swap_kwh": "ops.heavy_user_price",
-    "energy_unit_kwh": "ops.energy_unit_price",
-}
-# 重卡全成本 TCO：六字段 × 两个持有期（N1＝模型电池寿命 / N2＝重卡更新周期），
-# 命名完全规则，故用循环登记，避免 12 行手抄出错。
-for _f in ("swap_wan", "swap_kwh", "lng_wan", "lng_kwh", "diesel_wan", "diesel_kwh"):
-    PLACEHOLDER_MAP[f"tco_{_f}"] = f"tco.{_f}"
-    PLACEHOLDER_MAP[f"tco_{_f}_9"] = f"tco.{_f}_9"
-
-# 与 templates/sandbox.js 的渲染正则保持同一形态（小写字母开头 + 数字/下划线）。
-# 生成期用它扫 MD，把"模板里用了但程序没给"的键挡在构建阶段，而不是留到页面上 [待补]。
-_PH_RE = re.compile(r"\{([a-z_][a-z0-9_]*)\}")
-
-PLACEHOLDER_KEYS = frozenset(PLACEHOLDER_MAP)
-
-
-def _r(x, d: int = 1):
-    """取数并定精度；取不到或非法一律 None（页面显示 [待补]，绝不拿 0 冒充）。"""
-    if x is None:
-        return None
-    try:
-        v = float(x)
-    except (TypeError, ValueError):
-        return None
-    if v != v or v in (float("inf"), float("-inf")):  # NaN / inf
-        return None
-    return round(v, d)
+# 占位符形态＝叙述层那一条正则（`inject.TOKEN_RE`），narrative/ 全目录只有一种写法。
+# 不在这里另写一条：两条正则早晚漂移（此前 `{key}` 与 `{{key}}` 两套写法就是这么来的），
+# 而"结论区是叙述层的一部分"这件事，本来就该由写法本身固定下来。
+PH_RE = inject_mod.TOKEN_RE
 
 
 # ─────────────────────────────────────────── md 解析
@@ -128,7 +73,8 @@ def load_md(path: Path = MD_PATH) -> dict:
       # 定性逻辑   —— 下用 ## 分段为三支柱
       # 口径与信源 —— 逐条口径说明与外链
 
-    占位符 {key} 由 `build_vals` 算出的 vals 填（浏览器端由 JS 用同一套正则替换）。
+    占位符写 `{{中文名}}`（＝`configs/metrics.toml` 的 label），由 `build_vals` 算出的
+    vals 填；浏览器端由 JS 用同一套正则替换，vals 的键就是这个中文名。
     """
     if not path.exists():
         raise SystemExit(f"结论区内容源不存在：{path}")
@@ -155,65 +101,97 @@ def load_md(path: Path = MD_PATH) -> dict:
 
 
 # ─────────────────────────────────────────── 校验
-def check_map() -> None:
-    """PLACEHOLDER_MAP 的**值**必须全部存在于 `lab.METRICS`（生成期硬失败）。
+def check_unique_labels() -> None:
+    """`METRICS` 的中文名必须唯一（生成期硬失败）。
 
-    为什么必须硬失败：映射写错一个 key，`read_metrics` 会安静地返回 NaN，
-    页面上就是一个 [待补]——而它看起来和"这个数今天算不出来"一模一样。
-    **方向反过来也查**：程序算了却没人用的键，说明两侧已经漂移。
+    为什么必须硬失败：`vals` 的键就是中文名，两条指标撞名时后者会悄悄覆盖前者，
+    页面上却只看到一个数——"MD 里写了 A 的意思，拿到 B 的值"，事后极难追回。
+    撞名要去 `configs/metrics.toml` 把 label 改开（"一词一名"）。
     """
-    missing = sorted({k for k in PLACEHOLDER_MAP.values() if k not in METRIC_BY_KEY})
-    if missing:
+    seen: dict[str, str] = {}
+    dup: list[str] = []
+    for m in METRICS:
+        if m.label in seen:
+            dup.append(f"{m.label}（{seen[m.label]} 与 {m.key}）")
+        seen[m.label] = m.key
+    if dup:
         raise SystemExit(
-            "✗ PLACEHOLDER_MAP 指向了 lab.METRICS 里不存在的 key："
-            + "、".join(missing)
-            + "\n  请在 src/lab.py 的 METRICS 里登记该指标，或修正映射。"
+            "✗ 输出字典里有重复的中文名（label）：\n  " + "\n  ".join(dup)
+            + "\n  结论区的 vals 以中文名为键，撞名会静默覆盖。"
+              "请改 configs/metrics.toml 的 label，做到一词一名。"
         )
 
 
-def check_placeholders(md: dict) -> None:
-    """MD 占位符 ⊆ PLACEHOLDER_KEYS 的机械校验（缺一个就终止生成）。
+def md_tokens(md: dict) -> set[str]:
+    """结论区 md 里出现的全部占位符名（四个区块都要扫：标题里也可能写数）。"""
+    parts = [md.get("tmpl", "")]
+    for card in md.get("cards", []):
+        parts += [card.get("title", ""), card.get("body", "")]
+    for sec in md.get("narrative", []):
+        parts += [sec.get("title", ""), sec.get("body", "")]
+    parts += list(md.get("notes", []))
+    return {m.group(1).strip() for p in parts for m in PH_RE.finditer(p or "")}
+
+
+def check_placeholders(md: dict) -> dict[str, object]:
+    """把 md 里的占位符**中文名**解析成 `lab.METRICS` 的条目（找不到即中断）。
 
     为什么必须硬失败：静默 [待补] 等于"报告里出现一个说不清来源的数"，
     而这类数一旦被引用进决策，事后极难追回。宁可生成失败，也不出半成品。
+
+    为什么不再手写一份 `PLACEHOLDER_MAP`：那份映射是"文案侧名字"与"数值侧名字"
+    的第二份清单，MD 加一个数就要记得同步一次，忘了就静默 [待补]。
+    现在**中文名就是 `configs/metrics.toml` 的 label**，与一页纸、章共用同一套寻址
+    （`lab.resolve`），结论区不再有自己专属的名字表。
     """
-    used: set[str] = set(_PH_RE.findall(md.get("tmpl", "")))
-    for card in md.get("cards", []):
-        used |= set(_PH_RE.findall(card.get("title", "")))
-        used |= set(_PH_RE.findall(card.get("body", "")))
-    for sec in md.get("narrative", []):
-        used |= set(_PH_RE.findall(sec.get("body", "")))
-    for ln in md.get("notes", []):
-        used |= set(_PH_RE.findall(ln))
-    missing = used - PLACEHOLDER_KEYS
-    if missing:
+    bad: list[str] = []
+    out: dict[str, object] = {}
+    for tok in sorted(md_tokens(md)):
+        try:
+            out[tok] = resolve(tok)
+        except Exception:      # noqa: BLE001 - resolve 找不到即抛，交给下面的候选提示
+            bad.append(tok)
+    if bad:
         raise SystemExit(
-            "✗ 沙盘结论区模板引用了程序不认识的占位符："
-            + "、".join(sorted(missing))
-            + "\n  请在 src/verdict.py 的 PLACEHOLDER_MAP 里补上对应的 METRICS key，"
-              "或改 narrative/沙盘结论区.md 的写法。"
+            "✗ narrative/沙盘结论区.md 引用了输出字典里没有的名字：\n  "
+            + "\n  ".join(inject_mod.metric_unknown_detail(bad))
+            + "\n  占位符一律写 configs/metrics.toml 的 label（中文名），不写程序内部 key。"
         )
-    # 方向反过来也要查一次：映射了却没人用的键，说明 MD 与程序已经漂移
-    # （例如某个数被从文案里删掉了，但数值侧还在算它）。
-    unused = PLACEHOLDER_KEYS - used
-    if unused:
-        print("  · 结论区模板未用到的数据键：" + "、".join(sorted(unused)))
+    return out
 
 
 # ─────────────────────────────────────────── 取数
 def build_vals(snap, cfg: dict) -> dict:
-    """结论区全部占位符的取值。生成期与 Pyodide 复用同一函数。
+    """结论区全部占位符的取值（含渲染文本）。生成期与 Pyodide 复用同一函数。
 
     **全部走 `read_metrics`**——本函数内不允许出现 `snap.xxx` 或 `cfg[...]` 的直读，
     否则结论区就又变回"第三套数值源"（一页纸与章取不到同一个数）。
-    精度取 `Metric.decimals`，所以小数位也只有一个家。
+
+    **键＝中文名（label），不是内部 key**：浏览器端按 MD 里写的名字直接取值，
+    `narrative/沙盘结论区.md` 因此不必打进 Pyodide 的 bundle——少一处"同一份文案
+    存两遍"，也就少一处漂移。
+
+    返回结构（2026-09-13 方案B：单位随数走，JS 不再手写单位）：
+        {label: {"v": 裸值|None, "text": "123.0亿元", "bare": "123.0"}}
+      * `text`＝完整呈现（`{{名}}`），`bare`＝裸数字（`{{名:n}}`），
+        两者都由 `Metric.format_text/format_bare` 产出——与 facts 事实包、
+        叙述层 inject 同一套渲染（千分位/小数位/单位/年份无千分位），
+        JS 侧零格式化、零单位字符串；
+      * 取不到（NaN/inf/None）→ v=None、文本 "[待补]"，页面显形绝不拿 0 冒充。
     """
     mv = read_metrics(snap, cfg)
-    vals: dict[str, object] = {}
-    for ph, mkey in PLACEHOLDER_MAP.items():
-        m = METRIC_BY_KEY.get(mkey)
-        vals[ph] = _r(mv.get(mkey), m.decimals if m else 1)
-    return vals
+    out: dict[str, dict] = {}
+    for m in METRICS:
+        raw = mv.get(m.key)
+        try:
+            v = float(raw)
+            if v != v or v in (float("inf"), float("-inf")):
+                raise ValueError("NaN/inf")
+        except (TypeError, ValueError):
+            out[m.label] = {"v": None, "text": "[待补]", "bare": "[待补]"}
+            continue
+        out[m.label] = {"v": v, "text": m.format_text(v), "bare": m.format_bare(v)}
+    return out
 
 
 # ─────────────────────────────────────────── 组装（与 onepager.payload 同构）
@@ -225,7 +203,7 @@ def payload(snap=None, cfg: dict | None = None) -> dict:
     snapshot，避免为同一个数多跑一次 `build_model`。
     """
     md = load_md()
-    check_map()
+    check_unique_labels()
     check_placeholders(md)
     if snap is None or cfg is None:
         from config_loader import load_config
@@ -238,21 +216,22 @@ def payload(snap=None, cfg: dict | None = None) -> dict:
 # ─────────────────────────────────────────── 自检
 def main() -> None:
     md = load_md()
-    check_map()
-    check_placeholders(md)
+    check_unique_labels()
+    names = check_placeholders(md)
     print("═" * 60)
     print("结论区 · 自检（内容源 narrative/沙盘结论区.md）")
     print("═" * 60)
     print(f"结论分段 {len([p for p in md['tmpl'].split(chr(10)+chr(10)) if p.strip()])}　"
           f"卡片 {len(md['cards'])} 张　定性支柱 {len(md['narrative'])} 段　"
           f"口径与信源 {len(md['notes'])} 条")
-    print("✓ 占位符全部在 PLACEHOLDER_MAP 里有对应的 METRICS key")
+    print(f"✓ 占位符 {len(names)} 个，全部用中文名命中输出字典"
+          f"（`lab.resolve` 按 label 寻址，写内部 key 会在这里被拦下）")
     # 跑一次模型取基线值，验证**每个占位符都真的取到了数**。
-    # 为什么要这一行：占位符写错会被拦截，但"映射对了、指标却算不出来"只会安静地
+    # 为什么要这一行：占位符写错会被拦截，但"名字对了、指标却算不出来"只会安静地
     # 变成页面上的 [待补]——它看起来和"这个数今天算不出来"一模一样，事后极难追。
     vals = payload()["vals"]
-    missing = sorted(k for k, v in vals.items() if v is None)
-    print(f"  占位符 {len(vals)} 个，取不到值 {len(missing)} 个"
+    missing = sorted(m.label for m in names.values() if vals.get(m.label, {}).get("v") is None)
+    print(f"  取不到值 {len(missing)} 个"
           + (f"：{'、'.join(missing)}" if missing else "　✓ 全部取到，页面不会出 [待补]"))
     if missing:
         raise SystemExit(1)

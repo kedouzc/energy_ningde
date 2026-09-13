@@ -1584,5 +1584,367 @@
     "key": "decision_thresholds.max_bet_share_high",
     "value": 0.7,
     "type": "float"
+  },
+  {
+    "key": "input_fact",
+    "value": [
+      {
+        "key": "base.target_year",
+        "kind": "config",
+        "at": "meta.target_year",
+        "label": "终局年",
+        "unit": "年",
+        "decimals": 0,
+        "fmt": "year",
+        "note": "决策时点「我什么时候来看」；与运营期限（这门生意能活多久）是两件事"
+      },
+      {
+        "key": "base.power_shipments_2026e",
+        "kind": "config",
+        "at": "financial_2026e.power_battery_shipments_gwh",
+        "label": "2026E动力电池出货",
+        "unit": "GWh",
+        "decimals": 1
+      },
+      {
+        "key": "base.ev_ebitda_multiple",
+        "kind": "config",
+        "at": "finance.swap_ev_ebitda",
+        "label": "拍定EV/EBITDA倍数",
+        "unit": "×",
+        "decimals": 0,
+        "note": "是「声明」不是测量值；且是可调 driver，必须现读 cfg，绝不能写死"
+      },
+      {
+        "key": "base.ownership_pct",
+        "kind": "config",
+        "at": "finance.construction_ownership",
+        "label": "建站持股比例",
+        "unit": "%",
+        "decimals": 0,
+        "scale": 100.0
+      },
+      {
+        "key": "base.debt_ratio_pct",
+        "kind": "config",
+        "at": "finance.debt_ratio",
+        "label": "项目公司债务比例",
+        "unit": "%",
+        "decimals": 0,
+        "scale": 100.0,
+        "note": "占比类一律以百分数存储（60 表示 60%），scale=100 取值时即换算，事实包不再二次×100"
+      },
+      {
+        "key": "base.mfg_pe",
+        "kind": "config",
+        "at": "finance.manufacturing_pe",
+        "label": "制造PE",
+        "unit": "×",
+        "decimals": 0
+      },
+      {
+        "key": "base.wacc_pct",
+        "kind": "config",
+        "at": "finance.wacc",
+        "label": "WACC",
+        "unit": "%",
+        "decimals": 1,
+        "scale": 100.0,
+        "note": "蔚来换电ABS融资基准，直接采用，不作CAPM推导"
+      },
+      {
+        "key": "base.horizon_years",
+        "kind": "config",
+        "at": "finance.model_horizon_years",
+        "label": "运行年数",
+        "unit": "年",
+        "decimals": 0
+      },
+      {
+        "key": "base.cfo_gate_pct",
+        "kind": "config",
+        "at": "decision_thresholds.max_peak_swap_cash_to_cfo",
+        "label": "现金投入占比体检线",
+        "unit": "%",
+        "decimals": 0,
+        "scale": 100.0,
+        "note": "峰值现金÷CFO，集团内部风险口径，判断值不是测量值"
+      },
+      {
+        "key": "ops.heavy_market_stock",
+        "kind": "config",
+        "at": "vehicles.heavy.stock_wan",
+        "label": "重卡保有量",
+        "unit": "万辆",
+        "decimals": 0,
+        "note": "分母侧的外部事实：换电重卡 ÷ 它 ＝ 重卡电动化+换电的合计渗透"
+      },
+      {
+        "key": "ops.heavy_repl_cycle",
+        "kind": "config",
+        "at": "vehicles.heavy.replacement_cycle_years",
+        "label": "重卡更新周期",
+        "unit": "年",
+        "decimals": 1
+      },
+      {
+        "key": "ext.storage_gwh_2025",
+        "kind": "config",
+        "at": "national_battery_market.storage_install_gwh_2025",
+        "label": "最新全国新型储能累计装机",
+        "unit": "GWh",
+        "decimals": 0,
+        "src": "src.nea_storage_2026",
+        "note": "外部一手（国家能源局）；信源见台账 src.nea_storage_2026"
+      },
+      {
+        "key": "ext.storage_gwh_2030",
+        "kind": "config",
+        "at": "national_battery_market.storage_install_gwh_2030",
+        "label": "终局年全国新型储能装机预测",
+        "unit": "GWh",
+        "decimals": 0,
+        "src": "src.gov_storage_2030",
+        "note": "国务院文件推算（等效 2.6h 折算属经验假设）；信源见台账 src.gov_storage_2030"
+      },
+      {
+        "key": "ext.elec_latest",
+        "kind": "config",
+        "at": "national_power_market.society_electricity_yi_kwh_latest",
+        "label": "最新年度全社会用电量",
+        "unit": "亿kWh",
+        "decimals": 0,
+        "src": "src.nea_elec_2025",
+        "note": "外部一手（国家能源局）；信源见台账 src.nea_elec_2025"
+      },
+      {
+        "key": "ext.elec_2030",
+        "kind": "config",
+        "at": "national_power_market.society_electricity_yi_kwh_2030",
+        "label": "终局年全社会用电量预测",
+        "unit": "亿kWh",
+        "decimals": 0,
+        "src": "src.society_elec_2030",
+        "note": "国网能源院口径（二手转引）；另有中电联 13 万亿口径差约 4%；信源见台账 src.society_elec_2030"
+      },
+      {
+        "key": "thr.min_increment_yi",
+        "kind": "config",
+        "at": "decision_thresholds.min_swap_increment_yi",
+        "label": "重注门槛·增量价值下限",
+        "unit": "亿元",
+        "decimals": 0,
+        "note": "千亿量级才谈得上「重注」；判断值不是测量值"
+      },
+      {
+        "key": "thr.min_incr_pct",
+        "kind": "config",
+        "at": "decision_thresholds.min_increment_over_mktcap",
+        "label": "战略敞口门槛·增量占集团市值下限",
+        "unit": "%",
+        "decimals": 0,
+        "scale": 100.0,
+        "note": "增量价值占集团市值 ≥10% 才配占用战略敞口；判断值不是测量值"
+      },
+      {
+        "key": "thr.target_incr_pct",
+        "kind": "config",
+        "at": "decision_thresholds.target_increment_over_mktcap",
+        "label": "值得重注·增量占集团市值目标",
+        "unit": "%",
+        "decimals": 0,
+        "scale": 100.0,
+        "note": "≥20% 才算值得重注；判断值不是测量值"
+      },
+      {
+        "key": "thr.bet_high",
+        "kind": "config",
+        "at": "decision_thresholds.max_bet_share_high",
+        "label": "押注占比·结论靠倍数而非现金流的线",
+        "unit": "%",
+        "decimals": 0,
+        "scale": 100.0,
+        "note": ">70% 则结论主要靠倍数而非现金流；判断值不是测量值"
+      },
+      {
+        "key": "thr.min_coverage",
+        "kind": "config",
+        "at": "decision_thresholds.min_forward_to_required_ebitda",
+        "label": "EBITDA 覆盖倍数体检线",
+        "unit": "倍",
+        "decimals": 2,
+        "note": "稳态 EBITDA ÷ 资本要求回报的体检线（与 swap.coverage 同公式、阈值性质）；判断值不是测量值"
+      },
+      {
+        "key": "ext.mult_infra_low",
+        "kind": "quote",
+        "label": "重资产基建运营族·区间下沿",
+        "text": "6.7×",
+        "value": 6.7,
+        "unit": "×",
+        "src": "src.mult_brookfield",
+        "as_of": "2026-08-26",
+        "note": "Brookfield Infrastructure；族内还包括公用事业 8–14×、储能平台 10–14×"
+      },
+      {
+        "key": "ext.mult_infra_high",
+        "kind": "quote",
+        "label": "重资产基建运营族·区间上沿",
+        "text": "14×",
+        "value": 14.0,
+        "unit": "×",
+        "src": "src.mult_brookfield",
+        "as_of": "2026-08-26",
+        "note": "公用事业与储能平台档的上沿"
+      },
+      {
+        "key": "ext.mult_gp_low",
+        "kind": "quote",
+        "label": "轻资产资管平台族·区间下沿",
+        "text": "18×",
+        "value": 18.0,
+        "unit": "×",
+        "src": "src.mult_blackstone",
+        "as_of": "2026-08-26",
+        "note": "该族中位数；换电不是真 GP，只能取这一档"
+      },
+      {
+        "key": "ext.mult_gp_high",
+        "kind": "quote",
+        "label": "轻资产资管平台族·区间上沿",
+        "text": "22×",
+        "value": 22.0,
+        "unit": "×",
+        "src": "src.mult_blackstone",
+        "as_of": "2026-08-26",
+        "note": "Blackstone 21.8× 附近"
+      },
+      {
+        "key": "ext.mult_tsla",
+        "kind": "quote",
+        "label": "车＋能源网络复合族参照",
+        "text": "89.7×",
+        "value": 89.7,
+        "unit": "×",
+        "src": "src.mult_tesla",
+        "as_of": "2026-08-26",
+        "note": "只作叙事参照，不作倍数锚——叙事半径不同，见 topics/赔率与跟踪"
+      },
+      {
+        "key": "ext.mult_catl_self",
+        "kind": "quote",
+        "label": "CATL 自身 EV/EBITDA",
+        "text": "13.0×",
+        "value": 13.0,
+        "unit": "×",
+        "src": "src.mult_catl",
+        "as_of": "2026-08-26",
+        "note": "制造业估值口径下的当前读数，是共识锚的旁证"
+      },
+      {
+        "key": "ext.mult_byd",
+        "kind": "quote",
+        "label": "比亚迪 EV/EBITDA",
+        "text": "6.5×",
+        "value": 6.5,
+        "unit": "×",
+        "src": "src.mult_catl",
+        "as_of": "2026-08-26"
+      },
+      {
+        "key": "ext.batt_share_of_truck",
+        "kind": "quote",
+        "label": "电池包占整车成本比例",
+        "text": "40–50%",
+        "value": 0.45,
+        "src": "src.jpm_truck_electrification",
+        "as_of": "2026-08",
+        "note": "JPM §8.3；承重方论证的量级依据"
+      },
+      {
+        "key": "ext.pack_400kwh_price",
+        "kind": "quote",
+        "label": "大电量电池包价格",
+        "text": "30–40 万元",
+        "value": 35.0,
+        "unit": "万元",
+        "src": "src.jpm_truck_electrification",
+        "as_of": "2026-08",
+        "note": "JPM §8.3，400kWh 档"
+      },
+      {
+        "key": "ext.revenue_uplift_per_truck",
+        "kind": "quote",
+        "label": "单车年增收（换电 vs 充电）",
+        "text": "约 4 万元/年",
+        "value": 4.0,
+        "unit": "万元/年",
+        "src": "src.jpm_truck_electrification",
+        "as_of": "2026-08",
+        "note": "JPM §8.3；原文标注可直接用作换电服务付费意愿的上限"
+      },
+      {
+        "key": "ext.baas_capex_cut",
+        "kind": "quote",
+        "label": "BaaS 购车成本降幅",
+        "text": "40–50%",
+        "value": 0.45,
+        "src": "src.jpm_truck_electrification",
+        "as_of": "2026-08",
+        "note": "JPM §8.3；痛点强度的资金占用分量"
+      },
+      {
+        "key": "ext.payload_loss_ev",
+        "kind": "quote",
+        "label": "电动重卡年载重损失",
+        "text": "7 万元/年",
+        "value": 7.0,
+        "unit": "万元/年",
+        "src": "src.jpm_truck_electrification",
+        "as_of": "2026-08",
+        "note": "JPM Table 3；电动重卡最大的隐性成本项，漏掉它的 TCO 结论都不可信"
+      },
+      {
+        "key": "ext.tco_ev_vs_lng_3y",
+        "kind": "quote",
+        "label": "三年持有期 TCO：电动 vs LNG",
+        "text": "−4%",
+        "value": -0.04,
+        "src": "src.jpm_truck_electrification",
+        "as_of": "2026-08",
+        "note": "JPM Table 3"
+      },
+      {
+        "key": "ext.tco_ev_vs_lng_5y",
+        "kind": "quote",
+        "label": "五年持有期 TCO：电动 vs LNG",
+        "text": "−11%",
+        "value": -0.11,
+        "src": "src.jpm_truck_electrification",
+        "as_of": "2026-08",
+        "note": "JPM Table 3；真正的边际对手是 LNG，不是柴油"
+      },
+      {
+        "key": "ext.tco_ev_vs_diesel_5y",
+        "kind": "quote",
+        "label": "五年持有期 TCO：电动 vs 柴油",
+        "text": "−25%",
+        "value": -0.25,
+        "src": "src.jpm_truck_electrification",
+        "as_of": "2026-08",
+        "note": "JPM Table 3；安全但没信息量的那条对比"
+      },
+      {
+        "key": "ext.lng_price_rise",
+        "kind": "quote",
+        "label": "LNG 价格年度涨幅",
+        "text": "+48%",
+        "value": 0.48,
+        "src": "src.jpm_truck_electrification",
+        "as_of": "2026-08",
+        "note": "JPM 正文；意味着换电当前的痛点强度里有一部分是 LNG 涨价送的，不是自己挣的"
+      }
+    ],
+    "type": "list"
   }
 ]

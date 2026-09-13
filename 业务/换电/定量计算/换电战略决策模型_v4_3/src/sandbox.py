@@ -576,7 +576,19 @@ def model_bundle() -> dict:
     """
     src_dir = Path(__file__).resolve().parent
     root = src_dir.parent
-    bundle = {"src": {}, "config": (root / "configs" / "base.toml").read_text(encoding="utf-8")}
+    # configs/ 下运行期要读的声明文件全部下发：
+    #   base.toml —— 输入字典（config_loader＋末尾 [[input_fact]] 输入名片/quote 引述）；
+    #   metrics.toml —— 输出字典（lab 模块加载时即读，缺了浏览器端 lab 整体 import 失败）。
+    cfg_dir = root / "configs"
+    bundle = {
+        "src": {},
+        "config": (cfg_dir / "base.toml").read_text(encoding="utf-8"),
+        "configs": {
+            name: (cfg_dir / name).read_text(encoding="utf-8")
+            for name in ("metrics.toml",)
+            if (cfg_dir / name).exists()
+        },
+    }
     for p in src_dir.rglob("*.py"):
         rel = str(p.relative_to(src_dir)).replace("\\", "/")
         # py_boot.py 是浏览器端的"启动脚本"，它的内容已经单独经 __PY_BOOT_B64__ 下发，

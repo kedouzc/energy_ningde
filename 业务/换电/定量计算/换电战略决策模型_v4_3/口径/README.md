@@ -13,7 +13,7 @@
 | 文档 | 服务哪一章 | 服务哪几个**收口**读数 | 涉及哪些**支撑**读数 |
 |---|---|---|---|
 | `capex_debt_估值公式链.md` | 4 可行性 · 6 冲击与重估 | `swap.coverage`、`capex.peak_call`、`val.op_ev_multiple`、`val.ev_dcf_perpetual` | `capex.initial_capex`、`capex.project_debt`、`capex.lifecycle_base` |
-| `TCO口径_JPM整套引用.md` | 3 目标市场 | `tco.swap_wan`（含 N1/N2 两个持有期共 12 个）、`ops.veh_ops` | `tco.lng_wan`、`tco.diesel_wan`、`ops.heavy_market_stock`、`ops.heavy_pen_pct` |
+| `TCO口径_JPM整套引用.md` | 3 目标市场 | `tco.swap_wan`（含 模型寿命/更新周期 两个持有期共 12 个）、`ops.veh_ops` | `tco.lng_wan`、`tco.diesel_wan`、`vehicles.heavy.stock_wan`、`ops.heavy_pen_pct` |
 | `车辆与站数_推算方法.md` | 3 目标市场 · 4 可行性 | `ops.veh_ops`、`ops.veh_heavy`、`scale.stations_total` | `ops.market_total`、`ops.share_of_market`、`ops.veh_city`、`ops.veh_passenger_ops` |
 | `运营收入与成本_口径.md` | 5 阶段性业绩 | `swap.revenue`、`swap.ebitda` | `ops.annual_energy`、`swap.service_rev`、`swap.rent_rev`、`swap.ancillary` |
 | `终局处置_出表与轻资产化.md` | 4 可行性 · 6 冲击与重估 | `capex.peak_call`、`val.reit_multiple`、`val.op_ev_multiple` | `fund.peak_cash_to_cfo`、`fund.closing_liquidity` |

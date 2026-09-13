@@ -64,15 +64,15 @@ narrative/
 （出处程序 `src/<source>.py` ＋ 快照取值路径）、`unit`、`note`（口径说明）。
 
 **写 MD 只写中文名**，没有第二种写法：`{{可归因换电增量价值}}` / `{{年换电交易电量}}`。
-中文名按 2026-09-13 起的两层归并住在两个文件，写法完全一样：
+中文名按 2026-09-13 定稿的两层住在两个文件，写法完全一样：
 * **模型输出**（程序算出来的量）→ `configs/metrics.toml` 的 `label`（`{{年换电交易电量}}`、`{{可归因换电增量价值}}`）；
-* **输入**（被叙述引用的参数名片：终局年、WACC、各条体检线、市占率分母，以及研报倍数/TCO 等外部引述 quote）→ `configs/base.toml` 末尾 `[[input_fact]]` 的 `label`（`{{终局年}}`、`{{重资产基建运营族·区间下沿}}`）；
+* **输入**（被叙述引用的参数：终局年、WACC、各条体检线、市占率分母）→ 在 `configs/base.toml` 功能段**就地信封化**的 `label`（参数原位置写 `<键>.v` ＋ label/unit/…，如 `{{终局年}}`、`{{WACC}}`）；研报倍数/TCO 等外部引述 quote 住在 base.toml 末尾 `[[external_quote]]` 的 `label`（`{{重资产基建运营族·区间下沿}}`）；
 * **信源链接** → 见下文 `src.*` 例外。
 
-`src/facts.py` 只做装配（模型输出＋输入名片/外部引述＋信源台账三类合并成
+`src/facts.py` 只做装配（模型输出＋就地信封参数/外部引述＋信源台账三类合并成
 facts.json），不定义任何参数、中文名或口径——改名改单位都在对应 toml 里做。
 
-程序内部名（`base.wacc` / `swap.ebitda` / `ops.annual_energy`…）**只在 `.py` 与 `.toml`
+程序内部名（`finance.wacc` / `swap.ebitda` / `ops.annual_energy`…）**只在 `.py` 与 `.toml`
 里出现，不进 MD**：本目录下所有 md（含 `一页纸.md`、`沙盘结论区.md`）于 2026-09-12
 已全部改成中文名；`inject.lint_names()` 是防复发的闸门——谁再写内部名，构建中断并点名
 （`python src/inject.py --lint-only` 可单独跑）。它不是"推荐写法"，是**唯一写法**。
@@ -89,12 +89,15 @@ facts.json），不定义任何参数、中文名或口径——改名改单位�
 派生量先在计算程序算好挂到快照字段，再登记（派生该放哪见 `src/README.md`）。
 
 **还有一类事实不是模型算出来的：外部引述（quote）**（`ext.*`，可比公司倍数、第三方
-TCO 测算等），以及**被叙述引用的输入参数名片**（终局年、driver、外锚、阈值）：
-两者都登记在 `configs/base.toml` 末尾的 `[[input_fact]]`——
-* `kind="config"`：值在 base.toml 功能段，条目只给 `at` 路径与名片；
-* `kind="quote"`：自带 `text`（可写区间）/`value`，每条必须带 `src`（台账机读表 key）
+TCO 测算等），住在 `configs/base.toml` 末尾的 `[[external_quote]]`——
+* 自带 `text`（可写区间）/`value`，每条必须带 `src`（台账机读表 key）
   与 `as_of`（引用时点）——理由见 `DECISIONS.md`「2026-09-05i」：
   **引用一个时点数，必须写清它是哪个时点的。** 引述信源 URL 的唯一家是信源台账，条目里不贴链接。
+
+**被叙述引用的输入参数**（终局年、driver、外锚、阈值）不另开登记表：在 base.toml
+功能段原位置**就地信封化**（`<键>.v` ＋ `label`/`unit`/`decimals` 等呈现要素），
+注册表 key 就是点分路径（如 `meta.target_year`），由 `lab.load_envelopes()`
+自动发现并升格进结果注册表。单位独立成字段，因此支持「带单位」与「裸数」两种引用。
 
 ## 待复核是什么意思
 

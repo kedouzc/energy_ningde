@@ -14,16 +14,16 @@ backscan.py 是事后字符串抽检，只在想起来时跑，必然漏。
 一个数字只准有一个家（2026-09-13 重构后的三类来源）
 --------------------------------------------------
 1. **输出字典指标**（origin="metric"）：模型**输出**的定义与口径全部在
-   `configs/metrics.toml`（用 `at` 取快照）；被叙述引用的**输入**参数名片（终局年、
-   可调 driver、外锚、阈值）住在 `configs/base.toml` 的 `[[input_fact]]`
-   （kind="config"，沿 at 路径取配置），由 lab 升格进同一张结果注册表。值由
-   `lab.read_metrics` 算好后整包传入，本文件不碰快照、不写取值 lambda；呈现
-   （千分位、小数位、单位、年份无千分位）统一调用 `lab.Metric.format_text/format_bare`，
-   Python 与沙盘 JS 同源。
+   `configs/metrics.toml`（用 `at` 取快照）；被叙述引用的**输入**参数（终局年、
+   可调 driver、外锚、阈值）在 `configs/base.toml` 功能段**就地信封化**
+   （`<键>.v` ＋ label/unit/…，key＝点分路径本身），由 lab 自动发现并升格进
+   同一张结果注册表。值由 `lab.read_metrics` 算好后整包传入，本文件不碰快照、
+   不写取值 lambda；呈现（千分位、小数位、单位、年份无千分位）统一调用
+   `lab.Metric.format_text/format_bare`，Python 与沙盘 JS 同源。
 2. **外部引用事实**（origin="ext"）：外部信源原文里的引用数字（可比公司倍数、
    第三方 TCO 测算），不进任何计算。定义全部在 `configs/base.toml` 的
-   `[[input_fact]]`（kind="quote"，自带 value/text，src 指台账机读表 key），
-   本文件只负责从 lab.INPUT_FACTS 过滤装配与校验。
+   `[[external_quote]]`（自带 value/text，src 指台账机读表 key），
+   本文件只负责从 lab.EXTERNAL_QUOTES 过滤装配与校验。
 3. **信源引用**（origin="src"）：URL/名称/抓取日期的唯一家在
    `audit/信源审计台账.md` 的「信源索引（机读）」表，本文件只解析、不复制。
 
@@ -124,16 +124,17 @@ def load_ref_facts(path: Path = LEDGER_PATH) -> list[RefFact]:
 
 
 # ─────────────────────────────────────────── 外部引用事实（ext.*）
-def quotes_from_input_facts() -> list[dict[str, Any]]:
-    """从 ``lab.INPUT_FACTS`` 投影出 kind="quote" 的外部引述（唯一家＝base.toml）。
+def quotes_from_config() -> list[dict[str, Any]]:
+    """从 ``lab.EXTERNAL_QUOTES`` 投影外部引述（唯一家＝base.toml [[external_quote]]）。
 
-    2026-09-13 前它们住在独立的 configs/external_facts.toml；用户拍板「模型按用途
-    只有输入/输出两层」后并入 base.toml 的 ``[[input_fact]]``。字段级硬规矩
-    （ext. 前缀、key/label 唯一、text/value/src/as_of 必填、src 必须是台账 key、
-    与输出字典不撞名）全部在 lab.load_input_facts / load_metrics 里机械执行，
-    本函数只做字段投影，不补值、不校验第二遍。
+    2026-09-13 前它们住在独立的 configs/external_facts.toml，后并入 base.toml；
+    同日定稿为独立的 ``[[external_quote]]`` 段（参数侧则改为功能段就地信封，
+    不再与引述混在一张登记表）。字段级硬规矩（ext. 前缀、key/label 唯一、
+    text/value/src/as_of 必填、src 必须是台账 key、与输出字典不撞名）全部在
+    lab.load_external_quotes / load_metrics 里机械执行，本函数只做字段投影，
+    不补值、不校验第二遍。
     """
-    from lab import INPUT_FACTS
+    from lab import EXTERNAL_QUOTES
 
     return [
         {
@@ -146,8 +147,7 @@ def quotes_from_input_facts() -> list[dict[str, Any]]:
             "as_of": (q.get("as_of") or "").strip(),
             "note": q.get("note", ""),
         }
-        for q in INPUT_FACTS
-        if (q.get("kind") or "").strip() == "quote"
+        for q in EXTERNAL_QUOTES
     ]
 
 
@@ -257,9 +257,9 @@ def build_facts(metrics_values: dict[str, float]) -> dict[str, dict]:
             "origin": "src",
         }
 
-    # ② 外部引用事实（base.toml [[input_fact]] kind="quote"）：
+    # ② 外部引用事实（base.toml [[external_quote]]）：
     # 数字旁的信源不存 URL、只存台账 key，此处解析成台账渲染的可点击链接文本。
-    external = quotes_from_input_facts()
+    external = quotes_from_config()
     for e in external:
         if not _claim(e["key"], e["label"]):
             continue

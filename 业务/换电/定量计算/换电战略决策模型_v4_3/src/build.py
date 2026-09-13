@@ -62,9 +62,9 @@ def main() -> None:
 
     # ── 2. 生成事实包 ────────────────────────────
     _step(2, "生成事实包")
-    # facts 只做纯装配：值全部由输出字典算好后整包传入（模型输出 + base [[input_fact]]
-    # 的 config 名片/quote 引述），不再从快照/配置里另取数。cfg 必须传给 read_metrics，
-    # 否则输入名片那批全成 NaN。
+    # facts 只做纯装配：值全部由输出字典算好后整包传入（模型输出 + base.toml 就地信封
+    # 参数/[[external_quote]] 引述），不再从快照/配置里另取数。cfg 必须传给 read_metrics，
+    # 否则就地信封那批全成 NaN。
     facts = facts_mod.build_facts(read_metrics(snapshot, config))
     facts_mod.FACTS_PATH.write_text(
         json.dumps(facts, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"

@@ -17,7 +17,19 @@ model_name = "换电战略决策模型_v4.3"
 model_version = "4.3"
 version_date = "2026-08-29"
 reference_year = 2026
-target_year = 2030
+# ── 就地信封（本文件参数的标准写法，2026-09-13 立）──────────────────────────
+# 需要被叙述层引用的参数，值与呈现要素同住一个虚线子表：
+#   <键>.v        = 数值（程序读它；config_loader 加载时自动解包成裸标量）
+#   <键>.label    = 唯一中文名（叙述占位符名；一词一名，与 metrics.toml 撞名加载即中断）
+#   <键>.unit/.decimals/.scale/.fmt = 呈现（占比类 cfg 存小数、scale=100；fmt="year" 无千分位）
+#   <键>.note     = 口径说明（可选）；<键>.src = 信源台账 key（可选，audit/信源审计台账.md）
+# 注册表 key 就是点分路径本身（meta.target_year），不造别名、不另开登记区。
+target_year.v = 2030
+target_year.label = "终局年"
+target_year.unit = "年"
+target_year.decimals = 0
+target_year.fmt = "year"
+target_year.note = "决策时点「我什么时候来看」；与运营期限（这门生意能活多久）是两件事"
 currency = "亿元人民币"
 base_scenario = "中性"
 # 决策问题（MANIFEST §1.1）："做不做"已由定性分析解决（§1.0），本模型回答"做透=做多大"：
@@ -321,7 +333,12 @@ not_adjustable = [
 [finance]
 # WACC 7.5%：能源基建行业收益率 6–8% 的中性中枢（显式假设）。参照谱系：
 # 蔚能 REITs 4.68%（资产端下限）→ 协鑫能科 8.5–9.1% → 启源股权评估 10.34%（股权端上限）。
-wacc = 0.075
+wacc.v = 0.075
+wacc.label = "WACC"
+wacc.unit = "%"
+wacc.decimals = 1
+wacc.scale = 100.0
+wacc.note = "蔚来换电ABS融资基准，直接采用，不作CAPM推导"
 # CRF 0.15 ← v3.2 §1.2.2「从全生命 CAPEX 到年 FCFF：期望收益率，非成本线」。
 # 关键区分：WACC 7.5% 只是"必须收回成本的下限"，估值要看期望收益率，必然高于成本线。
 # CRF(i,15年) = i ÷ (1−(1+i)^−15)：10%下沿→0.131，15%上沿→0.171，取中值 0.150（隐含要求回报≈12.4%）。
@@ -330,18 +347,30 @@ capital_recovery_factor = 0.15
 required_return_range = [0.10, 0.15]
 tax_rate = 0.25
 # 债务比例 60%：经验假设（类固收项目可做到 1:1.5 杠杆）
-debt_ratio = 0.60
+debt_ratio.v = 0.60
+debt_ratio.label = "项目公司债务比例"
+debt_ratio.unit = "%"
+debt_ratio.decimals = 0
+debt_ratio.scale = 100.0
+debt_ratio.note = "占比类一律以小数存储（0.60 表示 60%），scale=100 呈现时换算，事实包不二次×100"
 # 项目公司级融资利率 2.5%（非集团绿债 1.48–1.70%）：谱系=宁德 AAA 1.5–1.7% 下限、
 # 启源实际 3.02% 上限，2.5% 取 AA+ 绿债上沿。锚：启源并购评估基础数据 §七
 debt_interest_rate = 0.025
 # 建站持股比例 40%：假设值（保守档）。锚=蔚能案例：蔚来经天地资本增资后 27.8% 实控。
 # 敏感性：0.278（蔚能锚）/ 0.30 / 0.40（保守）。v4.3 单一真相源——外部销售口径在代码中以 1-0.40 派生（原 external_sales_share 已删除）
-construction_ownership = 0.40
+construction_ownership.v = 0.40
+construction_ownership.label = "建站持股比例"
+construction_ownership.unit = "%"
+construction_ownership.decimals = 0
+construction_ownership.scale = 100.0
 # 制造 PE 20× ← v3.2 §6.6：延续当前估值水平，不做扩张假设。
 # 校核：2026 动力净利拍 600 亿 × 20 = 12,000 亿；对照集团市值 18,250 亿、
 # 2026E 净利一致预期约 950 亿 → 集团隐含 PE ≈ 19×，故 20× 与市场当前给价同档。
 # 敏感性 15/20/25 → 动力线价值 13,574 / 16,608 / 19,460 亿（±2,943 亿），是全模型最大单一杠杆。
-manufacturing_pe = 20.0
+manufacturing_pe.v = 20.0
+manufacturing_pe.label = "制造PE"
+manufacturing_pe.unit = "×"
+manufacturing_pe.decimals = 0
 # 运营 EV/EBITDA 18× ← v3.2 §4.1「18× 是含战略溢价的基建运营倍数，不是 GP/科技资管倍数」。
 # 三族对照（判断倍数看"谁扛资产、谁赚什么钱"，不能只看资产轻重）：
 #   ① 资管/科技平台型 18–22×（Blackstone 21.8×）——宁德**不属此族**：BX 出资约 1%、
@@ -352,13 +381,20 @@ manufacturing_pe = 20.0
 # 结论：锚 ② 的 6.7–14× ＋ 宁德"电池供应＋标准卡位"的温和战略溢价 → 18× 取上限附近的中枢，
 # **已含溢价，不应再叠加**。宁德自身 LTM 仅 13.0×（比亚迪 6.5×）可作下限参照。
 # 敏感性 18×→25×（+39%）只把宁德贡献从 3,234 抬到 4,866 亿，不改变"占比有限、属卡位而非规模驱动"的主结论。
-swap_ev_ebitda = 18.0
+swap_ev_ebitda.v = 18.0
+swap_ev_ebitda.label = "拍定EV/EBITDA倍数"
+swap_ev_ebitda.unit = "×"
+swap_ev_ebitda.decimals = 0
+swap_ev_ebitda.note = "是「声明」不是测量值；且是可调 driver，必须现读 cfg，绝不能写死"
 manager_fee_rate = 0.010
 manager_net_margin = 0.40
 manager_pe = 25.0
 transaction_cost_rate = 0.020
 # 分析期 15 年（2026–2040）：与世联评估预测收益期 2025.12–2040.12 对齐（非 REITs 12 年存续期）
-model_horizon_years = 15
+model_horizon_years.v = 15
+model_horizon_years.label = "运行年数"
+model_horizon_years.unit = "年"
+model_horizon_years.decimals = 0
 
 # ---- CATL 财务基线（全部核验通过，信源：官网 IR https://www.catl.com/inverelations/）----
 
@@ -391,7 +427,10 @@ trading_assets_yi = 681.58
 group_net_profit_consensus_yi = 1000.0   # 一致预期上沿（区间 909–1024，39 家均值 958）
 group_market_cap_ah_yi = 20000.0
 # 644GWh：东吴 26H1 动力电池销量 325GWh×2 年化≈650 合理取整（动力口径）
-power_battery_shipments_gwh = 644.0
+power_battery_shipments_gwh.v = 644.0
+power_battery_shipments_gwh.label = "2026E动力电池出货"
+power_battery_shipments_gwh.unit = "GWh"
+power_battery_shipments_gwh.decimals = 1
 allocation_method = "2026H1动力毛利润占集团毛利润"
 
 # ----------------------交叉校验信源：全国电池装机（仅校验，非换电市占率分母）-----------------------------
@@ -407,9 +446,19 @@ power_battery_install_gwh_2025 = 769.7
 power_battery_install_gwh_2030 = 1350.0
 # 全国新型储能年度装机（仅作换电电池银行“储能节点坐标”交叉校验，非换电市占率分母）
 # 2025=351GWh（136GW，等效2.6h）：国家能源局《中国新型储能发展报告（2026）》[链接](https://www.nea.gov.cn/20260821/f3fa895ecd23480a83547ca29b12f4cc/c.html)
-storage_install_gwh_2025 = 351.0
+storage_install_gwh_2025.v = 351.0
+storage_install_gwh_2025.label = "最新全国新型储能累计装机"
+storage_install_gwh_2025.unit = "GWh"
+storage_install_gwh_2025.decimals = 0
+storage_install_gwh_2025.src = "src.nea_storage_2026"
+storage_install_gwh_2025.note = "外部一手（国家能源局）；信源见台账 src.nea_storage_2026"
 # 2030≈780GWh（3亿千瓦≈780GWh，等效2.6h）：国务院顶层文件[链接](https://www.gov.cn/zhengce/202606/content_7073474.htm) 经验假设推算
-storage_install_gwh_2030 = 780.0
+storage_install_gwh_2030.v = 780.0
+storage_install_gwh_2030.label = "终局年全国新型储能装机预测"
+storage_install_gwh_2030.unit = "GWh"
+storage_install_gwh_2030.decimals = 0
+storage_install_gwh_2030.src = "src.gov_storage_2030"
+storage_install_gwh_2030.note = "国务院文件推算（等效 2.6h 折算属经验假设）；信源见台账 src.gov_storage_2030"
 
 # ----------------------交叉校验信源：全社会用电量（换电交易量的市场分母）-----------------------------
 # 用途：一页纸「年换电量 vs 全社会用电量」市占率的分母。单位统一为亿kWh，
@@ -419,10 +468,20 @@ storage_install_gwh_2030 = 780.0
 
 [national_power_market]
 # 最新年度全社会用电量（一手，信源：src.nea_elec_2025）
-society_electricity_yi_kwh_latest = 103682.0
+society_electricity_yi_kwh_latest.v = 103682.0
+society_electricity_yi_kwh_latest.label = "最新年度全社会用电量"
+society_electricity_yi_kwh_latest.unit = "亿kWh"
+society_electricity_yi_kwh_latest.decimals = 0
+society_electricity_yi_kwh_latest.src = "src.nea_elec_2025"
+society_electricity_yi_kwh_latest.note = "外部一手（国家能源局）；信源见台账 src.nea_elec_2025"
 # 2030 全社会用电量预测（二手：国网能源院预测经权威媒体转引，信源：src.society_elec_2030；
 #   另有中电联 13 万亿口径，与国网能源院 13.5 万亿差约 4%，不影响量级判断，模型取后者）
-society_electricity_yi_kwh_2030 = 135000.0
+society_electricity_yi_kwh_2030.v = 135000.0
+society_electricity_yi_kwh_2030.label = "终局年全社会用电量预测"
+society_electricity_yi_kwh_2030.unit = "亿kWh"
+society_electricity_yi_kwh_2030.decimals = 0
+society_electricity_yi_kwh_2030.src = "src.society_elec_2030"
+society_electricity_yi_kwh_2030.note = "国网能源院口径（二手转引）；另有中电联 13 万亿口径差约 4%；信源见台账 src.society_elec_2030"
 
 # ----------------------重卡 TCO：JPM Table 3 整套引用（不各取一项）-----------------------------
 # 来源：[JPM 重卡电动化 英中对照 · Table 3](../../media/JPM_重卡电动化_英中对照.md)（原文标注
@@ -472,8 +531,15 @@ station_group = "heavy"
 # 增量单车带电量 500kWh：JPM §5.2 大电量化趋势（>500kWh 占比半年 19%→31%）的假设值（标注假设）
 battery_kwh = 500.0
 # 2030 保有 900 万辆：JPM 重卡电动化基准
-stock_wan = 900.0
-replacement_cycle_years = 9.0
+stock_wan.v = 900.0
+stock_wan.label = "重卡保有量"
+stock_wan.unit = "万辆"
+stock_wan.decimals = 0
+stock_wan.note = "分母侧的外部事实：换电重卡 ÷ 它 ＝ 重卡电动化+换电的合计渗透"
+replacement_cycle_years.v = 9.0
+replacement_cycle_years.label = "重卡更新周期"
+replacement_cycle_years.unit = "年"
+replacement_cycle_years.decimals = 1
 # 2025 新能源重卡 233,206 辆（+181.91%）：纯电 96.38%、换电占纯电 29.00%（第一商用车网+智研双源一致）
 # NEV 渗透率 S 曲线：2025 全年 28–29%（双源）→ 2026=35%（国泰海通）→ 2030=50%（JPM）
 nev_rates = [0.35, 0.43, 0.46, 0.48, 0.50]
@@ -1165,19 +1231,47 @@ price_status = "蔚来交易未发生；蔚能权益估值与负债承担方式�
 # 实为遗留缺省值、无拍板记录。v4.3 保留作"投入产出关系刻度"，供报告体检对照，
 # 决策叙事以 MANIFEST §1.0/§1.1 为准（做多大/代价/回报/资金从容度）。
 [decision_thresholds]
-max_peak_swap_cash_to_cfo = 0.15
-min_forward_to_required_ebitda = 1.00
+max_peak_swap_cash_to_cfo.v = 0.15
+max_peak_swap_cash_to_cfo.label = "现金投入占比体检线"
+max_peak_swap_cash_to_cfo.unit = "%"
+max_peak_swap_cash_to_cfo.decimals = 0
+max_peak_swap_cash_to_cfo.scale = 100.0
+max_peak_swap_cash_to_cfo.note = "峰值现金÷CFO，集团内部风险口径，判断值不是测量值"
+min_forward_to_required_ebitda.v = 1.00
+min_forward_to_required_ebitda.label = "EBITDA 覆盖倍数体检线"
+min_forward_to_required_ebitda.unit = "倍"
+min_forward_to_required_ebitda.decimals = 2
+min_forward_to_required_ebitda.note = "稳态 EBITDA ÷ 资本要求回报的体检线（与 swap.coverage 同公式、阈值性质）；判断值不是测量值"
 min_swap_value_creation_multiple = 3.00
 min_light_asset_value_retention = 0.80
 min_light_asset_recurring_profit_retention = 0.70
 max_funding_exposure_coverage_ratio = 1.00
 # 一页纸的判断阈值（2026-09-09：原硬编码在 src/onepager.py 的解释列里，搬到此处成为唯一家；
 # 下游一律用 {{占位符}} 引用，不得在任何文档或代码里再写一遍数字）
-min_swap_increment_yi = 1000.0            # 千亿量级才谈得上「重注」
-min_increment_over_mktcap = 0.10          # 增量价值占集团市值 ≥10% 才配占用战略敞口
-target_increment_over_mktcap = 0.20       # ≥20% 才算值得重注
+min_swap_increment_yi.v = 1000.0            # 千亿量级才谈得上「重注」
+min_swap_increment_yi.label = "重注门槛·增量价值下限"
+min_swap_increment_yi.unit = "亿元"
+min_swap_increment_yi.decimals = 0
+min_swap_increment_yi.note = "千亿量级才谈得上「重注」；判断值不是测量值"
+min_increment_over_mktcap.v = 0.10          # 增量价值占集团市值 ≥10% 才配占用战略敞口
+min_increment_over_mktcap.label = "战略敞口门槛·增量占集团市值下限"
+min_increment_over_mktcap.unit = "%"
+min_increment_over_mktcap.decimals = 0
+min_increment_over_mktcap.scale = 100.0
+min_increment_over_mktcap.note = "增量价值占集团市值 ≥10% 才配占用战略敞口；判断值不是测量值"
+target_increment_over_mktcap.v = 0.20       # ≥20% 才算值得重注
+target_increment_over_mktcap.label = "值得重注·增量占集团市值目标"
+target_increment_over_mktcap.unit = "%"
+target_increment_over_mktcap.decimals = 0
+target_increment_over_mktcap.scale = 100.0
+target_increment_over_mktcap.note = "≥20% 才算值得重注；判断值不是测量值"
 max_bet_share_low = 0.50                  # 押注占比 <50% 可坦然辩护
-max_bet_share_high = 0.70                 # >70% 则结论主要靠倍数而非现金流
+max_bet_share_high.v = 0.70                 # >70% 则结论主要靠倍数而非现金流
+max_bet_share_high.label = "押注占比·结论靠倍数而非现金流的线"
+max_bet_share_high.unit = "%"
+max_bet_share_high.decimals = 0
+max_bet_share_high.scale = 100.0
+max_bet_share_high.note = ">70% 则结论主要靠倍数而非现金流；判断值不是测量值"
 
 # ----------------------信源总索引（正文就地标注为主，此处汇总）-----------------------------
 
@@ -1207,221 +1301,24 @@ ndrc_ancillary_price_2024 = "https://gbdy.ndrc.gov.cn/gbdyzcjd/202402/t20240208_
 nio_suzhou_vpp = "https://www.suzhou.gov.cn/szsrmzf/szyw/202503/a60985e397184d0c9fbfb424db962de1.shtml"
 
 # ============================================================================
-# 输入事实登记（叙述层可引用的输入名片）
+# 外部原文引述登记（叙述层可引用，但不进任何计算）
 # ============================================================================
 # 模型按用途只有两层：**输入住本文件，输出住 configs/metrics.toml**（2026-09-13 定）。
-# 被叙述层（一页纸/章节/HTML）引用的输入参数，除了在上方功能段有一个供程序消费的
-# 标量值，还需要一张「名片」：中文名、单位、小数位、口径 note、信源指针——全部登记
-# 在本段，metrics.toml 不再保留任何 at_cfg 条目。
+# 被叙述层引用的输入参数**不另登记、不造别名**：在上方功能段就地写成「信封」
+# （<键>.v ＋ label/unit/decimals/scale/fmt/note，见 [meta] 段 target_year 的样例），
+# 注册表 key 就是点分路径本身，由 src/lab.py 的 load_envelopes() 自动发现并升格。
 #
-# kind 两类：
-#   config = 参数。值在本文件上方功能段（meta/finance/vehicles/…），at 给点分路径，
-#            程序经 src/lab.py 沿路径现读（可调 driver 改档后读到的就是新值）；
-#   quote  = 外部原文引述。模型不当参数、不进任何计算，仅供叙述层 {{ext.xxx}} 引用；
-#            value=变更侦测代表值（区间取中点），text=正文显示形式（可写区间）。
+# 本段只放另一类输入：**外部原文引述**——模型不当参数、不进任何计算，仅供叙述层 {{ext.xxx}}：
+#   value = 变更侦测代表值（区间取中点），text  = 正文显示形式（可写区间）。
 # 字段：
-#   key/label = 程序内部名/唯一中文名（一词一名，与 metrics.toml 撞名加载即中断）；
-#   unit/decimals/scale/fmt = 呈现（占比类以百分数存储，scale=100 取值即换算）；
-#   src  = 信源台账 key（audit/信源审计台账.md「信源索引（机读）」），判断值可留空；
-#   as_of= quote 的引用时点（必填）。
-# 加载与机械校验：src/lab.py 的 load_input_facts()；quote 由 src/facts.py 装配进事实包。
+#   key/label = 程序内部名（必须 ext. 前缀）/唯一中文名（一词一名，与 metrics 撞名加载即中断）；
+#   text/value/src/as_of 必填；src = 信源台账 key（audit/信源审计台账.md「信源索引（机读）」）。
+# 加载与机械校验：src/lab.py 的 load_external_quotes()；由 src/facts.py 装配进事实包。
 # ----------------------------------------------------------------------------
 
-# ── config：终局年与可调 driver（值在上方功能段，此处只给名片与路径）──────────────
-[[input_fact]]
-key = "base.target_year"
-kind = "config"
-at = "meta.target_year"
-label = "终局年"
-unit = "年"
-decimals = 0
-fmt = "year"
-note = "决策时点「我什么时候来看」；与运营期限（这门生意能活多久）是两件事"
-
-[[input_fact]]
-key = "base.power_shipments_2026e"
-kind = "config"
-at = "financial_2026e.power_battery_shipments_gwh"
-label = "2026E动力电池出货"
-unit = "GWh"
-decimals = 1
-
-[[input_fact]]
-key = "base.ev_ebitda_multiple"
-kind = "config"
-at = "finance.swap_ev_ebitda"
-label = "拍定EV/EBITDA倍数"
-unit = "×"
-decimals = 0
-note = "是「声明」不是测量值；且是可调 driver，必须现读 cfg，绝不能写死"
-
-[[input_fact]]
-key = "base.ownership_pct"
-kind = "config"
-at = "finance.construction_ownership"
-label = "建站持股比例"
-unit = "%"
-decimals = 0
-scale = 100.0
-
-[[input_fact]]
-key = "base.debt_ratio_pct"
-kind = "config"
-at = "finance.debt_ratio"
-label = "项目公司债务比例"
-unit = "%"
-decimals = 0
-scale = 100.0
-note = "占比类一律以百分数存储（60 表示 60%），scale=100 取值时即换算，事实包不再二次×100"
-
-[[input_fact]]
-key = "base.mfg_pe"
-kind = "config"
-at = "finance.manufacturing_pe"
-label = "制造PE"
-unit = "×"
-decimals = 0
-
-[[input_fact]]
-key = "base.wacc_pct"
-kind = "config"
-at = "finance.wacc"
-label = "WACC"
-unit = "%"
-decimals = 1
-scale = 100.0
-note = "蔚来换电ABS融资基准，直接采用，不作CAPM推导"
-
-[[input_fact]]
-key = "base.horizon_years"
-kind = "config"
-at = "finance.model_horizon_years"
-label = "运行年数"
-unit = "年"
-decimals = 0
-
-[[input_fact]]
-key = "base.cfo_gate_pct"
-kind = "config"
-at = "decision_thresholds.max_peak_swap_cash_to_cfo"
-label = "现金投入占比体检线"
-unit = "%"
-decimals = 0
-scale = 100.0
-note = "峰值现金÷CFO，集团内部风险口径，判断值不是测量值"
-
-[[input_fact]]
-key = "ops.heavy_market_stock"
-kind = "config"
-at = "vehicles.heavy.stock_wan"
-label = "重卡保有量"
-unit = "万辆"
-decimals = 0
-note = "分母侧的外部事实：换电重卡 ÷ 它 ＝ 重卡电动化+换电的合计渗透"
-
-[[input_fact]]
-key = "ops.heavy_repl_cycle"
-kind = "config"
-at = "vehicles.heavy.replacement_cycle_years"
-label = "重卡更新周期"
-unit = "年"
-decimals = 1
-
-# ── config：一页纸市占率分母（值在 national_*_market 段，信源在台账）─────────────
-[[input_fact]]
-key = "ext.storage_gwh_2025"
-kind = "config"
-at = "national_battery_market.storage_install_gwh_2025"
-label = "最新全国新型储能累计装机"
-unit = "GWh"
-decimals = 0
-src = "src.nea_storage_2026"
-note = "外部一手（国家能源局）；信源见台账 src.nea_storage_2026"
-
-[[input_fact]]
-key = "ext.storage_gwh_2030"
-kind = "config"
-at = "national_battery_market.storage_install_gwh_2030"
-label = "终局年全国新型储能装机预测"
-unit = "GWh"
-decimals = 0
-src = "src.gov_storage_2030"
-note = "国务院文件推算（等效 2.6h 折算属经验假设）；信源见台账 src.gov_storage_2030"
-
-[[input_fact]]
-key = "ext.elec_latest"
-kind = "config"
-at = "national_power_market.society_electricity_yi_kwh_latest"
-label = "最新年度全社会用电量"
-unit = "亿kWh"
-decimals = 0
-src = "src.nea_elec_2025"
-note = "外部一手（国家能源局）；信源见台账 src.nea_elec_2025"
-
-[[input_fact]]
-key = "ext.elec_2030"
-kind = "config"
-at = "national_power_market.society_electricity_yi_kwh_2030"
-label = "终局年全社会用电量预测"
-unit = "亿kWh"
-decimals = 0
-src = "src.society_elec_2030"
-note = "国网能源院口径（二手转引）；另有中电联 13 万亿口径差约 4%；信源见台账 src.society_elec_2030"
-
-# ── config：一页纸判断阈值（值在 [decision_thresholds]；判断值不是测量值）─────────
-# 比值类阈值在 cfg 存小数（0.20），scale=100 以百分数存储（20 表示 20%）——仓库铁律。
-[[input_fact]]
-key = "thr.min_increment_yi"
-kind = "config"
-at = "decision_thresholds.min_swap_increment_yi"
-label = "重注门槛·增量价值下限"
-unit = "亿元"
-decimals = 0
-note = "千亿量级才谈得上「重注」；判断值不是测量值"
-
-[[input_fact]]
-key = "thr.min_incr_pct"
-kind = "config"
-at = "decision_thresholds.min_increment_over_mktcap"
-label = "战略敞口门槛·增量占集团市值下限"
-unit = "%"
-decimals = 0
-scale = 100.0
-note = "增量价值占集团市值 ≥10% 才配占用战略敞口；判断值不是测量值"
-
-[[input_fact]]
-key = "thr.target_incr_pct"
-kind = "config"
-at = "decision_thresholds.target_increment_over_mktcap"
-label = "值得重注·增量占集团市值目标"
-unit = "%"
-decimals = 0
-scale = 100.0
-note = "≥20% 才算值得重注；判断值不是测量值"
-
-[[input_fact]]
-key = "thr.bet_high"
-kind = "config"
-at = "decision_thresholds.max_bet_share_high"
-label = "押注占比·结论靠倍数而非现金流的线"
-unit = "%"
-decimals = 0
-scale = 100.0
-note = ">70% 则结论主要靠倍数而非现金流；判断值不是测量值"
-
-[[input_fact]]
-key = "thr.min_coverage"
-kind = "config"
-at = "decision_thresholds.min_forward_to_required_ebitda"
-label = "EBITDA 覆盖倍数体检线"
-unit = "倍"
-decimals = 2
-note = "稳态 EBITDA ÷ 资本要求回报的体检线（与 swap.coverage 同公式、阈值性质）；判断值不是测量值"
-
-# ── quote：估值倍数三族定位（LTM 口径，外部聚合站点，仅供叙述，不进计算）──────────
-[[input_fact]]
+# ── 估值倍数三族定位（LTM 口径，外部聚合站点，仅供叙述，不进计算）──────────
+[[external_quote]]
 key = "ext.mult_infra_low"
-kind = "quote"
 label = "重资产基建运营族·区间下沿"
 text = "6.7×"
 value = 6.7
@@ -1430,9 +1327,8 @@ src = "src.mult_brookfield"
 as_of = "2026-08-26"
 note = "Brookfield Infrastructure；族内还包括公用事业 8–14×、储能平台 10–14×"
 
-[[input_fact]]
+[[external_quote]]
 key = "ext.mult_infra_high"
-kind = "quote"
 label = "重资产基建运营族·区间上沿"
 text = "14×"
 value = 14.0
@@ -1441,9 +1337,8 @@ src = "src.mult_brookfield"
 as_of = "2026-08-26"
 note = "公用事业与储能平台档的上沿"
 
-[[input_fact]]
+[[external_quote]]
 key = "ext.mult_gp_low"
-kind = "quote"
 label = "轻资产资管平台族·区间下沿"
 text = "18×"
 value = 18.0
@@ -1452,9 +1347,8 @@ src = "src.mult_blackstone"
 as_of = "2026-08-26"
 note = "该族中位数；换电不是真 GP，只能取这一档"
 
-[[input_fact]]
+[[external_quote]]
 key = "ext.mult_gp_high"
-kind = "quote"
 label = "轻资产资管平台族·区间上沿"
 text = "22×"
 value = 22.0
@@ -1463,9 +1357,8 @@ src = "src.mult_blackstone"
 as_of = "2026-08-26"
 note = "Blackstone 21.8× 附近"
 
-[[input_fact]]
+[[external_quote]]
 key = "ext.mult_tsla"
-kind = "quote"
 label = "车＋能源网络复合族参照"
 text = "89.7×"
 value = 89.7
@@ -1474,9 +1367,8 @@ src = "src.mult_tesla"
 as_of = "2026-08-26"
 note = "只作叙事参照，不作倍数锚——叙事半径不同，见 topics/赔率与跟踪"
 
-[[input_fact]]
+[[external_quote]]
 key = "ext.mult_catl_self"
-kind = "quote"
 label = "CATL 自身 EV/EBITDA"
 text = "13.0×"
 value = 13.0
@@ -1485,9 +1377,8 @@ src = "src.mult_catl"
 as_of = "2026-08-26"
 note = "制造业估值口径下的当前读数，是共识锚的旁证"
 
-[[input_fact]]
+[[external_quote]]
 key = "ext.mult_byd"
-kind = "quote"
 label = "比亚迪 EV/EBITDA"
 text = "6.5×"
 value = 6.5
@@ -1495,10 +1386,9 @@ unit = "×"
 src = "src.mult_catl"
 as_of = "2026-08-26"
 
-# ── quote：重卡 TCO（整套引用 JPM，不各取一项；信源 src.jpm_truck_electrification）──
-[[input_fact]]
+# ── 重卡 TCO（整套引用 JPM，不各取一项；信源 src.jpm_truck_electrification）──
+[[external_quote]]
 key = "ext.batt_share_of_truck"
-kind = "quote"
 label = "电池包占整车成本比例"
 text = "40–50%"
 value = 0.45
@@ -1506,9 +1396,8 @@ src = "src.jpm_truck_electrification"
 as_of = "2026-08"
 note = "JPM §8.3；承重方论证的量级依据"
 
-[[input_fact]]
+[[external_quote]]
 key = "ext.pack_400kwh_price"
-kind = "quote"
 label = "大电量电池包价格"
 text = "30–40 万元"
 value = 35.0
@@ -1517,9 +1406,8 @@ src = "src.jpm_truck_electrification"
 as_of = "2026-08"
 note = "JPM §8.3，400kWh 档"
 
-[[input_fact]]
+[[external_quote]]
 key = "ext.revenue_uplift_per_truck"
-kind = "quote"
 label = "单车年增收（换电 vs 充电）"
 text = "约 4 万元/年"
 value = 4.0
@@ -1528,9 +1416,8 @@ src = "src.jpm_truck_electrification"
 as_of = "2026-08"
 note = "JPM §8.3；原文标注可直接用作换电服务付费意愿的上限"
 
-[[input_fact]]
+[[external_quote]]
 key = "ext.baas_capex_cut"
-kind = "quote"
 label = "BaaS 购车成本降幅"
 text = "40–50%"
 value = 0.45
@@ -1538,9 +1425,8 @@ src = "src.jpm_truck_electrification"
 as_of = "2026-08"
 note = "JPM §8.3；痛点强度的资金占用分量"
 
-[[input_fact]]
+[[external_quote]]
 key = "ext.payload_loss_ev"
-kind = "quote"
 label = "电动重卡年载重损失"
 text = "7 万元/年"
 value = 7.0
@@ -1549,9 +1435,8 @@ src = "src.jpm_truck_electrification"
 as_of = "2026-08"
 note = "JPM Table 3；电动重卡最大的隐性成本项，漏掉它的 TCO 结论都不可信"
 
-[[input_fact]]
+[[external_quote]]
 key = "ext.tco_ev_vs_lng_3y"
-kind = "quote"
 label = "三年持有期 TCO：电动 vs LNG"
 text = "−4%"
 value = -0.04
@@ -1559,9 +1444,8 @@ src = "src.jpm_truck_electrification"
 as_of = "2026-08"
 note = "JPM Table 3"
 
-[[input_fact]]
+[[external_quote]]
 key = "ext.tco_ev_vs_lng_5y"
-kind = "quote"
 label = "五年持有期 TCO：电动 vs LNG"
 text = "−11%"
 value = -0.11
@@ -1569,9 +1453,8 @@ src = "src.jpm_truck_electrification"
 as_of = "2026-08"
 note = "JPM Table 3；真正的边际对手是 LNG，不是柴油"
 
-[[input_fact]]
+[[external_quote]]
 key = "ext.tco_ev_vs_diesel_5y"
-kind = "quote"
 label = "五年持有期 TCO：电动 vs 柴油"
 text = "−25%"
 value = -0.25
@@ -1579,9 +1462,8 @@ src = "src.jpm_truck_electrification"
 as_of = "2026-08"
 note = "JPM Table 3；安全但没信息量的那条对比"
 
-[[input_fact]]
+[[external_quote]]
 key = "ext.lng_price_rise"
-kind = "quote"
 label = "LNG 价格年度涨幅"
 text = "+48%"
 value = 0.48

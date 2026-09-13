@@ -11,10 +11,42 @@ ROOT = Path(__file__).resolve().parent
 DEFAULT_CONFIG = ROOT.parent / "configs" / "base.toml"
 
 
-def load_config(path: Path | None = None) -> dict[str, Any]:
+def load_config_raw(path: Path | None = None) -> dict[str, Any]:
+    """只读 TOML 原文、**不解信封**：信封的呈现要素（label/unit/note…）只能从这里取。
+
+    普通取参一律用 load_config()（返回值与历史完全同构：叶子全是裸标量）；
+    只有 lab.py 注册输入参数名片时需要本函数，沿原文树发现信封并读其元数据。
+    """
     config_path = path or DEFAULT_CONFIG
     with config_path.open("rb") as handle:
         return tomllib.load(handle)
+
+
+def _unwrap_envelopes(node: Any) -> Any:
+    """递归把「参数信封」解成裸标量。
+
+    信封＝含 ``v`` 键的子表：``{"v": 0.075, "label": "WACC", ...}`` → ``0.075``。
+    判定只认 ``v`` 键（[vehicles.heavy] 本就有业务键 label，靠"其余键是元数据"判会误杀）。
+    configs/ 全目录经 grep 确认无任何存量 ``v`` 键，故该判定不会误伤；
+    信封的 label 必填闸在 lab.load_envelopes（防止误写 v 键被静默注册）。
+    """
+    if isinstance(node, dict):
+        if "v" in node:
+            return node["v"]
+        return {k: _unwrap_envelopes(child) for k, child in node.items()}
+    if isinstance(node, list):
+        return [_unwrap_envelopes(child) for child in node]
+    return node
+
+
+def load_config(path: Path | None = None) -> dict[str, Any]:
+    """读配置并解信封：对所有既有消费方，``cfg["finance"]["wacc"]`` 仍是 0.075。
+
+    就地信封化（2026-09-13 再改）后，参数值与呈现要素同住一个虚线子表
+    （base.toml 里写 ``wacc.v = 0.075`` / ``wacc.label = "WACC"``），
+    本函数在加载时统一还原为标量树——模型、driver 拨档、浏览器 Pyodide 全部零改动同源。
+    """
+    return _unwrap_envelopes(load_config_raw(path))
 
 
 def cloned_config(config: dict[str, Any]) -> dict[str, Any]:
@@ -33,6 +65,7 @@ SCENARIO_ORDER: tuple[str, ...] = ("悲观", "中性", "乐观")
 # 不进单参数 +10% 扰动，也不混进"可调参数"清单。
 _SKIP_SECTIONS = (
     "sources",
+    "external_quote",
     "capital_commitments",
     "mna.scenarios",
     "drivers",

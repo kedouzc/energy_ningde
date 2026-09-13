@@ -166,7 +166,7 @@ def check(groups, facts: dict, metric_values: dict) -> list[str]:
                 problems.append(f"metric 不存在：{key}（不在 lab.METRICS 里）")
 
     # ④ 一词一名已由 facts.build_facts 内的 check_no_duplicate() 在每条管线机械拦截
-    #   （base.toml [[input_fact]] 的 quote/src. 撞 metrics.toml 的 key/label 即中断）；
+    #   （base.toml [[external_quote]]/src. 撞 metrics.toml 的 key/label 即中断）；
     #   旧的手写事实↔字典镜像互校随手写事实删除（2026-09-13），这里不再有第二条取数路径。
 
     return problems
@@ -184,8 +184,8 @@ def build_context(tier: str = "中性"):
     drivers = load_drivers(cfg)
     snapshot = build_model(cfg, **apply_scenario(cfg, drivers, tier))
     metric_values = read_metrics(snapshot, cfg)
-    # facts 只做装配：值全部来自结果注册表（模型输出＋base [[input_fact]] 的 config 名片）
-    # 与 quote 引述，不需要快照（2026-09-13 起）
+    # facts 只做装配：值全部来自结果注册表（模型输出＋base.toml 就地信封参数）
+    # 与 [[external_quote]] 引述，不需要快照（2026-09-13 起）
     facts = facts_mod.build_facts(metric_values)
     return cfg, drivers, snapshot, facts, metric_values
 

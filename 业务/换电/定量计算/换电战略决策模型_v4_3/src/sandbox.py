@@ -577,7 +577,7 @@ def model_bundle() -> dict:
     src_dir = Path(__file__).resolve().parent
     root = src_dir.parent
     # configs/ 下运行期要读的声明文件全部下发：
-    #   base.toml —— 输入字典（config_loader＋末尾 [[input_fact]] 输入名片/quote 引述）；
+    #   base.toml —— 输入字典（config_loader＋功能段就地信封参数/末尾 [[external_quote]] 引述）；
     #   metrics.toml —— 输出字典（lab 模块加载时即读，缺了浏览器端 lab 整体 import 失败）。
     cfg_dir = root / "configs"
     bundle = {

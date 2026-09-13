@@ -85,8 +85,9 @@
 > **"读不到"必须闹出动静**（2026-09-12c 立的三道闸门，全部默认中断，不靠记得小心）：
 > ① `read_metrics(snap, cfg, strict=True)`——`at` 走不通或调用方没传 cfg 就逐条点名；
 > ② `load_metrics` 的 source 审计——`source` 与 `at` 尾段对不上就中断（指错程序比给错数更难查）；
-> ③ `facts.check_mirrors`——手写事实与字典同数异名时**每条管线**互相断言
-> （含"mirror 指向不存在的 key"与"差整整 100 倍的比值/百分数"两种静默态）。
+> ③ **禁撞取代镜像互校**（2026-09-13）：手写事实层已删，`lab.load_metrics()` 是唯一裁判点——
+> base.toml 就地信封（key＝点分路径）/`[[external_quote]]` 与输出字典间 key、中文名相撞
+> 即加载中断；`facts.check_no_duplicate()` 在每条管线复述（ext./src. 撞注册表即中断）。
 > 需要放宽的只有扫描线路（显式 `strict=False` 并写明理由）。
 >
 > 配套两条结构纪律（2026-09-12d）：**一个 key 一个定义**（`facts.py` 重复即加载中断）；

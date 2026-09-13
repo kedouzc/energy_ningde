@@ -47,8 +47,8 @@ def get_base() -> dict:
 
 @st.cache_data
 def get_base_metrics(cfg: dict) -> dict:
-    # cfg 必须传给 read_metrics：否则输入名片那批（base [[input_fact]] 升格的 cfg 侧取值器）
-    # 取不到，静默变 NaN
+    # cfg 必须传给 read_metrics：否则就地信封那批（base.toml 功能段 v 子表升格的
+    # cfg 侧取值器）取不到，静默变 NaN
     return read_metrics(rerun(cfg), cfg)
 
 

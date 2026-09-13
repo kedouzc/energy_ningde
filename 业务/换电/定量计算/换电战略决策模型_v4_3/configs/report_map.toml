@@ -27,7 +27,7 @@ no = 0
 title = "决策卡"
 file = "0_决策卡.src.md"
 answers = "买不买、**几年几倍**、什么会推翻（开宗明义——最终判断在这里给，论证在后面各章）"
-owns = ["base.target_year", "val.incr_over_mktcap"]
+owns = ["meta.target_year", "val.incr_over_mktcap"]
 uses = ["val.swap_increment", "val.mfg_increment", "swap.coverage", "capex.peak_call"]
 support = []
 topics = ["非共识_类型判定与证据形态", "赔率与跟踪_从世界A到世界B"]
@@ -42,7 +42,7 @@ answers = "这个结论与市场普遍理解的差异在哪；断档接不上的
 owns = []
 uses = ["val.incr_over_mktcap", "val.op_ev_multiple", "val.ev_dcf_perpetual"]
 qual = "共识锚三条外部观察：卖方是否用 SOTP / 换电是否被单独列示 / 是否有机构给过独立估值（三个「否」＝市场没给它估值）"
-support = ["base.ev_ebitda_multiple", "val.swap_increment", "val.power_with_swap"]
+support = ["finance.swap_ev_ebitda", "val.swap_increment", "val.power_with_swap"]
 topics = ["非共识_类型判定与证据形态"]
 
 [[chapter]]
@@ -64,7 +64,7 @@ answers = "载体本质 → 关键指标 → 谁最敏感 → 谁是真用户、
 owns = ["ops.veh_ops", "tco.swap_wan"]
 uses = []
 support = ["ops.veh_heavy", "ops.veh_city", "ops.veh_passenger_ops", "ops.veh_private",
-           "ops.market_total", "ops.share_of_market", "ops.heavy_market_stock",
+           "ops.market_total", "ops.share_of_market", "vehicles.heavy.stock_wan",
            "ops.heavy_pen_pct", "tco.lng_wan", "tco.diesel_wan"]
 topics = ["业务本质_第一性原理拆解", "目标用户_谁的痛点"]
 
@@ -138,7 +138,7 @@ answers = "对现有业务线的冲击（**引用**制造侧增量）；会不�
 owns = ["val.swap_increment", "val.op_ev_multiple"]
 uses = ["val.mfg_increment"]
 support = ["val.power_with_swap", "val.power_no_swap", "val.op_equity_gross",
-           "val.ev_dcf_true", "val.catl_dcf_perpetual", "base.ev_ebitda_multiple",
+           "val.ev_dcf_true", "val.catl_dcf_perpetual", "finance.swap_ev_ebitda",
            "val.ev_dcf_perpetual"]
 topics = ["估值_为什么拍这个倍数", "资本闭环_REITs与轻资产化", "增量价值_运营单体加制造影响"]
 
@@ -150,7 +150,7 @@ answers = "赢面多大；什么会变好/变差；加仓与清仓的触发条�
 owns = []
 uses = ["val.swap_increment", "val.incr_over_mktcap", "swap.coverage", "ops.share_of_market"]
 qual = "三段刻度的操作触发：中检看不到＝需求侧假设错；决断看不到＝论点被证伪，与价格无关；兑现看不到＝相变没发生"
-support = ["mk.share_storage_2025", "base.target_year"]
+support = ["mk.share_storage_2025", "meta.target_year"]
 topics = ["赔率与跟踪_从世界A到世界B", "并购_节奏与竞合"]
 
 [[chapter]]
@@ -161,7 +161,7 @@ answers = "犯过什么错；现在还可能错在哪；下一步盯什么（**�
 owns = []
 uses = ["val.swap_increment"]
 qual = "犯过的错由 DECISIONS.md 生成，现在可能错在哪由 lab.py scan 的弹性排名生成"
-support = ["ops.veh_commercial", "swap.coverage", "base.ev_ebitda_multiple",
+support = ["ops.veh_commercial", "swap.coverage", "finance.swap_ev_ebitda",
            "ops.annual_energy", "ops.share_of_market"]
 topics = []
 

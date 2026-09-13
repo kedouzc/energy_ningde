@@ -82,7 +82,7 @@ python src/lab.py workbook    # ③ 参数血缘：生成 Excel 七表（假设�
 |---|---|---|
 | `decision_snapshot_v4_3.json` | `run.py` | **一切数字的唯一来源。** 别的文档只能引用它 |
 | `换电战略决策报告_v4.3.md` | `run.py` | 骨架报告：必答问题层＋数据层明细表 |
-| `facts.json` | `build.py` | 事实包：87 条命名事实，带取值路径、单位、信源、复核阈值 |
+| `facts.json` | `build.py` | 事实包（纯装配，定义在 metrics.toml/base.toml/信源台账三处）：240 条＝118 模型输出＋20 配置信封＋16 外部引述＋86 信源；最新构成以 `交接.md` §4.3f 为准 |
 | `换电投资逻辑_叙述报告_v4.3.md` | `build.py` | 叙述层成稿（源文件在 `narrative/`，**改这里会被覆盖**） |
 | `narrative_state.json` | `build.py` | 上次落盘时各段引用的事实值，用于判"待复核" |
 | `tree.json` | `tree.py --json` | 递归决策树：每节点带值／三情景／公式／单位／信源／参数路径 |

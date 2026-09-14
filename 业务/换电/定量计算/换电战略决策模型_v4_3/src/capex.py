@@ -357,7 +357,12 @@ def build_capex(
             cycle += 1
 
     finance = config["finance"]
-    equity_factor = (1.0 - finance["debt_ratio"]) * finance["construction_ownership"]
+    # 【2026-09-13c】这两个比例原本只作为算式散在三处（含 narrative/一页纸.md 的正文里）。
+    # 叙述层写 `1−债务比例` 等于给"股权投资比例"开了第二个家：口径一改，正文不跟、也不报警。
+    # 现在各算一次、命名、随快照落盘，正文只引名字。见 DECISIONS「2026-09-13c」。
+    equity_share = 1.0 - finance["debt_ratio"]                        # 股权投资比例
+    external_equity_share = 1.0 - finance["construction_ownership"]   # 外部股权占比
+    equity_factor = equity_share * finance["construction_ownership"]
     annual: list[CapexRow] = []
     # 【重构｜4站型】两大类累计站数由四池汇总派生（重卡=短途+中长途、巧克力=乘用+城配）。
     cumulative_by_pool = dict(opening_by_pool)
@@ -715,21 +720,17 @@ def build_capex(
         annual_capital_requirement_yi=lifecycle_capital * crf,
         mature_annual_depreciation_yi=mature_depreciation,
         project_debt_yi=lifecycle_capital * finance["debt_ratio"],
-        external_equity_yi=(
-            lifecycle_capital
-            * (1.0 - finance["debt_ratio"])
-            * (1.0 - finance["construction_ownership"])
-        ),
+        external_equity_yi=lifecycle_capital * equity_share * external_equity_share,
         catl_lifecycle_equity_commitment_yi=(
-            lifecycle_capital
-            * (1.0 - finance["debt_ratio"])
-            * finance["construction_ownership"]
+            lifecycle_capital * equity_share * finance["construction_ownership"]
         ),
         catl_total_equity_call_yi=sum(row.catl_equity_call_yi for row in annual),
         catl_peak_equity_call_yi=peak.catl_equity_call_yi,
         peak_year=peak.year,
         # CATL 综合自有出资比例（L360 已算）：随快照落盘，输出字典按 scale=100 取百分数
         catl_equity_factor=equity_factor,
+        equity_share=equity_share,
+        external_equity_share=external_equity_share,
         lifecycle_replacement_schedule_yi={
             year: replacement_net[year]
             for year in sorted(replacement_net)

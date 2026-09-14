@@ -70,13 +70,19 @@ WHITELIST = [
     re.compile(r"\d{4}-\d{2}-\d{2}[a-z]?"),                              # DECISIONS 条目号 2026-09-05e
     re.compile(r"(?:19|20)\d{2}(?:\s*[-–—/]\s*(?:19|20)?\d{2})?\s*年?"),  # 2026 / 2026–2030 / 2026年
     re.compile(r"§\s*\d+(?:\.\d+)*"),                                      # §4.2.1
-    re.compile(r"\bv?\d+(?:\.\d+)+\b"),                                    # v4.3 / 4.3
+    # 【2026-09-14 修】原为 `\bv?\d+(?:\.\d+)+\b`，`v` 可选 ⇒ **它吃掉了所有小数**：
+    # 850.4 / 1.17 / 0.30 / 2.26 / 38.4% 全部静默放行，而这正是本报告绝大多数关键读数的形态。
+    # 裸数字 lint 一直是绿的，不是因为它拦住了什么，是因为人一直在自觉写占位符——
+    # **一道会放行主要目标的检查，等于没有检查。** 现在版本号必须带 v 前缀。
+    re.compile(r"\bv\d+(?:\.\d+)+\b"),                                     # v4.3（必须带 v）
+    re.compile(r"\d+(?:\.\d+)+\s*[节章]"),                                   # 1.2 节 / 4.3 章
     re.compile(r"^\s{0,3}\d{1,2}[.)、]\s"),                                # 有序列表 1. 2)
     re.compile(r"^\s*\|?[\s:|-]*$"),                                       # 表格分隔线
     re.compile(r"第\s*[一二三四五六七八九十百零〇\d]+[A-Z]?\s*[章节部分步条项层]"),  # 第三章 / 第 2 步 / 第 3A 章
     # 标题里的章号："# 0 决策卡" / "## 3A 谁是真用户"。编号是导航件不是数据，
     # 不允许的话，八章正文的每一行标题都会误报裸数字（2026-09-11 立八章骨架时踩到）。
-    re.compile(r"^\s{0,3}#{1,6}\s*\d{1,2}[A-Z]?(?=\s|$)"),
+    # 2026-09-14：允许 `### 2.1 小节标题` 这类带点的标题编号（收紧版本号白名单后暴露）。
+    re.compile(r"^\s{0,3}#{1,6}\s*\d{1,2}(?:\.\d{1,2})*[A-Z]?(?=\s|$)"),
     re.compile(r"\|\s*\*{0,2}\d{1,2}\s*[·.、)]"),                          # 表格单元格里的序号 | **1 · |
     re.compile(r"[（(]\s*[①-⑳\d]+\s*[）)]"),                               # (1) （②）
     re.compile(r"\bQ\d\b"),                                                # Q1 Q2 必答问题编号
@@ -391,11 +397,66 @@ def qual_of(path: Path) -> str:
     return ""
 
 
-def lint_closing(sources: list[Path]) -> tuple[list[str], list[dict]]:
-    """收口恒等式检查 + 覆盖率表。返回 (问题清单, 覆盖率行)。
+# ─────────────────────────────────────────── 2026-09-13g：把 ≤ 型补成恒等式
+# 09-13 复核发现：收口 lint 只检查"章有没有**声明**一个 metric"，不检查"正文有没有**用**它"。
+# 于是九份正文占位符 0 个、「（待写）」34 处，收口 lint 却给了 6 个 ✓。
+#
+#   **≤ 型断言会随层级上移而复发**：裸数字（数）→ 收口（声明）→ 引用（使用）。
+#   每加一道保护，"空壳也能满分通过"就搬到更上面一层。
+#   新增任何一道 lint 前先问：**一份空文件能不能通过它？能 → 它还欠一条恒等式配对。**
+#
+# 恒等式三条（本轮补齐后两条，并全部切硬失败）：
+#   ① 声明：每份叙述必须声明收口（原有）
+#   ② 使用：`- 主张: k` 的 k，它的**中文名必须在正文里至少出现一次**
+#   ③ 独立阅读：正文不许出现仓内工作文件的指针（报告要能脱离仓库读）
+#
+# **豁免必须显式且可数**：文件头写 `- 状态: 骨架`（章还没写）或 `- 状态: 素材`（专题还没被章点名）
+# 即跳过 ②③，但会在覆盖率表里单独计数。没有静默通过这条路——
+# 这正是"先报不中断必须带到期日"那条纪律的落地：豁免是有名字的，黄灯是没有的。
+STATUS_RE = re.compile(r"^[-*]\s*状态\s*[:：]\s*(骨架|素材|正文)\b")   # 允许行尾跟注释
 
-    **先只报不中断**：13 份专题里 10 份会立刻失败，一次性阻塞全部管线不利于推进。
-    等八章占位建好、索引表定稿后切硬失败（与 `facts` 的 `strict` 开关同一手法）。
+# 仓内工作文件的指针：出现在正文里就意味着报告读者要去翻仓库才能读懂。
+REPO_POINTER_RE = re.compile(
+    r"交接\.md|框架提案|DECISIONS\.md|MANIFEST|review-plan|sandbox-ux-draft"
+    r"|v3\.2|v3_2|分析结论/|定性分析/|写作素材/|_archive|口径/|audit/|configs/|src/"
+)
+HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.S)
+
+
+def status_of(path: Path) -> str:
+    for raw in path.read_text("utf-8").splitlines()[:24]:
+        m = STATUS_RE.match(raw.strip())
+        if m:
+            return m.group(1)
+    return "正文"
+
+
+def body_of(path: Path) -> str:
+    """正文＝第一个二级标题之后的内容，剔除代码块与 HTML 注释。
+
+    文件头（H1 与首个 `##` 之间）是**工作台元数据**，允许放仓内指针；
+    正文是**报告内容**，必须能独立阅读。这条分界让"给自己看的"和"给读者看的"各有其位。
+    """
+    text = path.read_text("utf-8")
+    i = text.find("\n## ")
+    body = text[i:] if i >= 0 else ""
+    body = HTML_COMMENT_RE.sub(" ", body)
+    out, fence = [], False
+    for line in body.splitlines():
+        if FENCE_RE.match(line):
+            fence = not fence
+            continue
+        if not fence:
+            out.append(line)
+    return "\n".join(out)
+
+
+def lint_closing(sources: list[Path]) -> tuple[list[str], list[dict]]:
+    """收口恒等式检查（三条）＋ 覆盖率表。返回 (问题清单, 覆盖率行)。
+
+    **2026-09-13g 起硬失败。** 此前"先只报不中断"是对的，但没有到期日的黄灯
+    就是永远的黄灯——它给人"已经在管了"的错觉，实际什么都没拦住。
+    到期日就是现在：豁免改为显式的 `- 状态: 骨架 / 素材`，可数、可查、会在表里点名。
     """
     from lab import METRIC_BY_KEY          # 延迟 import，避免与 lab 形成环
     problems: list[str] = []
@@ -405,8 +466,27 @@ def lint_closing(sources: list[Path]) -> tuple[list[str], list[dict]]:
         keys = closing_of(src)
         sup = support_of(src)
         qual = qual_of(src)
-        rows.append({"file": src.name, "closing": keys, "support": len(sup), "qual": bool(qual)})
-        if not keys and not qual:
+        st = status_of(src)
+        rows.append({"file": src.name, "closing": keys, "support": len(sup),
+                     "qual": bool(qual), "status": st})
+        if st == "正文":
+            body = body_of(src)
+            # 恒等式②：主张的数，它的中文名必须在正文里真的被引用
+            for k in keys:
+                lab = METRIC_BY_KEY[k].label if k in METRIC_BY_KEY else None
+                if lab and ("{{%s}}" % lab) not in body and ("{{%s:" % lab) not in body:
+                    problems.append(
+                        f"{src.name}：主张了 {k}（{lab}），但正文里一次都没引用它——"
+                        f"声明不等于论证。写 {{{{{lab}}}}}，或把文件头改成 `- 状态: 骨架`")
+            # 恒等式③：正文不许出现仓内工作文件的指针
+            for n, line in enumerate(body.splitlines(), 1):
+                m = REPO_POINTER_RE.search(line)
+                if m:
+                    problems.append(
+                        f"{src.name}：正文出现仓内指针「{m.group(0)}」——"
+                        f"报告要能独立阅读。指向正文章节，或把它挪进文件头的元数据区")
+                    break
+        if st == "正文" and not keys and not qual:
             problems.append(
                 f"{src.name}：既没有定量收口也没有定性收口——这章就是散文。"
                 "定量章写 `- 主张: <metric_key>`；纯定性章写 `- 定性收口: <文字>`")
@@ -426,17 +506,23 @@ def lint_closing(sources: list[Path]) -> tuple[list[str], list[dict]]:
 def print_coverage(rows: list[dict]) -> None:
     """覆盖率表：一眼看出哪些叙述接上了数、哪些还是孤儿。"""
     print("\n收口覆盖率（每份叙述必须声明自己论证哪个读数）：")
-    print(f"  {'文件':<34} {'收口':<4} {'支撑':<4} 主张的读数（定性章另见「定性收口」）")
+    print(f"  {'文件':<34} {'收口':<4} {'态':<3} {'支撑':<4} 主张的读数（定性章另见「定性收口」）")
     print("  " + "─" * 92)
     for r in rows:
         mark = "✓" if r["closing"] else ("定" if r["qual"] else "—")
+        st = {"骨架": "骨", "素材": "材", "正文": "  "}.get(r.get("status", "正文"), "  ")
         keys = "、".join(r["closing"]) if r["closing"] else (
             "（纯定性章）" if r["qual"] else "（未声明）")
-        print(f"  {r['file'][:34]:<34} {mark:<4} {r['support']:<4} {keys}")
+        print(f"  {r['file'][:34]:<34} {mark:<4} {st:<3} {r['support']:<4} {keys}")
     n_ok = sum(1 for r in rows if r["closing"] or r["qual"])
+    n_sk = sum(1 for r in rows if r.get("status") == "骨架")
+    n_mt = sum(1 for r in rows if r.get("status") == "素材")
     print(f"  " + "─" * 92)
     print(f"  合计 {len(rows)} 份，已收口 {n_ok} 份，孤儿 {len(rows) - n_ok} 份"
           f"（✓＝定量主张　定＝纯定性收口　—＝孤儿）")
+    print(f"  **待写 {n_sk} 份（骨架）＋ 待点名 {n_mt} 份（素材）**——"
+          f"这两类跳过「主张必须在正文出现」与「正文不许有仓内指针」两道检查。"
+          f"\n  它们不是通过了，是**显式挂账**：删掉文件头那行 `- 状态:` 的那一刻，两道检查立刻生效。")
 
 
 # ─────────────────────────────────────────── 主流程
@@ -504,16 +590,17 @@ def process(lint_only: bool = False) -> int:
                 for moved in item["moved"]:
                     print(f"        {moved}")
 
-    # 收口恒等式：**先只报不中断**（13 份专题里 10 份尚未被点名，一次性阻塞会卡死管线）。
-    # 判据改为硬失败的时点：八章索引表定稿之后。
+    # 收口恒等式三条，**2026-09-13g 起硬失败**（到期日已到，见 lint_closing 的 docstring）。
+    # 豁免不是消失，是改名叫「骨架／素材」并在覆盖率表里被点名计数。
     closing_problems, closing_rows = lint_closing(sources)
     print_coverage(closing_rows)
     if closing_problems:
-        print(f"\n⚠ 收口检查 {len(closing_problems)} 处（当前不中断，仅登记）：")
+        print(f"\n✗ 收口检查 {len(closing_problems)} 处，已中断：")
         for p in closing_problems[:20]:
             print("   " + p)
         if len(closing_problems) > 20:
             print(f"    …… 另有 {len(closing_problems) - 20} 处")
+        failed = True
 
     if not lint_only and not failed:
         STATE_PATH.write_text(

@@ -55,6 +55,35 @@ def main() -> None:
     # 自检不通过会中断（md 有裸数字 / 占位符算不出来 / metric 不在注册表 / facts↔指标镜像不一致）。
     import onepager
     onepager.main()
+    # 门的形状（含服务费二分求解——它要跑 22 次全模型，所以只在这里做，不进快照）
+    try:
+        from config_loader import apply_scenario, cloned_config, load_drivers, SCENARIO_ORDER
+        from gates import build_gates, print_gates
+        drivers = load_drivers(config)
+        for tier in SCENARIO_ORDER:
+            cfg_t = cloned_config(config)
+            kw = apply_scenario(cfg_t, drivers, tier)
+            snap_t = build_model(cfg_t, **kw)
+            print(f"\n【{tier}】", end="")
+            print_gates(build_gates(cfg_t, snap_t, build=lambda c, _k=kw: build_model(c, **_k)))
+    except Exception as exc:
+        print(f"⚠ 门的形状跳过：{exc}")
+
+    # 事件表：参数怎么变成现在这样的，每一次变动值多少钱
+    try:
+        import events as _ev
+        evs = _ev.load_events(config)
+        _ev.assert_current(config, evs)
+        _ev.print_events(_ev.impact(
+            config, evs,
+            lambda c: build_model(c),
+            lambda s: s.ledger.total_swap_increment_value_yi,
+        ))
+    except SystemExit as exc:
+        raise
+    except Exception as exc:
+        print(f"⚠ 事件表跳过：{exc}")
+
     # 交互沙盘（组合调参 + 自动优化反解；浏览器端只插值）
     try:
         import sandbox

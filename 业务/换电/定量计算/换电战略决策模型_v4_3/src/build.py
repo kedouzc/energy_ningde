@@ -73,6 +73,18 @@ def main() -> None:
 
     # ── 3. 叙述层 ────────────────────────────────
     _step(3, "叙述层：检查裸数字 → 注入 → 待复核")
+    # 【2026-09-14】跟踪比对：拿最新实测去比模型假设，越阈值就喊。
+    # 中检点因此不靠"记得看"，而是每次构建自己响一次（纯 stdlib，只读 audit/tracking_hdt.json）。
+    try:
+        import tracker
+        _warn = tracker.check(config)
+        if _warn:
+            print("\n⚠ 跟踪比对（最新实测 vs 模型假设）：")
+            for _w in _warn:
+                print("   " + _w)
+    except Exception as _e:
+        print(f"⚠ 跟踪比对跳过：{_e}")
+
     code = inject_mod.process()
     if code:
         print("\n构建中断：叙述层没通过检查。上面每一行都要么改成占位符，"

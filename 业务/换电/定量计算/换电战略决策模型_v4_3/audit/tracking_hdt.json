@@ -1,0 +1,198 @@
+{
+ "source": "src.dcr_hdt_monthly",
+ "caliber": "第一商用车网上险量（不含出口/军车）；**累计口径，不看单月**（季节性）",
+ "file": "电车人新能源重卡月度数据_2024-2026_口径更新.xlsx",
+ "latest_nev_pen_cum": {
+  "ym": "2026-06",
+  "value": 0.3368
+ },
+ "latest_swap_share_cum": {
+  "ym": "2026-06",
+  "value": 0.24573
+ },
+ "series": [
+  {
+   "ym": "2024-01",
+   "nev_pen_cum": null,
+   "swap_share_cum": 0.43875,
+   "nev_pen_m": 0.107,
+   "swap_share_m": 0.4387
+  },
+  {
+   "ym": "2024-02",
+   "nev_pen_cum": null,
+   "swap_share_cum": 0.41924,
+   "nev_pen_m": 0.076,
+   "swap_share_m": 0.38270000000000004
+  },
+  {
+   "ym": "2024-03",
+   "nev_pen_cum": null,
+   "swap_share_cum": 0.4218,
+   "nev_pen_m": null,
+   "swap_share_m": 0.4255
+  },
+  {
+   "ym": "2024-04",
+   "nev_pen_cum": null,
+   "swap_share_cum": 0.41247,
+   "nev_pen_m": null,
+   "swap_share_m": 0.3896
+  },
+  {
+   "ym": "2024-05",
+   "nev_pen_cum": null,
+   "swap_share_cum": 0.41272,
+   "nev_pen_m": null,
+   "swap_share_m": 0.41340000000000005
+  },
+  {
+   "ym": "2024-06",
+   "nev_pen_cum": null,
+   "swap_share_cum": 0.39741,
+   "nev_pen_m": null,
+   "swap_share_m": 0.3521
+  },
+  {
+   "ym": "2024-07",
+   "nev_pen_cum": null,
+   "swap_share_cum": 0.39222,
+   "nev_pen_m": null,
+   "swap_share_m": 0.36920000000000003
+  },
+  {
+   "ym": "2024-08",
+   "nev_pen_cum": 0.1048,
+   "swap_share_cum": 0.39165,
+   "nev_pen_m": 0.157,
+   "swap_share_m": 0.3889
+  },
+  {
+   "ym": "2024-09",
+   "nev_pen_cum": null,
+   "swap_share_cum": 0.38380000000000003,
+   "nev_pen_m": 0.18,
+   "swap_share_m": 0.34630000000000005
+  },
+  {
+   "ym": "2024-12",
+   "nev_pen_cum": 0.136,
+   "swap_share_cum": 0.38405,
+   "nev_pen_m": 0.2189,
+   "swap_share_m": 0.38439999999999996
+  },
+  {
+   "ym": "2025-01",
+   "nev_pen_cum": null,
+   "swap_share_cum": 0.38944,
+   "nev_pen_m": 0.21,
+   "swap_share_m": 0.3889
+  },
+  {
+   "ym": "2025-02",
+   "nev_pen_cum": null,
+   "swap_share_cum": 0.35600000000000004,
+   "nev_pen_m": 0.17,
+   "swap_share_m": 0.327
+  },
+  {
+   "ym": "2025-03",
+   "nev_pen_cum": null,
+   "swap_share_cum": 0.33379,
+   "nev_pen_m": 0.21,
+   "swap_share_m": 0.3114
+  },
+  {
+   "ym": "2025-04",
+   "nev_pen_cum": null,
+   "swap_share_cum": 0.32539,
+   "nev_pen_m": 0.23,
+   "swap_share_m": 0.3095
+  },
+  {
+   "ym": "2025-06",
+   "nev_pen_cum": null,
+   "swap_share_cum": 0.32287999999999994,
+   "nev_pen_m": 0.26,
+   "swap_share_m": 0.31620000000000004
+  },
+  {
+   "ym": "2025-07",
+   "nev_pen_cum": null,
+   "swap_share_cum": 0.31904,
+   "nev_pen_m": 0.2589,
+   "swap_share_m": 0.3032
+  },
+  {
+   "ym": "2025-08",
+   "nev_pen_cum": null,
+   "swap_share_cum": 0.31817,
+   "nev_pen_m": 0.2661,
+   "swap_share_m": 0.3139
+  },
+  {
+   "ym": "2025-09",
+   "nev_pen_cum": 0.2421,
+   "swap_share_cum": 0.31953,
+   "nev_pen_m": 0.2893,
+   "swap_share_m": 0.32539999999999997
+  },
+  {
+   "ym": "2025-11",
+   "nev_pen_cum": null,
+   "swap_share_cum": 0.31041,
+   "nev_pen_m": 0.36450000000000005,
+   "swap_share_m": 0.2699
+  },
+  {
+   "ym": "2025-12",
+   "nev_pen_cum": 0.2889,
+   "swap_share_cum": 0.30421,
+   "nev_pen_m": 0.539,
+   "swap_share_m": 0.2817
+  },
+  {
+   "ym": "2026-01",
+   "nev_pen_cum": null,
+   "swap_share_cum": 0.2761,
+   "nev_pen_m": 0.3318,
+   "swap_share_m": 0.2767
+  },
+  {
+   "ym": "2026-02",
+   "nev_pen_cum": null,
+   "swap_share_cum": 0.26827,
+   "nev_pen_m": 0.2616,
+   "swap_share_m": 0.2506
+  },
+  {
+   "ym": "2026-03",
+   "nev_pen_cum": null,
+   "swap_share_cum": 0.26121,
+   "nev_pen_m": 0.23309999999999997,
+   "swap_share_m": 0.2534
+  },
+  {
+   "ym": "2026-04",
+   "nev_pen_cum": null,
+   "swap_share_cum": 0.25373999999999997,
+   "nev_pen_m": 0.302,
+   "swap_share_m": 0.2422
+  },
+  {
+   "ym": "2026-05",
+   "nev_pen_cum": 0.309,
+   "swap_share_cum": 0.24802,
+   "nev_pen_m": 0.41,
+   "swap_share_m": 0.235
+  },
+  {
+   "ym": "2026-06",
+   "nev_pen_cum": 0.3368,
+   "swap_share_cum": 0.24573,
+   "nev_pen_m": 0.4475,
+   "swap_share_m": 0.2394
+  }
+ ],
+ "missing": []
+}

@@ -378,13 +378,28 @@
     "type": "float"
   },
   {
+    "key": "vehicles.heavy.nev_ceiling",
+    "value": 0.8,
+    "type": "float"
+  },
+  {
+    "key": "vehicles.heavy.nev_anchor_year",
+    "value": 2025,
+    "type": "int"
+  },
+  {
+    "key": "vehicles.heavy.nev_anchor_rate",
+    "value": 0.2889,
+    "type": "float"
+  },
+  {
     "key": "vehicles.heavy.nev_rates",
     "value": [
       0.35,
-      0.43,
-      0.46,
+      0.41,
       0.48,
-      0.5
+      0.54,
+      0.59
     ],
     "type": "list"
   },
@@ -1584,5 +1599,57 @@
     "key": "decision_thresholds.max_bet_share_high",
     "value": 0.7,
     "type": "float"
+  },
+  {
+    "key": "event",
+    "value": [
+      {
+        "id": "qiyuan_acquisition",
+        "date": "2026-08",
+        "kind": "已发生",
+        "title": "收购启源芯动力",
+        "src": "src.qiyuan_appraisal",
+        "why": "赛道内唯一够格的独立对手被并入体系，重卡换电的竞争假设从「与启源持续分食」变为「份额整合」。买什么说明缺什么：买的是站网与场景卡位，说明缺的是时间不是技术",
+        "changes": [
+          {
+            "param": "vehicles.heavy.scenes.0.catl_swap_share",
+            "from": 0.3,
+            "to": 0.8
+          },
+          {
+            "param": "vehicles.heavy.scenes.1.catl_swap_share",
+            "from": 0.3,
+            "to": 0.8
+          },
+          {
+            "param": "vehicles.heavy.scenes.2.catl_swap_share",
+            "from": 0.7,
+            "to": 0.8
+          }
+        ]
+      },
+      {
+        "id": "methanol_price_converge",
+        "date": "待观察",
+        "kind": "中检点",
+        "title": "绿色甲醇价格向灰醇收敛（下行）",
+        "trigger": "绿色甲醇到岸价 ÷ 灰甲醇价 ≤ 1.3（当前约 3 倍）。**看价格不看渗透率**：价格是因、渗透率是果，且价格月度可查、渗透率要等年报口径",
+        "src": "src.methanol_tco_2026",
+        "why": "甲醇电动的整车购置成本低于纯电（约 1/1.2），且吉利远程「远醇」已建 1000+ 座加注站、规划 2027 年底 4000 座——它是一个**正在出现的承重方**，虽然它扛的是加注网络而非燃料成本曲线。若干线场景被甲醇分走，压的是「换电占电动」这一层。**推/拉判据：CATL 自己说甲醇不行＝推；燃料生产商（非整车厂）自建加注网络＝拉**",
+        "changes": [
+          {
+            "param": "vehicles.heavy.scenes.1.swap_penetration",
+            "from": 0.5,
+            "to": 0.35
+          },
+          {
+            "param": "vehicles.heavy.scenes.2.swap_penetration",
+            "from": 0.7,
+            "to": 0.55
+          }
+        ]
+      }
+    ],
+    "type": "list"
   }
 ]

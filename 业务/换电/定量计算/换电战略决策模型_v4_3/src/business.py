@@ -392,6 +392,10 @@ def _dcf_cross_check(
         # 见 DECISIONS「2026-09-03b」）——debt统一后，直接用真正的倍数法headline数字
         # catl_attributable_value 相减，三份"倍数法归属"合并为一份（T3已解决）。
         "dcf_catl_value_gap_yi": catl_attributable_value - catl_value_base,
+        # 【2026-09-13e】押注部分的**正确对照是永续账**：有限期账把生意在 15 年处截断，
+        # 用它算出来的差额里混着"截断造成的口径差"。永续账不设终点，两者相减剩下的
+        # 才是"市场愿不愿意给这个倍数"这一件事。三口径对照见 narrative/一页纸.md。
+        "dcf_catl_value_gap_perpetual_yi": catl_attributable_value - catl_value_perp,
         "dcf_valuation_capital_pv_yi": capex.valuation_capital_pv_yi,
         "dcf_valuation_capital_pv_at_target_yi": valuation_capital_target,
         "dcf_valuation_debt_yi": debt,

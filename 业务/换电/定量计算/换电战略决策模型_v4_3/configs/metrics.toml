@@ -363,6 +363,28 @@ group = "③资本"
 note = "全周期资本底座 ×(1−债务比例)×(1−建站持股比例)；合资方/外部股权出资，不占 CATL 出资"
 
 [[metric]]
+key = "capex.equity_share"
+source = "capex"
+label = "股权投资比例"
+at = "capex.equity_share"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "③资本"
+note = "=1−项目公司债务比例。派生量，债务比例一改它自动跟着变。登记它的直接原因：叙述层原先在正文里写 `1−债务比例`，等于给这个口径开了第二个家"
+
+[[metric]]
+key = "capex.external_equity_share"
+source = "capex"
+label = "外部股权占比"
+at = "capex.external_equity_share"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "③资本"
+note = "=1−建站持股比例。合资方在项目股权里占的份额；与股权投资比例相乘即外部股权融资的占比"
+
+[[metric]]
 key = "base.catl_blended_share"
 source = "capex"
 label = "CATL 综合自有出资比例"
@@ -1158,6 +1180,136 @@ unit = "亿元"
 decimals = 1
 group = "⑤估值"
 note = "量差效应−锁定订单效应（换电对充电段的挤出）"
+
+# ── ⑩ 门的形状（2026-09-13g）─────────────────────────────────────────────
+# 每道门五件事：名字/通过/余量/翻转参数/翻转阈值。**翻转阈值才是可行性分析的价值**——
+# "调到什么程度结论会翻"比"现在是绿的"信息量大得多。计算住 src/gates.py。
+[[metric]]
+key = "gate.econ.reading"
+source = "gates"
+label = "经济门读数"
+at = "gates.econ.reading"
+unit = "倍"
+decimals = 2
+group = "⑩门"
+note = "＝EBITDA 覆盖倍数。与 swap.coverage 同一个数，这里是它在「门」这个结构里的位置"
+
+[[metric]]
+key = "gate.econ.margin"
+source = "gates"
+label = "经济门余量"
+at = "gates.econ.margin"
+unit = "倍"
+decimals = 2
+group = "⑩门"
+note = "读数 − 体检线。负数＝不通过"
+
+[[metric]]
+key = "gate.econ.flip_return"
+source = "gates"
+label = "经济门翻转·要求回报"
+at = "gates.econ.flip_required_return"
+unit = "%"
+decimals = 2
+scale = 100.0
+group = "⑩门"
+note = "全投资口径要求回报调到这个值，经济门翻转。**这是分母侧的翻转轴，判断变量不是测量值**——把它露出来，「门是红的」才不会被读成模型的结论"
+
+# ── ⑪ 四桶分解（2026-09-13i）───────────────────────────────────────────────
+# 押注部分（倍数法归属 − 永续账归属）不是一件事，要拆成四桶：
+# ①预测期外增长 ②基准外期权 ③风险低于假设 ④纯重估押注。**只有④是赌。**
+# 桶① 由 src/turnover.py 从「保有量 / 更新周期 / 流量率」三个现有参数算出，不新拍数。
+[[metric]]
+key = "val.bucket1_growth"
+source = "turnover"
+label = "桶①·车队周转增长"
+at = "turnover.bucket1_catl_yi"
+unit = "亿元"
+decimals = 1
+group = "⑤估值"
+note = "终局年之后光靠车队周转（保有量追平流量率）带来的价值，CATL 归属口径。**它可被市场之外的东西证伪**（渗透率曲线、车型数、区域盈利都可观察），桶④不能——把它从押注里拆出来，等于把论点从不可证伪的一半移到可证伪的一半"
+
+[[metric]]
+key = "val.bucket1_share"
+source = "turnover"
+label = "桶①占押注部分比例"
+at = "turnover.bucket1_share_of_bet"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "⑤估值"
+note = "桶① ÷ 押注部分（对永续账）。**口径偏保守**：缺失的历史流量率用首年值代替，会高估终局年保有渗透、低估剩余增长空间。补齐 2022–2025 实际流量率是当前最能改变这个数的一件事"
+
+[[metric]]
+key = "val.turnover_multiple"
+source = "turnover"
+label = "隐含倍数·计周转增长"
+at = "turnover.implied_multiple"
+unit = "×"
+decimals = 2
+group = "⑤估值"
+note = "两段 DCF（延长期按加权 CAGR 增长、之后归零）÷ EBITDA。**增长按 ROIC 付了资本**——`fcff/(wacc−g)` 是白拿增长，不能用"
+
+[[metric]]
+key = "val.turnover_end_index"
+source = "turnover"
+label = "延长期末换电车队倍数"
+at = "turnover.end_index"
+unit = "倍"
+decimals = 2
+group = "⑤估值"
+note = "终局年＝1。延长期末（终局年+15）换电车队是终局年的几倍——**光靠车队周转，不假设电动化率再前进一步之外的任何东西**。2026-09-14 起逐年推保有量，不再折成 CAGR（常数增长率不是这条凹路径）"
+
+[[metric]]
+key = "val.ke_derived"
+source = "business"
+label = "隐含股权成本"
+at = "swap_business.dcf_ke_derived"
+unit = "%"
+decimals = 2
+scale = 100.0
+group = "⑤估值"
+note = "由 WACC、债务比例、债务利率、税率反推：ke=(WACC−债务比例×债务利率×(1−税率))÷(1−债务比例)。**露出它才能判断这套折现率合不合理**——WACC 是一个声明，它隐含的股权要求回报是这个声明的后果，此前算了但没人看得见"
+
+[[metric]]
+key = "val.implied_multiple_true"
+source = "business"
+label = "隐含倍数·有限期账"
+at = "swap_business.dcf_implied_multiple_true"
+unit = "×"
+decimals = 2
+group = "⑤估值"
+note = "有限期账 EV ÷ EBITDA。与 swap.dcf_implied_multiple（CRF 折现口径）不是同一个数：这条用的是两本账口径的 EV"
+
+[[metric]]
+key = "val.implied_multiple_perpetual"
+source = "business"
+label = "隐含倍数·永续账"
+at = "swap_business.dcf_implied_multiple_perpetual"
+unit = "×"
+decimals = 2
+group = "⑤估值"
+note = "永续账 EV ÷ EBITDA。**这条才是拍定倍数的正确对照**：有限期账在终点截断，用它比会把「截断造成的口径差」算进战略溢价"
+
+[[metric]]
+key = "val.multiple_premium_perpetual"
+source = "business"
+label = "战略溢价倍数·对永续账"
+at = "swap_business.dcf_multiple_premium_perpetual"
+unit = "×"
+decimals = 2
+group = "⑤估值"
+note = "拍定倍数 ÷ 隐含倍数·永续账。它回答第 6 章那句话：拍的倍数里，有多少是现金流撑得起的，有多少是判断"
+
+[[metric]]
+key = "val.dcf_bet_perpetual"
+source = "business"
+label = "估值押注部分·对永续账"
+at = "swap_business.dcf_catl_value_gap_perpetual_yi"
+unit = "亿元"
+decimals = 1
+group = "⑤估值"
+note = "倍数法归属 − 永续账归属。四桶分解要拆的就是它；与 val.dcf_bet（对有限期账）之差＝期限假设造成的口径差，不是押注"
 
 [[metric]]
 key = "val.dcf_bet"

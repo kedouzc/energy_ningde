@@ -228,6 +228,11 @@ class CapexResult:
     # 随快照落盘，供输出字典 base.catl_blended_share 直接读取（scale=100 存百分数），
     # 避免事实装配层再做任何算术。
     catl_equity_factor: float
+    # 【2026-09-13c】股权投资比例＝1−债务比例；外部股权占比＝1−建站持股比例。
+    # 两者原先只以 `(1.0 - ...)` 的形态散在算式里，叙述层要引用时无名可引，
+    # 只好在正文里重写一遍算式——那正是"一件事两个家"。命名后正文只引名字。
+    equity_share: float
+    external_equity_share: float
     lifecycle_replacement_schedule_yi: dict[int, float]
     station_targets: dict[str, int]
     opening_station_stock: dict[str, int]
@@ -458,6 +463,9 @@ class SwapBusinessResult:
     dcf_catl_value_perpetual_yi: float = 0.0
     dcf_implied_multiple_perpetual: float = 0.0
     dcf_multiple_premium_perpetual: float = 0.0
+    # 【2026-09-13e】押注部分的正确对照是永续账：有限期账在终点截断，
+    # 用它算出的差额里混着「截断造成的口径差」，那部分不是判断。
+    dcf_catl_value_gap_perpetual_yi: float = 0.0
     dcf_ev_base_by_pool_yi: dict[str, float] = field(default_factory=dict)
     dcf_npv_base_by_pool_yi: dict[str, float] = field(default_factory=dict)
     dcf_catl_value_base_by_pool_yi: dict[str, float] = field(default_factory=dict)
@@ -663,6 +671,11 @@ class ModelSnapshot:
     sensitivity: list[dict[str, Any]] = field(default_factory=list)
     sources: dict[str, str] = field(default_factory=dict)
     market_share: dict[str, Any] = field(default_factory=dict)
+    # 【2026-09-13g】五道门的形状（名字/通过/余量/翻转参数/翻转阈值）。
+    # 由 gates.build_gates 在 _build_core 末尾装配，键＝门的 key（econ/physical/...）。
+    gates: dict[str, Any] = field(default_factory=dict)
+    # 【2026-09-13i】桶①·车队周转增长（src/turnover.py 装配）。
+    turnover: dict[str, Any] = field(default_factory=dict)
     # 2026-09-12 从 lab.py 下沉：资金包络与轻资产回笼的派生。
     # 计算逻辑分别在 group_constraints.py 与 capital_cycle.py，这里只挂装配好的结果。
     funding_peak_cash_to_cfo: float = float("nan")

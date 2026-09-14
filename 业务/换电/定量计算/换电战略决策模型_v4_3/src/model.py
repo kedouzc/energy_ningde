@@ -114,11 +114,14 @@ def _build_core(
             "swap_energy_share_of_society_electricity_2030": round(energy / el_30, 6) if el_30 else None,
         }
     memos = build_decision_memos(config, scale, capex, swap, ledger, light, funding, exposure)
-    return ModelSnapshot(
+    snapshot = ModelSnapshot(
         meta={
             **config["meta"],
             "wacc": config["finance"]["wacc"],
-            "wacc_basis": "蔚来换电ABS融资基准，毛估估直接采用，不作CAPM推导",
+            # 【2026-09-13f 更正】原写"蔚来换电ABS融资基准"，与 base.toml 注释块矛盾且从未查证到该数据。
+            # 这是同一个错误归因的第四处（base.toml note、审计段两处、这里）。
+            "wacc_basis": "声明（非外部信源）：能源基建行业收益率 6–8% 中枢取 7.5%；"
+                          "谱系 蔚能REITs 4.68% → 协鑫 8.5–9.1% → 启源 10.34%",
             "generated_numbers_only": True,
             "life_mode": life_mode,
         },
@@ -140,6 +143,16 @@ def _build_core(
         sources=config["sources"].copy(),
         market_share=market_share,
     )
+    # 【2026-09-13g】门的形状挂到快照上：叙述层才能引用「通过/余量/翻转阈值」。
+    # 放在 ModelSnapshot 构造之后，是因为 build_gates 要读快照本身（循环依赖只能这样解）。
+    # 这里**不做服务费二分**（要跑 22 次全模型，沙盘每拖一次滑块都会卡）——
+    # 只挂解析可得的那条轴（要求回报）。服务费翻转阈值由 run.py 单独算并打印。
+    from gates import build_gates
+    snapshot.gates = {g.key: g.as_dict() for g in build_gates(config, snapshot)}
+    # 【2026-09-13i】桶①·车队周转增长：终局年之后的增长由现有参数逼出来，不新拍数。
+    from turnover import build_turnover
+    snapshot.turnover = build_turnover(config, snapshot).as_dict()
+    return snapshot
 
 
 def build_scenarios(config: dict) -> dict[str, "ModelSnapshot"]:

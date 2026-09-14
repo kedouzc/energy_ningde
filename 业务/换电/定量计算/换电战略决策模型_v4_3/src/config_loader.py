@@ -99,6 +99,22 @@ def load_drivers(config: dict[str, Any]) -> dict[str, dict[str, Any]]:
                 f"[drivers.{name}] 必须声明 target / targets（config 点分路径）"
                 f"或 pass_as（build_model 关键字参数）"
             )
+        # 【2026-09-13e】每条轴必须显式声明进不进三情景，缺了直接报错——
+        # 新增一条 driver 时被迫做这个判断，而不是默认进轴、悄悄把区间撑宽。
+        if "scenario_axis" not in spec:
+            raise SystemExit(
+                f"[drivers.{name}] 缺少 scenario_axis（true/false）。\n"
+                f"判据：三情景轴只装「我不知道会怎样」的经营不确定性；\n"
+                f"「我自己能选的」（资本结构）与「市场怎么定价」（倍数）填 false，"
+                f"并写 off_axis_reason 说明它归哪一章处理。"
+            )
+        if not isinstance(spec["scenario_axis"], bool):
+            raise SystemExit(f"[drivers.{name}] scenario_axis 必须是 true/false")
+        if not spec["scenario_axis"] and not spec.get("off_axis_reason"):
+            raise SystemExit(
+                f"[drivers.{name}] scenario_axis=false 必须同时写 off_axis_reason——"
+                f"把一条轴移出三情景是一个判断，不许静默"
+            )
         if spec.get("mode") == "relative" and spec.get("中性") != 1.0:
             raise SystemExit(f"[drivers.{name}] relative 模式中性档必须为 1.0（不动基线）")
         # 档位必须落在 bounds 内：否则沙盘滑块够不到自己的某一档（档位是区间内的两个点）。
@@ -196,7 +212,10 @@ def apply_scenario(
         raise SystemExit(f"未知情景档位 {tier!r}，应为 {SCENARIO_ORDER}")
     kwargs: dict[str, Any] = {}
     for name, spec in drivers.items():
-        value = spec[tier]
+        # 【2026-09-13e】非情景轴固定在中性：仍走完整流程（中性档=基线的断言对全部 13 条
+        # 都要成立），只是不随档位摆动。它们改由沙盘单参数滑块单独拨。
+        tier_eff = tier if spec.get("scenario_axis", True) else "中性"
+        value = spec[tier_eff]
         if "pass_as" in spec:
             kwargs[spec["pass_as"]] = value
             continue
@@ -211,7 +230,7 @@ def apply_scenario(
             for target in targets:
                 leaf = target.split(".")[-1]
                 comp = value[_scene_name(config, target) or leaf]
-                if check_neutral and tier == "中性":
+                if check_neutral and tier_eff == "中性":
                     current = get_path(config, target)
                     if current != comp:
                         raise SystemExit(
@@ -223,12 +242,12 @@ def apply_scenario(
             continue
         for target in targets:
             if mode == "relative":
-                if check_neutral and tier == "中性":
+                if check_neutral and tier_eff == "中性":
                     continue  # 中性档=1.0，乘 1.0 即不动基线
                 base = get_path(config, target)
                 new = _apply_factor(base, value)
             else:
-                if check_neutral and tier == "中性":
+                if check_neutral and tier_eff == "中性":
                     current = get_path(config, target)
                     if current != value:
                         raise SystemExit(

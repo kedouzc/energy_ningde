@@ -8,32 +8,32 @@
   ① **路径是凹的**（逐年减速趋近渐近线），常数 CAGR 不是它；
   ② **程序本来就能逐年算**——用闭式近似代替可算的路径，
      违反"让程序算细、报告读粗"（那一版是让程序算粗，再包装成精确）。
-更根本的是那一版把**终局年的流量率冻结到永远**，等于隐含声明
-"2060 年中国还有一半重卡烧柴油"——**一个没人会为它辩护的终局状态，藏在机制里从没被说出口**。
+更根本的是那一版把**兑现年的流量率冻结到永远**，等于隐含声明
+"2060 年中国还有一半重卡烧柴油"——**一个没人会为它辩护的兑现年状态，藏在机制里从没被说出口**。
 
 【现在怎么做】
 ──────────────────────────────────────────────────────────────────────
 1. **流量曲线**：重卡用 logistic 延长（天花板在 base.toml 声明，k/t0 由**预测窗口自己的两个端点**
    拟合——2026-09-14 从"外部锚点＋窗口首年"改过来，原因见 `_flow_curve`）；
-   城配/出租/网约终局年已近饱和，延长期持平。
+   城配/出租/网约兑现年已近饱和，延长期持平。
 2. **保有渗透**＝过去一个更新周期的流量均值——这是 `nev_rates` 是流量口径的直接推论，
    **不需要新拍任何数**（保有量、更新周期、流量率三个入参都已在 base.toml）。
 3. **只让第 1 层走**：换电占电动（第 2 层）与 CATL 份额（第 3 层）在延长期**冻结**。
    第 2 层实测在跌（见 `topics/竞争格局` 与 base.toml 声明段），冻结已是偏乐观的一侧；
-   第 3 层已近终局。**冻结是一个声明，写在这里，不藏在代码里。**
+   第 3 层已近兑现年。**冻结是一个声明，写在这里，不藏在代码里。**
 4. **增长要付钱**：`fcff/(wacc−g)` 白拿增长。逐年用 `(1 − g_t/ROIC)` 扣增长资本，
    ROIC 由覆盖倍数反推（模型自己的数）。
 5. **地平线之后持平**，不做永续增长。
 
 【桶①的边界——防重复计价】
-> **桶① ≡ 相对「规模冻结在终局年」的永续账的增量，且仅此。**
+> **桶① ≡ 相对「规模冻结在兑现年」的永续账的增量，且仅此。**
 > 第 6 章论证拍定倍数时，**成长性理由只能用桶①之外的部分**，
 > 否则同一段增长会被算两次（同 `topics/资本闭环` 那条"三层混一层就是重复计价"）。
 
 【口径与保守偏向】
-· 窗口前的历史流量用首年值回推（实际历史远低于此）⇒ 终局年保有渗透**偏高**、剩余空间**偏低**。**保守。**
+· 窗口前的历史流量用首年值回推（实际历史远低于此）⇒ 兑现年保有渗透**偏高**、剩余空间**偏低**。**保守。**
 · 这是一次**标定**不是精算（方法论主线③）：精算要逐年重算 capex 与折旧。
-  本模块回答"桶①在押注部分里占多大"，不替代终局年的任何一个读数。
+  本模块回答"桶①在押注部分里占多大"，不替代兑现年的任何一个读数。
 """
 
 from __future__ import annotations
@@ -61,9 +61,9 @@ _POOL_VEHICLE_TYPES = {
 # 之后持平。
 #
 # 为什么 2026-09-14 从"写死 15"改成判据：写死的 15 读起来像借了运营年限的 15，
-# 而**运营年限从换电站投产年起算，和终局年后第几年是两件事，只是数字撞了**。
+# 而**运营年限从换电站投产年起算，和兑现年后第几年是两件事，只是数字撞了**。
 # 借来的理由是理由的赝品——曲线一改，写死的 15 会悄悄变得或长或短，而没有任何东西会报警。
-# 判据自己会动。当前参数下判据正好落在终局年 +15 年：**这次改口径，baseline 一个数没动。**
+# 判据自己会动。当前参数下判据正好落在兑现年 +15 年：**这次改口径，baseline 一个数没动。**
 # 判据是两条，缺一不可：
 #   ① 当年增速 < _GROWTH_FLOOR —— "此刻看起来平了"；
 #   ② 再推到兜底上限也只多长 _RESIDUAL_TOL —— "**截掉的那一段确实小**"。
@@ -97,17 +97,17 @@ class PoolCapacity:
       所以 `free_share` 是一块**已经付过钱、但其实不用付**的保守量，不是可用的余粮。
     """
     pool: str
-    need_ratio: float          # 延长期末该池车队 ÷ 终局年（= 需要的承载力倍数）
+    need_ratio: float          # 延长期末该池车队 ÷ 兑现年（= 需要的承载力倍数）
     headroom_ratio: float      # 单站物理上限 ÷ 规划能力（= 不新建站能白拿的倍数）
     binding: str               # 单站物理上限卡在哪一侧："手速" | "能量"
     free_share: float          # 该池增量中落在物理余量内的比例（0=全靠新建，1=全靠余量）
-    throughput_share: float    # 该池终局年日换电次数占全网比重（加权用）
+    throughput_share: float    # 该池兑现年日换电次数占全网比重（加权用）
 
 
 @dataclass
 class TurnoverResult:
     types: list[TypePath] = field(default_factory=list)
-    index: dict[int, float] = field(default_factory=dict)   # 逐年换电车队指数（终局年=1）
+    index: dict[int, float] = field(default_factory=dict)   # 逐年换电车队指数（兑现年=1）
     roic: float = 0.0
     ev_frozen_yi: float = 0.0
     ev_turnover_yi: float = 0.0
@@ -147,7 +147,7 @@ def _flow_curve(spec: dict, y0: int, y_end: int) -> tuple[dict[int, float], floa
 
     重卡：logistic 延长，L 声明、k/t0 由**窗口自己的两个端点** (y0, rates[0]) 与
     (y_last, rates[-1]) 定死；**窗口内一律用声明的 nev_rates，不被曲线覆盖**。
-    其余车型：终局年已近饱和，延长期持平；窗口内用配置值。
+    其余车型：兑现年已近饱和，延长期持平；窗口内用配置值。
     窗口之前一律用首年值回推（保守，见模块 docstring）。
 
     【2026-09-14 改了拟合的两个点，原因】
@@ -156,7 +156,7 @@ def _flow_curve(spec: dict, y0: int, y_end: int) -> tuple[dict[int, float], floa
     加窗口首年。中性档看不出问题（那条 nev_rates 本来就是这么生成的），
     但情景轴把整条 nev_rates 上下平移 ±15% 时，**锚点不动**，于是：
       · 悲观档首年被压到几乎贴着锚点 → 斜率 k 塌掉 → 曲线爬 40 年还没压平（这次是它把构建打断的）；
-      · 而且曲线会**覆盖窗口内的声明值**：悲观档 turnover 眼里的终局年渗透 ≈0.33，
+      · 而且曲线会**覆盖窗口内的声明值**：悲观档 turnover 眼里的兑现年渗透 ≈0.33，
         scale.py 眼里是声明的 0.50——**同一个数两个家，在情景档里差了一半，没有任何东西报警。**
     改成用窗口自己的两个端点拟合，两件事一起消失：延长期与窗口天然接得上（曲线穿过端点），
     情景轴平移整条 nev_rates 时斜率随之平移，**不再出现"轴动了一半"这种半吊子形变**。
@@ -192,7 +192,7 @@ def _flow_curve(spec: dict, y0: int, y_end: int) -> tuple[dict[int, float], floa
 def _pool_capacity(snapshot, ratio: dict[str, float]) -> tuple[list[PoolCapacity], float]:
     """延长期末，四个站型各自「需要多少倍承载力」与「单站白拿多少倍」的对账。
 
-    它回答的是一句具体的追问：**终局年按 2030 车队规模建成的站网，2030 之后车队还在长，
+    它回答的是一句具体的追问：**兑现年按 2030 车队规模建成的站网，2030 之后车队还在长，
     承载力从哪来？** 三条路——填满单站既有物理余量（免费）、加工位、电网增容（后两条更便宜），
     以及新建站（最贵）。**模型一律按最贵的那条计价**，所以这里报出来的 `free_share`
     是一块已经付过钱、其实不必付的保守量，不是可以花掉的余粮。
@@ -221,7 +221,7 @@ def _pool_capacity(snapshot, ratio: dict[str, float]) -> tuple[list[PoolCapacity
         binding = "手速" if d["mechanical_limit"] <= d["energy_limit"] else "能量"
         inc = max(0.0, need - 1.0)                       # 该池需要的增量倍数
         free = 1.0 if inc <= 0 else min(1.0, max(0.0, head - 1.0) / inc)
-        thr = float(demand.get(pool, 0.0)) * plan        # 终局年日换电次数（加权底）
+        thr = float(demand.get(pool, 0.0)) * plan        # 兑现年日换电次数（加权底）
         rows.append(PoolCapacity(pool=pool, need_ratio=need, headroom_ratio=head,
                                  binding=binding, free_share=free, throughput_share=thr))
         incr.append(thr * inc)
@@ -246,7 +246,7 @@ def build_turnover(config: dict, snapshot) -> TurnoverResult:
     # 此前两处都写死 15，读起来像同一个 15，改口径时必然连坐。现在各自回各自的家。
     life = config["finance"]["model_horizon_years"]
     life = int(life["v"] if isinstance(life, dict) else life)
-    # ROIC ＝ 终局年净现金流 ÷ 全周期资本。两边都是同一层的钱（税后、全投资口径），
+    # ROIC ＝ 兑现年净现金流 ÷ 全周期资本。两边都是同一层的钱（税后、全投资口径），
     # 所以这个比值就是"这门生意每投一块钱，一年赚回几分"，正好是增长资本该按的比率。
     #
     # 【2026-09-15 改·原 R7】原来写的是 `_solve_i(EBITDA覆盖 × CRF)`，反推出 16.69%。
@@ -309,7 +309,7 @@ def build_turnover(config: dict, snapshot) -> TurnoverResult:
             break
     if not horizon:
         raise ValueError(
-            f"车队指数在终局年后 {_HORIZON_CAP} 年内没有压平"
+            f"车队指数在兑现年后 {_HORIZON_CAP} 年内没有压平"
             f"（判据：年增速 <{_GROWTH_FLOOR:.1%} 且残余 <{_RESIDUAL_TOL:.0%}；"
             f"末年指数 {index[y_scan]:.3f}）：要么天花板或更新周期被改坏了，"
             "要么这条曲线本来就不该用「推到压平」这个判据。"
@@ -355,12 +355,12 @@ def print_turnover(r: TurnoverResult) -> None:
     print("桶① · 车队周转增长（逐年推保有量；流量曲线由 logistic 延长，第 2、3 层冻结）")
     print("═" * 78)
     print("  %-10s %8s %6s %10s %10s %8s %9s" % (
-        "车型", "天花板", "周期", "终局保有", "末年保有", "倍数", "装机权重"))
+        "车型", "天花板", "周期", "兑现年保有", "末年保有", "倍数", "装机权重"))
     for t in r.types:
         print("  %-10s %7.0f%% %6.0f %9.1f%% %9.1f%% %8.2f %9.1f" % (
             t.key, t.ceiling * 100, t.cycle_years,
             t.stock_share_terminal * 100, t.stock_share_end * 100, t.ratio, t.weight_gwh))
-    print("  换电车队指数（终局年=1）：" + "  ".join(
+    print("  换电车队指数（兑现年=1）：" + "  ".join(
         "%d:%.2f" % (y, v) for y, v in sorted(r.index.items()) if (y % 5 == 0 or y == max(r.index))))
     print("  隐含项目 ROIC %.2f%%" % (r.roic * 100))
     print("  永续账（规模冻结）EV {:,.1f} 亿 → 计周转增长 {:,.1f} 亿（隐含 {:.2f}×）".format(
@@ -368,7 +368,7 @@ def print_turnover(r: TurnoverResult) -> None:
     print("  **桶①（CATL 归属口径）= {:+,.1f} 亿，占押注部分的 {:.0f}%**".format(
         r.bucket1_catl_yi, r.bucket1_share_of_bet * 100))
     if r.pools:
-        print("  ── 延长期承载力对账（终局年站网 = 1.00；不假设任何单站扩容）")
+        print("  ── 延长期承载力对账（兑现年站网 = 1.00；不假设任何单站扩容）")
         print("  %-18s %8s %8s %6s %8s %8s" % ("站型", "需要倍数", "单站余量", "卡在", "免费承接", "吞吐权重"))
         for x in r.pools:
             print("  %-18s %7.2f× %7.2f× %6s %7.0f%% %7.0f%%" % (

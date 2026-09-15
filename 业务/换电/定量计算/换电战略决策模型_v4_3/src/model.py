@@ -46,7 +46,7 @@ def _build_core(
     # TCO 已在 tco.py 独立（build_heavy_economics）；在装配层挂载到快照，business 不再依赖 tco。
     swap.heavy_economics = build_heavy_economics(config, scale, capex, swap.pool_operations)
     # 逐年存量/流量明细矩阵（2026-09-13）：明细落快照（ScaleResult.yearly_stock），
-    # 标量仍走输出字典；终局列与⑧组在网电池标量硬对齐，口径漂移在此刻中断而不是在页面暴露。
+    # 标量仍走输出字典；兑现年列与⑧组在网电池标量硬对齐，口径漂移在此刻中断而不是在页面暴露。
     scale.yearly_stock = build_yearly_stock(config, scale, capex)
     assert_yearly_stock_aligned(scale, swap)
     no_swap, with_swap = build_manufacturing_cases(config, scale, capex)
@@ -149,7 +149,7 @@ def _build_core(
     # 只挂解析可得的那条轴（要求回报）。服务费翻转阈值由 run.py 单独算并打印。
     from gates import build_gates
     snapshot.gates = {g.key: g.as_dict() for g in build_gates(config, snapshot)}
-    # 【2026-09-13i】桶①·车队周转增长：终局年之后的增长由现有参数逼出来，不新拍数。
+    # 【2026-09-13i】桶①·车队周转增长：兑现年之后的增长由现有参数逼出来，不新拍数。
     from turnover import build_turnover
     snapshot.turnover = build_turnover(config, snapshot).as_dict()
     return snapshot

@@ -3551,7 +3551,7 @@
       "cash_per_persistent_value_lost": null,
       "future_catl_capital_released_yi": 0.0,
       "data_control_ok": true,
-      "decision_role": "基准终局：资金不短缺时不出表"
+      "decision_role": "基准兑现年：资金不短缺时不出表"
     }
   ],
   "funding": [
@@ -3688,7 +3688,7 @@
     {
       "owner": "规模与网络",
       "status": "支持",
-      "conclusion": "共同车辆底座闭合；需求反推终局站数，建设节奏按2026里程碑、2028完成网络处理。",
+      "conclusion": "共同车辆底座闭合；需求反推兑现年站数，建设节奏按2026里程碑、2028完成网络处理。",
       "evidence": {
         "重卡站": 7109,
         "巧克力站": 7689,
@@ -4363,7 +4363,7 @@
       "flips": [],
       "flip_required_return": 0.0,
       "implemented": false,
-      "note": "能不能建：终局年目标装机必须远小于现有＋规划产能，且给储能/AIDC 留余量"
+      "note": "能不能建：兑现年目标装机必须远小于现有＋规划产能，且给储能/AIDC 留余量"
     },
     "funding": {
       "key": "funding",

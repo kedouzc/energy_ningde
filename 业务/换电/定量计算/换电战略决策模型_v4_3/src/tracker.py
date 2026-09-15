@@ -38,7 +38,7 @@ XLSX_CANDIDATES = [
 
 # 中检点阈值：**只对年度/累计读数生效，不看单月**（季节性）
 WATCH = {
-    "swap_share_gap": 0.10,   # 实测换电占纯电 与 模型终局假设 的差，越过即报警
+    "swap_share_gap": 0.10,   # 实测换电占纯电 与 模型兑现年假设 的差，越过即报警
     "nev_anchor_gap": 0.03,   # 实测年度渗透 与 拟合锚 的差
 }
 
@@ -114,14 +114,14 @@ def check(config: dict) -> list[str]:
         return []
     warn = []
     hv = config["vehicles"]["heavy"]
-    # ① 换电占纯电：模型终局年加权 vs 最新实测累计
+    # ① 换电占纯电：模型兑现年加权 vs 最新实测累计
     scenes = hv.get("scenes", [])
     tot_w = sum(s.get("weight", 0.0) for s in scenes) or 1.0
     model_share = sum(s.get("weight", 0.0) * s.get("swap_penetration", 0.0) for s in scenes) / tot_w
     obs = d["latest_swap_share_cum"]["value"]
     if obs is not None and abs(model_share - obs) > WATCH["swap_share_gap"]:
         warn.append(
-            f"【换电占纯电】模型终局年加权 {model_share:.1%}，最新实测（{d['latest_swap_share_cum']['ym']}"
+            f"【换电占纯电】模型兑现年加权 {model_share:.1%}，最新实测（{d['latest_swap_share_cum']['ym']}"
             f" 累计）{obs:.1%}，差 {model_share - obs:+.1%}。"
             f"这不是 bug，是一个**反转预期**——推翻条件写在 base.toml 的声明段，"
             f"机制与三条反驳见 topics/竞争格局「换电占电动为什么在跌」")

@@ -47,11 +47,11 @@
 # note     = 口径说明：它是什么口径、和谁的区别（存量/流量、100%/归属、现值/名义）
 # ══════════════════════════════════════════════════════════════════════════
 
-# ── ① 运营业务规模（存量口径：终局在役多少、网络多大）──────────────────────
+# ── ① 运营业务规模（存量口径：兑现年在役多少、网络多大）──────────────────────
 [[metric]]
 key = "ops.veh_commercial"
 source = "scale"
-label = "换电车辆商用营运车合计终局"
+label = "换电车辆商用营运车合计·兑现年"
 at = "scale.veh_commercial_wan"
 unit = "万辆"
 decimals = 1
@@ -61,7 +61,7 @@ note = "重卡+城配"
 [[metric]]
 key = "ops.veh_passenger_ops"
 source = "scale"
-label = "换电车辆乘用营运车合计终局"
+label = "换电车辆乘用营运车合计·兑现年"
 at = "scale.veh_passenger_ops_wan"
 unit = "万辆"
 decimals = 1
@@ -71,7 +71,7 @@ note = "出租+网约+Robotaxi"
 [[metric]]
 key = "ops.veh_heavy"
 source = "scale"
-label = "换电车辆重卡合计终局"
+label = "换电车辆重卡合计·兑现年"
 at = "scale.veh_heavy_wan"
 unit = "万辆"
 decimals = 1
@@ -80,7 +80,7 @@ group = "①运营规模"
 [[metric]]
 key = "ops.veh_city"
 source = "scale"
-label = "换电车辆城配物流车合计终局"
+label = "换电车辆城配物流车合计·兑现年"
 at = "scale.veh_city_wan"
 unit = "万辆"
 decimals = 1
@@ -89,7 +89,7 @@ group = "①运营规模"
 [[metric]]
 key = "ops.veh_private"
 source = "scale"
-label = "换电车辆私家车合计终局"
+label = "换电车辆私家车合计·兑现年"
 at = "scale.veh_private_wan"
 unit = "万辆"
 decimals = 1
@@ -98,7 +98,7 @@ group = "①运营规模"
 [[metric]]
 key = "ops.veh_total"
 source = "scale"
-label = "换电车辆合计终局"
+label = "换电车辆合计·兑现年"
 at = "scale.veh_total_wan"
 unit = "万辆"
 decimals = 1
@@ -107,7 +107,7 @@ group = "①运营规模"
 [[metric]]
 key = "ops.veh_ops"
 source = "scale"
-label = "换电车辆营运车合计终局"
+label = "换电车辆营运车合计·兑现年"
 at = "scale.veh_ops_total_wan"
 unit = "万辆"
 decimals = 1
@@ -172,7 +172,7 @@ group = "①运营规模"
 [[metric]]
 key = "scale.heavy_stations"
 source = "scale"
-label = "终局重卡站数"
+label = "兑现年重卡站数"
 at = "scale.station_demand_by_category.heavy"
 unit = "座"
 decimals = 0
@@ -181,7 +181,7 @@ group = "①运营规模"
 [[metric]]
 key = "scale.choco_stations"
 source = "scale"
-label = "终局巧克力站数"
+label = "兑现年巧克力站数"
 at = "scale.station_demand_by_category.choco"
 unit = "座"
 decimals = 0
@@ -190,18 +190,18 @@ group = "①运营规模"
 [[metric]]
 key = "scale.stations_total"
 source = "scale"
-label = "终局站数合计"
+label = "兑现年站数合计"
 at = "scale.stations_total"
 unit = "座"
 decimals = 0
 group = "①运营规模"
-note = "四站型终局站数之和；= 重卡站 + 巧克力站"
+note = "四站型兑现年站数之和；= 重卡站 + 巧克力站"
 
-# ── ② 制造业务出货（流量口径：终局年当年交付多少）───────────────────────────
+# ── ② 制造业务出货（流量口径：兑现年当年交付多少）───────────────────────────
 [[metric]]
 key = "mfg.swap_veh_2030"
 source = "scale"
-label = "终局年出货·换电车辆"
+label = "兑现年出货·换电车辆"
 at = "scale.swap_veh_2030_wan"
 unit = "万辆"
 decimals = 1
@@ -210,7 +210,7 @@ group = "②制造出货"
 [[metric]]
 key = "mfg.charge_veh_2030"
 source = "scale"
-label = "终局年出货·充电车辆"
+label = "兑现年出货·充电车辆"
 at = "scale.charge_veh_2030_wan"
 unit = "万辆"
 decimals = 1
@@ -219,7 +219,7 @@ group = "②制造出货"
 [[metric]]
 key = "mfg.swap_gwh_2030"
 source = "scale"
-label = "终局年出货·换电装车"
+label = "兑现年出货·换电装车"
 at = "scale.swap_gwh_2030"
 unit = "GWh"
 decimals = 1
@@ -228,7 +228,7 @@ group = "②制造出货"
 [[metric]]
 key = "mfg.charge_gwh_2030"
 source = "scale"
-label = "终局年出货·充电装车"
+label = "兑现年出货·充电装车"
 at = "scale.charge_gwh_2030"
 unit = "GWh"
 decimals = 1
@@ -237,7 +237,7 @@ group = "②制造出货"
 [[metric]]
 key = "mfg.total_gwh_2030"
 source = "scale"
-label = "终局年出货合计·车辆装机"
+label = "兑现年出货合计·车辆装机"
 at = "scale.total_gwh_2030"
 unit = "GWh"
 decimals = 1
@@ -247,7 +247,7 @@ note = "**产能核查**的口径：换电会占用全线产能，只算换电�
 [[metric]]
 key = "mfg.total_veh_2030"
 source = "scale"
-label = "终局年出货合计·车辆数"
+label = "兑现年出货合计·车辆数"
 at = "scale.total_veh_2030_wan"
 unit = "万辆"
 decimals = 1
@@ -278,7 +278,7 @@ note = "只含骐骥75#两池；重卡是更新需求的主力（干线池寿命
 [[metric]]
 key = "capex.initial_capex"
 source = "capex"
-label = "终局初装CAPEX"
+label = "兑现年初装CAPEX"
 at = "capex.total_initial_capex_yi"
 unit = "亿元"
 decimals = 1
@@ -541,7 +541,7 @@ group = "⑤估值"
 [[metric]]
 key = "val.power_with_swap"
 source = "consolidation"
-label = "终局年动力价值(有换电)"
+label = "兑现年动力价值(有换电)"
 at = "ledger.power_value_2030_with_swap_yi"
 unit = "亿元"
 decimals = 1
@@ -550,7 +550,7 @@ group = "⑤估值"
 [[metric]]
 key = "val.power_no_swap"
 source = "consolidation"
-label = "终局年动力价值(无换电)"
+label = "兑现年动力价值(无换电)"
 at = "ledger.power_value_2030_no_swap_yi"
 unit = "亿元"
 decimals = 1
@@ -642,7 +642,7 @@ at = "swap_business.dcf_ev_true_yi"
 unit = "亿元"
 decimals = 1
 group = "⑤估值"
-note = "15 年有限期、毛现金流资本化；不含终局年后规模增长"
+note = "15 年有限期、毛现金流资本化；不含兑现年后规模增长"
 
 [[metric]]
 key = "val.ev_dcf_perpetual"
@@ -652,7 +652,7 @@ at = "swap_business.dcf_ev_perpetual_yi"
 unit = "亿元"
 decimals = 1
 group = "⑤估值"
-note = "规模冻结在终局年的永续账：模型内的上限、真实世界的下限"
+note = "规模冻结在兑现年的永续账：模型内的上限、真实世界的下限"
 
 [[metric]]
 key = "val.catl_dcf_true"
@@ -708,7 +708,7 @@ group = "⑥资金"
 [[metric]]
 key = "fund.closing_liquidity"
 source = "group_constraints"
-label = "终局年期末可动用资金"
+label = "兑现年期末可动用资金"
 at = "funding_closing_liquidity"
 unit = "亿元"
 decimals = 1
@@ -738,13 +738,13 @@ note = "分子＝站内周转装机保有量 GWh（常驻站、可参与电网�
 [[metric]]
 key = "mk.share_storage_2030"
 source = "model"
-label = "站内装机GWh / 终局年储能装机预测"
+label = "站内装机GWh / 兑现年储能装机预测"
 at = "market_share.cross_check_vs_national.swap_station_battery_share_of_national_storage_2030"
 unit = "%"
 decimals = 2
 group = "⑦市场地位"
 scale = 100.0
-note = "分子＝站内周转装机；分母＝终局年全国新型储能装机预测（国务院文件推算，含经验假设折算）"
+note = "分子＝站内周转装机；分母＝兑现年全国新型储能装机预测（国务院文件推算，含经验假设折算）"
 
 [[metric]]
 key = "mk.share_elec_latest"
@@ -760,13 +760,13 @@ note = "分子＝成熟期年换电交易电量（亿kWh）；分母＝最新年
 [[metric]]
 key = "mk.share_elec_2030"
 source = "model"
-label = "年换电量 / 终局年全社会用电量预测"
+label = "年换电量 / 兑现年全社会用电量预测"
 at = "market_share.cross_check_vs_society_electricity.swap_energy_share_of_society_electricity_2030"
 unit = "%"
 decimals = 3
 group = "⑦市场地位"
 scale = 100.0
-note = "分母＝终局年全社会用电量预测（国网能源院口径，二手转引）"
+note = "分母＝兑现年全社会用电量预测（国网能源院口径，二手转引）"
 
 [[metric]]
 key = "ops.share_of_market"
@@ -776,7 +776,7 @@ at = "scale.share_of_market_pct"
 unit = "%"
 decimals = 2
 group = "⑦市场地位"
-note = "换电车辆营运车合计终局 ÷ 营运车总市场"
+note = "换电车辆营运车合计·兑现年 ÷ 营运车总市场"
 
 [[metric]]
 key = "mfg.repl_share_pct"
@@ -946,7 +946,7 @@ decimals = 3
 group = "⑧重卡"
 
 # ── 以下两条是算出来的输出（at 取快照），只是历史上搭车在外部锚组里登记；
-#    真正的输入（终局年/driver/外锚/阈值）已改为 base.toml 功能段就地信封，
+#    真正的输入（兑现年/driver/外锚/阈值）已改为 base.toml 功能段就地信封，
 #    本字典只保留模型输出（2026-09-13 两层定稿）。
 [[metric]]
 key = "ops.market_total"
@@ -987,7 +987,7 @@ at = "capex.steady_state_debt_yi"
 unit = "亿元"
 decimals = 1
 group = "③资本"
-note = "终局年在役资产历史成本×债务比例；倍数法与DCF两线共用同一数（T3已解决）"
+note = "兑现年在役资产历史成本×债务比例；倍数法与DCF两线共用同一数（T3已解决）"
 
 [[metric]]
 key = "capex.preperiod_capex"
@@ -1227,7 +1227,7 @@ at = "turnover.bucket1_catl_yi"
 unit = "亿元"
 decimals = 1
 group = "⑤估值"
-note = "终局年之后光靠车队周转（保有量追平流量率）带来的价值，CATL 归属口径。**它可被市场之外的东西证伪**（渗透率曲线、车型数、区域盈利都可观察），桶④不能——把它从押注里拆出来，等于把论点从不可证伪的一半移到可证伪的一半"
+note = "兑现年之后光靠车队周转（保有量追平流量率）带来的价值，CATL 归属口径。**它可被市场之外的东西证伪**（渗透率曲线、车型数、区域盈利都可观察），桶④不能——把它从押注里拆出来，等于把论点从不可证伪的一半移到可证伪的一半"
 
 [[metric]]
 key = "val.bucket1_share"
@@ -1238,7 +1238,7 @@ unit = "%"
 decimals = 0
 scale = 100.0
 group = "⑤估值"
-note = "桶① ÷ 押注部分（对永续账）。**口径偏保守**：缺失的历史流量率用首年值代替，会高估终局年保有渗透、低估剩余增长空间。补齐 2022–2025 实际流量率是当前最能改变这个数的一件事"
+note = "桶① ÷ 押注部分（对永续账）。**口径偏保守**：缺失的历史流量率用首年值代替，会高估兑现年保有渗透、低估剩余增长空间。补齐 2022–2025 实际流量率是当前最能改变这个数的一件事"
 
 [[metric]]
 key = "val.turnover_multiple"
@@ -1258,7 +1258,7 @@ at = "turnover.end_index"
 unit = "倍"
 decimals = 2
 group = "⑤估值"
-note = "终局年＝1。延长期末换电车队是终局年的几倍。**延长期长度由收敛判据定**——推到保有量年增速压平为止，不是借用运营年限（运营年限从换电站投产年起算，与终局年后第几年是两件事）。口径：延长期只让电动化渗透（第 1 层）继续走，换电占电动（第 2 层）与 CATL 份额（第 3 层）冻结。2026-09-14 起逐年推保有量，不再折成 CAGR（常数增长率不是这条凹路径）"
+note = "兑现年＝1。延长期末换电车队是兑现年的几倍。**延长期长度由收敛判据定**——推到保有量年增速压平为止，不是借用运营年限（运营年限从换电站投产年起算，与兑现年后第几年是两件事）。口径：延长期只让电动化渗透（第 1 层）继续走，换电占电动（第 2 层）与 CATL 份额（第 3 层）冻结。2026-09-14 起逐年推保有量，不再折成 CAGR（常数增长率不是这条凹路径）"
 
 [[metric]]
 key = "val.turnover_horizon_years"
@@ -1279,7 +1279,7 @@ unit = "%"
 decimals = 0
 scale = 100.0
 group = "⑤估值"
-note = "终局年站网按 2030 车队建成后，2030 之后车队还在长；这一比例是**新增需求中落在单站既有物理余量里、不必新建站**的部分。**模型没有认领它**——延长期一律按新建站、按存量平均资本强度计提资本（`1−g/ROIC`），双工位与电网增容这两条更便宜的路都不进模型。所以它是保守量，不是余粮"
+note = "兑现年站网按 2030 车队建成后，2030 之后车队还在长；这一比例是**新增需求中落在单站既有物理余量里、不必新建站**的部分。**模型没有认领它**——延长期一律按新建站、按存量平均资本强度计提资本（`1−g/ROIC`），双工位与电网增容这两条更便宜的路都不进模型。所以它是保守量，不是余粮"
 
 [[metric]]
 key = "val.ke_derived"

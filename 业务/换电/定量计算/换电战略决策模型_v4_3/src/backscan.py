@@ -48,16 +48,16 @@ def build_metrics(data: dict) -> list[tuple[str, float, str]]:
     )
     metrics = [
         # Q1 规模（快照站数键=四池/四站型；两大类汇总在读取端派生，重卡=短途+中长途）
-        ("骐骥重卡站（终局）", float(sum(
+        ("骐骥重卡站（兑现年）", float(sum(
             count for pool, count in data["scale"]["target_station_demand"].items()
             if pool.startswith("qiji75")
         )), "座"),
-        ("巧克力站（终局）", float(sum(
+        ("巧克力站（兑现年）", float(sum(
             count for pool, count in data["scale"]["target_station_demand"].items()
             if pool.startswith("choco")
         )), "座"),
-        ("CATL换电车辆（终局）", swap_vehicles_wan, "万辆"),
-        ("换电电池总装机（终局）", total_swap_gwh, "GWh"),
+        ("CATL换电车辆（兑现年）", swap_vehicles_wan, "万辆"),
+        ("换电电池总装机（兑现年）", total_swap_gwh, "GWh"),
         ("年换电交易电量", data["swap_business"]["annual_energy_yi_kwh"], "亿kWh"),
         # Q2 代价
         ("初装CAPEX合计", data["capex"]["total_initial_capex_yi"], "亿元"),

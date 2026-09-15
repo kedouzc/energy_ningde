@@ -33,8 +33,8 @@ WATCHED: tuple[tuple[str, str, int], ...] = (
     ("val.swap_increment", "换电增量价值合计（亿）", 1),
     ("val.incr_over_mktcap", "增量/集团市值", 3),
     ("swap.coverage", "EBITDA 覆盖倍数", 2),
-    ("swap.ebitda", "终局年 EBITDA（亿）", 1),
-    ("scale.stations_total", "终局站数合计", 0),
+    ("swap.ebitda", "兑现年 EBITDA（亿）", 1),
+    ("scale.stations_total", "兑现年站数合计", 0),
     ("val.implied_multiple_perpetual", "隐含倍数·永续账", 2),
     ("val.turnover_multiple", "隐含倍数·计周转增长", 2),
 )

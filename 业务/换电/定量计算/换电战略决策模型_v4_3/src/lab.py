@@ -479,7 +479,7 @@ class Metric:
 
 
 # ── 存量口径 vs 流量口径（两个最容易混的口径，必须显式区分）──────────────
-# 存量 = 终局在役多少（operating_stock_by_vehicle_wan）：报告 Q1 的"CATL换电车辆 351.9 万辆"。
+# 存量 = 兑现年在役多少（operating_stock_by_vehicle_wan）：报告 Q1 的"CATL换电车辆 351.9 万辆"。
 # 流量 = 2030 当年交付多少（scale.rows[year==2030]）：出货量口径，用于制造侧收入。
 # 二者相差 3 倍以上，混用会让"覆盖了多少车"和"今年卖了多少电池"互相污染。
 _COMMERCIAL = ("heavy", "city")                        # 商用营运车：重卡 + 城配

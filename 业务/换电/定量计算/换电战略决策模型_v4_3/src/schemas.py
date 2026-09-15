@@ -100,7 +100,7 @@ class ScaleResult:
     # 六类（重卡/城配/乘用营运/私家/营运合计/总计）× 四指标（车辆万辆、车端GWh、
     # 站内GWh、合计GWh）× 两口径（flow 当年新增 / stock 年末存量）。
     # 分层原则：**明细落快照、标量进字典**——逐年明细只住这里（快照 JSON），
-    # 输出字典 configs/metrics.toml 仍只注册终局标量，不把逐年矩阵灌进字典。
+    # 输出字典 configs/metrics.toml 仍只注册兑现年标量，不把逐年矩阵灌进字典。
     # 由 scale.build_yearly_stock() 在 model 装配层（capex/swap 就绪后）挂载；
     # asdict 自动收录，Pyodide 端同源生成。结构见该函数 docstring。
     yearly_stock: dict = field(default_factory=dict)
@@ -109,30 +109,30 @@ class ScaleResult:
     # 为什么这些汇总要落在这里而不是留在取数层：它们是**规模口径的一部分**
     # （"营运车合计含哪几类"本身就是口径），且改车辆分类时必须跟着改。
     # 落快照后，输出字典 configs/metrics.toml 只需写 `at="scale.xxx"`，不含任何公式。
-    veh_heavy_wan: float = 0.0            # 终局覆盖·换电重卡
-    veh_city_wan: float = 0.0             # 终局覆盖·换电城配物流车
+    veh_heavy_wan: float = 0.0            # 兑现年覆盖·换电重卡
+    veh_city_wan: float = 0.0             # 兑现年覆盖·换电城配物流车
     veh_commercial_wan: float = 0.0       # 商用营运车（重卡+城配）
     veh_passenger_ops_wan: float = 0.0    # 乘用营运车（出租+网约+Robotaxi）
     veh_private_wan: float = 0.0          # 私家车
     veh_ops_total_wan: float = 0.0        # 营运车合计（商业营运+乘用营运，不含私家车）
     veh_total_wan: float = 0.0            # 全部车辆合计
-    swap_veh_2030_wan: float = 0.0        # 终局年出货·换电车辆
-    charge_veh_2030_wan: float = 0.0      # 终局年出货·充电车辆
-    total_veh_2030_wan: float = 0.0       # 终局年出货合计·车辆数（产能核查口径：换电+充电）
-    swap_gwh_2030: float = 0.0            # 终局年出货·换电装车 GWh
-    charge_gwh_2030: float = 0.0          # 终局年出货·充电装车 GWh
-    total_gwh_2030: float = 0.0           # 终局年出货合计 GWh（产能核查口径：换电+充电）
+    swap_veh_2030_wan: float = 0.0        # 兑现年出货·换电车辆
+    charge_veh_2030_wan: float = 0.0      # 兑现年出货·充电车辆
+    total_veh_2030_wan: float = 0.0       # 兑现年出货合计·车辆数（产能核查口径：换电+充电）
+    swap_gwh_2030: float = 0.0            # 兑现年出货·换电装车 GWh
+    charge_gwh_2030: float = 0.0          # 兑现年出货·充电装车 GWh
+    total_gwh_2030: float = 0.0           # 兑现年出货合计 GWh（产能核查口径：换电+充电）
     market_total_wan: float = 0.0         # 营运车总市场（分母，来自 config 运营事实）
     share_of_market_pct: float = float("nan")   # 营运车覆盖率 = veh_ops_total / market_total
     heavy_pen_pct: float = float("nan")   # 换电重卡 ÷ 重卡保有量（分母是外部事实）
-    stations_total: float = 0.0           # 终局站数合计（四站型之和）
+    stations_total: float = 0.0           # 兑现年站数合计（四站型之和）
     daily_swaps_wan: float = 0.0          # 成熟期日换电次数合计（万次/日）
 
     # ---- 两大类汇总（重卡=短途+中长途、巧克力=乘用+城配）：仅派生展示，不落快照 ----
 
     @property
     def station_demand_by_category(self) -> dict[str, int]:
-        """终局站数按两大类汇总（v3.2 对照与总表口径）。"""
+        """兑现年站数按两大类汇总（v3.2 对照与总表口径）。"""
         return {
             category: sum(
                 count for pool, count in self.target_station_demand.items()
@@ -249,7 +249,7 @@ class CapexResult:
     terminal_residual_by_life: dict[str, float]
     retirement_recovery_ratio: float
     # 【新增｜分池资本】四站型各自的资本口径（键=池键=站型键）：
-    # 全周期资本底座、成熟期年折旧、终局初装 CAPEX。四池之和与对应总量字段恒等
+    # 全周期资本底座、成熟期年折旧、兑现年初装 CAPEX。四池之和与对应总量字段恒等
     # （capex.py 构建时断言校验），供 report 分站型列示与 business 分池推演使用。
     unit_vintage: list[dict] = field(default_factory=list)
     lifecycle_capital_base_by_pool: dict[str, float] = field(default_factory=dict)

@@ -89,7 +89,7 @@ chapter = 4
 name = "物理（含产能核查）"
 closing = "mfg.total_gwh_2030"
 qual = ""
-note = "终局年目标装机（换电+充电合计，占用全线产能）必须远小于现有＋规划产能，并给储能、AIDC 等留出余量"
+note = "兑现年目标装机（换电+充电合计，占用全线产能）必须远小于现有＋规划产能，并给储能、AIDC 等留出余量"
 
 [[gate]]
 chapter = 4
@@ -123,7 +123,7 @@ note = ""
 no = 5
 title = "业绩"
 file = "5_业绩.src.md"
-answers = "终局年经营业绩 ＋ **业务口径**的市场地位（**不涉及**资本市场定价）"
+answers = "兑现年经营业绩 ＋ **业务口径**的市场地位（**不涉及**资本市场定价）"
 owns = ["swap.ebitda", "ops.battery_total"]
 uses = []
 support = ["ops.annual_energy", "scale.stations_total", "mk.share_storage_2025",

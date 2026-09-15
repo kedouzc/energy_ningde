@@ -18,7 +18,7 @@ def _seq(values: list[float], percent: bool = False) -> str:
 
 
 def _vehicle_summary(snapshot: ModelSnapshot) -> dict[str, dict[str, float]]:
-    """返回进入终局决策链的规范化节点，而不是重新使用未取整明细。"""
+    """返回进入兑现年决策链的规范化节点，而不是重新使用未取整明细。"""
     return {
         key: {
             "vehicles_wan": vehicles,
@@ -73,7 +73,7 @@ def station_reconciliation_rows(
             _num(current["heavy"]["frequency"], 1),
             "68.4",
             _num(current["heavy"]["daily_swaps"] / 1e4, 1),
-            "车辆不变；在车型终局节点把加权频次保留1位",
+            "车辆不变；在车型兑现年节点把加权频次保留1位",
         ),
         (
             "城配物流",
@@ -93,7 +93,7 @@ def station_reconciliation_rows(
             _num(passenger_frequency, 1),
             "125.0",
             _num(passenger_daily / 1e4, 1),
-            "逐车型在终局节点各保留1位，再汇总交易量",
+            "逐车型在兑现年节点各保留1位，再汇总交易量",
         ),
         (
             "私家车",
@@ -103,7 +103,7 @@ def station_reconciliation_rows(
             _num(current["private"]["frequency"], 1),
             "29.0",
             _num(current["private"]["daily_swaps"] / 1e4, 1),
-            "终局车辆和频次均保留1位",
+            "兑现年车辆和频次均保留1位",
         ),
         (
             "巧克力合计",
@@ -183,9 +183,9 @@ def parameter_audit_rows(config: dict, snapshot: ModelSnapshot) -> list[tuple[st
     add("需求", "无换电CATL份额(=charge_share中性档)", "营运35%；私家33%", f"重卡/城配/出租/网约/Robotaxi {_pct(config['drivers']['charge_share']['中性']['heavy'],0)}；私家{_pct(config['drivers']['charge_share']['中性']['private'],0)}", "一致", "无换电基准改由 charge_share 中性档派生（不再单列 no_swap_catl_share）", "无换电制造装机")
 
     add("频次", "可用电量比例", "80%", _pct(business["usable_energy_factor"],0), "一致", "剩余20%换电", "全部车型频次与交易电量")
-    add("频次", "重卡加权频次", "1.80次/日（展示值）", f"{current['heavy']['frequency']:.1f}次/日", "一致", "分场景原值加权，在车型终局节点保留1位", "重卡站数维持3,563")
-    add("频次", "城配频次", "1.30次/日（展示值）", f"{current['city']['frequency']:.1f}次/日", "一致", "300÷(81×80%÷0.27)=1.25，在车型终局节点保留1位", "与85.5万辆共同反推日需求")
-    add("频次", "出租/网约/Robotaxi/私家", "1.5/1.1/1.5/0.2", f"{current['taxi']['frequency']:.1f}/{current['ridehail']['frequency']:.1f}/{current['robotaxi']['frequency']:.1f}/{current['private']['frequency']:.1f}", "一致", "由里程、背电与电耗推导后在车型终局节点保留1位", "巧克力日需求与站数")
+    add("频次", "重卡加权频次", "1.80次/日（展示值）", f"{current['heavy']['frequency']:.1f}次/日", "一致", "分场景原值加权，在车型兑现年节点保留1位", "重卡站数维持3,563")
+    add("频次", "城配频次", "1.30次/日（展示值）", f"{current['city']['frequency']:.1f}次/日", "一致", "300÷(81×80%÷0.27)=1.25，在车型兑现年节点保留1位", "与85.5万辆共同反推日需求")
+    add("频次", "出租/网约/Robotaxi/私家", "1.5/1.1/1.5/0.2", f"{current['taxi']['frequency']:.1f}/{current['ridehail']['frequency']:.1f}/{current['robotaxi']['frequency']:.1f}/{current['private']['frequency']:.1f}", "一致", "由里程、背电与电耗推导后在车型兑现年节点保留1位", "巧克力日需求与站数")
 
     # 【4站型】v3.2 对照仍按两大类展示；站参数取代表站型（骐骥两站型/巧克力两站型同源参数）。
     for group, old_label in (
@@ -214,9 +214,9 @@ def parameter_audit_rows(config: dict, snapshot: ModelSnapshot) -> list[tuple[st
     add("站网", "重卡规划能力", "192次/日", f"{config['stations']['qiji75_short']['planning_daily_capacity']:g}次/日", "一致", "官方16h×5分钟口径（骐骥两站型同源）", "重卡站数分母")
     add("站网", "巧克力规划能力", "300次/日（毛估估）", f"{config['stations']['choco25_passenger']['planning_daily_capacity']:g}次/日（外生）", "口径澄清", "不再用1.84倍冗余倒算；物理上限只作校验（巧克力两站型同源）", "巧克力站数分母")
     add("站网", "巧克力工位物理上限", "822次/日（含衔接裕量）", f"{scale.station_capacity_diagnostics['choco25_passenger']['mechanical_limit']:.0f}次/日（100秒理论值）", "诊断差异", "两者均高于能量上限且不参与300规划值", "无主模型数值影响")
-    add("站网", "终局站数", "重卡3,563；巧克力8,902", f"重卡{scale.station_demand_by_category['heavy']:,}；巧克力{scale.station_demand_by_category['choco']:,}", "重卡一致/巧克力变化", "车辆和频次在终局节点各保留1位；基准启源协同为0", "站体/站内电池CAPEX、场租、站内电池租金与套利")
-    add("站网", "2025年末存量站", "正文未从2026新增任务中扣除", f"重卡{config['construction']['opening_2025_stations']['heavy']:,}；巧克力{config['construction']['opening_2025_stations']['choco']:,}", "已纠错", "存量属于终局总资产，但不是2026新增现金", "下调2026新增站体/站内电池CAPEX；不改终局CAPEX")
-    add("站网", "2026累计/2028完工", "v3排期按总量均摊至2028（1,247/3,116起）", f"2026累计={config['construction']['station_2026_cumulative_targets']['heavy']:,}/{config['construction']['station_2026_cumulative_targets']['choco']:,}；{config['construction']['station_network_completion_year']}完工", "规划校准", "2026新增=累计目标－2025存量，剩余在2028前完成", "年度CAPEX峰值；不改终局需求")
+    add("站网", "兑现年站数", "重卡3,563；巧克力8,902", f"重卡{scale.station_demand_by_category['heavy']:,}；巧克力{scale.station_demand_by_category['choco']:,}", "重卡一致/巧克力变化", "车辆和频次在兑现年节点各保留1位；基准启源协同为0", "站体/站内电池CAPEX、场租、站内电池租金与套利")
+    add("站网", "2025年末存量站", "正文未从2026新增任务中扣除", f"重卡{config['construction']['opening_2025_stations']['heavy']:,}；巧克力{config['construction']['opening_2025_stations']['choco']:,}", "已纠错", "存量属于兑现年总资产，但不是2026新增现金", "下调2026新增站体/站内电池CAPEX；不改兑现年CAPEX")
+    add("站网", "2026累计/2028完工", "v3排期按总量均摊至2028（1,247/3,116起）", f"2026累计={config['construction']['station_2026_cumulative_targets']['heavy']:,}/{config['construction']['station_2026_cumulative_targets']['choco']:,}；{config['construction']['station_network_completion_year']}完工", "规划校准", "2026新增=累计目标－2025存量，剩余在2028前完成", "年度CAPEX峰值；不改兑现年需求")
 
     curve = config["construction"]["battery_price_curve"]
     add("电池价格", "2026—2030价格路径", "590/590/590/566.4/543.7元/kWh", "/".join(f"{value:.1f}" for value in capex.battery_price_path_rmb_kwh.values())+"元/kWh", "一致", "平台至2028，2029起年降4%", "初装、更新、制造收入")
@@ -273,7 +273,7 @@ def parameter_audit_rows(config: dict, snapshot: ModelSnapshot) -> list[tuple[st
     mna_2026_total = funding["known_catl_direct_mna_cash_yi"][0] + base_mna_price
     add("集团资金", "已识别直接并购现金", "未纳入", f"2026年三项合计{_num(mna_2026_total,2)}亿元（中恒29.03＋世纪互联64.00＋启源{_num(base_mna_price,2)}）", "合并三项", "世纪互联按审慎口径补入；启源经并购基准情景进入资金表", "年度资金余量")
 
-    add("轻资产", "终局权益档", "10%/20%/30%/40%", _seq(config["light_asset"]["terminal_ownership_options"], True), "一致", "仅成熟后比较", "回款、持续利润与价值")
+    add("轻资产", "兑现年权益档", "10%/20%/30%/40%", _seq(config["light_asset"]["terminal_ownership_options"], True), "一致", "仅成熟后比较", "回款、持续利润与价值")
     add("轻资产", "数据/标准/技术场景控制", "所有档位必须保留", "三项均为硬约束", "一致", "经济权益与业务控制分开", "方案可行性门槛")
     first_mna = next(
         item for item in config["mna"]["scenarios"]
@@ -307,11 +307,11 @@ def outcome_audit_rows(snapshot: ModelSnapshot) -> list[tuple[str, ...]]:
             "2026-08拍板：只用分摊法（2026H1动力毛利润占集团毛利润×当前A+H市值），装机量法降为校验",
         ),
         (
-            "重卡/巧克力终局站数",
+            "重卡/巧克力兑现年站数",
             "3,563 / 8,902",
             f"{snapshot.scale.station_demand_by_category['heavy']:,} / {snapshot.scale.station_demand_by_category['choco']:,}",
             f"{snapshot.scale.station_demand_by_category['heavy'] - 3563:+,} / {snapshot.scale.station_demand_by_category['choco'] - 8902:+,}",
-            "车辆与频次在车型终局节点各保留1位；启源基准协同为0",
+            "车辆与频次在车型兑现年节点各保留1位；启源基准协同为0",
         ),
         (
             "初装项目CAPEX",
@@ -378,7 +378,7 @@ def outcome_audit_rows(snapshot: ModelSnapshot) -> list[tuple[str, ...]]:
             "805.0",
             _num(swap.ebitda_yi, 1),
             _num(swap.ebitda_yi - 805.0, 1),
-            "按装车电池+站内外部权益电池计租，并采用终局节点1位精度",
+            "按装车电池+站内外部权益电池计租，并采用兑现年节点1位精度",
         ),
         (
             "CATL换电运营价值",

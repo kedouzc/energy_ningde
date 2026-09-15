@@ -10,7 +10,7 @@
 
 【数据流：build_capex 是唯一入口，其余函数都是它的子步骤】
     build_capex(config, scale, sourcing)
-      ├─ 站数排期：_station_schedule 把"2025存量→2026目标→2028终局"三个
+      ├─ 站数排期：_station_schedule 把"2025存量→2026目标→2028兑现年"三个
       │   拍定的里程碑，直算成每年新增站数（2029-2030不再新建）。
       ├─ 登记 cohort：_append_station_pool_cohorts 把每个（池×年份×站数）
       │   的站内电池批次登记进 battery_cohorts 列表；车辆电池批次在
@@ -239,7 +239,7 @@ def build_capex(
     }
     rows_by_year = {year: [row for row in scale.rows if row.year == year] for year in years}
 
-    # 2025年末存量站属于终局总资产，但不属于2026—2030新增现金支出。
+    # 2025年末存量站属于兑现年总资产，但不属于2026—2030新增现金支出。
     # 为避免仅因时点校准而改变总项目CAPEX，按2026等效价格纳入资产底座与生命周期。
     battery_cohorts: list[dict[str, float | int | str]] = []
     preperiod_station_battery_gwh = 0.0
@@ -567,7 +567,7 @@ def build_capex(
     for label, by_pool, total in (
         ("全周期资本底座", lifecycle_capital_by_pool, lifecycle_capital),
         ("成熟期折旧", mature_depreciation_by_pool, mature_depreciation),
-        ("终局初装CAPEX", total_initial_by_pool, total_initial),
+        ("兑现年初装CAPEX", total_initial_by_pool, total_initial),
         ("稳态debt基数", steady_state_debt_base_by_pool, steady_state_debt_base),
     ):
         if abs(sum(by_pool.values()) - total) > 1e-6:

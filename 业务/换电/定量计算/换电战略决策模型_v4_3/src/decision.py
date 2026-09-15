@@ -65,7 +65,7 @@ def build_decision_memos(
         DecisionMemo(
             owner="规模与网络",
             status=_status(scale.route_identity_error < 1e-12),
-            conclusion="共同车辆底座闭合；需求反推终局站数，建设节奏按2026里程碑、2028完成网络处理。",
+            conclusion="共同车辆底座闭合；需求反推兑现年站数，建设节奏按2026里程碑、2028完成网络处理。",
             evidence={
                 "重卡站": scale.station_demand_by_category["heavy"],
                 "巧克力站": scale.station_demand_by_category["choco"],

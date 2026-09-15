@@ -28,7 +28,7 @@ def _decision_role(
     options: list[float],
 ) -> str:
     if ownership == current:
-        return "基准终局：资金不短缺时不出表"
+        return "基准兑现年：资金不短缺时不出表"
     sold = current - ownership
     if sold <= 0.10 + 1e-9:
         return "低强度资产循环：少卖、保留较多持续价值"

@@ -713,13 +713,13 @@ def render_report(
             vehicle["label"],
             _n(scale.operating_stock_by_vehicle_wan[key], 1),
             _n(scale.terminal_frequency_by_vehicle[key], 1),
-            "原始漏斗/频次先完整计算，在车型终局节点各保留1位小数",
+            "原始漏斗/频次先完整计算，在车型兑现年节点各保留1位小数",
         ))
     frequency_table = _table(
         ["车型", "累计CATL换电车", "加权日频次", "推导"], frequency_rows
     )
     # 【新增｜车辆底座大表】§2.1 基础数据底座：营运车在前、私家车在后
-    # 场景级终局口径：车辆=2026—2030累计CATL换电车，装机=场景实际装车电量（onboard）加权
+    # 场景级兑现年口径：车辆=2026—2030累计CATL换电车，装机=场景实际装车电量（onboard）加权
     # 年换电量=车辆×频次×装车电量×可用比例×运营天数。
     vehicle_order = ["heavy", "city", "taxi", "ridehail", "robotaxi", "private"]
     pool_short_labels = {
@@ -779,8 +779,8 @@ def render_report(
     vehicle_base_table = _table(
         [
             "车型·场景", "电池池", "总车辆数(万辆)", "更新周期(年)",
-            "装车电量(kWh)", "日换电频次(次)", "终局CATL换电车(万辆)",
-            "终局换电装机(GWh)", "年换电量(亿kWh)",
+            "装车电量(kWh)", "日换电频次(次)", "兑现年CATL换电车(万辆)",
+            "兑现年换电装机(GWh)", "年换电量(亿kWh)",
         ],
         vehicle_base_rows,
     )
@@ -853,8 +853,8 @@ def render_report(
     ))
     pool_base_table = _table(
         [
-            "电池池", "终局CATL换电车(万辆)", "车端装机(GWh)", "站内电池(GWh)",
-            "池电池寿命(年)", "成熟日换电(万次/日)", "年换电量(亿kWh)", "终局站数",
+            "电池池", "兑现年CATL换电车(万辆)", "车端装机(GWh)", "站内电池(GWh)",
+            "池电池寿命(年)", "成熟日换电(万次/日)", "年换电量(亿kWh)", "兑现年站数",
         ],
         pool_base_rows,
     )
@@ -918,7 +918,7 @@ def render_report(
         ),
     ])
     station_demand_table = _table(
-        ["站型", "工位上限", "能量上限", "规划能力（外生）", "成熟日需求", "终局站数", "2025末存量", "2026累计目标", "建成"],
+        ["站型", "工位上限", "能量上限", "规划能力（外生）", "成熟日需求", "兑现年站数", "2025末存量", "2026累计目标", "建成"],
         station_demand_rows,
     )
     station_reconciliation_table = _table(
@@ -1313,7 +1313,7 @@ def render_report(
         ],
     )
     # 2.2表补充的实物规模与EAC派生资本倍数：五年新增与2030年保有分开，
-    # EAC=等效全周期资本底座÷终局初装，方法沿用v3.2 §1.2.1折扣链。
+    # EAC=等效全周期资本底座÷兑现年初装，方法沿用v3.2 §1.2.1折扣链。
     new_swap_vehicles_wan = sum(row.catl_swap_vehicles_wan for row in scale.rows)
     new_stations_5y = (
         sum(capex.station_targets.values()) - sum(capex.opening_station_stock.values())
@@ -1321,12 +1321,12 @@ def render_report(
     new_vehicle_battery_gwh = sum(scale.annual_catl_swap_gwh.values())
     terminal_swap_stock_wan = sum(scale.operating_stock_by_vehicle_wan.values())
     terminal_stations = sum(capex.station_targets.values())
-    # 【修正｜4站型口径】终局车辆电池按场景实际装车电量（onboard）加权：
+    # 【修正｜4站型口径】兑现年车辆电池按场景实际装车电量（onboard）加权：
     # 重卡短途342/中长途513、乘用56、城配81，不再用车型均值（重卡500会虚增装机）。
     terminal_vehicle_battery_gwh = sum(
         row.catl_swap_gwh for row in scale.rows
     )
-    # 【修正｜4站型口径】终局站内电池按四个站型分别累计（池键=站型键），
+    # 【修正｜4站型口径】兑现年站内电池按四个站型分别累计（池键=站型键），
     # 旧 heavy/choco 两键在4站型配置下已不存在。
     terminal_station_battery_gwh = sum(
         capex.station_targets[pool]
@@ -1370,7 +1370,7 @@ def render_report(
                 "2026—2030新增初装CAPEX",
                 "逐年新增车辆电池＋新增站内电池＋新增站体",
                 f"5年合计新增装车{_n(new_swap_vehicles_wan, 1)}万辆、新站{new_stations_5y:,.0f}座、"
-                f"新增车辆电池{_n(new_vehicle_battery_gwh, 1)}GWh；终局初装－2025存量",
+                f"新增车辆电池{_n(new_vehicle_battery_gwh, 1)}GWh；兑现年初装－2025存量",
                 _n(
                     capex.total_initial_capex_yi
                     - capex.preperiod_station_initial_capex_yi,
@@ -1378,7 +1378,7 @@ def render_report(
                 ) + "亿元",
             ),
             (
-                "终局初装项目CAPEX",
+                "兑现年初装项目CAPEX",
                 "2025存量＋2026—2030新增",
                 f"2030年最终保有装车{_n(terminal_swap_stock_wan, 1)}万辆、站{terminal_stations:,.0f}座、"
                 f"车辆电池{_n(terminal_vehicle_battery_gwh, 1)}GWh＋站内电池{_n(terminal_station_battery_gwh, 1)}GWh",
@@ -1391,7 +1391,7 @@ def render_report(
                 _n(capex.first_replacement_net_capex_yi, 1) + "亿元",
             ),
             (
-                "CATL终局初装权益投入",
+                "CATL兑现年初装权益投入",
                 "初装项目CAPEX×权益资本比例×CATL权益",
                 f"{_n(capex.total_initial_capex_yi, 1)}×(1－{_p(config['finance']['debt_ratio'], 0)})×{_p(config['finance']['construction_ownership'], 0)}",
                 _n(
@@ -1531,8 +1531,8 @@ def render_report(
             ("① 年换电次数", "(重卡日需求＋巧克力日需求)×运营天数", f"{_n(sum(scale.mature_daily_swaps.values())/1e4,1)}万次/日×{config['swap_business']['operating_days']:g}天", *_pool_vals("annual_swaps_yi", 2), _n(annual_swaps_yi, 2) + "亿次"),
             ("② 年交易电量", "Σ车型换电次数×单车电量×可用比例", f"可用比例{_p(config['swap_business']['usable_energy_factor'],0)}", *_pool_vals("annual_energy_yi_kwh"), _n(swap.annual_energy_yi_kwh, 1) + "亿kWh"),
             ("③ 换电服务收入", "年交易电量×度电服务费", f"{_n(swap.annual_energy_yi_kwh,1)}亿kWh×{config['swap_business']['service_fee_rmb_kwh']:g}元/kWh", *_pool_vals("service_revenue_yi"), _n(swap.service_revenue_yi, 1) + "亿元"),
-            ("④ 车端可收租电池", "终局各车型CATL换电车辆×单车带电量", "只计实际进入换电运营池的车端电池", *_pool_vals("rent_vehicle_gwh"), _n(swap.rent_vehicle_gwh, 1) + "GWh"),
-            ("⑤ 站内周转电池", "Σ终局站数×单站库存块数×单块电量", f"四站型={capex.station_targets['qiji75_short']:,}/{capex.station_targets['qiji75_trunk']:,}/{capex.station_targets['choco25_passenger']:,}/{capex.station_targets['choco35_city']:,}", *_pool_vals("station_battery_gwh"), _n(station_battery_total_gwh, 1) + "GWh"),
+            ("④ 车端可收租电池", "兑现年各车型CATL换电车辆×单车带电量", "只计实际进入换电运营池的车端电池", *_pool_vals("rent_vehicle_gwh"), _n(swap.rent_vehicle_gwh, 1) + "GWh"),
+            ("⑤ 站内周转电池", "Σ兑现年站数×单站库存块数×单块电量", f"四站型={capex.station_targets['qiji75_short']:,}/{capex.station_targets['qiji75_trunk']:,}/{capex.station_targets['choco25_passenger']:,}/{capex.station_targets['choco35_city']:,}", *_pool_vals("station_battery_gwh"), _n(station_battery_total_gwh, 1) + "GWh"),
             ("⑥ 站内可收租部分", "站内周转电池×外部经济权益", f"{_n(station_battery_total_gwh,1)}GWh×{_p(1.0-config['finance']['construction_ownership'],0)}", *_pool_vals("station_external_rent_gwh"), _n(swap.rent_station_external_gwh, 1) + "GWh"),
             ("⑦ 可收租电池合计", "车端＋站内外部权益部分", f"{_n(swap.rent_vehicle_gwh,1)}＋{_n(swap.rent_station_external_gwh,1)}", *_pool_vals("rent_eligible_gwh"), _n(swap.rent_eligible_gwh, 1) + "GWh"),
             ("⑧ 电池租金", "可收租电池×度电月租×12", f"{_n(swap.rent_eligible_gwh,1)}GWh×{config['swap_business']['battery_rent_rmb_kwh_month']:g}元/kWh月×12", *_pool_vals("battery_rent_yi"), _n(swap.battery_rent_yi, 1) + "亿元"),
@@ -1541,7 +1541,7 @@ def render_report(
             ("▶ 营业收入", "③＋⑧＋⑨＋⑩", "—", *_pool_vals("revenue_yi"), _n(swap.revenue_yi, 1) + "亿元"),
             ("⑪ 充入电量", "交付电量÷RTE×(1＋厂用电率)", f"RTE={_p(config['swap_business']['rte'],0)}；厂用电={_p(config['swap_business']['auxiliary_power_rate'],0)}", *_pool_vals("charged_energy_yi_kwh"), _n(charged_energy_yi, 1) + "亿kWh"),
             ("⑫ 损耗电费", "(充入－交付)×谷电价", f"谷电价{config['swap_business']['valley_power_price_rmb_kwh']:g}元/kWh", *_pool_vals("energy_cost_yi"), _n(swap.energy_cost_yi, 1) + "亿元"),
-            ("⑬ 场租", "终局站数×单站年场租", f"{sum(capex.station_targets.values()):,}座×{config['swap_business']['site_rent_wan_year']:g}万元", *_pool_vals("station_rent_yi"), _n(swap.station_rent_yi, 1) + "亿元"),
+            ("⑬ 场租", "兑现年站数×单站年场租", f"{sum(capex.station_targets.values()):,}座×{config['swap_business']['site_rent_wan_year']:g}万元", *_pool_vals("station_rent_yi"), _n(swap.station_rent_yi, 1) + "亿元"),
             ("⑭ 人工运维", "按站固定：重卡2人双班/巧克力无人值守", f"重卡{config['swap_business']['heavy_station_labor_wan_year']:g}万/站年；巧克力{config['swap_business']['passenger_station_labor_wan_year']:g}万", *_pool_vals("labor_yi"), _n(swap.labor_yi, 1) + "亿元"),
             ("⑮ 软件调度", "年度固定投入（按站数份额分摊到站型）", f"{config['swap_business']['software_opex_yi_year']:g}亿元/年", *_pool_vals("software_opex_yi", 2), _n(swap.software_opex_yi, 2) + "亿元"),
             ("⑯ 电池银行三项", "保险+池化维护+仓储物流（费率×资产基数）", f"保险{_p(config['swap_business']['battery_insurance_rate'],2)}＋维护{_p(config['swap_business']['pooling_maintenance_rate'],2)}＋仓储{_p(config['swap_business']['warehouse_logistics_rate'],2)}", *[_n(pool_ops[pk].insurance_yi + pool_ops[pk].pooling_maintenance_yi + pool_ops[pk].warehouse_logistics_yi, 1) for pk in BATTERY_POOLS], _n(swap.insurance_yi + swap.pooling_maintenance_yi + swap.warehouse_logistics_yi, 1) + "亿元"),
@@ -1556,7 +1556,7 @@ def render_report(
             ("▶ CATL运营价值", "(项目EV－项目债务)×CATL经济权益", "—", *_pool_vals("catl_value_yi", 0), _n(swap.catl_attributable_value_yi, 1) + "亿元"),
             ("▶ 年可分派现金", "正算经营FCFF－项目债务利息", "正算口径；保守口径见3.3", *_pool_vals("forward_distributable_yi"), _n(swap.forward_distributable_cash_yi, 1) + "亿元"),
             ("▶ CATL年可分派现金", "年可分派现金×CATL经济权益", _p(config['finance']['construction_ownership'],0), *_pool_vals("catl_forward_distributable_yi"), _n(swap.catl_forward_distributable_cash_yi, 1) + "亿元"),
-            ("▶ 初装回收期", "CATL终局初装权益投入÷CATL年可分派现金", f"{_n(swap.catl_initial_equity_investment_yi,1)}÷{_n(swap.catl_forward_distributable_cash_yi,1)}", *_pool_ratio_vals("catl_initial_equity_yi", "catl_forward_distributable_yi"), _n(swap.catl_initial_equity_investment_yi / swap.catl_forward_distributable_cash_yi, 2) + "年"),
+            ("▶ 初装回收期", "CATL兑现年初装权益投入÷CATL年可分派现金", f"{_n(swap.catl_initial_equity_investment_yi,1)}÷{_n(swap.catl_forward_distributable_cash_yi,1)}", *_pool_ratio_vals("catl_initial_equity_yi", "catl_forward_distributable_yi"), _n(swap.catl_initial_equity_investment_yi / swap.catl_forward_distributable_cash_yi, 2) + "年"),
             ("▶ 全投资回收期", "CATL全周期权益承诺÷CATL年可分派现金", f"{_n(capex.catl_lifecycle_equity_commitment_yi,1)}÷{_n(swap.catl_forward_distributable_cash_yi,1)}", *_pool_ratio_vals("catl_lifecycle_equity_yi", "catl_forward_distributable_yi"), _n(capex.catl_lifecycle_equity_commitment_yi / swap.catl_forward_distributable_cash_yi, 2) + "年"),
         ],
     )
@@ -1571,9 +1571,9 @@ def render_report(
             ("正算经营FCFF", "可交付EBITDA×(1－税率)＋折旧税盾", *_pool_vals("forward_fcff_yi"), _n(swap.forward_fcff_yi,1)+"亿元", "按中性经营能力形成的上行现金口径"),
             ("正算项目可分派现金", "正算经营FCFF－项目债务利息", *_pool_vals("forward_distributable_yi"), _n(swap.forward_distributable_cash_yi,1)+"亿元", "不把会计净利润误当现金"),
             ("CATL正算年可分派现金", "正算项目可分派现金×40%经济权益", *_pool_vals("catl_forward_distributable_yi"), _n(swap.catl_forward_distributable_cash_yi,1)+"亿元", "中性经营能力下可落到CATL的现金"),
-            ("CATL终局初装权益投入", "终局初装CAPEX×40%股权资本×40%CATL权益", *_pool_vals("catl_initial_equity_yi"), _n(swap.catl_initial_equity_investment_yi,1)+"亿元", "含2025已投入站网；不倒改历史"),
-            ("保守初装现金收益率", "CATL最低年可分派现金÷CATL终局初装权益投入", *[_p(pool_ops[pk].catl_minimum_distributable_yi / pool_ops[pk].catl_initial_equity_yi) if pool_ops[pk].catl_initial_equity_yi else "—" for pk in BATTERY_POOLS], _p(swap.catl_cash_yield_on_initial_equity), "不使用正算经营上行来缩短回收期"),
-            ("保守初装回收期", "CATL终局初装权益投入÷最低年可分派现金", *_pool_ratio_vals("catl_initial_equity_yi", "catl_minimum_distributable_yi"), _n(swap.catl_initial_payback_years,2)+"年", "未计爬坡，按稳态最低年现金"),
+            ("CATL兑现年初装权益投入", "兑现年初装CAPEX×40%股权资本×40%CATL权益", *_pool_vals("catl_initial_equity_yi"), _n(swap.catl_initial_equity_investment_yi,1)+"亿元", "含2025已投入站网；不倒改历史"),
+            ("保守初装现金收益率", "CATL最低年可分派现金÷CATL兑现年初装权益投入", *[_p(pool_ops[pk].catl_minimum_distributable_yi / pool_ops[pk].catl_initial_equity_yi) if pool_ops[pk].catl_initial_equity_yi else "—" for pk in BATTERY_POOLS], _p(swap.catl_cash_yield_on_initial_equity), "不使用正算经营上行来缩短回收期"),
+            ("保守初装回收期", "CATL兑现年初装权益投入÷最低年可分派现金", *_pool_ratio_vals("catl_initial_equity_yi", "catl_minimum_distributable_yi"), _n(swap.catl_initial_payback_years,2)+"年", "未计爬坡，按稳态最低年现金"),
             ("保守全周期权益回收期", "CATL全周期权益承诺÷最低年可分派现金", *_pool_ratio_vals("catl_lifecycle_equity_yi", "catl_minimum_distributable_yi"), _n(swap.catl_lifecycle_payback_years,2)+"年", "把后续更新义务纳入分子"),
         ],
     )
@@ -1756,7 +1756,7 @@ def render_report(
             ),
             (
                 "稳态初装现金收益率",
-                "CATL最低年可分派现金÷终局初装权益投入",
+                "CATL最低年可分派现金÷兑现年初装权益投入",
                 _p(swap.catl_cash_yield_on_initial_equity),
             ),
         ],
@@ -1853,7 +1853,7 @@ def render_report(
         ],
     )
     light_transaction_table = _table(
-        ["终局权益", "毛回款", "净回款", "制造价值", "保留运营价值", "持续动力价值"],
+        ["兑现年权益", "毛回款", "净回款", "制造价值", "保留运营价值", "持续动力价值"],
         [
             (
                 _p(row.terminal_ownership, 0),
@@ -1871,7 +1871,7 @@ def render_report(
         ],
     )
     light_decision_table = _table(
-        ["终局权益", "持续价值保留率", "经常利润保留率", "持续动力价值变化", "含净回款后变化", "回款/持续价值损失", "决策位置"],
+        ["兑现年权益", "持续价值保留率", "经常利润保留率", "持续动力价值变化", "含净回款后变化", "回款/持续价值损失", "决策位置"],
         [
             (
                 _p(row.terminal_ownership, 0),
@@ -1886,7 +1886,7 @@ def render_report(
         ],
     )
     light_conclusion = (
-        f"当前资金表没有触发流动性缺口，因此中性终局仍是保留"
+        f"当前资金表没有触发流动性缺口，因此中性兑现年仍是保留"
         f" **{_p(current_light.terminal_ownership, 0)}**、暂不出表。成熟后不指定30%或20%为固定最优："
         f"保留30%/20%/10%分别可净回款约"
         f" **{_n(light_by_ownership[0.30].sale_proceeds_net_yi,1)} /"
@@ -2062,7 +2062,7 @@ def render_report(
         + [("合计", "—", "—", _n(snapshot.strategic_exposure_yi, 1), "仅作压力刻度")],
     )
     light_support_table = _table(
-        ["终局权益", "成熟后净回款", "未来更新资本释放", "可覆盖未决战略敞口情景", "解释"],
+        ["兑现年权益", "成熟后净回款", "未来更新资本释放", "可覆盖未决战略敞口情景", "解释"],
         [
             (
                 _p(row.terminal_ownership, 0),
@@ -2384,7 +2384,7 @@ def render_report(
         "只有未来资产实际滚动发行、形成真实管理费收入后，才作为向上情景另行讨论。"
     )
     light_formula = (
-        f"`净回款 = 费后项目权益价值 ×（{_p(config['finance']['construction_ownership'], 0)}－终局权益）"
+        f"`净回款 = 费后项目权益价值 ×（{_p(config['finance']['construction_ownership'], 0)}－兑现年权益）"
         "×（1－交易成本率）`  \n"
         "`持续动力价值 = 制造价值 + 保留运营权益价值`  \n"
         "`含回款后动力价值 = 持续动力价值 + 净回款`"
@@ -2448,15 +2448,15 @@ def render_report(
         f"{_p(city['nev_rates'][-1],0)}、{_p(city_high['swap_penetration'],0)}、"
         f"{_p(city_high['catl_swap_share'],0)}，得到{city_old_compounded:.2f}并显示"
         f"{round(city_old_compounded):g}。{city_raw_frequency:.3f}是日均换电频次，不是"
-        f"{reference_year - 1}年存量。若保留{city_annual_high_frequency:g}到车型终局节点，"
+        f"{reference_year - 1}年存量。若保留{city_annual_high_frequency:g}到车型兑现年节点，"
         f"则得到{scale.operating_stock_by_vehicle_wan['city']:.1f}万辆；v4.1采用后者。"
         "这是修正过早取整，并没有改变汽车总量。"
     )
     station_timing_note = (
         f"{reference_year - 1}年末已建成骐骥"
         f"{config['construction']['opening_2025_stations']['heavy']:,}座、巧克力"
-        f"{config['construction']['opening_2025_stations']['choco']:,}座，它们属于终局总资产和总CAPEX，"
-        f"但不属于{reference_year}年新增现金。因此它们只改变建设期现金时点，不改变完成同一终局网络所需的项目总资本。"
+        f"{config['construction']['opening_2025_stations']['choco']:,}座，它们属于兑现年总资产和总CAPEX，"
+        f"但不属于{reference_year}年新增现金。因此它们只改变建设期现金时点，不改变完成同一兑现年网络所需的项目总资本。"
         f"{completion_year + 1}—{target_year}只有车辆继续放量和早期"
         f"{city_battery_life_years:g}年电池首轮更新（城配寿命按2000次循环临界点推算），没有新增站体。"
     )

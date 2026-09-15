@@ -25,7 +25,7 @@ reference_year = 2026
 #   <键>.note     = 口径说明（可选）；<键>.src = 信源台账 key（可选，audit/信源审计台账.md）
 # 注册表 key 就是点分路径本身（meta.target_year），不造别名、不另开登记区。
 target_year.v = 2030
-target_year.label = "终局年"
+target_year.label = "兑现年"
 target_year.unit = "年"
 target_year.decimals = 0
 target_year.fmt = "year"
@@ -36,7 +36,7 @@ base_scenario = "中性"
 # 规模、代价、增量价值、资金从容度四个数。
 
 [modeling.rounding]
-# 毛估估取整纪律：只在自然业务节点取整（终局车辆数/频次保留1位小数后反推站数），
+# 毛估估取整纪律：只在自然业务节点取整（兑现年车辆数/频次保留1位小数后反推站数），
 # 年度批次、折旧、税盾内部保留精度，防止累计取整偏差。
 terminal_vehicle_decimals = 1
 terminal_frequency_decimals = 1
@@ -510,7 +510,7 @@ storage_install_gwh_2025.src = "src.nea_storage_2026"
 storage_install_gwh_2025.note = "外部一手（国家能源局）；信源见台账 src.nea_storage_2026"
 # 2030≈780GWh（3亿千瓦≈780GWh，等效2.6h）：国务院顶层文件[链接](https://www.gov.cn/zhengce/202606/content_7073474.htm) 经验假设推算
 storage_install_gwh_2030.v = 780.0
-storage_install_gwh_2030.label = "终局年全国新型储能装机预测"
+storage_install_gwh_2030.label = "兑现年全国新型储能装机预测"
 storage_install_gwh_2030.unit = "GWh"
 storage_install_gwh_2030.decimals = 0
 storage_install_gwh_2030.src = "src.gov_storage_2030"
@@ -533,7 +533,7 @@ society_electricity_yi_kwh_latest.note = "外部一手（国家能源局）；�
 # 2030 全社会用电量预测（二手：国网能源院预测经权威媒体转引，信源：src.society_elec_2030；
 #   另有中电联 13 万亿口径，与国网能源院 13.5 万亿差约 4%，不影响量级判断，模型取后者）
 society_electricity_yi_kwh_2030.v = 135000.0
-society_electricity_yi_kwh_2030.label = "终局年全社会用电量预测"
+society_electricity_yi_kwh_2030.label = "兑现年全社会用电量预测"
 society_electricity_yi_kwh_2030.unit = "亿kWh"
 society_electricity_yi_kwh_2030.decimals = 0
 society_electricity_yi_kwh_2030.src = "src.society_elec_2030"
@@ -643,7 +643,7 @@ existing_catl_swap_stock_wan = 0.7
 # ═══════════════════════════════════════════════════════════════════════
 # 【2026-09-14 · 声明】重卡三场景的 swap_penetration 是本模型最脆弱的一组假设
 # ───────────────────────────────────────────────────────────────────────
-# **内容**：终局年换电占纯电重卡的加权比例 ＝ 0.38×0.30 ＋ 0.50×0.50 ＋ 0.12×0.70 ＝ **44.8%**。
+# **内容**：兑现年换电占纯电重卡的加权比例 ＝ 0.38×0.30 ＋ 0.50×0.50 ＋ 0.12×0.70 ＝ **44.8%**。
 #
 # **它与实测的关系（必须写出来，否则这句话在仓库里一处都没有）**：
 #   换电÷纯电（累计，第一商用车网上险量口径）
@@ -938,7 +938,7 @@ planning_daily_capacity = 300.0
 [construction]
 years = [2026, 2027, 2028, 2029, 2030]
 # 站网建成目标年：规划拍值（经验假设）。就地信封化（2026-09-14）——
-# 它是**终局年那条推理链的中间项**（站网建成 ＋ 两年爬坡 = 终局年），叙述层要点名它；
+# 它是**兑现年那条推理链的中间项**（站网建成 ＋ 两年爬坡 = 兑现年），叙述层要点名它；
 # 此前这个年份只活在注释和 `交接.md` 里，等于让最终报告去引用一份开发期文档。
 station_network_completion_year.v = 2028
 station_network_completion_year.label = "站网建成目标年"
@@ -959,31 +959,31 @@ station_2026_cumulative_targets = { heavy = 1000, choco = 3000 }
 # 巧克力 2026 累计目标池级拆分：城配 140（大湾区建设计划，信源 catl.com/news/9884）；
 # 乘用 2860（= 3000 − 140 倒挤）
 station_2026_choco_targets_by_pool = { choco25_passenger = 2860, choco35_city = 140 }
-# ── 声明：终局年之后的承载力从哪来（2026-09-14）────────────────────────────
-# 追问：站网按终局年车队规模建成，可终局年之后电动化渗透还在涨，承载力怎么办？
+# ── 声明：兑现年之后的承载力从哪来（2026-09-14）────────────────────────────
+# 追问：站网按兑现年车队规模建成，可兑现年之后电动化渗透还在涨，承载力怎么办？
 # 承载力有四条来源，**由便宜到贵**：
 #   ① 填满单站既有物理余量（免费：规划能力＜物理上限的那一段，见 derived.station_capacity）
 #   ② 加工位（摊薄同一块土地/接电/土建，卡在「手速」那一侧的站型有效）
 #   ③ 电网增容（卡在「能量」那一侧的站型有效，加工位对它无效）
 #   ④ 新建站（最贵：土地、接电、土建、人员全部重来一遍）
 # **模型的口径：一律按 ④ 计价。** 延长期的增长资本由 `turnover.py` 按
-# `1 − g/ROIC` 计提，ROIC 是终局年存量的平均回报——等价于"按存量的单位造价复制一份"，
+# `1 − g/ROIC` 计提，ROIC 是兑现年存量的平均回报——等价于"按存量的单位造价复制一份"，
 # 而存量是按单工位造价建的。①②③ 只能让代价更低，所以模型付的是上沿。
-# 因此 **scale.py 不需要延长到终局年之后**：那样做要新拍一条 15 年的建站节奏
+# 因此 **scale.py 不需要延长到兑现年之后**：那样做要新拍一条 15 年的建站节奏
 # （一个全新的、没有信源的假设面），把标定升级成精算，还会与 `1 − g/ROIC` 重复计价。
 # 这里只声明，读数由 turnover.pools 报（四站型各自的「需要倍数 / 单站余量 / 卡在哪一侧」）。
 #
 # **推翻条件**（任一成立，上面这段"付的是上沿"就不再成立）：
-#   · 延长期新增站的单站利用率系统性低于终局年平均——增量 ROIC ＜ 平均 ROIC，
+#   · 延长期新增站的单站利用率系统性低于兑现年平均——增量 ROIC ＜ 平均 ROIC，
 #     `1 − g/ROIC` 会低估增长的代价。可观察：单站日均换电次数（tracker 月度）。
 #   · 站址稀缺使 ④ 不可得（拿不到地/接不上电），这时"付钱就能扩"这个前提本身失效。
 #     可观察：高速服务区/城市场站的站址获取周期。
 # 公司公开规划（报告对照用，不替代需求反推）：CATL 官方 catl.com/news/9516
 official_2026_station_plan = { heavy = 900, choco = 3000 }
-# 重卡终局站数交叉验证（非直接输入）：交规划发〔2026〕52号（11 部门，2030 充换电站 3000 个左右、
+# 重卡兑现年站数交叉验证（非直接输入）：交规划发〔2026〕52号（11 部门，2030 充换电站 3000 个左右、
 # 零碳通道 3 万公里）与内部推算（15 万 km 高速 ÷100km 间距 ×2 双向 = 3000 座）殊途同归。
-# 终局站数一律按需求反算（四站型独立反推）：骐骥干线站适用上述 3000 座规划量级作交叉验证、
-# 骐骥短途站无规划值——两者终局站数均以需求反推为准；巧克力站数同样按需求反推，
+# 兑现年站数一律按需求反算（四站型独立反推）：骐骥干线站适用上述 3000 座规划量级作交叉验证、
+# 骐骥短途站无规划值——两者兑现年站数均以需求反推为准；巧克力站数同样按需求反推，
 # 不采用官方 3 万/10 万愿景口径。
 
 [construction.battery_price_curve]
@@ -1245,10 +1245,16 @@ current_abs_reits_capacity_range_yi = [500.0, 700.0]
 # │ 状态：正逐步出售资产（武汉站资产转让+REITs/ABS 储架滚动）；CATL 现持 7.58% │
 # │ 注意：蔚能（电池资产公司）≠ 蔚来（车企+站网运营），站网数据在 station 字段 │
 # └──────────────────────────────────────────────┘
-network_stations = 3790
-cumulative_swaps_yi = 1.0
+# 站网数据更新至 2026-08-07（信源：src.nio_network_202608，蔚来官网第 4,000 座落成通稿）。
+# 上一版是 2026-02 的 3,790 座——**7 个月差了 216 座，而且那 7 个月里它还宣布了全年新建 1,000 座**。
+# 这类"对手的规模"是竞争性变量，不是结构性常数，必须带复核周期（见 4.5 敞开项）。
+network_stations = 4006
+network_highway_stations = 1049          # 其中高速站（2026-08-07）；干线卡位的直接度量
+network_plan_2026_year_end = 4600        # 公司公开计划：2026 年新建 1,000 座（3,680@2026-03 → 4,600@年底）
+cumulative_swaps_yi = 1.2
+# 以下三项仍是 2026-02 口径（src.nio_network_2026），未找到更新：
 cumulative_energy_yi_kwh = 52.8
-battery_bank_operating_gwh = 42.0
+battery_bank_operating_gwh = 42.0        # 与 2026-01 末"运营电池突破 40GWh"的公开口径一致
 battery_bank_users_wan = 55.0
 battery_bank_total_assets_yi = 251.78
 battery_bank_total_liabilities_yi = 224.83
@@ -1658,13 +1664,8 @@ kind    = "预期"
 title   = "收购蔚来电池银行与换电网络"
 src     = "src.qiyuan_appraisal"
 trigger = "**看交易公告，不看传闻**：蔚来能源（蔚能）控制权或其电池资产包发生转让，且受让方为 CATL 或其关联方。次级信号（不足以判定兑现、但会改变概率）：蔚能新一轮融资由 CATL 领投、或双方公告换电标准并网"
-why     = "并购启源关掉的是**重卡赛道内的独立对手**，蔚来关掉的是**乘用赛道内的另一套标准**——两者不是同一件事。本卡只登记它对**份额层**的影响（重卡 +1pct、乘用 +3pct，取自 `[[mna.scenarios]]` 「启源入股加蔚来全网络电池银行」的 uplift 口径）。**必须同时说清它登记不全**：那张并购情景卡还带着 3,790 座站网与 42GWh 电池银行（资本侧节省）与 174.8 亿对价（资本侧支出），这两侧本卡都没算——所以本卡的差分是**份额层的下界**，不是这笔交易的全貌。完整口径见并购情景表"
+why     = "并购启源关掉的是**重卡赛道内的独立对手**，蔚来关掉的是**乘用私家车这一侧的另一套标准**——两者不是同一件事。**只动私家车，不动其他车型**（2026-09-15 按用户判断改）：蔚来是卖高端私家车起家的，即便它在往低端拓展，那些车也不大可能拿去做营运车，所以它的用户与电池资产落不到重卡、出租、网约这几个池子里。**必须同时说清它登记不全**：`[[mna.scenarios]]`「启源入股加蔚来全网络电池银行」那张卡还带着 3,790 座站网与 42GWh 电池银行（资本侧节省）与 174.8 亿对价（资本侧支出），这两侧本卡都没算——所以本卡的差分是**份额层的下界**，不是这笔交易的全貌。完整口径见并购情景表"
 changes = [
-  { param = "vehicles.heavy.scenes.0.catl_swap_share", from = 0.80, to = 0.81 },
-  { param = "vehicles.heavy.scenes.1.catl_swap_share", from = 0.80, to = 0.81 },
-  { param = "vehicles.heavy.scenes.2.catl_swap_share", from = 0.80, to = 0.81 },
-  { param = "vehicles.taxi.scenes.0.catl_swap_share", from = 0.50, to = 0.53 },
-  { param = "vehicles.ridehail.scenes.0.catl_swap_share", from = 0.50, to = 0.53 },
   { param = "vehicles.private.scenes.0.catl_swap_share", from = 0.50, to = 0.53 },
   { param = "vehicles.private.scenes.1.catl_swap_share", from = 0.50, to = 0.53 },
   { param = "vehicles.private.scenes.2.catl_swap_share", from = 0.50, to = 0.53 },
@@ -1726,7 +1727,7 @@ note = "**这是甲醇路线的内在张力**：政策要的是绿醇，经济�
 
 # ── 换电占纯电的实测序列（2026-09-14）：只供叙述引用，不进计算 ──────────────
 # 口径：第一商用车网上险量（不含出口/军车），换电 ÷ 纯电，**累计**口径。
-# 用途：它是「终局年 44.8%」这个反转预期的对照面，也是第 4 章博弈门的当期读数。
+# 用途：它是「兑现年 44.8%」这个反转预期的对照面，也是第 4 章博弈门的当期读数。
 # ⚠️ 月度值季节性极强（春节在 1 月或 2 月、年末抢装），**只看年度/累计，不从逐月总结规律**。
 [[external_quote]]
 key = "ext.swap_share_2024"
@@ -1736,7 +1737,7 @@ value = 0.384
 unit = ""
 src = "src.dcr_hdt_monthly"
 as_of = "2024-12"
-note = "与模型终局年假设几乎重合——本组假设像是按 2024 年的世界标定的"
+note = "与模型兑现年假设几乎重合——本组假设像是按 2024 年的世界标定的"
 
 [[external_quote]]
 key = "ext.swap_share_2025"

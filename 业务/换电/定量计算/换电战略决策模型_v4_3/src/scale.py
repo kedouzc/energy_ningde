@@ -26,7 +26,7 @@ v4.4（2026-08-30）
   ScaleRow 新增 battery_pool 字段记录池归属，供 capex/report 直接读取。
 - 【修改｜站内库存】inventory_multiplier 不再默认 1.0（那等于“CAPEX 付了站内电池的钱、
   EFC 分母却不含站内电池”，系统性高估池均频次）——未显式配置时按
-  「组站内库存GWh（终局站数×块数×块容量）×池换电需求份额 ÷ 池终局装车GWh + 1」自动派生；
+  「组站内库存GWh（兑现年站数×块数×块容量）×池换电需求份额 ÷ 池兑现年装车GWh + 1」自动派生；
   显式配置 [battery_pool_model.inventory_multiplier.<pool>] 仍可覆盖。
 - 【新增｜池级寿命参数】支持 [battery_pool_model.life_override.<pool>] 覆盖原全局寿命参数，
   便于75#/25#/35#以后采用不同循环临界点或日历寿命；未配置时沿用原全局参数。
@@ -105,7 +105,7 @@ $$ \text{车辆类型} \rightarrow \text{直接指定寿命} \rightarrow Replace
 * **【删除】** 原先 `heavy/choco` 两组“站内周转电池寿命”逻辑。
 * **【修改】** `derived` 模式下，所有row最终统一继承所属池寿命，不再保留出租车、网约车、Robotaxi等各自独立寿命。
 * **【修改】** `inventory_multiplier` 默认值不再拍 1.0，改为从模型自身的站体参数自动派生
-  （终局站数×库存块数×块容量 → 组站内GWh，按池换电需求份额归属后进入该池EFC分母）。
+  （兑现年站数×库存块数×块容量 → 组站内GWh，按池换电需求份额归属后进入该池EFC分母）。
 * **【新增】** `life_override`，以后75#/25#/35#可以使用不同循环寿命和日历寿命参数。
 * **【更名】** `ScaleResult.station_battery_life_years` → `battery_pool_life_years`，
   `ScaleRow` 增加 `battery_pool` 字段；capex/report/v32_audit 已同步。
@@ -128,7 +128,7 @@ calendar_cap_years = ...
 ```
 
 【本轮已知的近似（后续可升级，不影响当前口径自洽）】
-1. 池寿命按终局稳态口径计算，再统一套用到各年度cohort——早期年份车辆少、
+1. 池寿命按兑现年稳态口径计算，再统一套用到各年度cohort——早期年份车辆少、
    站内电池占比更高，实际强度结构略有不同；毛估估层面接受。
 2. 城配35#池共享 choco 站组（站数/站体参数与乘用站共用），仅电池寿命按池拆分——
    官方轻卡站“乘商兼容、同站可服务25#/35#电池”（catl.com/news/9884），
@@ -546,7 +546,7 @@ def build_scale(
                 annual_charge[year] += row.catl_charge_gwh
                 annual_no_swap[year] += row.catl_no_swap_gwh
 
-    # “毛估估”取整发生在终局车型节点，而不是在漏斗每一层反复取整。
+    # “毛估估”取整发生在兑现年车型节点，而不是在漏斗每一层反复取整。
     # 这样既能消除无意义尾差，也不会重演v3把56.25先取57后层层放大的复合偏差。
     vehicle_decimals = config["modeling"]["rounding"]["terminal_vehicle_decimals"]
     frequency_decimals = config["modeling"]["rounding"]["terminal_frequency_decimals"]
@@ -575,7 +575,7 @@ def build_scale(
         operating_stock[key] = canonical_vehicles
         terminal_frequency[key] = canonical_frequency
         # 【重构｜4站型】车型可能跨池（重卡短途/中长途分属两池），池级分别按
-        # 「池内车辆数×池内加权频次」（各自终局取整）推日需求；车型级取整仅供报告展示。
+        # 「池内车辆数×池内加权频次」（各自兑现年取整）推日需求；车型级取整仅供报告展示。
         for pool_key in sorted({row.battery_pool for row in relevant}):
             pool_rows = [row for row in relevant if row.battery_pool == pool_key]
             pool_raw_vehicles = sum(row.catl_swap_vehicles_wan for row in pool_rows)
@@ -673,7 +673,7 @@ def build_scale(
 
     # 【新增｜四池口径】对每个池（池键=站型键，4站型独立）：
     #   车辆侧换电需求强度 = Σ(装车GWh × 日均换电频次)
-    #   池站内库存GWh     = 本池终局站数 × 本池库存块数 × 块容量（站数已按池独立反推，
+    #   池站内库存GWh     = 本池兑现年站数 × 本池库存块数 × 块容量（站数已按池独立反推，
     #                       供需恒等：站数×站日接待能力 = 池车日换电次数，无需份额拆分）
     #   总池容量          = Σ装车GWh × inventory_multiplier（=装车 + 站内库存）
     #   池均等效频次 f_bar = 车辆侧换电需求强度 / 总池容量
@@ -793,7 +793,7 @@ def build_scale(
 
 # ===================== 逐年存量/流量明细矩阵（2026-09-13 新增）=====================
 # 分层原则：**明细落快照、标量进字典**——逐年六类矩阵只落 ScaleResult.yearly_stock
-# （随快照 JSON 序列化、Pyodide 同源生成）；configs/metrics.toml 只注册终局标量，
+# （随快照 JSON 序列化、Pyodide 同源生成）；configs/metrics.toml 只注册兑现年标量，
 # 不把逐年矩阵灌进输出字典。
 #
 # 六类口径（顺序即矩阵列序；ops_total/total 为加总行，不允许另有来源）：
@@ -875,7 +875,7 @@ def build_yearly_stock(config: dict, scale: ScaleResult, capex) -> dict:
       2025 底座**只进存量、不进流量**（它不是 2026—2030 的新增支出，同 capex 口径）；
     - **公式口径**：存量**不扣车辆/电池退役**（replacement_cycle 只管更新流量，
       不冲保有量——存量/流量不可混）。车端存量 GWh 逐年复刻
-      business.build_swap_business 中 rent_vehicle_gwh 的算法：终局取整车辆存量×
+      business.build_swap_business 中 rent_vehicle_gwh 的算法：兑现年取整车辆存量×
       池内车辆份额×池内车辆数加权装车电量÷100，保证 2030 列与⑧组标量同源；
       站内单池 GWh＝站数×inventory_blocks×block_kwh/1e6（与 capex
       _append_station_pool_cohorts 同式）。城配 city_stock_layer 高不确定支线单列，
@@ -911,7 +911,7 @@ def build_yearly_stock(config: dict, scale: ScaleResult, capex) -> dict:
         flow_onboard[year_key][category] += row.catl_swap_gwh
 
     # ── 车端存量：逐年累计 rows，按 business 的 rent_vehicle_gwh 同式滚动重算 ─────────
-    # 不复用 flow_onboard 累加：终局标量用的是"取整车数×池份额×加权电量"，
+    # 不复用 flow_onboard 累加：兑现年标量用的是"取整车数×池份额×加权电量"，
     # 直接累加未取整 GWh 会因取整与加权顺序产生系统性偏差（见口径契约）。
     for index, year in enumerate(years):
         year_key = str(year)
@@ -1024,9 +1024,9 @@ def build_yearly_stock(config: dict, scale: ScaleResult, capex) -> dict:
 
 
 def assert_yearly_stock_aligned(scale: ScaleResult, swap_business) -> None:
-    """矩阵 2030 终局列与既有标量硬对齐（同源校验，失败即中断、不静默放行）。
+    """矩阵 2030 兑现年列与既有标量硬对齐（同源校验，失败即中断、不静默放行）。
 
-    对齐对象（SwapBusinessResult ⑧组在网电池口径，均为 2030 终局）：
+    对齐对象（SwapBusinessResult ⑧组在网电池口径，均为 2030 兑现年）：
     车端存量 ↔ rent_vehicle_gwh；站内存量 ↔ station_battery_gwh；
     在网合计 ↔ battery_stock_total_gwh；车辆合计 ↔ scale.veh_total_wan。
     容差写在矩阵 tolerance 里（毛估估取整尾差，非口径差异）。
@@ -1054,6 +1054,6 @@ def assert_yearly_stock_aligned(scale: ScaleResult, swap_business) -> None:
     ]
     if failures:
         raise AssertionError(
-            "逐年存量矩阵终局列与⑧组标量对不上（存量/流量口径可能被污染）：\n  "
+            "逐年存量矩阵兑现年列与⑧组标量对不上（存量/流量口径可能被污染）：\n  "
             + "\n  ".join(failures)
         )

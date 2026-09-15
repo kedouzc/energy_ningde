@@ -90,7 +90,7 @@ def build_ancillary_revenue(config: dict, capex: CapexResult) -> tuple[float, fl
       容量补偿 = Σ(站数×申报容量)×容量补偿单价
       需求响应 = Σ(站数×申报容量)×年小时×单价
       调频     = Σ(站数×调频容量)×年小时×单价
-    按终局站数计算，与站数直接挂钩、随站网规模动态变化。
+    按兑现年站数计算，与站数直接挂钩、随站网规模动态变化。
     """
     anc = config["ancillary_services"]
     # 【重构｜4站型】站数键=四池/四站型；辅助服务参数仍按两大类（骐骥两站型同源重卡参数、
@@ -442,7 +442,7 @@ def build_swap_business(config: dict, scale: ScaleResult, capex: CapexResult) ->
     tax_rate = finance["tax_rate"]
     crf = finance["capital_recovery_factor"]
 
-    # ---- ① 车端运营装机按池（车型级终局存量取整口径不变，按池内原始车辆份额拆分，
+    # ---- ① 车端运营装机按池（车型级兑现年存量取整口径不变，按池内原始车辆份额拆分，
     # 池内用池内加权装车电量——四池之和=原车型口径总装机，只补池维度不换总量）。
     vehicle_gwh_by_pool = {pk: 0.0 for pk in BATTERY_POOLS}
     for key in config["vehicles"]:

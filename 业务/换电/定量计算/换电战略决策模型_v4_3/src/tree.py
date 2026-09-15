@@ -357,7 +357,7 @@ def build_tree(c: Ctx) -> Node:
               children=[
                   N("st.total", "站数合计", "座",
                     lambda c: float(sum(c.m("capex.station_targets").values())),
-                    "四个站型的终局站数之和"),
+                    "四个站型的兑现年站数之和"),
                   P("ops.site_rent", "单站年场租", "万元/年",
                     "swap_business.site_rent_wan_year"),
               ]),
@@ -366,13 +366,13 @@ def build_tree(c: Ctx) -> Node:
               "重卡站数 × 重卡单站年人工 ＋ 巧克力站数 × 巧克力单站年人工",
               combine=lambda hs, hw, cs, cw: (hs * hw + cs * cw) / 1e4,
               children=[
-                  N("st.heavy", "重卡站数（终局）", "座",
+                  N("st.heavy", "重卡站数（兑现年）", "座",
                     lambda c: float(sum(n for k, n in c.m("capex.station_targets").items()
                                         if k.startswith("qiji75"))),
                     "骐骥短途站 ＋ 骐骥干线站"),
                   P("ops.labor_heavy", "重卡单站年人工", "万元/年",
                     "swap_business.heavy_station_labor_wan_year"),
-                  N("st.choco", "巧克力站数（终局）", "座",
+                  N("st.choco", "巧克力站数（兑现年）", "座",
                     lambda c: float(sum(n for k, n in c.m("capex.station_targets").items()
                                         if k.startswith("choco"))),
                     "巧克力乘用站 ＋ 巧克力城配站"),

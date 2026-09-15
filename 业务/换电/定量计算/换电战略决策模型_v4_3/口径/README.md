@@ -16,7 +16,7 @@
 | `TCO口径_JPM整套引用.md` | 3 目标市场 | `tco.swap_wan`（含 模型寿命/更新周期 两个持有期共 12 个）、`ops.veh_ops` | `tco.lng_wan`、`tco.diesel_wan`、`vehicles.heavy.stock_wan`、`ops.heavy_pen_pct` |
 | `车辆与站数_推算方法.md` | 3 目标市场 · 4 可行性 | `ops.veh_ops`、`ops.veh_heavy`、`scale.stations_total` | `ops.market_total`、`ops.share_of_market`、`ops.veh_city`、`ops.veh_passenger_ops` |
 | `运营收入与成本_口径.md` | 5 阶段性业绩 | `swap.revenue`、`swap.ebitda` | `ops.annual_energy`、`swap.service_rev`、`swap.rent_rev`、`swap.ancillary` |
-| `终局处置_出表与轻资产化.md` | 4 可行性 · 6 冲击与重估 | `capex.peak_call`、`val.reit_multiple`、`val.op_ev_multiple` | `fund.peak_cash_to_cfo`、`fund.closing_liquidity` |
+| `兑现年处置_出表与轻资产化.md` | 4 可行性 · 6 冲击与重估 | `capex.peak_call`、`val.reit_multiple`、`val.op_ev_multiple` | `fund.peak_cash_to_cfo`、`fund.closing_liquidity` |
 
 > 收口读数（1–2 个／章）＝这章要**证明**的数；支撑读数（5–10 个／章）＝论证中**引用**的数。
 > 两者的区分见 `configs/report_map.toml` 的注释与 `框架提案.md` §1.1.1。

@@ -108,5 +108,29 @@ a.jump:hover{text-decoration:none;border-bottom-style:solid}
 .grp[open]>summary::before{content:"▾"}
 .grp[open]>summary{border-bottom:1px solid var(--bd);margin-bottom:8px}
 
-/* ⑥ 复核区：宽屏左右分栏——左说明右读数，对照着看 */
-@media(min-width:900px){#review .cols2rev{grid-template-columns:1.1fr 1fr}}
+
+/* ════ 2026-09-15 版面重排：浮动读数条 / 事件标记 / 报警 ════ */
+#stickybar{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.96);
+  border-bottom:1px solid var(--bd);backdrop-filter:blur(4px)}
+.sbin{max-width:1080px;margin:0 auto;padding:7px 16px;display:flex;gap:22px;flex-wrap:wrap;align-items:baseline}
+.sbi{display:flex;gap:5px;align-items:baseline;font-size:13px}
+.sbi i{color:var(--mu);font-style:normal;font-size:12px}
+.sbi b{font-size:15px;font-variant-numeric:tabular-nums}
+.sbi u{color:var(--mu);text-decoration:none;font-size:11px}
+
+/* 五块的标题：summary 里嵌 h2，去掉默认 marker 造成的错位 */
+.sec>details>summary{cursor:pointer;list-style:none}
+.sec>details>summary::-webkit-details-marker{display:none}
+.sec>details>summary h2{font-size:17px;margin:0}
+.sec>details>summary::before{content:"▸ ";color:var(--mu)}
+.sec>details[open]>summary::before{content:"▾ "}
+.sec>details{background:#fff;border:1px solid var(--bd);border-radius:10px;padding:12px 14px}
+
+/* 事件标记：挂在它改动的那个参数旁边 */
+.evb{margin:5px 0;padding:6px 8px;border-radius:6px;font-size:12px;line-height:1.55;
+  border-left:3px solid var(--bd);background:var(--bg)}
+.evb.done{border-left-color:var(--ok);background:#f0fdf4}
+.evb.pend{border-left-color:#d97706;background:#fffbeb}
+
+/* 实测报警：页面上唯一会"自己叫"的地方 */
+.alarm{border:1px solid #fecaca;background:#fef2f2;border-radius:8px;padding:10px 12px;margin-bottom:10px}

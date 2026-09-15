@@ -628,6 +628,14 @@ def _review_payload(config: dict) -> dict:
     except Exception as exc:
         out["history"] = None
         print(f"⚠ 读数留痕跳过：{exc}")
+    # 实测报警：模型假设 vs 最新实测。此前只在命令行响一声，用户看不到——
+    # 而这恰恰是「什么会推翻结论」这一块里最该出现的东西。
+    try:
+        import tracker
+        out["alarms"] = tracker.check(config)
+    except Exception as exc:
+        out["alarms"] = []
+        print(f"⚠ 实测报警跳过：{exc}")
 
     # 事件表：每张卡值多少钱。差分要重跑模型，所以在生成期算好塞进页面。
     try:
@@ -670,6 +678,17 @@ def _review_payload(config: dict) -> dict:
         out["events"] = []
         out["econ_gate"] = None
         print(f"⚠ 事件表/经济门区块跳过：{exc}")
+
+    # 参数 → 影响它的事件。**这是本次改版的要点**：
+    # 事件不该是一张独立清单，它该出现在**它改动的那个参数旁边**——
+    # 面板上那个 0.80 必须自己说清楚"我不是拍的，我是并购之后的值"。
+    by_param: dict[str, list] = {}
+    for e in out.get("events") or []:
+        for prm, frm, to in e.get("changes") or []:
+            by_param.setdefault(prm, []).append(
+                {"id": e["id"], "kind": e["kind"], "title": e["title"], "date": e["date"],
+                 "from": frm, "to": to, "delta": e["delta"]})
+    out["by_param"] = by_param
     return out
 
 

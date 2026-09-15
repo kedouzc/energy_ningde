@@ -181,6 +181,7 @@ function paintReadings(E, tag){
     </div>`;
   }).join("");
   document.getElementById("metrics").innerHTML = '<h2>关键读数'+tag+'</h2><div class="mgrid">'+cards+'</div>';
+  renderSticky(E);
   const gc=document.getElementById("gates"); if(gc) gc.innerHTML="";
 }
 
@@ -289,7 +290,7 @@ function render(){
   renderPanel();
   renderOnePaper(E);
   renderChapters(E);         // ④ 主链的收口读数必须和 ③ 区同源同刻
-  if(!_reviewDone){ _reviewDone=true; renderReview(); renderEvents(); renderEconGate(); }
+  if(!_reviewDone){ _reviewDone=true; renderAlarms(); renderReview(); renderEvents(); renderEconGate(); }
   refreshVerdict();          // ①② 区必须和 ③ 区同源同刻，否则读数自相矛盾
   if(!exact && pyReady && !_recompBusy){
     _recompBusy = true;
@@ -370,7 +371,7 @@ function axisCard(ax,i){
     `<span class="chip" data-a="${i}" data-d="${ax.dTier[t]}"
       onclick="setAxisTier(${i},'${t}')">${t}</span>`).join("");
   const vals=ax.members.map(p=>
-    `<div class="note">${ax.names[p]}：<b id="mv:${i}:${p}"></b></div>`).join("");
+    `<div class="note">${ax.names[p]}：<b id="mv:${i}:${p}"></b></div>`+evBadge(p)).join("");
   const unit = `整体加减，步长 ${ax.step}（份额/渗透率＝百分点；各成员以自身悲观/乐观档为界）`;
   return `<div class="card"><b>${ax.cn}</b> <span class="pcv" id="av:${i}"></span>
     <div style="margin:4px 0">${vals}</div>
@@ -385,7 +386,7 @@ function card(path){
   const chips=Object.entries(p.tiers).filter(([t,v])=>v!=null)
     .map(([t,v])=>`<span class="chip" data-p="${path}" data-v="${v}" onclick="put(D.params['${path}'],${v});render()">${t}${fmt(v,3)}</span>`).join("");
   const note=p.note?`<div class="note">${p.note}</div>`:"";
-  return `<div class="card"><b>${p.cn}</b> <span class="pcv" id="val:${path}"></span>${note}
+  return `<div class="card"><b>${p.cn}</b> <span class="pcv" id="val:${path}"></span>${note}${evBadge(path)}
     <input type="range" id="rng:${path}" min="${p.min}" max="${p.max}" step="${p.step}"
       value="${p.value}" oninput="put(D.params['${path}'],parseFloat(this.value));render()">
     <div>${chips}</div></div>`;
@@ -423,47 +424,80 @@ function num(v,d){ return (v==null||v!==v)?"—":Number(v).toLocaleString("zh-CN
 
 function renderReview(){
   const box=document.getElementById("review"); if(!box) return;
-  const R=(D&&D.review)||{}; const cl=R.changelog||[]; const H=R.history;
-  if(!cl.length && !H){ box.innerHTML='<p class="note">（没有读到变更台账与读数留痕）</p>'; return; }
-
-  // —— 上一轮 → 本轮：三档逐个读数对照，变了的标出来
-  let diff="";
-  if(H && H.curr){
-    const W=H.watched||[], prev=H.prev, curr=H.curr;
-    const tiers=Object.keys(curr.tiers||{});
-    const head=tiers.map(t=>`<th class="opth">${esc(t)}</th>`).join("");
-    const rows=W.map(w=>{
-      const cells=tiers.map(t=>{
-        const c=((curr.tiers||{})[t]||{})[w.key];
-        const b=prev?(((prev.tiers||{})[t]||{})[w.key]):undefined;
-        if(c==null) return '<td class="opth">—</td>';
-        if(b==null||Math.abs(b-c)<1e-9) return `<td class="opth">${num(c,w.decimals)}</td>`;
-        const up=c>b;
-        return `<td class="opth"><span class="note">${num(b,w.decimals)} →</span> `
-             + `<b style="color:${up?"var(--ok)":"var(--bad)"}">${num(c,w.decimals)}</b></td>`;
-      }).join("");
-      return `<tr><td>${esc(w.label)}</td>${cells}</tr>`;
+  const H=((D&&D.review)||{}).history;
+  const tag=document.getElementById("reviewTag");
+  if(!H||!H.curr){ box.innerHTML='<p class="note">（没有读到读数留痕）</p>'; return; }
+  const W=H.watched||[], prev=H.prev, curr=H.curr;
+  const tiers=Object.keys(curr.tiers||{});
+  let moved=0;
+  const head=tiers.map(t=>`<th class="opth">${esc(t)}</th>`).join("");
+  const rows=W.map(w=>{
+    const cells=tiers.map(t=>{
+      const c=((curr.tiers||{})[t]||{})[w.key];
+      const b=prev?(((prev.tiers||{})[t]||{})[w.key]):undefined;
+      if(c==null) return '<td class="opth">—</td>';
+      if(b==null||Math.abs(b-c)<1e-9) return `<td class="opth">${num(c,w.decimals)}</td>`;
+      moved++;
+      const up=c>b;
+      return `<td class="opth"><span class="note">${num(b,w.decimals)} →</span> `
+           + `<b style="color:${up?"var(--ok)":"var(--bad)"}">${num(c,w.decimals)}</b></td>`;
     }).join("");
-    diff=`<table><thead><tr><th>关键读数</th>${head}</tr></thead><tbody>${rows}</tbody></table>`
-       + `<p class="note">对照基准：${prev?esc(prev.date):"（无上一轮记录）"} → <b>${esc(curr.date)}</b>。`
-       + `<b>没标颜色的就是没动</b>——这正是很多轮次应有的样子（口径修正不该动基线）。`
-       + (prev&&prev.note?`<br><b>基准说明</b>：${esc(prev.note)}`:"")+`</p>`;
+    return `<tr><td>${esc(w.label)}</td>${cells}</tr>`;
+  }).join("");
+  box.innerHTML=`<p class="note" style="margin-top:0">这张表<b>由程序每次构建自己写</b>，不是我手打的。
+      改动的说明写在仓库的 <code>DECISIONS.md</code> 里，不放这儿——说明每轮长一点，一年后就是流水账；
+      这张表永远这么长。<b>没标颜色就是没动，而"没动"本身是一个可复核的结论。</b></p>`
+    + `<table><thead><tr><th>关键读数</th>${head}</tr></thead><tbody>${rows}</tbody></table>`
+    + `<p class="note">对照：${prev?esc(prev.date):"（无上一轮）"} → <b>${esc(curr.date)}</b>`
+    + (prev&&prev.note?`。基准说明：${esc(prev.note)}`:"")+`</p>`;
+  if(tag) tag.innerHTML = moved
+      ? ` · <b style="color:var(--ac)">${moved} 处读数变了</b>`
+      : " · 本轮读数全部未变（口径修正应有的样子）";
+}
+
+/* ② 块：实测报警——每次构建拿最新实测比模型假设，自动比出来的，不是我手写的。
+   有报警就把 ② 块自动展开并在标题上标红：这是页面唯一会"自己叫"的地方。 */
+function renderAlarms(){
+  const box=document.getElementById("alarms"); if(!box) return;
+  const al=((D&&D.review)||{}).alarms||[];
+  const tag=document.getElementById("watchTag");
+  if(!al.length){
+    box.innerHTML='<p class="note" style="margin-top:0">（当前没有实测偏离报警）</p>';
+    if(tag) tag.textContent=" · 无报警";
+    return;
   }
+  box.innerHTML=`<div class="alarm"><b>⚠ 实测与模型假设偏离 ${al.length} 处</b>`
+    + `<ul style="margin:6px 0 4px;padding-left:18px">`+al.map(a=>`<li>${md(a)}</li>`).join("")+`</ul>`
+    + `<div class="note">自动比对，不是手写。想改阈值或换数据底稿，改 <code>src/tracker.py</code> 与 <code>data/</code> 下的底稿。</div></div>`;
+  if(tag) tag.innerHTML=` · <b style="color:var(--bad)">${al.length} 条实测偏离</b>`;
+  const d=document.getElementById("dWatch"); if(d) d.open=true;
+}
 
-  const cards=cl.slice(0,6).map((r,i)=>
-      `<details class="chitem"${i?"":" open"}>`
-      + `<summary><b>${esc(r.date)}</b>　${esc(r.focus||"")}</summary>`
-      + `<div class="chbody">`
-      + `<div style="margin-bottom:6px"><b>改了什么</b>：${md(r.what)}</div>`
-      + `<div style="margin-bottom:6px"><b>为什么</b>：${md(r.why)}</div>`
-      + `<div style="margin-bottom:6px"><b>你该盯什么</b>：${md(r.watch)}</div>`
-      + (r.expect?`<div class="note"><b>我跑之前的预期</b>：${md(r.expect)}——`
-                 +`和右表对不上就是出问题了，别客气</div>`:"")
-      + `</div></details>`).join("");
+/* 事件标记：挂在**被它改动的那个参数旁边**，而不是另开一张清单。
+   面板上那个 0.80 必须自己说清楚"我不是拍的，我是并购之后的值"。 */
+function evBadge(path){
+  const L=(((D&&D.review)||{}).by_param||{})[path];
+  if(!L||!L.length) return "";
+  return L.map(e=>{
+    const done=e.kind==="已发生";
+    return `<div class="evb ${done?"done":"pend"}">`
+      + `<b>${done?"⚑ 已发生":"◷ "+esc(e.kind)}</b>　${esc(e.title)}<span class="note"> ${esc(e.date)}</span>`
+      + `<br>这个值不是拍的：<b>${e.from} → ${e.to}</b>　·　`
+      + `${done?"这件事已带来":"若兑现"} <b>${e.delta>=0?"+":""}${num(e.delta,0)} 亿</b>`
+      + `</div>`;
+  }).join("");
+}
 
-  box.innerHTML=`<div class="cols2rev" style="display:grid;gap:12px">`
-    + `<div>${cards||'<p class="note">（台账为空）</p>'}</div>`
-    + `<div>${diff}</div></div>`;
+/* 浮动读数条：只放三个——EBITDA、换电增量价值、当前档位。拖滑块时不用往上滚。 */
+function renderSticky(E){
+  const el=document.getElementById("sbin"); if(!el) return;
+  const pick=[["swap.ebitda","终局年 EBITDA","亿",0],
+              ["val.swap_increment","换电增量价值","亿",0]];
+  const tier=(curTier!=null&&D.tiers)?D.tiers[curTier]:"自定义";
+  el.innerHTML=pick.map(([k,lb,u,d])=>{
+    const v=(E||{})[k];
+    return `<span class="sbi"><i>${lb}</i><b>${v==null?"—":num(v,d)}</b><u>${u}</u></span>`;
+  }).join("")+`<span class="sbi"><i>当前档位</i><b>${esc(tier)}</b></span>`;
 }
 
 function renderEvents(){

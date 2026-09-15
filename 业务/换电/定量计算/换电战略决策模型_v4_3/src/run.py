@@ -69,6 +69,15 @@ def main() -> None:
     except Exception as exc:
         print(f"⚠ 门的形状跳过：{exc}")
 
+    # 桶①·车队周转增长 ＋ 延长期承载力对账
+    # 为什么打在这里：这两块是**给分析人看的对账**，不是报告读数（报告读数走 metrics）。
+    # 此前 print_turnover 写了没人调用——**一个没人看的打印等于没写**。
+    try:
+        from turnover import build_turnover, print_turnover
+        print_turnover(build_turnover(config, snapshot))
+    except Exception as exc:
+        print(f"⚠ 桶①跳过：{exc}")
+
     # 事件表：参数怎么变成现在这样的，每一次变动值多少钱
     try:
         import events as _ev

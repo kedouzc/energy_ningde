@@ -87,6 +87,10 @@ report_money_decimals = 1
 #      滑块只受 [0, cap] 硬边界约束，不被三档封顶——三档只是"判断参考点"，不是边界。
 # ───────────────────────────────────────────────────────────────────────
 
+# 【±15% 是人为设定的摆幅，不需要出处（2026-09-15 定，A2③ 关闭）】
+# 情景是对未来的预测，预测本来就没有出处。这条轴回答的不是"未来会怎样"，
+# 是"如果我现在的预测偏了，结果会变成什么样"——摆 10%、15% 还是 20% 没有本质区别，
+# 说清楚是人为设定的就够了。**曾经把"找不到出处"登记成待办，那是自己造的欠债。**
 [drivers.commercial_nev_penetration]
 scenario_axis = true     # 经营族：与「换电这条路走没走通」同源，三档联动是对的
 cn      = "纯电渗透率(NEV)"
@@ -126,6 +130,10 @@ targets = [
   "vehicles.city.scenes.1.swap_penetration",
 ]
 
+# 【±15% 是人为设定的摆幅，不需要出处（2026-09-15 定，A2③ 关闭）】
+# 情景是对未来的预测，预测本来就没有出处。这条轴回答的不是"未来会怎样"，
+# 是"如果我现在的预测偏了，结果会变成什么样"——摆 10%、15% 还是 20% 没有本质区别，
+# 说清楚是人为设定的就够了。**曾经把"找不到出处"登记成待办，那是自己造的欠债。**
 [drivers.catl_swap_share]
 scenario_axis = true     # 经营族：与「换电这条路走没走通」同源，三档联动是对的
 cn      = "CATL换电市占率"
@@ -348,6 +356,7 @@ not_adjustable = [
   "vehicles.robotaxi.battery_kwh",  # robotaxi电池容量是标准
   "swap_business.usable_energy_factor",  # 可用电量系数是共识数据
   "meta.target_year",               # 目标年份，不需要敏感性分析
+  "construction.station_network_completion_year",  # 建成年是排期节点，不是可调假设
   "meta.reference_year",            # 基准年份，不需要敏感性分析
 ]
 
@@ -362,21 +371,29 @@ wacc.unit = "%"
 wacc.decimals = 1
 wacc.scale = 100.0
 wacc.note = "**声明**（不是外部信源）：能源基建行业收益率 6–8% 的中枢，取 7.5%，不作 CAPM 推导。参照谱系：蔚能 REITs 4.68%（资产端下限）→ 协鑫能科 8.5–9.1% → 启源股权评估 10.34%（股权端上限）。什么会让我改它：出现换电资产自身的市场化融资成本（ABS/REITs 发行利率），或谱系中枢整体移动超过 1pct。【2026-09-13f 更正：本字段原写「蔚来换电ABS融资基准，直接采用」，与上方注释块的取值理由矛盾，且从未查到该数据——信封化迁移时没核对，结果对外发布的是错的那一条】"
-# CRF 0.15 ← v3.2 §1.2.2「从全生命 CAPEX 到年 FCFF：期望收益率，非成本线」。
-# 关键区分：WACC 7.5% 只是"必须收回成本的下限"，估值要看期望收益率，必然高于成本线。
-# CRF(i,15年) = i ÷ (1−(1+i)^−15)：10%下沿→0.131，15%上沿→0.171，取中值 0.150（隐含要求回报≈12.4%）。
-# 注意：不要用 WACC 7.5% 反推的 0.1133 来质疑本值——那是成本线口径，不是本参数的口径。
-# 【2026-09-13f】本值是一个**声明**，义务三件事写全：
-#   内容＝全投资口径的要求回报 12.4%（EBITDA 是税前付息前，所以分母必须用全投资口径，
-#         不能用股权口径；程序反推的隐含股权成本 ke 见 metric「隐含股权成本」，约 16%，
-#         全投资 < 股权是正常的，因为有便宜的债）。
-#   位置依据＝v3.2 §1.2.2 的 10–15% 区间中值。
-#   什么会让我改它＝① 出现换电资产自身的市场化要求回报证据；
-#         ② 承认「换电是基建运营而非制造」这一论点后，重新校准它的风险溢价。
-# ⚠️ **必须在第 4 章写明的一个事实**：12.4% 高于本项目自己登记的**全部**外部锚
-#    （蔚能 4.68% / 协鑫 8.5–9.1% / 启源 10.34%）。这是一个**主动选择的保守**，
-#    也是悲观档经济门不过线的直接原因——不是模型算出来的结论，是门槛定高了。
-capital_recovery_factor = 0.15
+# CRF **不再是一个拍值，是 WACC 的推论**：CRF = wacc ÷ (1−(1+wacc)^−运营年限)。
+# `config_loader.load_config()` 每次加载都硬断言这个恒等式，改 WACC 不改这里会当场中断。
+#
+# 【2026-09-15 改·A8】原值 0.15（隐含要求回报 12.4%，来自 v3.2 的 10–15% 区间取中值）。
+# 原注释写着"不要用 WACC 反推的 0.1133 来质疑本值——那是成本线口径"。**这句话现在被推翻，理由两条：**
+#
+#   ① **同一个模型里不能有两个"资本的价格"。** 现金流按 WACC 7.5% 折现算出 EV，
+#      同一笔资本在门那里却要求 12.4%——等于说**模型自己算出来的 EV，是用一个自己都不认可的
+#      折现率算的**。两者必须同源。这是「一件事只能有一个家」在数上的形态，
+#      原注释把它当成两个口径，是把矛盾命名成了区分。
+#   ② **门槛和安全边际要分开。** 12.4% 把 4.9pct 的安全垫焊进了门槛，于是"门是红的"
+#      同时携带两个信息——生意不够好、以及我要求得高——读者分不开。
+#      分开之后：**门测"赚不赚得回资本成本"（覆盖 1.0 ＝ 刚好赚回，不是盈亏平衡）**，
+#      安全垫由**余量**与**翻转轴**表达（`gates.py` 本来就在报"要求回报升到多少翻红"）。
+#
+# 原注释里"估值要看期望收益率、必然高于成本线"这句，回答的是**投资人要不要买**；
+# 本模型回答的是**这门生意值多少**。两个问题，两个数，不该共用一个参数。
+# 12.4% 没有消失，它变成了经济门的**翻转阈值**——信息量比当门槛时更大。
+#
+# 什么会让我改它：改 WACC（唯一入口），或者改运营年限。**不要直接改这个数。**
+capital_recovery_factor = 0.1133
+# 要求回报参照区间（v3.2 §1.2.2 的 10–15%）：**已不再进计算**，保留作第 4 章叙述的参照谱系——
+# 与蔚能 4.68% / 协鑫 8.5–9.1% / 启源 10.34% 并列，用来说明"门槛定在哪一档，结论就翻在哪一档"。
 required_return_range = [0.10, 0.15]
 tax_rate = 0.25
 # 债务比例 60%：经验假设（类固收项目可做到 1:1.5 杠杆）
@@ -662,7 +679,7 @@ weight = 0.38
 # 短途换电渗透 30% = 2025 实测自然基线（钢厂/港口/矿山场景）；政策刺激峰曾达 50%+（2021-22 唐山/包头）
 swap_penetration = 0.30
 # 宁德 30%/启源 70%：短途属启源传统优势（建站市占 71%、交付 55%）
-catl_swap_share = 0.80 # 并购启源前只假设 0.3，并购后都用 catl 电池，市占绝对垄断
+catl_swap_share = 0.30 # **并购前初值**；当前值由 [[event]] qiyuan_acquisition 重放得 0.80（见文件末事件表）
 daily_km = 130.0
 # 342kWh = No.75 单包 171kWh × 2 双包配置：盐田港官网一手（中文版）+ 中国商用汽车网 + logev 三源
 onboard_battery_kwh = 342.0
@@ -675,7 +692,7 @@ battery_pool = "qiji75_trunk"
 weight = 0.50
 # 中途换电渗透 50%：介于短途 30%/长途 70% 之间，效率敏感梯度（快递调拨/固定线路偏好换电）
 swap_penetration = 0.50
-catl_swap_share = 0.80 # 并购调整，情况同短途
+catl_swap_share = 0.30 # **并购前初值**；同上，重放后 0.80
 daily_km = 400.0
 # 513kWh = 171×3 三包满配：骐骥官网 + JPM + 零一汽车港牵专车选配佐证
 onboard_battery_kwh = 513.0
@@ -688,7 +705,7 @@ weight = 0.12
 # 长途换电渗透 70%（60–80% 中位）：干线渗透<1% 但换电为王（效率刚性）
 swap_penetration = 0.70
 # 宁德 70%/启源 30%：长途属宁德底盘式主阵地（极兔 5000 台验证）
-catl_swap_share = 0.80 # 并购启源前假设 0.7，并购后都用 catl 电池，市占绝对垄断
+catl_swap_share = 0.70 # **并购前初值**；同上，重放后 0.80
 daily_km = 650.0
 onboard_battery_kwh = 513.0
 energy_consumption_kwh_km = 1.70
@@ -920,8 +937,15 @@ planning_daily_capacity = 300.0
 
 [construction]
 years = [2026, 2027, 2028, 2029, 2030]
-# 站网建成目标年 2028：规划拍值（经验假设）
-station_network_completion_year = 2028
+# 站网建成目标年：规划拍值（经验假设）。就地信封化（2026-09-14）——
+# 它是**终局年那条推理链的中间项**（站网建成 ＋ 两年爬坡 = 终局年），叙述层要点名它；
+# 此前这个年份只活在注释和 `交接.md` 里，等于让最终报告去引用一份开发期文档。
+station_network_completion_year.v = 2028
+station_network_completion_year.label = "站网建成目标年"
+station_network_completion_year.unit = "年"
+station_network_completion_year.decimals = 0
+station_network_completion_year.fmt = "year"
+station_network_completion_year.note = "站网必须在这一年前建成，是竞争倒逼的死线不是自选节奏；capex.py 对它硬断言（2026—2028 建设、2029—2030 零新增）"
 # 2025 年底已建成（大类口径）：重卡 305（JPM §7.5 + 交规划发 52 号文交叉）+ 巧克力 1020
 # （快科技：2025 底 1325 座 = 1020 + 305）——三源闭环。骐骥两池按短途/中长途换电需求份额
 # 程序拆分（capex.py 最大余数法）；巧克力按下方池级键显式拆分（组级值=池级之和，程序校验）。
@@ -935,6 +959,25 @@ station_2026_cumulative_targets = { heavy = 1000, choco = 3000 }
 # 巧克力 2026 累计目标池级拆分：城配 140（大湾区建设计划，信源 catl.com/news/9884）；
 # 乘用 2860（= 3000 − 140 倒挤）
 station_2026_choco_targets_by_pool = { choco25_passenger = 2860, choco35_city = 140 }
+# ── 声明：终局年之后的承载力从哪来（2026-09-14）────────────────────────────
+# 追问：站网按终局年车队规模建成，可终局年之后电动化渗透还在涨，承载力怎么办？
+# 承载力有四条来源，**由便宜到贵**：
+#   ① 填满单站既有物理余量（免费：规划能力＜物理上限的那一段，见 derived.station_capacity）
+#   ② 加工位（摊薄同一块土地/接电/土建，卡在「手速」那一侧的站型有效）
+#   ③ 电网增容（卡在「能量」那一侧的站型有效，加工位对它无效）
+#   ④ 新建站（最贵：土地、接电、土建、人员全部重来一遍）
+# **模型的口径：一律按 ④ 计价。** 延长期的增长资本由 `turnover.py` 按
+# `1 − g/ROIC` 计提，ROIC 是终局年存量的平均回报——等价于"按存量的单位造价复制一份"，
+# 而存量是按单工位造价建的。①②③ 只能让代价更低，所以模型付的是上沿。
+# 因此 **scale.py 不需要延长到终局年之后**：那样做要新拍一条 15 年的建站节奏
+# （一个全新的、没有信源的假设面），把标定升级成精算，还会与 `1 − g/ROIC` 重复计价。
+# 这里只声明，读数由 turnover.pools 报（四站型各自的「需要倍数 / 单站余量 / 卡在哪一侧」）。
+#
+# **推翻条件**（任一成立，上面这段"付的是上沿"就不再成立）：
+#   · 延长期新增站的单站利用率系统性低于终局年平均——增量 ROIC ＜ 平均 ROIC，
+#     `1 − g/ROIC` 会低估增长的代价。可观察：单站日均换电次数（tracker 月度）。
+#   · 站址稀缺使 ④ 不可得（拿不到地/接不上电），这时"付钱就能扩"这个前提本身失效。
+#     可观察：高速服务区/城市场站的站址获取周期。
 # 公司公开规划（报告对照用，不替代需求反推）：CATL 官方 catl.com/news/9516
 official_2026_station_plan = { heavy = 900, choco = 3000 }
 # 重卡终局站数交叉验证（非直接输入）：交规划发〔2026〕52号（11 部门，2030 充换电站 3000 个左右、
@@ -1345,7 +1388,7 @@ min_forward_to_required_ebitda.v = 1.00
 min_forward_to_required_ebitda.label = "EBITDA 覆盖倍数体检线"
 min_forward_to_required_ebitda.unit = "倍"
 min_forward_to_required_ebitda.decimals = 2
-min_forward_to_required_ebitda.note = "稳态 EBITDA ÷ 资本要求回报的体检线（与 swap.coverage 同公式、阈值性质）；判断值不是测量值"
+min_forward_to_required_ebitda.note = "稳态 EBITDA ÷ 资本要求回报的体检线（与 swap.coverage 同公式、阈值性质）；判断值不是测量值。**2026-09-15 起门槛 ≡ WACC**，所以覆盖 1.0 ＝ 刚好赚回资本成本，不是盈亏平衡；安全边际不焊在门槛里，由余量与「要求回报翻转轴」表达"
 min_swap_value_creation_multiple = 3.00
 min_light_asset_value_retention = 0.80
 min_light_asset_recurring_profit_retention = 0.70
@@ -1606,6 +1649,25 @@ changes = [
   { param = "vehicles.heavy.scenes.0.catl_swap_share", from = 0.30, to = 0.80 },
   { param = "vehicles.heavy.scenes.1.catl_swap_share", from = 0.30, to = 0.80 },
   { param = "vehicles.heavy.scenes.2.catl_swap_share", from = 0.70, to = 0.80 },
+]
+
+[[event]]
+id      = "weilai_battery_bank"
+date    = "待观察"
+kind    = "预期"
+title   = "收购蔚来电池银行与换电网络"
+src     = "src.qiyuan_appraisal"
+trigger = "**看交易公告，不看传闻**：蔚来能源（蔚能）控制权或其电池资产包发生转让，且受让方为 CATL 或其关联方。次级信号（不足以判定兑现、但会改变概率）：蔚能新一轮融资由 CATL 领投、或双方公告换电标准并网"
+why     = "并购启源关掉的是**重卡赛道内的独立对手**，蔚来关掉的是**乘用赛道内的另一套标准**——两者不是同一件事。本卡只登记它对**份额层**的影响（重卡 +1pct、乘用 +3pct，取自 `[[mna.scenarios]]` 「启源入股加蔚来全网络电池银行」的 uplift 口径）。**必须同时说清它登记不全**：那张并购情景卡还带着 3,790 座站网与 42GWh 电池银行（资本侧节省）与 174.8 亿对价（资本侧支出），这两侧本卡都没算——所以本卡的差分是**份额层的下界**，不是这笔交易的全貌。完整口径见并购情景表"
+changes = [
+  { param = "vehicles.heavy.scenes.0.catl_swap_share", from = 0.80, to = 0.81 },
+  { param = "vehicles.heavy.scenes.1.catl_swap_share", from = 0.80, to = 0.81 },
+  { param = "vehicles.heavy.scenes.2.catl_swap_share", from = 0.80, to = 0.81 },
+  { param = "vehicles.taxi.scenes.0.catl_swap_share", from = 0.50, to = 0.53 },
+  { param = "vehicles.ridehail.scenes.0.catl_swap_share", from = 0.50, to = 0.53 },
+  { param = "vehicles.private.scenes.0.catl_swap_share", from = 0.50, to = 0.53 },
+  { param = "vehicles.private.scenes.1.catl_swap_share", from = 0.50, to = 0.53 },
+  { param = "vehicles.private.scenes.2.catl_swap_share", from = 0.50, to = 0.53 },
 ]
 
 [[event]]

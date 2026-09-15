@@ -56,7 +56,7 @@
   },
   {
     "key": "finance.capital_recovery_factor",
-    "value": 0.15,
+    "value": 0.1133,
     "type": "float"
   },
   {
@@ -1625,6 +1625,57 @@
             "param": "vehicles.heavy.scenes.2.catl_swap_share",
             "from": 0.7,
             "to": 0.8
+          }
+        ]
+      },
+      {
+        "id": "weilai_battery_bank",
+        "date": "待观察",
+        "kind": "预期",
+        "title": "收购蔚来电池银行与换电网络",
+        "src": "src.qiyuan_appraisal",
+        "trigger": "**看交易公告，不看传闻**：蔚来能源（蔚能）控制权或其电池资产包发生转让，且受让方为 CATL 或其关联方。次级信号（不足以判定兑现、但会改变概率）：蔚能新一轮融资由 CATL 领投、或双方公告换电标准并网",
+        "why": "并购启源关掉的是**重卡赛道内的独立对手**，蔚来关掉的是**乘用赛道内的另一套标准**——两者不是同一件事。本卡只登记它对**份额层**的影响（重卡 +1pct、乘用 +3pct，取自 `[[mna.scenarios]]` 「启源入股加蔚来全网络电池银行」的 uplift 口径）。**必须同时说清它登记不全**：那张并购情景卡还带着 3,790 座站网与 42GWh 电池银行（资本侧节省）与 174.8 亿对价（资本侧支出），这两侧本卡都没算——所以本卡的差分是**份额层的下界**，不是这笔交易的全貌。完整口径见并购情景表",
+        "changes": [
+          {
+            "param": "vehicles.heavy.scenes.0.catl_swap_share",
+            "from": 0.8,
+            "to": 0.81
+          },
+          {
+            "param": "vehicles.heavy.scenes.1.catl_swap_share",
+            "from": 0.8,
+            "to": 0.81
+          },
+          {
+            "param": "vehicles.heavy.scenes.2.catl_swap_share",
+            "from": 0.8,
+            "to": 0.81
+          },
+          {
+            "param": "vehicles.taxi.scenes.0.catl_swap_share",
+            "from": 0.5,
+            "to": 0.53
+          },
+          {
+            "param": "vehicles.ridehail.scenes.0.catl_swap_share",
+            "from": 0.5,
+            "to": 0.53
+          },
+          {
+            "param": "vehicles.private.scenes.0.catl_swap_share",
+            "from": 0.5,
+            "to": 0.53
+          },
+          {
+            "param": "vehicles.private.scenes.1.catl_swap_share",
+            "from": 0.5,
+            "to": 0.53
+          },
+          {
+            "param": "vehicles.private.scenes.2.catl_swap_share",
+            "from": 0.5,
+            "to": 0.53
           }
         ]
       },

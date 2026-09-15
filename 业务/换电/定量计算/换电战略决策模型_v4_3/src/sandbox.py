@@ -607,6 +607,72 @@ def model_bundle() -> dict:
     return bundle
 
 
+def _review_payload(config: dict) -> dict:
+    """复核区的数据包：变更台账（我写的话）＋ 读数留痕（程序写的数）＋ 事件表 ＋ 经济门三档。
+
+    【2026-09-15】这一块是为**"用户不读程序、只看这张 HTML"**这个事实加的。
+    在它之前，一整轮改动可以在 HTML 上不留任何痕迹——于是"我做完了"这句话
+    只能被相信，不能被复核。**一个无法被复核的交付，不管对错，都不是协作。**
+    """
+    out: dict = {}
+    try:
+        import tomllib
+        raw = (ROOT / "configs" / "changelog.toml").read_bytes()
+        out["changelog"] = tomllib.loads(raw.decode("utf-8")).get("round", [])
+    except Exception as exc:
+        out["changelog"] = []
+        print(f"⚠ 变更台账读取跳过：{exc}")
+    try:
+        import history
+        out["history"] = history.payload()
+    except Exception as exc:
+        out["history"] = None
+        print(f"⚠ 读数留痕跳过：{exc}")
+
+    # 事件表：每张卡值多少钱。差分要重跑模型，所以在生成期算好塞进页面。
+    try:
+        import events as _ev
+        from config_loader import SCENARIO_ORDER, apply_scenario, cloned_config, load_drivers
+        from gates import crf as _crf, solve_required_return
+        evs = _ev.load_events(config)
+        _ev.assert_current(config, evs)
+        out["events"] = _ev.impact(
+            config, evs, lambda c: build_model(c),
+            lambda sn: sn.ledger.total_swap_increment_value_yi,
+        )
+        # 经济门三档：读数 / 体检线 / 翻红时的要求回报（解析解，不用二分，便宜）
+        thr = config["decision_thresholds"]["min_forward_to_required_ebitda"]
+        thr = float(thr["v"] if isinstance(thr, dict) else thr)
+        crf0 = float(config["finance"]["capital_recovery_factor"])
+        life = int(config["finance"]["model_horizon_years"])
+        drivers = load_drivers(config)
+        rows = []
+        for tier in SCENARIO_ORDER:
+            cfg_t = cloned_config(config)
+            kw = apply_scenario(cfg_t, drivers, tier)
+            cov = build_model(cfg_t, **kw).swap_business.forward_to_required_ebitda
+            rows.append({
+                "tier": tier, "coverage": cov, "threshold": thr,
+                "passed": cov >= thr,
+                "flip_required_return": solve_required_return(cov * crf0 / thr, life),
+            })
+        out["econ_gate"] = {
+            "rows": rows,
+            "hurdle_now": solve_required_return(crf0, life),
+            "anchors": [
+                {"name": "蔚能 REITs", "v": 0.0468},
+                {"name": "协鑫能科", "v": 0.0880},
+                {"name": "启源股权评估", "v": 0.1034},
+                {"name": "本项目原口径（已弃用）", "v": 0.1240},
+            ],
+        }
+    except Exception as exc:
+        out["events"] = []
+        out["econ_gate"] = None
+        print(f"⚠ 事件表/经济门区块跳过：{exc}")
+    return out
+
+
 def main() -> None:
     config = load_config()
     step = sensitivity_step(config)
@@ -617,6 +683,8 @@ def main() -> None:
     # narrative/沙盘结论区.md、自己从 METRICS 取数（含机械校验），本文件只负责塞进
     # 数据包。用的是**同一个基线 snapshot**，与三档、与浏览器 Pyodide 重跑同一套算法。
     data["verdict"] = verdict_payload(base_snap, config)
+    # ⑥ 复核区：让每一轮的改动在这张 HTML 上有痕迹（见 _review_payload 的 docstring）
+    data["review"] = _review_payload(config)
     # 一页纸（三情景精确实跑值 + 四列判断）嵌入沙盘，免得在两个文件间跳读。
     # 快照式：本表是 Python 实跑的精确值，与沙盘的弹性插值估算不同源，页面里必须标注清楚。
     try:

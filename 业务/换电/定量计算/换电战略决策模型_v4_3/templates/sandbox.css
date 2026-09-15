@@ -107,3 +107,6 @@ a.jump:hover{text-decoration:none;border-bottom-style:solid}
 .grp>summary::before{content:"▸";color:var(--mu);font-size:12px}
 .grp[open]>summary::before{content:"▾"}
 .grp[open]>summary{border-bottom:1px solid var(--bd);margin-bottom:8px}
+
+/* ⑥ 复核区：宽屏左右分栏——左说明右读数，对照着看 */
+@media(min-width:900px){#review .cols2rev{grid-template-columns:1.1fr 1fr}}

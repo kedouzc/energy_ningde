@@ -289,6 +289,7 @@ function render(){
   renderPanel();
   renderOnePaper(E);
   renderChapters(E);         // ④ 主链的收口读数必须和 ③ 区同源同刻
+  if(!_reviewDone){ _reviewDone=true; renderReview(); renderEvents(); renderEconGate(); }
   refreshVerdict();          // ①② 区必须和 ③ 区同源同刻，否则读数自相矛盾
   if(!exact && pyReady && !_recompBusy){
     _recompBusy = true;
@@ -312,6 +313,8 @@ function render(){
     });
   }
 }
+
+let _reviewDone=false;   // ⑥ 复核区只渲染一次：它记的是仓库改了什么，不随拨档变
 
 let built=false;
 function renderPanel(){
@@ -412,6 +415,104 @@ let OP_INDEX=[];        // 全局行序 → 所属层/行，供自定义态回�
 /* §4 论证主链（0 + 八章）：骨架来自 configs/report_map.toml，正文来自 narrative/chapters/*.src.md。
    本函数只渲染骨架与**收口读数的当前值**——正文待写期间，这里就是跳转的落点：
    点卡片或一页纸行跳进来，至少能看到"这一章由哪个数收口、它现在是多少、什么会让它翻"。 */
+/* ⑥ 复核区：变更台账（我写的话）× 读数留痕（程序写的数）× 事件表 × 经济门三档。
+   一次性渲染，不随调参变——它记的是"仓库里改了什么"，不是"现在拨到哪一档"。 */
+function esc(t){ return String(t==null?"":t).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+function md(t){ return esc(t).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/`(.+?)`/g,"<code>$1</code>").replace(/\n/g,"<br>"); }
+function num(v,d){ return (v==null||v!==v)?"—":Number(v).toLocaleString("zh-CN",{minimumFractionDigits:d,maximumFractionDigits:d}); }
+
+function renderReview(){
+  const box=document.getElementById("review"); if(!box) return;
+  const R=(D&&D.review)||{}; const cl=R.changelog||[]; const H=R.history;
+  if(!cl.length && !H){ box.innerHTML='<p class="note">（没有读到变更台账与读数留痕）</p>'; return; }
+
+  // —— 上一轮 → 本轮：三档逐个读数对照，变了的标出来
+  let diff="";
+  if(H && H.curr){
+    const W=H.watched||[], prev=H.prev, curr=H.curr;
+    const tiers=Object.keys(curr.tiers||{});
+    const head=tiers.map(t=>`<th class="opth">${esc(t)}</th>`).join("");
+    const rows=W.map(w=>{
+      const cells=tiers.map(t=>{
+        const c=((curr.tiers||{})[t]||{})[w.key];
+        const b=prev?(((prev.tiers||{})[t]||{})[w.key]):undefined;
+        if(c==null) return '<td class="opth">—</td>';
+        if(b==null||Math.abs(b-c)<1e-9) return `<td class="opth">${num(c,w.decimals)}</td>`;
+        const up=c>b;
+        return `<td class="opth"><span class="note">${num(b,w.decimals)} →</span> `
+             + `<b style="color:${up?"var(--ok)":"var(--bad)"}">${num(c,w.decimals)}</b></td>`;
+      }).join("");
+      return `<tr><td>${esc(w.label)}</td>${cells}</tr>`;
+    }).join("");
+    diff=`<table><thead><tr><th>关键读数</th>${head}</tr></thead><tbody>${rows}</tbody></table>`
+       + `<p class="note">对照基准：${prev?esc(prev.date):"（无上一轮记录）"} → <b>${esc(curr.date)}</b>。`
+       + `<b>没标颜色的就是没动</b>——这正是很多轮次应有的样子（口径修正不该动基线）。`
+       + (prev&&prev.note?`<br><b>基准说明</b>：${esc(prev.note)}`:"")+`</p>`;
+  }
+
+  const cards=cl.slice(0,6).map((r,i)=>
+      `<details class="chitem"${i?"":" open"}>`
+      + `<summary><b>${esc(r.date)}</b>　${esc(r.focus||"")}</summary>`
+      + `<div class="chbody">`
+      + `<div style="margin-bottom:6px"><b>改了什么</b>：${md(r.what)}</div>`
+      + `<div style="margin-bottom:6px"><b>为什么</b>：${md(r.why)}</div>`
+      + `<div style="margin-bottom:6px"><b>你该盯什么</b>：${md(r.watch)}</div>`
+      + (r.expect?`<div class="note"><b>我跑之前的预期</b>：${md(r.expect)}——`
+                 +`和右表对不上就是出问题了，别客气</div>`:"")
+      + `</div></details>`).join("");
+
+  box.innerHTML=`<div class="cols2rev" style="display:grid;gap:12px">`
+    + `<div>${cards||'<p class="note">（台账为空）</p>'}</div>`
+    + `<div>${diff}</div></div>`;
+}
+
+function renderEvents(){
+  const box=document.getElementById("events"); if(!box) return;
+  const evs=((D&&D.review)||{}).events||[];
+  if(!evs.length){ box.innerHTML='<p class="note">（事件表为空）</p>'; return; }
+  box.innerHTML=evs.map(e=>{
+    const happened=e.kind==="已发生";
+    const verb=happened?"已带来":"若兑现";
+    const col=e.delta>=0?"var(--ok)":"var(--bad)";
+    const chg=(e.changes||[]).map(c=>`<li><code>${esc(c[0])}</code>：${c[1]} → ${c[2]}</li>`).join("");
+    return `<div class="card">`
+      + `<div class="row" style="justify-content:space-between">`
+      +   `<b><span class="gate ${happened?"ok":"no"}">${esc(e.kind)}</span> ${esc(e.title)}</b>`
+      +   `<span class="note">${esc(e.date)}</span></div>`
+      + `<div style="margin:6px 0"><b style="color:${col}">${verb} ${e.delta>=0?"+":""}`
+      +   `${num(e.delta,1)} 亿元</b> <span class="note">（对照：${num(e.alt,1)} → ${num(e.base,1)}）</span></div>`
+      + (e.trigger?`<div style="margin-bottom:6px"><b>触发条件</b>：${md(e.trigger)}</div>`:"")
+      + `<details><summary class="note">它动了哪些参数（${(e.changes||[]).length} 个）</summary>`
+      +   `<ul style="margin:4px 0;padding-left:18px;font-size:12px">${chg}</ul></details>`
+      + `<div class="note" style="margin-top:6px"><b>因为</b>：${md(e.why)}</div>`
+      + `</div>`;
+  }).join("")
+  + `<p class="note"><b>怎么读这一块</b>：已发生事件的口径是"把参数退回事件之前再跑一遍，差额就是它带来的价值"；`
+  + `未发生事件是"把参数推进到兑现之后再跑一遍"。`
+  + `<b>参数的当前值不存在任何文件里</b>——它由"初值 + 按日期重放已发生事件"推出来，`
+  + `所以这张表和模型永远不可能对不上。</p>`;
+}
+
+function renderEconGate(){
+  const box=document.getElementById("econgate"); if(!box) return;
+  const G=((D&&D.review)||{}).econ_gate;
+  if(!G){ box.innerHTML='<p class="note">（未读到经济门数据）</p>'; return; }
+  const rows=(G.rows||[]).map(r=>
+    `<tr><td>${esc(r.tier)}</td>`
+    + `<td class="opth"><b style="color:${r.passed?"var(--ok)":"var(--bad)"}">${num(r.coverage,2)}</b></td>`
+    + `<td class="opth">${num(r.threshold,2)}</td>`
+    + `<td class="opth">${num(r.flip_required_return*100,2)}%</td></tr>`).join("");
+  const anc=(G.anchors||[]).map(a=>`<li>${esc(a.name)}　<b>${num(a.v*100,2)}%</b></li>`).join("");
+  box.innerHTML=`<table><thead><tr><th>情景</th><th class="opth">覆盖倍数</th>`
+    + `<th class="opth">体检线</th><th class="opth">要求回报升到多少翻红</th></tr></thead>`
+    + `<tbody>${rows}</tbody></table>`
+    + `<p class="note" style="margin-top:8px">当前门槛 <b>${num((G.hurdle_now||0)*100,2)}%</b>，`
+    + `＝ WACC。<b>覆盖 1.0 的意思是"刚好赚回资本成本"，不是盈亏平衡。</b>`
+    + `安全边际不焊在门槛里，就看右边这一列。</p>`
+    + `<div class="note"><b>参照谱系</b>（门槛定在哪一档，结论就翻在哪一档）：`
+    + `<ul style="margin:4px 0;padding-left:18px">${anc}</ul></div>`;
+}
+
 function renderChapters(M){
   const box=document.getElementById("chapters"); if(!box) return;
   const chs=(D.chapters&&D.chapters.length)?D.chapters:null;

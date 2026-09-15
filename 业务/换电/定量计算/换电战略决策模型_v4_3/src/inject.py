@@ -451,6 +451,41 @@ def body_of(path: Path) -> str:
     return "\n".join(out)
 
 
+# 事件表指针：`中检点`／`事件表` 那一行里的反引号 id，必须真的在 base.toml 的
+# `[[event]]` 里存在。判据故意收得很窄（只看这两个词所在的行），宁可漏也不误伤——
+# 一条会误伤的检查，人会绕开它，绕开之后它就等于不存在。
+#
+# 为什么补这条（2026-09-14）：专题里写着「中检点（已进事件表）：`methanol_trunk_scale`」，
+# 而事件表里那条事件叫 `methanol_price_converge`——**名字对不上，谁也没发现**。
+# 这和"最终报告去引用一份开发期文档"是同一类错：**引用了一个模型里不存在的东西**。
+# 指标的悬空指针早有保护，事件的没有；现在有了。
+EVENT_LINE_RE = re.compile(r"中检点|事件表")
+EVENT_TOKEN_RE = re.compile(r"`([a-z][a-z0-9]*(?:_[a-z0-9]+)+)`")
+
+
+def lint_events(sources: list[Path]) -> list[str]:
+    try:
+        from config_loader import load_config_raw
+        from events import load_events
+        ids = {e.id for e in load_events(load_config_raw())}
+    except Exception as exc:                      # 事件表读不出来不该拖垮整条链
+        print(f"  （事件指针检查跳过：{exc}）")
+        return []
+    if not ids:
+        return []
+    problems: list[str] = []
+    for src in sources:
+        for n, line in enumerate(body_of(src).splitlines(), 1):
+            if not EVENT_LINE_RE.search(line):
+                continue
+            for tok in EVENT_TOKEN_RE.findall(line):
+                if tok not in ids:
+                    problems.append(
+                        f"{src.name}:{n} 指向的事件 `{tok}` 不在事件表里——"
+                        f"现有事件：{', '.join(sorted(ids))}")
+    return problems
+
+
 def lint_closing(sources: list[Path]) -> tuple[list[str], list[dict]]:
     """收口恒等式检查（三条）＋ 覆盖率表。返回 (问题清单, 覆盖率行)。
 
@@ -592,6 +627,13 @@ def process(lint_only: bool = False) -> int:
 
     # 收口恒等式三条，**2026-09-13g 起硬失败**（到期日已到，见 lint_closing 的 docstring）。
     # 豁免不是消失，是改名叫「骨架／素材」并在覆盖率表里被点名计数。
+    event_problems = lint_events(sources)
+    if event_problems:
+        print(f"\n✗ 事件指针 {len(event_problems)} 处悬空，已中断：")
+        for e in event_problems[:20]:
+            print("   " + e)
+        failed = True
+
     closing_problems, closing_rows = lint_closing(sources)
     print_coverage(closing_rows)
     if closing_problems:

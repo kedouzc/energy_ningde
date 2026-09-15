@@ -15,12 +15,23 @@
 它不改当前值，但程序照样能算出"若兑现，价值 +X"。
 中检点因此从一张定性清单变成**参数扰动 ＋ 价值差分**，第 7 章要的正是这个。
 
-【本轮是轻量版】只做登记 ＋ 断言 ＋ 差分。
-**重放版**（base.toml 存初值，当前值由「初值 + 按日期重放已发生事件」派生，
-两者不一致即报错）是目标态，等门与正文稳定后再做——那才是完整的"自动派生"。
+【2026-09-15·A9 升级为重放版】
+──────────────────────────────────────────────────────────────────────
+轻量版是"账本与账实各记一遍，再断言两边相等"——断言只能发现不一致，说不出谁对。
+重放版把关系倒过来：
 
-【纪律】**参数的当前值仍然只有一个家**（base.toml 的 `.v`）。
-事件表不是第二个家，是账本：它登记 `to`，程序断言 `to == 当前值`，对不上就中断。
+  · **初值**只有一个家：`configs/base.toml`；
+  · **"它后来怎么变成现在这样"**只有一个家：本文件读的 `[[event]]` 表；
+  · **当前值不再有家，它是两者的函数**（`config_loader.replay_events`）。
+
+于是"想改当前值，只能补一张事件卡"从一条纪律变成一条**物理约束**：
+直接去 base.toml 把并购后的数写进去，重放时当场中断。
+
+【trigger 与 changes 分开】
+`trigger` 答"凭什么说它发生了"（可观察、可证伪的触发条件），
+`changes` 答"它发生之后哪些参数变成多少"。
+已发生事件用 `date` 交代前者，未发生事件**必须写 `trigger`**——
+没有触发条件的"预期"是愿望，不是中检点。
 """
 
 from __future__ import annotations
@@ -48,6 +59,7 @@ class Event:
     title: str
     why: str
     src: str = ""
+    trigger: str = ""          # 未发生事件必填：凭什么说它发生了
     changes: list[Change] = field(default_factory=list)
 
 
@@ -64,6 +76,11 @@ def load_events(config: dict) -> list[Event]:
         if raw["id"] in seen:
             raise SystemExit(f"[[event]] id 重复：{raw['id']}")
         seen.add(raw["id"])
+        if raw["kind"] != "已发生" and not str(raw.get("trigger", "")).strip():
+            raise SystemExit(
+                f"[[event]] {raw['id']} 是「{raw['kind']}」却没有 trigger——"
+                "**没有触发条件的预期是愿望，不是中检点**。写清楚：什么可观察的事发生了，"
+                "就算它兑现了（要能被证伪，且最好月度可查）。")
         chs = []
         for c in raw["changes"]:
             for k in ("param", "from", "to"):
@@ -72,30 +89,33 @@ def load_events(config: dict) -> list[Event]:
             chs.append(Change(param=c["param"], frm=float(c["from"]), to=float(c["to"])))
         out.append(Event(id=raw["id"], date=str(raw["date"]), kind=raw["kind"],
                          title=raw["title"], why=raw["why"], src=raw.get("src", ""),
-                         changes=chs))
+                         trigger=str(raw.get("trigger", "")), changes=chs))
     return out
 
 
 def assert_current(config: dict, events: list[Event]) -> None:
-    """已发生事件的 `to` 必须等于参数的当前值。
+    """**未发生**事件的 `from` 必须等于参数的当前值（＝重放之后的值）。
 
-    **这条断言是事件表能成立的全部理由**：没有它，事件表就变成第二个家，
-    改了 base.toml 而忘了改事件表，两边会静默漂开。
+    已发生事件不在这里查——`config_loader.replay_events` 在重放时已经把
+    "base.toml 的初值 == 事件的 from" 断过一次，重放完当前值必然等于 `to`，
+    再断一遍是同义反复。**真正会悄悄漂开的是未发生事件那一侧**：
+    别的事件改了同一个参数，某张中检点卡的 `from` 就停在了旧世界，
+    于是它算出来的"若兑现值多少"是相对一个已经不存在的现状说的。
     """
     bad = []
     for ev in events:
-        if ev.kind != "已发生":
+        if ev.kind == "已发生":
             continue
         for c in ev.changes:
             cur = get_path(config, c.param)
             cur = cur["v"] if isinstance(cur, dict) and "v" in cur else cur
-            if abs(float(cur) - c.to) > 1e-9:
-                bad.append(f"  事件 {ev.id}：登记 to={c.to}，而 {c.param} 当前值={cur}")
+            if abs(float(cur) - c.frm) > 1e-9:
+                bad.append(f"  事件 {ev.id}：登记 from={c.frm}，而 {c.param} 当前值={cur}"
+                           f"——这张卡的差分是相对一个已经不存在的现状算的")
     if bad:
         raise SystemExit(
-            "事件表与参数当前值不一致（事件表是账本，不是第二个家）：\n"
-            + "\n".join(bad)
-            + "\n改了参数就要同步改事件表的 to，或补一张新的 [[event]] 卡。"
+            "未发生事件的起点与当前值不一致：\n" + "\n".join(bad)
+            + "\n把 from 更新到当前值（差分口径随之改变，请顺便复核 why 还成不成立）。"
         )
 
 
@@ -116,7 +136,7 @@ def impact(config: dict, events: list[Event], build: Callable, read: Callable) -
             "id": ev.id, "kind": ev.kind, "date": ev.date, "title": ev.title,
             "base": base, "alt": alt,
             "delta": (base - alt) if ev.kind == "已发生" else (alt - base),
-            "why": ev.why, "src": ev.src,
+            "why": ev.why, "src": ev.src, "trigger": ev.trigger,
             "changes": [(c.param, c.frm, c.to) for c in ev.changes],
         })
     return rows
@@ -136,6 +156,8 @@ def print_events(rows: list[dict], unit: str = "亿元") -> None:
             print(f"      {p}：{a} → {b}")
         print(f"      **{verb} {r['delta']:+,.1f} {unit}**"
               f"（对照：{r['alt']:,.1f} → {r['base']:,.1f}）")
+        if r.get("trigger"):
+            print(f"      触发条件：{r['trigger']}")
         print(f"      因为：{r['why']}")
     print("─" * 76)
     happened = sum(r["delta"] for r in rows if r["kind"] == "已发生")

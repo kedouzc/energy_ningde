@@ -24,6 +24,28 @@
   <button onclick="resetAll()">全部复位</button>
 </div>
 
+<!-- ⑥ 复核区：让每一轮的改动在这张页面上有痕迹。
+     左边是我写的话（configs/changelog.toml），右边是程序自己记的读数
+     （audit/baseline_history.json，每次构建自动追加）——说法对不上读数，一眼看见。
+     本区块由 sandbox.js 的 renderReview() 渲染，本文件不写任何内容。 -->
+<section class="sec" id="secReview">
+  <h2 style="margin-top:0">◈ 复核区：这一轮改了什么，哪个数动了</h2>
+  <p class="note" style="margin-top:0">
+    <b>左＝我写的说明，右＝程序自己记的读数。</b>说明是我给的，读数不是——它由每次构建自动追加，
+    所以<b>两边对不上的时候，以右边为准</b>。这一块存在的理由：一轮改动如果在这张页面上看不出来，
+    那"做完了"这句话就只能被相信、不能被复核。
+  </p>
+  <div id="review"></div>
+  <details class="subsec" id="secEvents" open>
+    <summary><b>◈ 事件表</b><span class="note">（参数是怎么变成现在这样的，以及每一次变动值多少钱）</span></summary>
+    <div id="events"></div>
+  </details>
+  <details class="subsec" id="secEconGate">
+    <summary><b>◈ 经济门 · 三档</b><span class="note">（门槛定在参照谱系的哪一档，结论就翻在哪一档）</span></summary>
+    <div id="econgate"></div>
+  </details>
+</section>
+
 <!-- ②③ 定量支撑在前（结论卡片之下先回答"这些数站不站得住"），定性逻辑在后。
      手机：自上而下；桌面/平板(≥900px)：左右并行。见 sandbox.css 的 .cols -->
 <div class="cols">

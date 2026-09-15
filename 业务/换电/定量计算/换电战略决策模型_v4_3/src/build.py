@@ -60,6 +60,19 @@ def main() -> None:
     print(f"决策快照  {paths['snapshot'].name}")
     print(f"最终判断  {snapshot.memos[-1].status}")
 
+    # 读数留痕：把三档关键读数追加一条（同日覆盖），沙盘据此显示「上一轮 → 本轮」。
+    # **数字由程序自己写**，和 configs/changelog.toml 里我手写的说明并排显示——
+    # 说法对不上读数，一眼就能看见。
+    try:
+        import history
+        # 留痕用**变更台账最后一条的 date 当键**，不用日历日期——
+        # 否则一天做两轮，第二轮会把第一轮的读数覆盖掉，台账和读数就对不上了。
+        _rows = history.record({t: read_metrics(sn, config) for t, sn in snapshots.items()},
+                               today=history.latest_round_key())
+        print(f"读数留痕  baseline_history.json（{len(_rows)} 条，最新 {_rows[-1]['date']}）")
+    except Exception as _e:
+        print(f"⚠ 读数留痕跳过：{_e}")
+
     # ── 2. 生成事实包 ────────────────────────────
     _step(2, "生成事实包")
     # facts 只做纯装配：值全部由输出字典算好后整包传入（模型输出 + base.toml 就地信封

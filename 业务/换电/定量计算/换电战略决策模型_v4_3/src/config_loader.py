@@ -46,7 +46,65 @@ def load_config(path: Path | None = None) -> dict[str, Any]:
     （base.toml 里写 ``wacc.v = 0.075`` / ``wacc.label = "WACC"``），
     本函数在加载时统一还原为标量树——模型、driver 拨档、浏览器 Pyodide 全部零改动同源。
     """
-    return _unwrap_envelopes(load_config_raw(path))
+    cfg = _unwrap_envelopes(load_config_raw(path))
+    replay_events(cfg)
+    _assert_crf_is_derived(cfg)
+    return cfg
+
+
+def replay_events(cfg: dict[str, Any]) -> list[str]:
+    """把 base.toml 里的**初值**按事件表重放成**当前值**。返回重放过的事件 id。
+
+    【2026-09-15·A9 重放版】此前 base.toml 直接存并购后的 0.80，事件表另存一行
+    `from=0.30, to=0.80`，靠一条断言 `to == 当前值` 维持一致。那是**账本与账实各记一遍**：
+    断言只能发现它们不一致，不能说明谁对。
+
+    现在倒过来——**base.toml 只存初值，当前值是推出来的**：
+      · 参数的"初值"有且只有一个家（base.toml）；
+      · "它后来怎么变成现在这样"有且只有一个家（事件表）；
+      · **当前值不再有家，它是两者的函数。** 想改当前值，只能补一张事件卡。
+    这条路堵死了"看到并购就顺手把参数改了"——那正是把结论写进输入。
+
+    断言也跟着变了向：重放前 base.toml 的值必须等于事件的 `from`。
+    有人直接把 base 改成并购后的数，这里当场中断。
+    """
+    events = cfg.get("event") or []
+    done: list[str] = []
+    for raw in sorted(events, key=lambda e: str(e.get("date", ""))):
+        if raw.get("kind") != "已发生":
+            continue
+        for c in raw.get("changes", []) or []:
+            cur = get_path(cfg, c["param"])
+            cur = cur["v"] if isinstance(cur, dict) and "v" in cur else cur
+            if abs(float(cur) - float(c["from"])) > 1e-9:
+                raise SystemExit(
+                    f"事件重放失败：{c['param']} 在 base.toml 里是 {cur}，"
+                    f"而事件 {raw.get('id')} 登记的初值是 {c['from']}。\n"
+                    "**base.toml 只存初值，当前值由事件重放派生**——"
+                    "要表达一个新的变动，补一张 [[event]] 卡，不要直接改这个数。")
+            _set_path(cfg, c["param"], float(c["to"]))
+        done.append(str(raw.get("id")))
+    return done
+
+
+def _assert_crf_is_derived(cfg: dict[str, Any]) -> None:
+    """CRF 必须等于 WACC 在运营年限上的年金因子——它是推论，不是第二个拍值。
+
+    【2026-09-15·A8】此前 CRF 独立拍 0.15（隐含要求回报 12.4%），而现金流按 WACC 7.5% 折现。
+    **同一个模型里出现了两个"资本的价格"**：模型自己算出来的 EV 用的是一个它在门那里
+    不认可的折现率。断言把这个口子焊死——想改门槛只有一个入口，就是改 WACC。
+    """
+    fin = cfg.get("finance") or {}
+    wacc = fin.get("wacc"); n = fin.get("model_horizon_years"); crf = fin.get("capital_recovery_factor")
+    if wacc is None or n is None or crf is None:
+        return
+    n = int(n)
+    want = wacc / (1.0 - (1.0 + wacc) ** -n)
+    if abs(crf - want) > 5e-4:
+        raise SystemExit(
+            f"[finance] capital_recovery_factor={crf} 与 WACC {wacc:.4f}／运营年限 {n} 年"
+            f"推出的 {want:.4f} 不符。**CRF 是推论不是拍值**——要改门槛就改 WACC，"
+            "不要直接改这个数（理由见 base.toml 该字段上方注释）。")
 
 
 def cloned_config(config: dict[str, Any]) -> dict[str, Any]:

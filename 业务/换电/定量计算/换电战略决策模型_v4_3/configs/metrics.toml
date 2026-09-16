@@ -262,7 +262,7 @@ at = "capex.steady_state_replacement_gwh"
 unit = "GWh/年"
 decimals = 1
 group = "②制造出货"
-note = "Σ_池(池机队GWh ÷ 池寿命)；倒短8.37年 vs 干线2.94年差异极大，必须分池算完再相加"
+note = "Σ_池(池机队GWh ÷ 池寿命)；倒短池寿命长、干线池寿命短（当前年数看指标「重卡倒短池电池寿命」「重卡干线池电池寿命」，不在此手写），差异极大，必须分池算完再相加"
 
 [[metric]]
 key = "mfg.repl_gwh_heavy"
@@ -272,7 +272,7 @@ at = "capex.steady_state_replacement_gwh_heavy"
 unit = "GWh/年"
 decimals = 1
 group = "②制造出货"
-note = "只含骐骥75#两池；重卡是更新需求的主力（干线池寿命仅2.94年）"
+note = "只含骐骥75#两池；重卡是更新需求的主力（干线池高频换电、寿命最短，当前年数看「重卡干线池电池寿命」）"
 
 # ── ③ 资本层 ──────────────────────────────────────────────────────────────
 [[metric]]
@@ -834,7 +834,48 @@ at = "swap_business.heavy_economics.battery_life_years"
 unit = "年"
 decimals = 2
 group = "⑧重卡"
-note = "骐骥两池按机队GWh加权；倒短8.37 vs 干线2.94年，加权后由干线主导"
+note = "骐骥两池按机队GWh加权；倒短池寿命长、干线池寿命短（当前年数看「重卡倒短池电池寿命」「重卡干线池电池寿命」），加权后由寿命短的干线池主导"
+
+[[metric]]
+key = "ops.heavy_pool_life_short"
+source = "scale"
+label = "重卡倒短池电池寿命"
+at = "scale.battery_pool_life_years.qiji75_short"
+unit = "年"
+decimals = 2
+group = "⑧重卡"
+note = "骐骥75#倒短池：min(临界循环次数÷池换电频次, 日历寿命封顶)；更新需求分池计算，寿命必须各池各取"
+
+[[metric]]
+key = "ops.heavy_pool_life_trunk"
+source = "scale"
+label = "重卡干线池电池寿命"
+at = "scale.battery_pool_life_years.qiji75_trunk"
+unit = "年"
+decimals = 2
+group = "⑧重卡"
+note = "骐骥75#干线池：高频换电致寿命仅约3年，是重卡更新需求的主力来源；与倒短池差异极大不可取平均"
+
+[[metric]]
+key = "tco.baas_cut_wan"
+source = "tco"
+label = "重卡BaaS免购置电池额"
+at = "swap_business.heavy_economics.battery_purchase_cut_rmb"
+scale = 0.0001
+unit = "万元"
+decimals = 1
+group = "⑧重卡"
+note = "单车带电量×模型电池价（元/辆→万元）；BaaS 模式下用户购车不含电池，拖电池价/带电量滑块本数同步变"
+
+[[metric]]
+key = "tco.baas_cut_pct"
+source = "tco"
+label = "BaaS免购置额占整车价比例"
+at = "swap_business.heavy_economics.battery_purchase_cut_pct"
+unit = "%"
+decimals = 0
+group = "⑧重卡"
+note = "免购置额÷电动重卡购车价（JPM Table 3）；与外部引述「电池包占整车成本比例」对照，模型值不许手写"
 
 # 重卡全成本 TCO：六字段 × 两个持有期（模型电池寿命 / 重卡更新周期）
 [[metric]]

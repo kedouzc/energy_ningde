@@ -74,7 +74,7 @@ python src/lab.py workbook    # ③ 参数血缘：生成 Excel 七表（假设�
 | **配置** | `config_loader.py` | 读 base.toml，别处一律不读原文 |
 | **计算内核**<br>（改口径才动） | `model.py` 调度<br>`scale.py` 车辆与站数<br>`capex.py` 资本与排期<br>`business.py` 运营损益<br>`capital_cycle.py` 轻资产退出<br>`consolidation.py` 合并总账<br>`group_constraints.py` 集团资金<br>`mna.py` 并购情景<br>`decision.py` 决策备忘录<br>`derived.py` 派生量<br>`schemas.py` 数据结构 | 从参数装配出全部数字。<br>**唯一产物是快照**，别的都从快照读 |
 | **产出** | `run.py` 跑模型出快照与骨架报告<br>`report.py` 骨架报告的表格排版<br>`facts.py` 事实包（叙述层唯一可引用的数字）<br>`inject.py` 占位符检查／注入／待复核<br>`build.py` 一条命令串起全流程 | 把快照变成人能读的东西 |
-| **检查与探索** | `tree.py` 决策树＋链路审计<br>`lab.py` 参数追踪器与血缘 Excel<br>`app.py` Streamlit 实时沙盘<br>`backscan.py` MANIFEST 数字回扫<br>`v32_audit.py` v3.2 口径对照（冻结） | 验证链路、找影响面、试算 |
+| **检查与探索** | `tree.py` 决策树＋链路审计<br>`lab.py` 参数追踪器与血缘 Excel<br>`app.py` Streamlit 实时沙盘<br>`tracker.py` 月度跟踪（12 张 watch 卡比对）<br>`monthly_update.py` agent 取数落 xlsx<br>`monthly_dashboard.py` 月度仪表盘<br>`backscan.py` MANIFEST 数字回扫<br>`v32_audit.py` v3.2 口径对照（冻结） | 验证链路、找影响面、试算、盯实测 |
 
 ### outputs/ 里都是什么
 
@@ -89,6 +89,7 @@ python src/lab.py workbook    # ③ 参数血缘：生成 Excel 七表（假设�
 | `换电决策树_v4.3.xlsx` | `tree.py --xlsx` | 同一棵树的 Excel 版，左侧可折叠展开 |
 | `换电模型_参数与血缘_v4.3.xlsx` | `lab.py workbook` | 七表：假设／结果／敏感性矩阵／双向血缘／算法演示／试算对比 |
 | `dashboard_parameter_registry_v4_3.json` | `run.py` | 前端交互用的参数注册表 |
+| `月度跟踪仪表盘.html` | `run.py`（`src/monthly_dashboard.py`） | **月度实测跟踪面**：8 KPI ＋ 5 张图（总量／重卡渗透／换电占纯电／物流车／装车与 CATL 份额）。**单月看边际（调仓信号）、累计看趋势锚（重标依据）**；数据＝`audit/tracking_hdt.json`，离线可开 |
 
 ---
 
@@ -130,6 +131,8 @@ narrative/*.src.md（人写，只有占位符）─┴─ inject.py ──▶ ou
 | 想知道谁最能撬动结论 | `python src/lab.py scan`（272 参数 × 37 指标的实测弹性，约 1 秒） |
 | 想改叙述正文 | 改 `narrative/*.src.md`（**不是 outputs/**），数字写占位符，可用的事实见 `outputs/facts.json` |
 | 想核某个参数的信源 | base.toml 该参数的注释；完整核验记录见 `audit/信源审计台账.md` |
+| **想跟踪月度实测、看调仓信号** | 打开 `outputs/月度跟踪仪表盘.html`（单月边际＋累计趋势双轨，缺月自动断线）；命令行跑 `python src/tracker.py`（读数＋12 张 watch 卡报警） |
+| 想更新一个月的外部数据 | **2026-07 起由 agent 自动取数**，不再手工维护：`python src/monthly_update.py status` 看待填月 → agent 按 xlsx 既有数据源联网取数写 payload → `python src/monthly_update.py fill <payload.json>`（自动重抽 JSON）。口径见 [`口径/README.md`](./口径/README.md) §四 |
 | 想边拖滑块边看结果 | `streamlit run src/app.py` |
 | 想知道链路有没有问题 | `python src/tree.py`；最近一次结论见 `audit/链路审计_第0步.md` |
 
@@ -189,6 +192,7 @@ narrative/*.src.md（人写，只有占位符）─┴─ inject.py ──▶ ou
   （10–15% 区间中值，隐含要求回报约 12.4%）。用 WACC 反推的 0.1133 去质疑它是比错了对象。
   依据见 base.toml 注释与 v3.2 §1.2.2。
 - **`nev_rates` 是年更新流量口径，不是保有量口径。** 引用"电动化率"时必须说明是哪一种。
+- **月度跟踪必须双口径：单月看边际（调仓信号）、累计/年度看趋势锚（重标依据）。** "重卡季节性强所以不看单月"是错的——季节性强只推出"单月要配年化/累计一起读"，推不出"单月不用看"；边际拐点总是先出现在单月。详见 `DECISIONS.md` 2026-09-16b。
 - **outputs/ 下的 md 是生成物。** 想改叙述正文请改 `narrative/*.src.md`。
 - **改参数前先看影响面。** `lab.py scan` 实测的前几位是电池价格、站效率 RTE、项目债务比、
   电池价格平台期结束年、重卡保有与纯电占比——动这几个之前务必先 `lab.py impact`。

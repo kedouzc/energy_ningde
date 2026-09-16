@@ -596,9 +596,12 @@ def model_bundle() -> dict:
         if rel == "py_boot.py":
             continue
         bundle["src"][rel] = p.read_text(encoding="utf-8")
-    # 一页纸的问题与判断文本 + 信源索引（URL 的唯一家）
+    # 一页纸的问题与判断文本 + 信源索引（URL 的唯一家）＋ 月度跟踪 JSON（双份同源下发）：
+    #   · methanol：浏览器端 load_config 重放时要读它判定事件触发，必须随 bundle；
+    #   · hdt：watch 表/仪表盘与后端同源读同一份序列，浏览器端重渲染不依赖后端。
     bundle["files"] = {}
-    for rel in ("narrative/一页纸.md", "audit/信源审计台账.md"):
+    for rel in ("narrative/一页纸.md", "audit/信源审计台账.md",
+                "audit/tracking_methanol.json", "audit/tracking_hdt.json"):
         fp = root / rel
         if fp.exists():
             bundle["files"][rel] = fp.read_text(encoding="utf-8")
@@ -632,7 +635,8 @@ def _review_payload(config: dict) -> dict:
     # 而这恰恰是「什么会推翻结论」这一块里最该出现的东西。
     try:
         import tracker
-        out["alarms"] = tracker.check(config)
+        # 结构化行（single/group/stale）：同组双轨卡在前端合并成一条报警（09-16e）
+        out["alarms"] = tracker.check_rows(config)
         out["watch_table"] = tracker.watch_table(config)
     except Exception as exc:
         out["alarms"] = []
@@ -658,6 +662,9 @@ def _review_payload(config: dict) -> dict:
                 "coverage": sx.swap_business.forward_to_required_ebitda,
                 "increment_yi": sx.ledger.total_swap_increment_value_yi,
                 "stations": sx.scale.stations_total,
+                # 变化后的 CATL 换电车辆数（兑现年存量，四池合计，万辆）——
+                # 让"私家车净增砍掉 X%"直接落到一个看得见的规模量上
+                "veh_total_wan": sx.scale.veh_total_wan,
             })
         b = rows[0]
         for r in rows:
@@ -712,12 +719,24 @@ def _review_payload(config: dict) -> dict:
     # 参数 → 影响它的事件。**这是本次改版的要点**：
     # 事件不该是一张独立清单，它该出现在**它改动的那个参数旁边**——
     # 面板上那个 0.80 必须自己说清楚"我不是拍的，我是并购之后的值"。
+    # 前端按事件 id 在轴级去重、渲染成一枚小胶囊（同事件改 N 个成员也只占一行），
+    # 点开弹层再看全明细；这里把数值型与文字型（track 事件的 delta 数组扰动）
+    # 两种改动都挂到落点参数上，文字型打 text 标记、附带跟踪状态供胶囊出文案。
     by_param: dict[str, list] = {}
     for e in out.get("events") or []:
+        tinfo = e.get("track") or {}
         for prm, frm, to in e.get("changes") or []:
+            textual = not (isinstance(frm, (int, float))
+                           and isinstance(to, (int, float)))
             by_param.setdefault(prm, []).append(
                 {"id": e["id"], "kind": e["kind"], "title": e["title"], "date": e["date"],
-                 "from": frm, "to": to, "delta": e["delta"]})
+                 "from": frm, "to": to, "delta": e["delta"], "text": textual,
+                 "tracked": bool(e.get("tracked")),
+                 "triggered_ym": tinfo.get("triggered_ym"),
+                 "latest_ym": tinfo.get("latest_ym"),
+                 "latest_value": tinfo.get("latest_value"),
+                 "threshold": tinfo.get("threshold"),
+                 "op": tinfo.get("op")})
     out["by_param"] = by_param
     return out
 

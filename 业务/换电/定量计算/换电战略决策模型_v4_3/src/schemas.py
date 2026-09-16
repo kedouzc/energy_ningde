@@ -295,12 +295,12 @@ class CapexResult:
     # 与 steady_state_net_replacement_yi 同源同式（更新理论：稳态更新速率 = 存量 ÷ 寿命），
     # 差别只在那里乘净单价得金额、这里保留 GWh。用户口径：建设期之后只剩更新需求，
     # **分池计算、含车端 + 站内**——故分子取该池全部 cohort（kind=vehicle 与 station 都在里），
-    # 分母取该池自身寿命 battery_pool_life_years（倒短 8.37 / 干线 2.94 年，差异极大，
-    # 必须分池算完再相加，不能用单一寿命）。
+    # 分母取该池自身寿命 battery_pool_life_years（倒短池寿命长、干线池寿命短，
+    # 差异极大且年数由模型现算；必须分池算完再相加，不能用单一寿命）。
     mature_fleet_gwh_by_pool: dict[str, float] = field(default_factory=dict)
     steady_state_replacement_gwh_by_pool: dict[str, float] = field(default_factory=dict)
     steady_state_replacement_gwh: float = 0.0
-    # 2026-09-12 从 lab.py 下沉：重卡池（qiji75*）单独汇总——干线池寿命仅 2.94 年，
+    # 2026-09-12 从 lab.py 下沉：重卡池（qiji75*）单独汇总——干线池寿命最短、
     # 是更新需求的主力，必须单列（与 steady_state_replacement_gwh 同口径的两个切片）。
     steady_state_replacement_gwh_heavy: float = 0.0
     # 稳态年更新装机 ÷ 2026E 动力电池出货：换电把一次性出货变成持续更新订单的量化。
@@ -533,7 +533,8 @@ class HeavyEconomics:
     user_energy_rmb_kwh: float | None           # 用户能源全口径单价 = 电费 + 服务费 + 租金
     vehicle_gwh: float = 0.0                    # 重卡车端装机 GWh（存量）
     station_gwh: float = 0.0                    # 重卡站内周转装机 GWh（存量）
-    battery_purchase_cut_yi: float = 0.0        # BaaS 免去的电池购置（元/辆）
+    battery_purchase_cut_rmb: float = 0.0       # BaaS 免去的电池购置（元/辆，2026-09-16e 正名：原 _yi 名实不符）
+    battery_purchase_cut_pct: float = 0.0       # 免购置额占电动重卡整车价比例（百分点，结论区占位符用）
     n1: TcoRow | None = None                    # 持有期 = 模型电池寿命
     n2: TcoRow | None = None                    # 持有期 = 更新周期
 

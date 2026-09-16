@@ -34,17 +34,21 @@
   <span class="note">切档会同时改上面的结论、下面的全部读数与一页纸</span>
 </div>
 
-<!-- ② 什么会推翻结论：实测报警 ＋ 事件表。有报警时自动展开。 -->
+<!-- ② 什么会推翻结论：四张子卡默认全折叠（2026-09-16e），有报警时只自动展开外层。
+     顺序按用户决策流：实测偏离 → 中检点全表 → 事件跟踪（2 收购＋1 竞争技术）→ 私家车单池敏感性。 -->
 <section class="sec" id="secWatch">
   <details id="dWatch">
     <summary><h2 style="display:inline">② 什么会推翻结论</h2>
       <span class="note" id="watchTag"></span></summary>
-    <div id="alarms"></div>
-    <details class="subsec" open><summary><b>中检点跟踪表</b><span class="note">（漏斗每一层：模型假设 vs 最新实测；没接数据源的也列出来——空着比没有好，因为空着是看得见的）</span></summary>
+    <details class="subsec" id="dAlarms">
+      <summary><b>⚠ 实测与模型假设偏离</b><span class="note" id="alarmTag"></span></summary>
+      <div id="alarms"></div></details>
+    <details class="subsec"><summary><b>中检点跟踪表</b><span class="note">（漏斗每一层：模型假设 vs 最新实测；没接数据源的也列出来——空着比没有好，因为空着是看得见的）</span></summary>
       <div id="watchtable"></div></details>
+    <details class="subsec"><summary><b>事件跟踪</b><span class="note">（2 笔收购 ＋ 1 项竞争技术：事件值多少钱、什么条件触发、动了哪些参数）</span></summary>
+      <div id="events"></div></details>
     <details class="subsec"><summary><b>私家车敏感性</b><span class="note">（四个池子里只有它的分母是外推的，所以单摘出来量化）</span></summary>
       <div id="privsens"></div></details>
-    <div id="events"></div>
   </details>
 </section>
 
@@ -96,5 +100,16 @@
       <div id="econgate"></div></details>
   </details>
 </section>
+
+<!-- 事件明细弹层：参数卡上的事件胶囊点开后从底部升起（手机）/居中（桌面），
+     默认 hidden，内容由 sandbox.js openEvent() 注入 -->
+<div id="evModal" class="mmodal" hidden>
+  <div class="mback" data-close></div>
+  <div class="msheet" role="dialog" aria-modal="true" aria-labelledby="evmTitle">
+    <div class="mhead"><b id="evmTitle"></b>
+      <button type="button" class="mx" data-close aria-label="关闭">✕</button></div>
+    <div id="evmBody"></div>
+  </div>
+</div>
 
 <script>__JS__</script></div></body></html>

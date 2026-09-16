@@ -1,0 +1,24 @@
+{
+ "source": "src.green_methanol_price_2026",
+ "caliber": "绿色甲醇到岸价 ÷ 灰甲醇价（倍）。月度更新；**触发只看比值不看渗透率**（价格是因、渗透率是果），各月记录见 series。月更入口：python src/tracker.py methanol-append YYYY-MM 比值 --src 信源id",
+ "latest_ym": "2026-09",
+ "layers": {
+  "甲醇": {
+   "caliber": "绿色甲醇港口加注价/灰甲醇价；2026-09 绿醇 6000–8000 元/吨、约灰醇 3 倍（搜狐财经汇总/低碳网，台账 src.green_methanol_price_2026）",
+   "latest_ratio": {
+    "ym": "2026-09",
+    "value": 3.0
+   }
+  }
+ },
+ "series": [
+  {
+   "ym": "2026-09",
+   "ratio": 3.0,
+   "green_price_rmb_t": null,
+   "gray_price_rmb_t": null,
+   "src": "src.green_methanol_price_2026",
+   "note": "台账仅登记区间（绿醇 6000–8000 元/吨、约灰醇 3 倍），绝对值留空待 agent 月更补录；触发判定只看 ratio，3.0 取登记倍数"
+  }
+ ]
+}

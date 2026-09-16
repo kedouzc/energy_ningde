@@ -53,8 +53,14 @@ SRC = Path(__file__).resolve().parent
 ROOT = SRC.parent
 sys.path.insert(0, str(SRC))
 
-from lab import METRICS, read_metrics, resolve  # noqa: E402
+from lab import EXTERNAL_QUOTES, METRICS, read_metrics, resolve  # noqa: E402
 import inject as inject_mod  # noqa: E402
+
+# 外部引述（base.toml [[external_quote]]）按 label 索引：它们与输出指标共用同一个
+# 一词一名注册表（lab.load_metrics 已做跨表撞名硬校验），叙述章（facts 管线）能引，
+# 结论区（沙盘）理应也能引——2026-09-16e 前这里只认 METRICS，导致 JPM 引述占位符
+# 在结论区被判"没有的名字"。引述只有展示文本，不随滑块重算。
+QUOTES = {str(q.get("label") or ""): q for q in EXTERNAL_QUOTES}
 
 MD_PATH = ROOT / "narrative" / "沙盘结论区.md"
 
@@ -141,16 +147,19 @@ def check_placeholders(md: dict) -> dict[str, object]:
 
     为什么不再手写一份 `PLACEHOLDER_MAP`：那份映射是"文案侧名字"与"数值侧名字"
     的第二份清单，MD 加一个数就要记得同步一次，忘了就静默 [待补]。
-    现在**中文名就是 `configs/metrics.toml` 的 label**，与一页纸、章共用同一套寻址
-    （`lab.resolve`），结论区不再有自己专属的名字表。
+    现在**中文名就是 `configs/metrics.toml` 的 label 或外部引述的 label**，与一页纸、
+    章共用同一套寻址（`lab.resolve` ＋ `lab.EXTERNAL_QUOTES`），结论区不再有自己专属的名字表。
     """
     bad: list[str] = []
     out: dict[str, object] = {}
     for tok in sorted(md_tokens(md)):
         try:
             out[tok] = resolve(tok)
-        except Exception:      # noqa: BLE001 - resolve 找不到即抛，交给下面的候选提示
-            bad.append(tok)
+        except Exception:      # noqa: BLE001 - resolve 找不到即抛，先试外部引述，再算真缺失
+            if tok in QUOTES:
+                out[tok] = QUOTES[tok]
+            else:
+                bad.append(tok)
     if bad:
         raise SystemExit(
             "✗ narrative/沙盘结论区.md 引用了输出字典里没有的名字：\n  "
@@ -191,6 +200,17 @@ def build_vals(snap, cfg: dict) -> dict:
             out[m.label] = {"v": None, "text": "[待补]", "bare": "[待补]"}
             continue
         out[m.label] = {"v": v, "text": m.format_text(v), "bare": m.format_bare(v)}
+    # 外部引述（JPM 报价等）：展示文本住 base.toml，是常量不随档位/滑块变；
+    # label 撞名已在 lab 加载时硬拦，这里直接进 vals，JS 替换路径零特殊处理。
+    for label, q in QUOTES.items():
+        if not label or label in out:
+            continue
+        try:
+            qv = float(q.get("value"))
+        except (TypeError, ValueError):
+            qv = None
+        out[label] = {"v": qv, "text": str(q.get("text") or "[待补]"),
+                      "bare": (f"{qv:g}" if qv is not None else "[待补]")}
     return out
 
 
@@ -230,7 +250,9 @@ def main() -> None:
     # 为什么要这一行：占位符写错会被拦截，但"名字对了、指标却算不出来"只会安静地
     # 变成页面上的 [待补]——它看起来和"这个数今天算不出来"一模一样，事后极难追。
     vals = payload()["vals"]
-    missing = sorted(m.label for m in names.values() if vals.get(m.label, {}).get("v") is None)
+    # names 值有两类：lab.Metric（模型指标）与外部引述 dict——都按 label 取值核对
+    labels = [getattr(m, "label", None) or m.get("label") for m in names.values()]
+    missing = sorted(lb for lb in labels if vals.get(lb, {}).get("v") is None)
     print(f"  取不到值 {len(missing)} 个"
           + (f"：{'、'.join(missing)}" if missing else "　✓ 全部取到，页面不会出 [待补]"))
     if missing:

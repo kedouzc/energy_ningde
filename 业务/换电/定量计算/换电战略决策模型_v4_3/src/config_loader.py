@@ -67,6 +67,10 @@ def replay_events(cfg: dict[str, Any]) -> list[str]:
 
     断言也跟着变了向：重放前 base.toml 的值必须等于事件的 `from`。
     有人直接把 base 改成并购后的数，这里当场中断。
+
+    【2026-09-16】再增一类「数据驱动的中检点」：带 track 的事件不预设发生年，
+    生效月由 audit/tracking_<source>.json 的月度实测自动判定（首个达标月），
+    参数按 timed_changes 逐月加权织入——见 apply_timed_changes。
     """
     events = cfg.get("event") or []
     done: list[str] = []
@@ -84,7 +88,73 @@ def replay_events(cfg: dict[str, Any]) -> list[str]:
                     "要表达一个新的变动，补一张 [[event]] 卡，不要直接改这个数。")
             _set_path(cfg, c["param"], float(c["to"]))
         done.append(str(raw.get("id")))
+
+    # ── 数据驱动的中检点：track 声明 + 月度跟踪 JSON，达标月自动生效（不预测、不手填）
+    for raw in events:
+        spec = raw.get("track")
+        if not spec:
+            continue
+        import tracker  # lazy：tracker 模块级不依赖本模块，无循环
+        st = tracker.track_status(spec)
+        if not st["triggered_ym"]:
+            continue                # 截至最新月从未达标：窗口内零影响，参数一个都不动
+        if apply_timed_changes(cfg, raw.get("timed_changes", []) or [],
+                               st["triggered_ym"], _model_years(cfg)):
+            done.append(f"{raw.get('id')}@{st['triggered_ym']}")
     return done
+
+
+def _model_years(cfg: dict[str, Any]) -> list[int]:
+    """模型窗口年序列（优先 construction.years，缺失时按兑现年回推五年）。"""
+    years = (cfg.get("construction") or {}).get("years")
+    if years:
+        return [int(y) for y in years]
+    tgt = int(cfg.get("target_year", 2030))
+    return list(range(tgt - 4, tgt + 1))
+
+
+def timed_effect_weights(trigger_ym: str, years: list[int]) -> dict[int, float]:
+    """外部价格在 ``trigger_ym``（YYYY-MM）达标时，各日历年的参数生效权重。
+
+    口径＝**只影响达标时点之后**（当月月底才观察到价格，车队采购从次月起转向）：
+      · 触发年之前：0（事件不追溯）；
+      · 触发当年：(12 - m)/12 —— 6 月达标 → 只压 7–12 月 → 权重 0.5；
+      · 次年起：1（全效）。
+    例：2030-06 达标 → 2030 权重 0.5；2030-12 达标 → 2030 权重 0、2031 起全效。
+    """
+    ty, tm = int(trigger_ym[:4]), int(trigger_ym[5:7])
+    out: dict[int, float] = {}
+    for y in (int(v) for v in years):
+        out[y] = 0.0 if y < ty else (max(0.0, (12 - tm) / 12.0) if y == ty else 1.0)
+    return out
+
+
+def apply_timed_changes(cfg: dict[str, Any], changes: list[dict[str, Any]],
+                        trigger_ym: str, years: list[int], sign: float = 1.0) -> bool:
+    """按生效月在 cfg 上织入（sign=1）或精确撤销（sign=-1）一组时序冲击。
+
+    触发年晚于窗口末年 → 一律不动：**兑现年之后才达标只影响兑现年后的延长段，
+    当前窗口内不计价（delta=0），该效应仅用于解释估值倍数**。
+    每条 timed_change（TOML 原表）：
+      · ``{param, type="delta", full_delta=-0.15}``：逐年序列按年权重加减，钳 [0,1]；
+      · ``{param, type="set", from=0.80, to=0.65}``：窗口内触发即整体切换
+        （这类参数只作用于兑现年后延长段，窗口内触发后延长段必为全效）。
+    """
+    years = [int(y) for y in years]
+    if int(trigger_ym[:4]) > years[-1]:
+        return False
+    weights = timed_effect_weights(trigger_ym, years)
+    for c in changes:
+        p = c["param"]
+        if c.get("type", "delta") == "delta":
+            arr = get_path(cfg, p)
+            d = float(c["full_delta"])
+            for i, y in enumerate(years):
+                if i < len(arr):
+                    arr[i] = min(1.0, max(0.0, float(arr[i]) + sign * d * weights[y]))
+        else:
+            _set_path(cfg, p, float(c["to"] if sign > 0 else c["from"]))
+    return True
 
 
 def _assert_crf_is_derived(cfg: dict[str, Any]) -> None:

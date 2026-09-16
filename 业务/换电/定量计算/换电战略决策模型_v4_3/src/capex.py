@@ -104,10 +104,10 @@ def _station_schedule(
     "规划站数跌破 2025 存量" 而让模型抛错；基线/乐观档本就满足单调，钳制为恒等。"""
     cumulative_target_2026 = max(opening_2025, cumulative_target_2026)
     cumulative_target_2028 = max(opening_2025, cumulative_target_2028)
-    # 【R8 修复 2026-09-15·第二处】2026 里程碑也要向下钳到终局需求。
-    # 原来只有向上钳制（2028 ≥ 2026），于是终局需求被并购的"整站复用"打下去之后，
-    # **排期仍按 2026 里程碑把站建满**，逐年矩阵比终局标量多出一截，断言当场炸。
-    # 语义：**终局都不需要那么多站了，2026 的里程碑没有理由还立在那儿。**
+    # 【R8 修复 2026-09-15·第二处】2026 里程碑也要向下钳到兑现年需求。
+    # 原来只有向上钳制（2028 ≥ 2026），于是兑现年需求被并购的"整站复用"打下去之后，
+    # **排期仍按 2026 里程碑把站建满**，逐年矩阵比兑现年标量多出一截，断言当场炸。
+    # 语义：**兑现年都不需要那么多站了，2026 的里程碑没有理由还立在那儿。**
     cumulative_target_2026 = min(cumulative_target_2026, cumulative_target_2028)
     new_2026 = cumulative_target_2026 - opening_2025
     new_2027_to_2028 = cumulative_target_2028 - cumulative_target_2026
@@ -649,8 +649,9 @@ def build_capex(
     steady_state_net_replacement = sum(steady_state_net_replacement_by_pool.values())
     # ③b 【2026-09-10】稳态年更新装机的**物理量**（GWh/年）：同一条更新理论，只是
     #   不乘净单价。结论区"锁定之后每年平均 X GWh 订单"就取这个——建设期结束之后
-    #   新增装车归零、只剩更新，而更新必须**分池**算（倒短 8.37 年 vs 干线 2.94 年，
-    #   若用单一寿命会把干线池的更换频率抹平，稳态量直接算错一半以上）。
+    #   新增装车归零、只剩更新，而更新必须**分池**算（倒短池寿命长、干线池寿命短，
+    #   当前年数由模型现算不取静态常数；若用单一寿命会把干线池的更换频率抹平，
+    #   稳态量直接算错一半以上）。
     steady_state_replacement_gwh_by_pool = {
         pk: (mature_fleet_gwh_by_pool[pk] / scale.battery_pool_life_years[pk])
         if scale.battery_pool_life_years.get(pk) else 0.0

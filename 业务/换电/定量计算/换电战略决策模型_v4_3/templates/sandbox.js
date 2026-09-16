@@ -371,8 +371,9 @@ function axisCard(ax,i){
   const chips=Object.keys(ax.dTier).map(t=>
     `<span class="chip" data-a="${i}" data-d="${ax.dTier[t]}"
       onclick="setAxisTier(${i},'${t}')">${t}</span>`).join("");
+  // 事件标记按事件去重、整卡只出一组胶囊（不再逐成员刷整块说明）
   const vals=ax.members.map(p=>
-    `<div class="note">${ax.names[p]}：<b id="mv:${i}:${p}"></b></div>`+evBadge(p)).join("");
+    `<div class="note">${ax.names[p]}：<b id="mv:${i}:${p}"></b></div>`).join("");
   const unit = `整体加减，步长 ${ax.step}（份额/渗透率＝百分点；各成员以自身悲观/乐观档为界）`;
   return `<div class="card"><b>${ax.cn}</b> <span class="pcv" id="av:${i}"></span>
     <div style="margin:4px 0">${vals}</div>
@@ -380,17 +381,17 @@ function axisCard(ax,i){
     <input type="range" id="axr:${i}" min="${ax.lo}" max="${ax.hi}" step="${ax.step}" value="0"
       oninput="A[${i}]=parseFloat(this.value);setAxisDelta(${i},A[${i}]);render()">
     <div class="note">${unit}</div>
-    <div>${chips}</div></div>`;
+    <div>${chips}</div>${evChips(ax.members)}</div>`;
 }
 function card(path){
   const p=D.params[path];
   const chips=Object.entries(p.tiers).filter(([t,v])=>v!=null)
     .map(([t,v])=>`<span class="chip" data-p="${path}" data-v="${v}" onclick="put(D.params['${path}'],${v});render()">${t}${fmt(v,3)}</span>`).join("");
   const note=p.note?`<div class="note">${p.note}</div>`:"";
-  return `<div class="card"><b>${p.cn}</b> <span class="pcv" id="val:${path}"></span>${note}${evBadge(path)}
+  return `<div class="card"><b>${p.cn}</b> <span class="pcv" id="val:${path}"></span>${note}
     <input type="range" id="rng:${path}" min="${p.min}" max="${p.max}" step="${p.step}"
       value="${p.value}" oninput="put(D.params['${path}'],parseFloat(this.value));render()">
-    <div>${chips}</div></div>`;
+    <div>${chips}</div>${evChips([path])}</div>`;
 }
 function setAxisDelta(i,d){ markCustom(); A[i]=d; }   // 成员值由 axMem 现推，S 里不再存轴成员
 function setAxisTier(i,t){
@@ -456,43 +457,161 @@ function renderReview(){
       : " · 本轮读数全部未变（口径修正应有的样子）";
 }
 
-/* ② 块：实测报警——每次构建拿最新实测比模型假设，自动比出来的，不是我手写的。
-   有报警就把 ② 块自动展开并在标题上标红：这是页面唯一会"自己叫"的地方。 */
+/* ② 块·实测报警：每次构建拿最新实测比模型假设，自动比出来的，不是手写的。
+   有报警就把 ② 外层自动展开并在标题标红，但**子卡本身保持折叠**（09-16e 用户决定）——
+   摘要行（N 处偏离）直接可见，详情点开看。
+   行有三种 kind：single 独立报警／group 双轨合并（累计锚+单月边际各一行 role）／
+   stale 底稿过期。分组在后端 tracker.check_rows 按 watch 卡的 group 字段完成，
+   前端只负责画。 */
 function renderAlarms(){
   const box=document.getElementById("alarms"); if(!box) return;
-  const al=((D&&D.review)||{}).alarms||[];
+  const rows=((D&&D.review)||{}).alarms||[];
   const tag=document.getElementById("watchTag");
-  if(!al.length){
+  const subTag=document.getElementById("alarmTag");
+  // 「N 处」只数指标偏离，底稿过期(stale)是另一类提醒，不计入处数
+  const n=rows.filter(r=>r.kind!=="stale").length;
+  if(!rows.length){
     box.innerHTML='<p class="note" style="margin-top:0">（当前没有实测偏离报警）</p>';
     if(tag) tag.textContent=" · 无报警";
+    if(subTag) subTag.textContent=" · 无";
     return;
   }
-  box.innerHTML=`<div class="alarm"><b>⚠ 实测与模型假设偏离 ${al.length} 处</b>`
-    + `<ul style="margin:6px 0 4px;padding-left:18px">`+al.map(a=>`<li>${md(a)}</li>`).join("")+`</ul>`
-    + `<div class="note">自动比对，不是手写。想改阈值或换数据底稿，改 <code>src/tracker.py</code> 与 <code>data/</code> 下的底稿。</div></div>`;
-  if(tag) tag.innerHTML=` · <b style="color:var(--bad)">${al.length} 条实测偏离</b>`;
+  const li=r=>{
+    if(r.kind==="stale") return `<li>${md(r.text)}</li>`;
+    if(r.kind==="group"){
+      // 同一变量的两副眼镜合并成一条：组名当头，role 分行，读数各说各的不互相打脸
+      const ms=r.members.map(m=>`<li><span class="agm-role">${esc(m.role)}</span>`
+        +`<div>${md(m.text)}</div></li>`).join("");
+      return `<li><b>【${esc(r.layer)}】</b><ul class="agm">${ms}</ul></li>`;
+    }
+    return `<li><b>【${esc(r.layer)}】</b>${md(r.text)}</li>`;
+  };
+  box.innerHTML=`<div class="alarm"><ul style="margin:6px 0 4px;padding-left:18px">`
+    + rows.map(li).join("")+`</ul>`
+    + `<div class="note">自动比对，不是手写。累计口径回答"曲线锚要不要重标"，单月口径回答`
+    + `"边际往哪走、要不要调仓"——是同一个变量的两副眼镜，不是两条互相矛盾的报警。`
+    + `想改阈值或换数据底稿，改 <code>configs/base.toml</code> 的 <code>[[watch]]</code> 与 <code>data/</code> 下的底稿。</div></div>`;
+  if(tag) tag.innerHTML=` · <b style="color:var(--bad)">${n} 处实测偏离</b>`;
+  if(subTag) subTag.innerHTML=` · <b style="color:var(--bad)">${n} 处</b>`;
   const d=document.getElementById("dWatch"); if(d) d.open=true;
 }
 
-/* 事件标记：挂在**被它改动的那个参数旁边**，而不是另开一张清单。
-   面板上那个 0.80 必须自己说清楚"我不是拍的，我是并购之后的值"。 */
-function evBadge(path){
-  const L=(((D&&D.review)||{}).by_param||{})[path];
-  if(!L||!L.length) return "";
-  return L.map(e=>{
-    const done=e.kind==="已发生";
-    return `<div class="evb ${done?"done":"pend"}">`
-      + `<b>${done?"⚑ 已发生":"◷ "+esc(e.kind)}</b>　${esc(e.title)}<span class="note"> ${esc(e.date)}</span>`
-      + `<br>这个值不是拍的：<b>${e.from} → ${e.to}</b>　·　`
-      + `${done?"这件事已带来":"若兑现"} <b>${e.delta>=0?"+":""}${num(e.delta,0)} 亿</b>`
-      + `</div>`;
-  }).join("");
+/* 事件标记（2026-09-16d 改版）：挂在**被它改动的那个参数旁边**，但只渲染一枚
+   一行高的小胶囊——同一事件改 N 个轴成员也只出一枚（按 id 去重，标注动了几项），
+   点胶囊开底部弹层看全明细。旧版逐成员渲染整块说明，CATL 轴 11 个成员被同一段
+   文字刷 8 块，手机上一张卡要滚十几屏，主视图信息密度完全失控。 */
+function evChips(paths){
+  const bp=(((D&&D.review)||{}).by_param)||{};
+  const seen=new Map();                       // id -> {m, n 命中成员数}
+  for(const p of paths){
+    for(const m of (bp[p]||[])){
+      const cur=seen.get(m.id);
+      if(cur) cur.n++; else seen.set(m.id,{m:m,n:1});
+    }
+  }
+  if(!seen.size) return "";
+  return `<div class="evchips">`+[...seen.values()].map(({m,n})=>{
+    const hit=!!(m.tracked&&m.triggered_ym);
+    const done=hit||(!m.tracked&&m.kind==="已发生");
+    const dlt=(m.delta>=0?"+":"")+num(m.delta,0)+" 亿";
+    let head;
+    if(m.tracked){
+      // 数据跟踪事件：胶囊上直接给最新实测与触发线，中检点状态不用点开就知道
+      const lv=(m.latest_value==null)?"":num(m.latest_value,2)+"×";
+      const line=(m.threshold==null)?"":`（线 ${esc(m.op)} ${num(m.threshold,2)}×）`;
+      head=hit
+        ? `⚑ ${esc(m.title)} · ${esc(m.triggered_ym)} 已生效 · 已带来 ${dlt}`
+        : `◷ ${esc(m.title)} · 跟踪中 ${lv}${line} · 即刻达标 ${dlt}`;
+    }else{
+      head=done
+        ? `⚑ ${esc(m.title)} ${esc(m.date)} · 已带来 ${dlt}`
+        : `◷ ${esc(m.kind)} · ${esc(m.title)} · 若兑现 ${dlt}`;
+    }
+    return `<button type="button" class="evc ${done?"done":"pend"}" data-ev="${esc(m.id)}">`
+         + `${head} <span class="note">· 动 ${n} 项</span></button>`;
+  }).join("")+`</div>`;
 }
+
+/* 参数路径 → 中文名（弹层明细用）：先查单参数表，再查轴成员名，都没有就取末两段 */
+function evPathName(path){
+  const pp=(D.params||{})[path];
+  if(pp&&pp.cn) return pp.cn;
+  for(const ax of (D.axes||[])){
+    if(ax.names&&ax.names[path]) return `${ax.cn}·${ax.names[path]}`;
+  }
+  return path.split(".").slice(-2).join(".");
+}
+
+/* 事件明细底部弹层：胶囊的下钻层。全部内容取自 D.review.events（事件全量信息
+   的唯一来源），胶囊只传 id；手机 bottom-sheet、桌面居中，遮罩/Esc/✕ 关闭。 */
+function openEvent(id){
+  const e=(((D&&D.review)||{}).events||[]).find(x=>x.id===id);
+  const mm=document.getElementById("evModal");
+  if(!e||!mm) return;
+  const hit=!!(e.tracked&&(e.track||{}).triggered_ym);
+  const happened=(!e.tracked&&e.kind==="已发生")||hit;
+  const col=e.delta>=0?"var(--ok)":"var(--bad)";
+  const chg=(e.changes||[]).map(c=>{
+    const a=c[0];
+    const f=typeof c[1]==="number"?String(c[1]):esc(c[1]);
+    const t=typeof c[2]==="number"?String(c[2]):esc(c[2]);
+    return `<li><b>${esc(evPathName(a))}</b> <span class="note">${esc(a)}</span>`
+         + `<br>这个值不是拍的：<b>${f} → ${t}</b></li>`;
+  }).join("");
+  // 数据跟踪事件：跟踪状态条＋生效节奏（措辞与 ② 块事件卡一致，只一处口径）
+  let track="";
+  if(e.tracked){
+    const t=e.track||{};
+    const sched=Object.entries(t.weights||{})
+      .filter(([,w])=>w>0)
+      .map(([y,w])=>`${y}×${w>=0.9999?"1":num(w,2)}`).join("、");
+    track=hit
+      ? `<div class="evtr ok">★ <b>已于 ${esc(t.triggered_ym)} 达标、自动生效</b>`
+        + `（${esc(t.latest_ym)} 实测 ${num(t.latest_value,2)}×，触发线 ${esc(t.op)} ${num(t.threshold,2)}×）`
+        + `——月度数据达标后参数已自动改，无需人手干预</div>`
+      : `<div class="evtr pend">◷ <b>跟踪中</b>：${esc(t.latest_ym)} 实测 <b>${num(t.latest_value,2)}×</b>`
+        + `，触发线 ${esc(t.op)} ${num(t.threshold,2)}×。agent 每月把绿醇/灰醇比价录入 `
+        + `<code>audit/tracking_methanol.json</code>，首个达标月自动生效；<b>当前不计价——兑现年年底前`
+        + `未达标＝窗口内零影响；兑现年之后才达标只影响延长段，仅用于解释估值倍数</b>。</div>`;
+    track+=`<div class="note" style="margin:6px 0"><b>生效节奏</b>：${sched?esc(sched):"窗口内不生效"}`
+      +`（达标当月观察、次月起车队转向，当年只压剩余月份；次年起全效）</div>`;
+  }
+  const verb=e.tracked?(hit?"已带来":`若 ${esc(e.track.latest_ym)} 即刻达标`):(happened?"已带来":"若兑现");
+  document.getElementById("evmTitle").innerHTML
+    =`<span class="gate ${hit||happened?"ok":"no"}">${e.tracked?"数据跟踪":esc(e.kind)}</span> `
+    +`${esc(e.title)} <span class="note">${esc(e.date)}</span>`;
+  document.getElementById("evmBody").innerHTML
+    = track
+    + `<div style="margin:8px 0"><b style="color:${col};font-size:15px">${verb} `
+    +   `${e.delta>=0?"+":""}${num(e.delta,1)} 亿元</b> `
+    +   `<span class="note">（对照：${num(e.alt,1)} → ${num(e.base,1)}）</span></div>`
+    + (e.trigger?`<div style="margin-bottom:6px"><b>触发条件</b>：${md(e.trigger)}</div>`:"")
+    + `<div style="margin:6px 0"><b>它动了哪些参数（${(e.changes||[]).length} 个）</b>`
+    +   `<ul class="evml">${chg}</ul></div>`
+    + (e.why?`<div class="note" style="margin-top:6px"><b>因为</b>：${md(e.why)}</div>`:"")
+    + (e.src?`<div class="note" style="margin-top:8px">信源：<code>${esc(e.src)}</code></div>`:"");
+  mm.hidden=false;
+  document.body.style.overflow="hidden";
+}
+/* 关闭事件弹层并恢复背景滚动 */
+function closeEvent(){
+  const mm=document.getElementById("evModal");
+  if(!mm||mm.hidden) return;
+  mm.hidden=true;
+  document.body.style.overflow="";
+}
+/* 事件委托：点任意 [data-ev] 胶囊开弹层；点 [data-close]（遮罩/✕）关闭 */
+document.addEventListener("click",ev=>{
+  const c=ev.target.closest("[data-ev]");
+  if(c){ openEvent(c.getAttribute("data-ev")); return; }
+  if(ev.target.closest("[data-close]")) closeEvent();
+});
+document.addEventListener("keydown",ev=>{ if(ev.key==="Escape") closeEvent(); });
 
 /* 浮动读数条：只放三个——EBITDA、换电增量价值、当前档位。拖滑块时不用往上滚。 */
 function renderSticky(E){
   const el=document.getElementById("sbin"); if(!el) return;
-  const pick=[["swap.ebitda","终局年 EBITDA","亿",0],
+  const pick=[["swap.ebitda","兑现年 EBITDA","亿",0],
               ["val.swap_increment","换电增量价值","亿",0]];
   const tier=(curTier!=null&&D.tiers)?D.tiers[curTier]:"自定义";
   el.innerHTML=pick.map(([k,lb,u,d])=>{
@@ -505,17 +624,26 @@ function renderWatchTable(){
   const box=document.getElementById("watchtable"); if(!box) return;
   const rows=((D&&D.review)||{}).watch_table||[];
   if(!rows.length){ box.innerHTML='<p class="note">（没有读到跟踪卡）</p>'; return; }
-  const f=(v,c)=> v==null?"—":(c==="ratio"? num(v,0) : (Math.abs(v)<=1.5? num(v*100,1)+"%" : num(v,1)));
+  // 单位与小数位都住卡片（base.toml [[watch]].unit/decimals）：
+  // **绝不按数值大小猜单位**——0.3 既可能是 30% 也可能是 0.30 元/kWh，猜错就是误导。
+  // unit="%" 时卡里存的是比率小数（0.2889），展示 ×100，百分号由单位列承载。
+  const f=(v,r)=>{
+    if(v==null) return "—";
+    const d=(r.decimals==null?1:r.decimals);
+    return num(r.unit==="%"? v*100 : v, d);
+  };
   box.innerHTML=`<table><thead><tr><th>漏斗层</th><th class="opth">模型假设</th>`
-    +`<th class="opth">最新实测</th><th class="opth">复核周期</th><th>越阈值说明什么</th></tr></thead><tbody>`
+    +`<th class="opth">最新实测</th><th class="opth">单位</th><th class="opth">复核周期</th><th>越阈值说明什么</th></tr></thead><tbody>`
     +rows.map(r=>{
       const off=(r.model!=null&&r.observed!=null)&&(r.compare==="ratio"
         ? (r.model/r.observed>r.threshold) : (Math.abs(r.model-r.observed)>r.threshold));
-      return `<tr><td>${esc(r.layer)}${r.connected?"":' <span class="note">（数据源未接）</span>'}</td>`
-        +`<td class="opth">${f(r.model,r.compare)}</td>`
+      return `<tr><td>${esc(r.layer)}${r.role?` <span class="agm-role">${esc(r.role)}</span>`:""}`
+        +`${r.connected?"":' <span class="note">（数据源未接）</span>'}</td>`
+        +`<td class="opth">${f(r.model,r)}</td>`
         +`<td class="opth">${r.observed==null?'<span class="note">—</span>':
-            `<b style="color:${off?"var(--bad)":"var(--ok)"}">${f(r.observed,r.compare)}</b>`
+            `<b style="color:${off?"var(--bad)":"var(--ok)"}">${f(r.observed,r)}</b>`
             +(r.ym?`<span class="note"> ${esc(r.ym)}</span>`:"")}</td>`
+        +`<td class="opth">${esc(r.unit||"")}</td>`
         +`<td class="opth">${esc(r.period||"—")}</td>`
         +`<td class="opj">${md(r.why||"")}</td></tr>`;
     }).join("")+`</tbody></table>`
@@ -527,9 +655,11 @@ function renderPrivSens(){
   const box=document.getElementById("privsens"); if(!box) return;
   const rows=((D&&D.review)||{}).private_sensitivity||[];
   if(!rows.length){ box.innerHTML='<p class="note">（没有读到私家车敏感性）</p>'; return; }
-  box.innerHTML=`<table><thead><tr><th>私家车净增</th><th class="opth">兑现年 EBITDA</th>`
+  box.innerHTML=`<table><thead><tr><th>私家车净增</th><th class="opth">CATL 换电车辆数</th>`
+    +`<th class="opth">兑现年 EBITDA</th>`
     +`<th class="opth">覆盖倍数</th><th class="opth">换电增量价值</th><th class="opth">相对基线</th></tr></thead><tbody>`
     +rows.map(r=>`<tr><td>${r.cut?("−"+num(r.cut*100,0)+"%"):"基线"}</td>`
+      +`<td class="opth">${num(r.veh_total_wan,1)}<span class="note"> 万辆</span></td>`
       +`<td class="opth">${num(r.ebitda_yi,1)}</td><td class="opth">${num(r.coverage,2)}</td>`
       +`<td class="opth">${num(r.increment_yi,1)}</td>`
       +`<td class="opth">${r.cut? `<b>${num(r.increment_delta_pct*100,1)}%</b>`:"—"}</td></tr>`).join("")
@@ -537,6 +667,7 @@ function renderPrivSens(){
     +`<p class="note"><b>为什么单摘私家车</b>：四个池子里只有它的分母是外推出来的`
     +`（2030 保有量减 2025 再按曲线分摊到各年），其余三个都锚在保有量实测上。`
     +`<b>分母是外推的那一块，风险性质不同，不该和别的混在一个区间里。</b>`
+    +`第二列是兑现年 CATL 口径换电车辆存量（四池合计，万辆）；`
     +`读这张表要看的是最后一列——<b>它把"报警"变成了"影响有多大"</b>。</p>`;
 }
 
@@ -545,6 +676,40 @@ function renderEvents(){
   const evs=((D&&D.review)||{}).events||[];
   if(!evs.length){ box.innerHTML='<p class="note">（事件表为空）</p>'; return; }
   box.innerHTML=evs.map(e=>{
+    // ── 数据驱动的中检点：发生与否由月度跟踪 JSON 判定，不由人标日期
+    if(e.tracked){
+      const t=e.track||{};
+      const hit=!!t.triggered_ym;
+      const col=e.delta>=0?"var(--ok)":"var(--bad)";
+      const chg=(e.changes||[]).map(c=>`<li><code>${esc(c[0])}</code>：${esc(c[1])} → ${esc(c[2])}</li>`).join("");
+      const verb=hit?"已带来":`若 ${esc(t.latest_ym)} 即刻达标`;
+      const sched=Object.entries(t.weights||{})
+        .filter(([,w])=>w>0)
+        .map(([y,w])=>`${y}×${w>=0.9999?"1":num(w,2)}`).join("、");
+      const trackBar=hit
+        ? `<div style="margin:6px 0;padding:6px 8px;background:#ecfdf5;border-left:3px solid var(--ok)">`
+          + `★ <b>已于 ${esc(t.triggered_ym)} 达标、自动生效</b>`
+          + `（${esc(t.latest_ym)} 实测 ${num(t.latest_value,2)}×，触发线 ${esc(t.op)} ${num(t.threshold,2)}×）`
+          + `——月度数据达标后参数已自动改，无需人手干预</div>`
+        : `<div style="margin:6px 0;padding:6px 8px;background:#fffbeb;border-left:3px solid #f59e0b">`
+          + `◷ <b>跟踪中</b>：${esc(t.latest_ym)} 实测 <b>${num(t.latest_value,2)}×</b>`
+          + `，触发线 ${esc(t.op)} ${num(t.threshold,2)}×。agent 每月把绿醇/灰醇比价录入 <code>audit/tracking_methanol.json</code>，`
+          + `首个达标月自动生效；<b>当前不计价——兑现年年底前未达标＝窗口内零影响；兑现年之后才达标只影响延长段，仅用于解释估值倍数</b>。</div>`;
+      return `<div class="card">`
+        + `<div class="row" style="justify-content:space-between">`
+        +   `<b><span class="gate ${hit?"ok":"no"}">数据跟踪</span> ${esc(e.title)}</b>`
+        +   `<span class="note">${esc(e.date)}</span></div>`
+        + trackBar
+        + `<div style="margin:6px 0"><b style="color:${col}">${verb} ${e.delta>=0?"+":""}`
+        +   `${num(e.delta,1)} 亿元</b> <span class="note">（对照：${num(e.alt,1)} → ${num(e.base,1)}）</span></div>`
+        + `<div class="note" style="margin-bottom:6px"><b>生效节奏</b>：${sched?esc(sched):"窗口内不生效"}`
+        + `（达标当月观察、次月起车队转向，当年只压剩余月份；次年起全效）</div>`
+        + (e.trigger?`<div style="margin-bottom:6px"><b>触发条件</b>：${md(e.trigger)}</div>`:"")
+        + `<details><summary class="note">它动了哪些参数（${(e.changes||[]).length} 个）</summary>`
+        +   `<ul style="margin:4px 0;padding-left:18px;font-size:12px">${chg}</ul></details>`
+        + `<div class="note" style="margin-top:6px"><b>因为</b>：${md(e.why)}</div>`
+        + `</div>`;
+    }
     const happened=e.kind==="已发生";
     const verb=happened?"已带来":"若兑现";
     const col=e.delta>=0?"var(--ok)":"var(--bad)";
@@ -562,8 +727,9 @@ function renderEvents(){
       + `</div>`;
   }).join("")
   + `<p class="note"><b>怎么读这一块</b>：已发生事件的口径是"把参数退回事件之前再跑一遍，差额就是它带来的价值"；`
-  + `未发生事件是"把参数推进到兑现之后再跑一遍"。`
-  + `<b>参数的当前值不存在任何文件里</b>——它由"初值 + 按日期重放已发生事件"推出来，`
+  + `未发生事件是"把参数推进到兑现之后再跑一遍"；<b>数据跟踪</b>事件没有预设日期——`
+  + `月度实测达标即按达标月自动加权生效（达标当年只压剩余月份），未达标就是零影响。`
+  + `<b>参数的当前值不存在任何文件里</b>——它由"初值 + 事件重放（含跟踪数据判定）"推出来，`
   + `所以这张表和模型永远不可能对不上。</p>`;
 }
 

@@ -103,6 +103,14 @@ def main() -> None:
         print(f"⚠ 沙盘生成跳过：{exc}")
         traceback.print_exc()   # 打印完整堆栈，便于定位（沙盘仍在调试期）
 
+    # 月度跟踪仪表盘（hdt 四层序列可视化，单月边际＋累计趋势双轨）
+    try:
+        import monthly_dashboard
+        monthly_dashboard.main()
+        print("月度跟踪仪表盘: outputs/月度跟踪仪表盘.html")
+    except Exception as exc:  # 仪表盘失败不阻断主链
+        print(f"⚠ 月度跟踪仪表盘跳过：{exc}")
+
 
 if __name__ == "__main__":
     main()

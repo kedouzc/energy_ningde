@@ -79,7 +79,8 @@ def build_heavy_economics(
     user_energy = (price + valley + spread) if price is not None else None
 
     # 持有期 N1：模型算出的重卡加权电池寿命。权重=各池机队 GWh（取自 capex 同一份
-    # 存量，不另算一份）；倒短 8.37 年 vs 干线 2.94 年差异极大，故必须分池加权。
+    # 存量，不另算一份）；倒短池寿命长、干线池寿命短（年数由模型现算，不取静态常数），
+    # 差异极大，故必须分池加权。
     weights = {pk: capex.mature_fleet_gwh_by_pool.get(pk, 0.0) for pk in keys}
     wsum = sum(weights.values())
     life = (
@@ -133,6 +134,11 @@ def build_heavy_economics(
             diesel / 1e4, diesel / equiv,
         )
 
+    # 免购置额占整车价比例（百分点）：结论区 BaaS 那句的占位符从这里取，
+    # 不在叙述文档里手写 42%——电池价/带电量一变，比例跟着模型变（2026-09-16e）
+    purchase_price_rmb = float(tco["purchase_price"])
+    cut_pct = (cut / purchase_price_rmb * 100.0) if purchase_price_rmb else 0.0
+
     return HeavyEconomics(
         battery_life_years=life,
         replacement_cycle_years=cycle,
@@ -140,7 +146,8 @@ def build_heavy_economics(
         user_energy_rmb_kwh=user_energy,
         vehicle_gwh=vehicle_gwh,
         station_gwh=station_gwh,
-        battery_purchase_cut_yi=cut,
+        battery_purchase_cut_rmb=cut,
+        battery_purchase_cut_pct=cut_pct,
         n1=_row(life),
         n2=_row(cycle),
     )

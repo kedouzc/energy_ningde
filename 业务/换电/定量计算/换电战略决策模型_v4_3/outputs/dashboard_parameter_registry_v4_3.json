@@ -1556,23 +1556,31 @@
       {
         "id": "hdt_electrification",
         "layer": "重卡·电动化",
+        "group": "重卡·电动化（累计锚 / 单月边际两副眼镜）",
+        "role": "累计口径 · 曲线重标锚",
         "model": "vehicles.heavy.nev_anchor_rate",
         "observed": "重卡.latest_nev_pen_cum",
+        "unit": "%",
+        "decimals": 1,
         "compare": "diff",
         "threshold": 0.03,
         "direction": "model_low",
-        "period": "年度",
+        "period": "月度",
         "why": "实测高出拟合锚，说明曲线该重标——**改锚即可，k/t0 自动重算**，不要手改 nev_rates"
       },
       {
         "id": "hdt_swap_share",
         "layer": "重卡·换电占纯电",
+        "group": "重卡·换电占纯电（累计锚 / 单月边际两副眼镜）",
+        "role": "累计口径 · 趋势确认锚",
         "model": "calc:heavy_swap_penetration_weighted",
         "observed": "重卡.latest_swap_share_cum",
+        "unit": "%",
+        "decimals": 1,
         "compare": "diff",
         "threshold": 0.1,
         "direction": "either",
-        "period": "季度",
+        "period": "月度",
         "why": "模型假设它会从实测水平反转回升。**这不是 bug，是一个反转预期**——三条推翻条件写在 swap_penetration 声明段，机制与三条反驳见 topics/竞争格局「换电占电动为什么在跌」"
       },
       {
@@ -1580,10 +1588,12 @@
         "layer": "私家车池·增长路径",
         "model": "vehicles.private.annual_net_additions_wan.0",
         "observed": "乘用车.bev_annualized_wan",
+        "unit": "万辆",
+        "decimals": 1,
         "compare": "ratio",
         "threshold": 1.6,
         "direction": "model_high",
-        "period": "季度",
+        "period": "月度",
         "why": "**净增是存量增量、销量是流量，净增不可能超过销量。** 口径本身没问题（私家车池分母取公安部纯电保有量口径，已排除插混），要核的是这条增长路径的依据。影响量化见沙盘②「私家车敏感性」"
       },
       {
@@ -1591,6 +1601,8 @@
         "layer": "经营·换电服务费",
         "model": "swap_business.service_fee_rmb_kwh",
         "observed": "",
+        "unit": "元/kWh",
+        "decimals": 2,
         "compare": "diff",
         "threshold": 0.05,
         "direction": "model_high",
@@ -1602,10 +1614,12 @@
         "layer": "成本·电池价格曲线",
         "model": "construction.battery_price_curve.base_price_rmb_kwh",
         "observed": "",
+        "unit": "元/kWh",
+        "decimals": 1,
         "compare": "diff",
         "threshold": 30.0,
         "direction": "either",
-        "period": "季度",
+        "period": "月度",
         "why": "**数据源未接。** 模型假设 2028 前平台、2029 起年降 4%、2033 起 2.75%。电池价是全周期资本的大头，价格路径偏了，资本与残值两头一起动"
       },
       {
@@ -1613,11 +1627,95 @@
         "layer": "执行·CATL 自建进度",
         "model": "construction.station_2026_cumulative_targets.choco",
         "observed": "",
+        "unit": "座",
+        "decimals": 0,
         "compare": "ratio",
         "threshold": 1.3,
         "direction": "model_high",
         "period": "月度",
         "why": "**数据源未接，但这是最要紧的一张卡。** 模型硬断言站网在建成目标年建完、兑现年要 14,798 座。**对手慢了不致命，自己慢了整条论证就塌了。** 数据靠公司通稿（国家能源局/充电联盟的充换电月度统计里不含换电站，没有权威月度源）"
+      },
+      {
+        "id": "city_logistics_annual",
+        "layer": "城配·物流车电动化（年化）",
+        "model": "calc:city_annual_ev_wan",
+        "observed": "城配.logistics_annualized_wan",
+        "unit": "万辆",
+        "decimals": 1,
+        "compare": "diff",
+        "threshold": 15.0,
+        "direction": "either",
+        "period": "月度",
+        "why": "模型分母是城配全口径保有 1,500 万辆；实测是电车资源 NEV 物流车七类上险（不含重卡/皮卡/客车，含中卡），**口径天然窄一截**。模型持续高出阈值＝分母或当年 NEV 率该重标；实测反超模型＝需求上修信号"
+      },
+      {
+        "id": "pool_total_ceiling",
+        "layer": "总量·四池流量天花板",
+        "model": "calc:pool_flows_total_wan",
+        "observed": "总量.nev_annualized_wan",
+        "unit": "万辆",
+        "decimals": 1,
+        "compare": "diff",
+        "threshold": 100.0,
+        "direction": "model_high",
+        "period": "月度",
+        "why": "**漏斗天花板：模型覆盖的五个车池当年电动化流量之和不可能超过全国 NEV 总盘**（私家取净增、天然≤销量，方向已保守）。越线必然是某一池假设过大——当前差额几乎全部来自私家车净增路径，逐池拆差见各分卡。实测为中汽协国内口径（不含出口）"
+      },
+      {
+        "id": "battery_install_annual",
+        "layer": "电池·全国装车量（年化）",
+        "model": "calc:national_install_gwh_current_year",
+        "observed": "电池份额.install_annualized_gwh",
+        "unit": "GWh",
+        "decimals": 1,
+        "compare": "diff",
+        "threshold": 150.0,
+        "direction": "either",
+        "period": "月度",
+        "why": "模型是 2025 实际 769.7 → 兑现年 1,350 的线性年中值；实测是联盟装车 YTD 年化。**下半年装机季节性偏强、年初年化系统性偏低，越年末越可比**；到四季度仍越阈值，说明装车大盘路径需重标"
+      },
+      {
+        "id": "commercial_catl_share",
+        "layer": "电池·商用车 CATL 份额",
+        "model": "calc:commercial_catl_share_model",
+        "observed": "电池份额.latest_catl_commercial",
+        "unit": "%",
+        "decimals": 1,
+        "compare": "diff",
+        "threshold": 0.15,
+        "direction": "either",
+        "period": "月度",
+        "why": "**口径宽，只作 plausibility 锚，不当同口径比对**：模型是换电体系内 CATL 标准份额（重卡并购启源后 80%、城配 80%，按换电流量加权），实测是联盟口径 CATL 占全部商用车装车。要盯的是**差距的趋势**：实测持续上行＝体系外竞争力外溢，持续下行才需回看 80% 是否乐观"
+      },
+      {
+        "id": "hdt_electrification_monthly",
+        "layer": "重卡·单月电动化（边际）",
+        "group": "重卡·电动化（累计锚 / 单月边际两副眼镜）",
+        "role": "单月口径 · 调仓边际信号",
+        "model": "vehicles.heavy.nev_rates.0",
+        "observed": "重卡.latest_nev_pen_m",
+        "unit": "%",
+        "decimals": 1,
+        "compare": "diff",
+        "threshold": 0.08,
+        "direction": "model_low",
+        "period": "月度",
+        "why": "**单月看边际、累计看重标**：重卡是生产资料、季节波动大，但跟踪为调仓服务，边际变化必须当月响。单月连续高出阈值＝曲线领先信号（先看月度仪表盘判趋势）；是否重标锚以累计卡 hdt_electrification 为准"
+      },
+      {
+        "id": "hdt_swap_share_monthly",
+        "layer": "重卡·单月换电占纯电（边际）",
+        "group": "重卡·换电占纯电（累计锚 / 单月边际两副眼镜）",
+        "role": "单月口径 · 拐点先行信号",
+        "model": "calc:heavy_swap_penetration_weighted",
+        "observed": "重卡.latest_swap_share_m",
+        "unit": "%",
+        "decimals": 1,
+        "compare": "diff",
+        "threshold": 0.12,
+        "direction": "either",
+        "period": "月度",
+        "why": "反转预期（兑现年加权 44.8%）的高频检验：单月比累计更早反映拐点。**判据仍是连续 4 期不回升则下修**（三条反驳见 vehicles.heavy.scenes 声明段）——单月卡负责当月提示，趋势确认以累计卡 hdt_swap_share 为准"
       }
     ],
     "type": "list"
@@ -1746,22 +1844,24 @@
         "date": "待观察",
         "kind": "中检点",
         "title": "绿色甲醇价格向灰醇收敛（下行）",
-        "trigger": "绿色甲醇到岸价 ÷ 灰甲醇价 ≤ 1.3（当前约 3 倍）。**看价格不看渗透率**：价格是因、渗透率是果，且价格月度可查、渗透率要等年报口径",
+        "trigger": "绿色甲醇到岸价 ÷ 灰甲醇价 ≤ 1.3（2026-09 实测约 3.0 倍）。**看价格不看渗透率**：价格是因、渗透率是果，且价格月度可查、渗透率要等年报口径。机器判定见 track（audit/tracking_methanol.json 由 agent 月更，首个达标月自动生效，不预设年份、不手改参数）",
+        "track": {
+          "source": "methanol",
+          "field": "ratio",
+          "op": "<=",
+          "value": 1.3
+        },
         "src": "src.methanol_tco_2026",
-        "why": "甲醇与电动之争是**动力源之争**，不是补能方式之争——一辆车要么烧甲醇要么用电。所以它压的是**纯电渗透率**这一层，压不到「已经是纯电的车里有多少用换电」那一层。 **时点**：绿醇现价是灰醇的 5–6 倍，跌到 1.3 倍最早落在 2028；车辆采购与交付再滞后一年，**实际影响的是 2029、2030 两年，2028 年及以前不受影响**（事件不能追溯生效）。 **幅度**：甲醇拿走的是干线——重卡三场景里中途 0.50 ＋ 长途 0.12 ＝ 权重 0.62，假设其中约四分之一永久归甲醇 → 0.62×0.25 ≈ 0.155，取完整效应 **绝对下调 0.15**，2029 年按替代爬坡取一半。天花板 0.80 → 0.65：干线那块退出电动化，上限不该还停在原处。 **这个四分之一是声明不是测算**，什么会让我改它：出现干线甲醇重卡的实际保有量数据。 **承重方**：甲醇电动整车购置成本低于纯电，且吉利远程「远醇」已建 1000+ 座加注站、规划 2027 年底 4000 座——它是一个正在出现的承重方，但它扛的是**加注网络**而非燃料成本曲线。 **推/拉判据**：CATL 自己说甲醇不行＝推；燃料生产商（非整车厂）自建加注网络＝拉",
-        "changes": [
+        "why": "甲醇与电动之争是**动力源之争**，不是补能方式之争——一辆车要么烧甲醇要么用电。所以它压的是**纯电渗透率**这一层，压不到「已经是纯电的车里有多少用换电」那一层。 **生效节奏（数据驱动）**：月度比价由 agent 逐月录入 tracking_methanol.json，程序扫序列取**首个达标月**＝生效月；达标当月才观察到价格、车队采购从次月起转向，故**达标当年只压剩余月份**（如兑现年年中达标→当年权重 6/12，只影响下半年），次年起全效，事件不追溯。**兑现年年底前未达标＝窗口内零影响；兑现年之后才达标＝只影响兑现年后的延长段，当前不计价、仅用于解释估值倍数**（当前尚在窗口内，延长段效应不入账；见 events.py 延长段分支）。不设交付滞后期——比价持续在跟踪，达标即按当月起算，滞后只会重复计价。 **幅度**：甲醇拿走的是干线——重卡三场景里中途 0.50 ＋ 长途 0.12 ＝ 权重 0.62，假设其中约四分之一永久归甲醇 → 0.62×0.25 ≈ 0.155，取完整效应 **nev_rates 全效绝对下调 0.15/年**（按上面的年内权重分摊）。天花板 0.80 → 0.65：干线那块退出电动化，上限不该还停在原处（ceiling 只作用于兑现年后延长段，窗口内达标则整体切换）。 **这个四分之一是声明不是测算**，什么会让我改它：出现干线甲醇重卡的实际保有量数据。 **承重方**：甲醇电动整车购置成本低于纯电，且吉利远程「远醇」已建 1000+ 座加注站、规划 2027 年底 4000 座——它是一个正在出现的承重方，但它扛的是**加注网络**而非燃料成本曲线。 **推/拉判据**：CATL 自己说甲醇不行＝推；燃料生产商（非整车厂）自建加注网络＝拉",
+        "timed_changes": [
           {
-            "param": "vehicles.heavy.nev_rates.3",
-            "from": 0.54,
-            "to": 0.47
-          },
-          {
-            "param": "vehicles.heavy.nev_rates.4",
-            "from": 0.59,
-            "to": 0.44
+            "param": "vehicles.heavy.nev_rates",
+            "type": "delta",
+            "full_delta": -0.15
           },
           {
             "param": "vehicles.heavy.nev_ceiling",
+            "type": "set",
             "from": 0.8,
             "to": 0.65
           }

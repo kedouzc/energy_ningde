@@ -199,71 +199,92 @@ def load() -> dict | None:
     return json.loads(OUT.read_text(encoding="utf-8"))
 
 
-def check(config: dict) -> list[str]:
-    """拿实测比模型假设，逐层比。返回报警行（空＝没越阈值）。**主链只调这个，纯 stdlib。**
+def _get_path(obj, path: str):
+    """按点分路径取值；下标用数字段。取不到返回 None（**不猜**）。"""
+    cur = obj
+    for key in str(path).split("."):
+        if isinstance(cur, dict):
+            if key not in cur:
+                return None
+            cur = cur[key]
+        elif isinstance(cur, (list, tuple)):
+            try:
+                cur = cur[int(key)]
+            except (ValueError, IndexError):
+                return None
+        else:
+            return None
+        if isinstance(cur, dict) and "v" in cur and len(cur) > 1:
+            cur = cur["v"]          # 就地信封：取值不取呈现要素
+    return cur
 
-    【2026-09-15 扩到漏斗上层】车辆规模是一条漏斗：
-    总量 → 分车型 → 电动化 → **纯电占新能源** → 换电占纯电 → CATL 份额。
-    原来只比最下面两层，等于只在最后一道关口设岗；上游偏了要等它传导下来才看得见。
+
+def _calc_heavy_swap_penetration_weighted(config: dict):
+    """重卡「换电占纯电」的模型值＝按场景权重加权。**复合值必须有名字**，
+    否则它就只能硬编码在比对逻辑里，卡片化就白做了。"""
+    scenes = config.get("vehicles", {}).get("heavy", {}).get("scenes", []) or []
+    tot = sum(sc.get("weight", 0.0) for sc in scenes)
+    if not tot:
+        return None
+    return sum(sc.get("weight", 0.0) * sc.get("swap_penetration", 0.0) for sc in scenes) / tot
+
+
+_CALC = {"heavy_swap_penetration_weighted": _calc_heavy_swap_penetration_weighted}
+
+
+def check(config: dict) -> list[str]:
+    """遍历 `[[watch]]` 卡逐层比对。返回报警行（空＝没越阈值）。**主链只调这个，纯 stdlib。**
+
+    【2026-09-16 卡片化】此前三条比对硬编码在这里，加一层跟踪要改程序。
+    现在每张卡 ＝ 一个中检点，本函数只负责遍历——**加一层跟踪＝加一张卡。**
     """
     d = load()
     if not d:
         return []
     warn: list[str] = []
-    L = d.get("layers") or {}
+    layers = d.get("layers") or {}
 
-    def val(layer: str, key: str):
-        node = (L.get(layer) or {}).get(key) or {}
-        return node.get("ym"), node.get("value")
+    for card in config.get("watch", []) or []:
+        obs_path = str(card.get("observed") or "").strip()
+        if not obs_path:
+            continue                      # 数据源未接：卡片登记在案，但不报警
+        node = _get_path(layers, obs_path)
+        obs = node.get("value") if isinstance(node, dict) else node
+        if obs in (None, 0):
+            continue
+        model_ref = str(card.get("model") or "")
+        if model_ref.startswith("calc:"):
+            mv = (_CALC.get(model_ref[5:]) or (lambda _c: None))(config)
+        else:
+            mv = _get_path(config, model_ref)
+        if mv is None:
+            warn.append(f"【{card.get('layer')}】模型侧取不到 `{model_ref}`——"
+                        f"**卡片指向了一个不存在的参数**，改名或删卡")
+            continue
+        mv, obs = float(mv), float(obs)
+        mode = card.get("compare", "diff")
+        thr = float(card.get("threshold", 0))
+        gap = (mv - obs) if mode == "diff" else (mv / obs)
+        over = (gap > thr) if mode == "diff" else (gap > thr)
+        under = (gap < -thr) if mode == "diff" else (gap < 1.0 / thr if thr else False)
+        direction = card.get("direction", "either")
+        hit = {"model_high": over, "model_low": under, "either": over or under}[direction]
+        # model_low 的含义是"模型偏低"＝实测高于模型，diff 模式下即 obs − mv 越阈值
+        if direction == "model_low" and mode == "diff":
+            hit = (obs - mv) > thr
+        if not hit:
+            continue
+        ym = node.get("ym") if isinstance(node, dict) else None
+        if mode == "diff":
+            head = (f"模型 {mv:.1%}，实测 {obs:.1%}（{ym}），差 {mv - obs:+.1%}"
+                    if max(abs(mv), abs(obs)) <= 1.5
+                    else f"模型 {mv:,.1f}，实测 {obs:,.1f}（{ym}），差 {mv - obs:+,.1f}")
+        else:
+            head = f"模型 {mv:,.0f}，实测 {obs:,.0f}（{ym}），**高出 {gap:.2f} 倍**"
+        warn.append(f"【{card.get('layer')}】{head}。{card.get('why','')}"
+                    f"（复核周期：{card.get('period','—')}）")
 
-    # ── ① 重卡·电动化：拟合锚 vs 最新实测累计
-    hv = config["vehicles"]["heavy"]
-    anchor = hv.get("nev_anchor_rate")
-    ym_p, obs_p = val("重卡", "latest_nev_pen_cum")
-    if anchor and obs_p is not None and obs_p - anchor > WATCH["nev_anchor_gap"]:
-        warn.append(
-            f"【重卡·电动化】logistic 拟合锚 {anchor:.1%}（{hv.get('nev_anchor_year')} 年度），"
-            f"最新实测 {obs_p:.1%}（{ym_p} 累计）已高出 {obs_p - anchor:+.1%}"
-            f"——**年度数据满一年后应重标曲线**（改锚即可，k/t0 自动重算）")
-
-    # ── ② 重卡·换电占纯电：模型兑现年加权 vs 最新实测累计
-    scenes = hv.get("scenes", [])
-    tot_w = sum(sc.get("weight", 0.0) for sc in scenes) or 1.0
-    model_share = sum(sc.get("weight", 0.0) * sc.get("swap_penetration", 0.0) for sc in scenes) / tot_w
-    ym_s, obs_s = val("重卡", "latest_swap_share_cum")
-    if obs_s is not None and abs(model_share - obs_s) > WATCH["swap_share_gap"]:
-        warn.append(
-            f"【重卡·换电占纯电】模型兑现年加权 {model_share:.1%}，最新实测（{ym_s} 累计）"
-            f"{obs_s:.1%}，差 {model_share - obs_s:+.1%}。这不是 bug，是一个**反转预期**"
-            f"——推翻条件写在 base.toml 的声明段，机制与三条反驳见 topics/竞争格局"
-            f"「换电占电动为什么在跌」")
-
-    # ── ③ 私家车池的分母 vs 实测乘用车 BEV 销量
-    #
-    # 【2026-09-15 撤回一条误报】上一版拿模型 `pure_electric_share=1.0` 去比
-    # 乘联会「BEV 占新能源 64.2%」，报了"模型把私家车池放大 1.56 倍"。**那是误报。**
-    # 查用户的素材《素材-电池装机量》§4.B 后确认：私家车池的分母**本来就是纯电口径**——
-    # 2025 年基数取公安部**纯电动保有量 3022 万**，原文明确写着"**不取 IEA 含插混的 4400 万**"。
-    # 分母已经排除插混，`pure_electric_share=1.0` 因此是对的，**错的是我拿来比的那个数**。
-    #
-    # 换成一条真正能证伪的：**年净增不可能超过当年销量。**
-    pri = config["vehicles"]["private"]
-    adds = pri.get("annual_net_additions_wan") or []
-    node = (L.get("乘用车") or {}).get("bev_annualized_wan") or {}
-    obs_bev, ym_bev, months = node.get("value"), node.get("ym"), node.get("months")
-    if adds and obs_bev:
-        first = float(adds[0])
-        if first > obs_bev * 1.6:
-            warn.append(
-                f"【私家车池·分母】模型首年净增 {first:,.0f} 万辆，"
-                f"而实测乘用车 BEV 年化销量 {obs_bev:,.0f} 万辆"
-                f"（{ym_bev} 年前 {months} 个月年化）——**高出 {first/obs_bev:.2f} 倍**。"
-                f"净增是存量增量、销量是流量，**净增不可能超过销量**，所以这两个数之间"
-                f"必须有一个能说出口的增长路径；末年 {float(adds[-1]):,.0f} 万还要再翻一倍。"
-                f"口径本身没错（分母是公安部纯电 3022 万口径，已排除插混），"
-                f"要核的是**这条增长路径的依据**")
-
-    # ── ④ 底稿新鲜度：竞争性变量必须带复核周期，过期即响
+    # ── 底稿新鲜度：竞争性变量必须带复核周期，过期即响
     latest = d.get("latest_ym")
     if latest:
         try:
@@ -279,6 +300,32 @@ def check(config: dict) -> list[str]:
         except Exception:
             pass
     return warn
+
+
+def watch_table(config: dict) -> list[dict]:
+    """给沙盘 ② 块的跟踪表：每张卡一行（含未接数据源的）。"""
+    d = load() or {}
+    layers = d.get("layers") or {}
+    rows = []
+    for card in config.get("watch", []) or []:
+        obs_path = str(card.get("observed") or "").strip()
+        node = _get_path(layers, obs_path) if obs_path else None
+        obs = node.get("value") if isinstance(node, dict) else None
+        model_ref = str(card.get("model") or "")
+        mv = ((_CALC.get(model_ref[5:]) or (lambda _c: None))(config)
+              if model_ref.startswith("calc:") else _get_path(config, model_ref))
+        rows.append({
+            "id": card.get("id"), "layer": card.get("layer"),
+            "model": None if mv is None else float(mv),
+            "observed": None if obs is None else float(obs),
+            "ym": node.get("ym") if isinstance(node, dict) else None,
+            "compare": card.get("compare", "diff"),
+            "threshold": card.get("threshold"),
+            "period": card.get("period"),
+            "connected": bool(obs_path),
+            "why": card.get("why", ""),
+        })
+    return rows
 
 
 def readings() -> list[str]:

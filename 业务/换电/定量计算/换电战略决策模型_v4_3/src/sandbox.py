@@ -633,9 +633,39 @@ def _review_payload(config: dict) -> dict:
     try:
         import tracker
         out["alarms"] = tracker.check(config)
+        out["watch_table"] = tracker.watch_table(config)
     except Exception as exc:
         out["alarms"] = []
+        out["watch_table"] = []
         print(f"⚠ 实测报警跳过：{exc}")
+
+    # 私家车敏感性：**报警不够，要把影响量化。**
+    # 为什么单摘私家车——四个池子里只有它的分母是**外推**出来的
+    # （2030 保有量减 2025 再按曲线分摊到各年），其余三个都锚在保有量实测上。
+    # **分母是外推的那一块，风险性质不同，就不该和别的混在一个区间里。**
+    try:
+        from config_loader import cloned_config, _set_path
+        base_adds = list(config["vehicles"]["private"]["annual_net_additions_wan"])
+        rows = []
+        for cut in (0.0, 0.10, 0.20, 0.30):
+            cfg_x = cloned_config(config)
+            _set_path(cfg_x, "vehicles.private.annual_net_additions_wan",
+                      [x * (1.0 - cut) for x in base_adds])
+            sx = build_model(cfg_x)
+            rows.append({
+                "cut": cut,
+                "ebitda_yi": sx.swap_business.ebitda_yi,
+                "coverage": sx.swap_business.forward_to_required_ebitda,
+                "increment_yi": sx.ledger.total_swap_increment_value_yi,
+                "stations": sx.scale.stations_total,
+            })
+        b = rows[0]
+        for r in rows:
+            r["increment_delta_pct"] = (r["increment_yi"] / b["increment_yi"] - 1.0) if b["increment_yi"] else 0.0
+        out["private_sensitivity"] = rows
+    except Exception as exc:
+        out["private_sensitivity"] = []
+        print(f"⚠ 私家车敏感性跳过：{exc}")
 
     # 事件表：每张卡值多少钱。差分要重跑模型，所以在生成期算好塞进页面。
     try:

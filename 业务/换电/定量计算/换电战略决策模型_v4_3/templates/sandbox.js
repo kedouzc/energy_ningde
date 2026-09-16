@@ -290,7 +290,8 @@ function render(){
   renderPanel();
   renderOnePaper(E);
   renderChapters(E);         // ④ 主链的收口读数必须和 ③ 区同源同刻
-  if(!_reviewDone){ _reviewDone=true; renderAlarms(); renderReview(); renderEvents(); renderEconGate(); }
+  if(!_reviewDone){ _reviewDone=true; renderAlarms(); renderWatchTable(); renderPrivSens();
+                    renderReview(); renderEvents(); renderEconGate(); }
   refreshVerdict();          // ①② 区必须和 ③ 区同源同刻，否则读数自相矛盾
   if(!exact && pyReady && !_recompBusy){
     _recompBusy = true;
@@ -498,6 +499,45 @@ function renderSticky(E){
     const v=(E||{})[k];
     return `<span class="sbi"><i>${lb}</i><b>${v==null?"—":num(v,d)}</b><u>${u}</u></span>`;
   }).join("")+`<span class="sbi"><i>当前档位</i><b>${esc(tier)}</b></span>`;
+}
+
+function renderWatchTable(){
+  const box=document.getElementById("watchtable"); if(!box) return;
+  const rows=((D&&D.review)||{}).watch_table||[];
+  if(!rows.length){ box.innerHTML='<p class="note">（没有读到跟踪卡）</p>'; return; }
+  const f=(v,c)=> v==null?"—":(c==="ratio"? num(v,0) : (Math.abs(v)<=1.5? num(v*100,1)+"%" : num(v,1)));
+  box.innerHTML=`<table><thead><tr><th>漏斗层</th><th class="opth">模型假设</th>`
+    +`<th class="opth">最新实测</th><th class="opth">复核周期</th><th>越阈值说明什么</th></tr></thead><tbody>`
+    +rows.map(r=>{
+      const off=(r.model!=null&&r.observed!=null)&&(r.compare==="ratio"
+        ? (r.model/r.observed>r.threshold) : (Math.abs(r.model-r.observed)>r.threshold));
+      return `<tr><td>${esc(r.layer)}${r.connected?"":' <span class="note">（数据源未接）</span>'}</td>`
+        +`<td class="opth">${f(r.model,r.compare)}</td>`
+        +`<td class="opth">${r.observed==null?'<span class="note">—</span>':
+            `<b style="color:${off?"var(--bad)":"var(--ok)"}">${f(r.observed,r.compare)}</b>`
+            +(r.ym?`<span class="note"> ${esc(r.ym)}</span>`:"")}</td>`
+        +`<td class="opth">${esc(r.period||"—")}</td>`
+        +`<td class="opj">${md(r.why||"")}</td></tr>`;
+    }).join("")+`</tbody></table>`
+    +`<p class="note"><b>加一层跟踪＝加一张卡</b>，不改程序（卡片住 <code>configs/base.toml</code> 的 <code>[[watch]]</code>）。`
+    +`没接数据源的行留在表里是刻意的——<b>空着比没有好，因为空着是看得见的</b>。</p>`;
+}
+
+function renderPrivSens(){
+  const box=document.getElementById("privsens"); if(!box) return;
+  const rows=((D&&D.review)||{}).private_sensitivity||[];
+  if(!rows.length){ box.innerHTML='<p class="note">（没有读到私家车敏感性）</p>'; return; }
+  box.innerHTML=`<table><thead><tr><th>私家车净增</th><th class="opth">兑现年 EBITDA</th>`
+    +`<th class="opth">覆盖倍数</th><th class="opth">换电增量价值</th><th class="opth">相对基线</th></tr></thead><tbody>`
+    +rows.map(r=>`<tr><td>${r.cut?("−"+num(r.cut*100,0)+"%"):"基线"}</td>`
+      +`<td class="opth">${num(r.ebitda_yi,1)}</td><td class="opth">${num(r.coverage,2)}</td>`
+      +`<td class="opth">${num(r.increment_yi,1)}</td>`
+      +`<td class="opth">${r.cut? `<b>${num(r.increment_delta_pct*100,1)}%</b>`:"—"}</td></tr>`).join("")
+    +`</tbody></table>`
+    +`<p class="note"><b>为什么单摘私家车</b>：四个池子里只有它的分母是外推出来的`
+    +`（2030 保有量减 2025 再按曲线分摊到各年），其余三个都锚在保有量实测上。`
+    +`<b>分母是外推的那一块，风险性质不同，不该和别的混在一个区间里。</b>`
+    +`读这张表要看的是最后一列——<b>它把"报警"变成了"影响有多大"</b>。</p>`;
 }
 
 function renderEvents(){

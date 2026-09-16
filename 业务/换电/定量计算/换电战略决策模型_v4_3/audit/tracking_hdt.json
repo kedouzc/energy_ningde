@@ -1,7 +1,87 @@
 {
  "source": "src.dcr_hdt_monthly",
- "caliber": "第一商用车网上险量（不含出口/军车）；**累计口径，不看单月**（季节性）",
  "file": "电车人新能源重卡月度数据_2024-2026_口径更新.xlsx",
+ "caliber": "**累计口径，不看单月**（商用车是生产资料，季节性极强）；各层口径见 layers[*].caliber",
+ "latest_ym": "2026-06",
+ "layers": {
+  "总量": {
+   "sheet": "Part1_中汽协总量",
+   "caliber": "中汽协批发口径",
+   "latest_nev_wan": {
+    "ym": "2026-06",
+    "value": 112.0
+   },
+   "latest_pen": {
+    "ym": "2026-06",
+    "value": 0.631
+   }
+  },
+  "乘用车": {
+   "sheet": "Part2_乘联会乘用车",
+   "caliber": "乘联会零售/批发口径",
+   "latest_sales_wan": {
+    "ym": "2026-06",
+    "value": 100.7
+   },
+   "latest_bev_share": {
+    "ym": "2026-06",
+    "value": 0.642
+   },
+   "latest_pen": {
+    "ym": "2026-06",
+    "value": 0.672
+   },
+   "bev_annualized_wan": {
+    "ym": "2026",
+    "value": 581.8,
+    "months": 6
+   }
+  },
+  "重卡": {
+   "sheet": "Part3_商用车细分",
+   "caliber": "第一商用车网上险量（不含出口/军车）",
+   "latest_nev_pen_cum": {
+    "ym": "2026-06",
+    "value": 0.3368
+   },
+   "latest_swap_share_cum": {
+    "ym": "2026-06",
+    "value": 0.24573
+   },
+   "latest_charge_share_cum": {
+    "ym": "2026-06",
+    "value": 0.7542700000000001
+   },
+   "latest_bev_in_nev_cum": {
+    "ym": "2026-06",
+    "value": 0.99324
+   }
+  },
+  "城配": {
+   "sheet": "Part3_商用车细分",
+   "caliber": "第一商用车网；轻卡与物流车月度量",
+   "latest_light_truck_wan": {
+    "ym": "2026-06",
+    "value": 2.0504
+   },
+   "latest_logistics_wan": {
+    "ym": "2026-06",
+    "value": 8.5
+   }
+  },
+  "电池份额": {
+   "sheet": "Part4_动力电池",
+   "caliber": "动力电池创新联盟装车量口径",
+   "latest_catl_passenger": {
+    "ym": "2026-06",
+    "value": 0.4286
+   },
+   "latest_catl_commercial": {
+    "ym": "2026-06",
+    "value": 0.4194
+   }
+  }
+ },
  "latest_nev_pen_cum": {
   "ym": "2026-06",
   "value": 0.3368
@@ -15,183 +95,287 @@
    "ym": "2024-01",
    "nev_pen_cum": null,
    "swap_share_cum": 0.43875,
+   "charge_share_cum": 0.56125,
    "nev_pen_m": 0.107,
-   "swap_share_m": 0.4387
+   "swap_share_m": 0.4387,
+   "bev_in_nev_cum": 0.96881,
+   "light_truck_wan": null,
+   "logistics_wan": 1.8221
   },
   {
    "ym": "2024-02",
    "nev_pen_cum": null,
    "swap_share_cum": 0.41924,
+   "charge_share_cum": 0.58076,
    "nev_pen_m": 0.076,
-   "swap_share_m": 0.38270000000000004
+   "swap_share_m": 0.38270000000000004,
+   "bev_in_nev_cum": 0.97557,
+   "light_truck_wan": null,
+   "logistics_wan": 1.3562
   },
   {
    "ym": "2024-03",
    "nev_pen_cum": null,
    "swap_share_cum": 0.4218,
+   "charge_share_cum": 0.5782,
    "nev_pen_m": null,
-   "swap_share_m": 0.4255
+   "swap_share_m": 0.4255,
+   "bev_in_nev_cum": 0.96312,
+   "light_truck_wan": 0.7065,
+   "logistics_wan": 4.4
   },
   {
    "ym": "2024-04",
    "nev_pen_cum": null,
    "swap_share_cum": 0.41247,
+   "charge_share_cum": 0.58753,
    "nev_pen_m": null,
-   "swap_share_m": 0.3896
+   "swap_share_m": 0.3896,
+   "bev_in_nev_cum": 0.9592100000000001,
+   "light_truck_wan": 0.6787,
+   "logistics_wan": 3.6
   },
   {
    "ym": "2024-05",
    "nev_pen_cum": null,
    "swap_share_cum": 0.41272,
+   "charge_share_cum": 0.58728,
    "nev_pen_m": null,
-   "swap_share_m": 0.41340000000000005
+   "swap_share_m": 0.41340000000000005,
+   "bev_in_nev_cum": 0.94744,
+   "light_truck_wan": 0.8077,
+   "logistics_wan": 4.0525
   },
   {
    "ym": "2024-06",
    "nev_pen_cum": null,
    "swap_share_cum": 0.39741,
+   "charge_share_cum": 0.60259,
    "nev_pen_m": null,
-   "swap_share_m": 0.3521
+   "swap_share_m": 0.3521,
+   "bev_in_nev_cum": 0.94609,
+   "light_truck_wan": 0.7097,
+   "logistics_wan": 3.176
   },
   {
    "ym": "2024-07",
    "nev_pen_cum": null,
    "swap_share_cum": 0.39222,
+   "charge_share_cum": 0.60778,
    "nev_pen_m": null,
-   "swap_share_m": 0.36920000000000003
+   "swap_share_m": 0.36920000000000003,
+   "bev_in_nev_cum": 0.93658,
+   "light_truck_wan": 0.8027,
+   "logistics_wan": 3.9144
   },
   {
    "ym": "2024-08",
    "nev_pen_cum": 0.1048,
    "swap_share_cum": 0.39165,
+   "charge_share_cum": 0.6083500000000001,
    "nev_pen_m": 0.157,
-   "swap_share_m": 0.3889
+   "swap_share_m": 0.3889,
+   "bev_in_nev_cum": 0.93133,
+   "light_truck_wan": 0.8949,
+   "logistics_wan": 4.2576
   },
   {
    "ym": "2024-09",
    "nev_pen_cum": null,
    "swap_share_cum": 0.38380000000000003,
+   "charge_share_cum": 0.6162,
    "nev_pen_m": 0.18,
-   "swap_share_m": 0.34630000000000005
+   "swap_share_m": 0.34630000000000005,
+   "bev_in_nev_cum": 0.9366599999999999,
+   "light_truck_wan": 0.9986,
+   "logistics_wan": 4.4357
   },
   {
    "ym": "2024-12",
    "nev_pen_cum": 0.136,
    "swap_share_cum": 0.38405,
+   "charge_share_cum": 0.61595,
    "nev_pen_m": 0.2189,
-   "swap_share_m": 0.38439999999999996
+   "swap_share_m": 0.38439999999999996,
+   "bev_in_nev_cum": 0.9437399999999999,
+   "light_truck_wan": 1.377,
+   "logistics_wan": 4.5
   },
   {
    "ym": "2025-01",
    "nev_pen_cum": null,
    "swap_share_cum": 0.38944,
+   "charge_share_cum": 0.61056,
    "nev_pen_m": 0.21,
-   "swap_share_m": 0.3889
+   "swap_share_m": 0.3889,
+   "bev_in_nev_cum": 0.98941,
+   "light_truck_wan": 0.4637,
+   "logistics_wan": 1.8201
   },
   {
    "ym": "2025-02",
    "nev_pen_cum": null,
    "swap_share_cum": 0.35600000000000004,
+   "charge_share_cum": 0.644,
    "nev_pen_m": 0.17,
-   "swap_share_m": 0.327
+   "swap_share_m": 0.327,
+   "bev_in_nev_cum": 0.98322,
+   "light_truck_wan": 0.7542,
+   "logistics_wan": 3.7031
   },
   {
    "ym": "2025-03",
    "nev_pen_cum": null,
    "swap_share_cum": 0.33379,
+   "charge_share_cum": 0.66621,
    "nev_pen_m": 0.21,
-   "swap_share_m": 0.3114
+   "swap_share_m": 0.3114,
+   "bev_in_nev_cum": 0.9672799999999999,
+   "light_truck_wan": 1.2177,
+   "logistics_wan": 5.4034
   },
   {
    "ym": "2025-04",
    "nev_pen_cum": null,
    "swap_share_cum": 0.32539,
+   "charge_share_cum": 0.6746099999999999,
    "nev_pen_m": 0.23,
-   "swap_share_m": 0.3095
+   "swap_share_m": 0.3095,
+   "bev_in_nev_cum": 0.97344,
+   "light_truck_wan": 1.5576,
+   "logistics_wan": 5.3664
   },
   {
    "ym": "2025-06",
    "nev_pen_cum": null,
    "swap_share_cum": 0.32287999999999994,
+   "charge_share_cum": 0.67712,
    "nev_pen_m": 0.26,
-   "swap_share_m": 0.31620000000000004
+   "swap_share_m": 0.31620000000000004,
+   "bev_in_nev_cum": 0.97455,
+   "light_truck_wan": 1.6569,
+   "logistics_wan": 5.4267
   },
   {
    "ym": "2025-07",
    "nev_pen_cum": null,
    "swap_share_cum": 0.31904,
+   "charge_share_cum": 0.68096,
    "nev_pen_m": 0.2589,
-   "swap_share_m": 0.3032
+   "swap_share_m": 0.3032,
+   "bev_in_nev_cum": 0.9756,
+   "light_truck_wan": 1.4629,
+   "logistics_wan": 5.3
   },
   {
    "ym": "2025-08",
    "nev_pen_cum": null,
    "swap_share_cum": 0.31817,
+   "charge_share_cum": 0.68183,
    "nev_pen_m": 0.2661,
-   "swap_share_m": 0.3139
+   "swap_share_m": 0.3139,
+   "bev_in_nev_cum": 0.9773499999999999,
+   "light_truck_wan": 1.7716,
+   "logistics_wan": 5.6
   },
   {
    "ym": "2025-09",
    "nev_pen_cum": 0.2421,
    "swap_share_cum": 0.31953,
+   "charge_share_cum": 0.68047,
    "nev_pen_m": 0.2893,
-   "swap_share_m": 0.32539999999999997
+   "swap_share_m": 0.32539999999999997,
+   "bev_in_nev_cum": 0.9767100000000001,
+   "light_truck_wan": 1.6628,
+   "logistics_wan": 6.5
   },
   {
    "ym": "2025-11",
    "nev_pen_cum": null,
    "swap_share_cum": 0.31041,
+   "charge_share_cum": 0.68959,
    "nev_pen_m": 0.36450000000000005,
-   "swap_share_m": 0.2699
+   "swap_share_m": 0.2699,
+   "bev_in_nev_cum": 0.97573,
+   "light_truck_wan": 1.6,
+   "logistics_wan": 5.5
   },
   {
    "ym": "2025-12",
    "nev_pen_cum": 0.2889,
    "swap_share_cum": 0.30421,
+   "charge_share_cum": 0.6957899999999999,
    "nev_pen_m": 0.539,
-   "swap_share_m": 0.2817
+   "swap_share_m": 0.2817,
+   "bev_in_nev_cum": 0.9598399999999999,
+   "light_truck_wan": 2.5,
+   "logistics_wan": 7.6
   },
   {
    "ym": "2026-01",
    "nev_pen_cum": null,
    "swap_share_cum": 0.2761,
+   "charge_share_cum": 0.7239,
    "nev_pen_m": 0.3318,
-   "swap_share_m": 0.2767
+   "swap_share_m": 0.2767,
+   "bev_in_nev_cum": 0.9875799999999999,
+   "light_truck_wan": 0.94,
+   "logistics_wan": 2.91
   },
   {
    "ym": "2026-02",
    "nev_pen_cum": null,
    "swap_share_cum": 0.26827,
+   "charge_share_cum": 0.73173,
    "nev_pen_m": 0.2616,
-   "swap_share_m": 0.2506
+   "swap_share_m": 0.2506,
+   "bev_in_nev_cum": 0.98979,
+   "light_truck_wan": 0.55,
+   "logistics_wan": 1.83
   },
   {
    "ym": "2026-03",
    "nev_pen_cum": null,
    "swap_share_cum": 0.26121,
+   "charge_share_cum": 0.7387900000000001,
    "nev_pen_m": 0.23309999999999997,
-   "swap_share_m": 0.2534
+   "swap_share_m": 0.2534,
+   "bev_in_nev_cum": 0.98542,
+   "light_truck_wan": 1.85,
+   "logistics_wan": 8.17
   },
   {
    "ym": "2026-04",
    "nev_pen_cum": null,
    "swap_share_cum": 0.25373999999999997,
+   "charge_share_cum": 0.74626,
    "nev_pen_m": 0.302,
-   "swap_share_m": 0.2422
+   "swap_share_m": 0.2422,
+   "bev_in_nev_cum": 0.99944,
+   "light_truck_wan": 1.8258,
+   "logistics_wan": 8.7
   },
   {
    "ym": "2026-05",
    "nev_pen_cum": 0.309,
    "swap_share_cum": 0.24802,
+   "charge_share_cum": 0.75198,
    "nev_pen_m": 0.41,
-   "swap_share_m": 0.235
+   "swap_share_m": 0.235,
+   "bev_in_nev_cum": 0.99469,
+   "light_truck_wan": 1.8151,
+   "logistics_wan": 8.2
   },
   {
    "ym": "2026-06",
    "nev_pen_cum": 0.3368,
    "swap_share_cum": 0.24573,
+   "charge_share_cum": 0.7542700000000001,
    "nev_pen_m": 0.4475,
-   "swap_share_m": 0.2394
+   "swap_share_m": 0.2394,
+   "bev_in_nev_cum": 0.99324,
+   "light_truck_wan": 2.0504,
+   "logistics_wan": 8.5
   }
  ],
  "missing": []

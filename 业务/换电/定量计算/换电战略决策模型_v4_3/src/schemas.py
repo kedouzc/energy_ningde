@@ -31,6 +31,11 @@ class SourcingAdjustment:
     passenger_share_uplift: float
     reusable_heavy_stations: int
     reusable_choco_stations: int
+    # 【2026-09-15】拆出"只买到站址"这一档：整站复用是少建一座站（省 100%），
+    # 站址复用是站体照建、但省掉土建与电网接入那一份（省 site_and_grid_cost_share）。
+    # 不拆开就表达不了"并购只买到地"这件事——而按现有证据，那恰恰是最可能的情况。
+    site_only_reusable_heavy_stations: int
+    site_only_reusable_choco_stations: int
     acceleration_years: float
     acquired_network_stations: int
     acquired_battery_bank_gwh: float

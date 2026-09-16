@@ -1310,30 +1310,45 @@ implied_ps = 1.08
 # · no_swap 重卡 45% 谱系 ← 启源并表后竞争格局重估的语义基础
 
 # ----------------------并购情景（MANIFEST §7）-----------------------------
+#
+# 【2026-09-15 重排】情景按**复用程度**分档，不按"买了什么"分档。
+# 原因：联网查证后，决定这笔钱值多少的不是"买到几座站"，是"买到的站能用到什么程度"。
+#   · 李斌 2025-11 明确表示萤火虫不会接入巧克力换电，**理由是液冷 vs 风冷**——
+#     站体物理不兼容是**一手表态**，不是推测。两边官方口径始终是"双网并行"，不是合并。
+#   · 重卡侧同理：启源是顶吊/后背式（电池在驾驶室后方），骐骥是底盘式（电池在车架下），
+#     电池位置、换电机构、包规格三者全不同。后配式互换国标 2023 年已发布，
+#     **底盘式互换标准 2026 年底才计划完成**（深圳先行标准）。
+#   · 穷尽检索，**没有任何一座换电站跨标准改造的公开案例、方案或成本数据**。
+# 所以基准档是「站址与电网接入可复用、站体需重建」，不是整站复用——
+# 整站复用那一档保留为乐观档，但它**没有任何证据支撑**，卡面必须写明。
+#
+# 已删除两档（2026-09-15）：「纯自建_无并购参考」与「启源入股_不收蔚来」的"不收蔚来"定语——
+# 启源入股已于 2026-08 完成，"没有并购"这个对照面已不存在。
 
 [mna]
-base_scenario_name = "启源入股_不收蔚来"
-comparison_scenario_name = "纯自建_无并购参考"
+base_scenario_name = "现状_启源已入股"
+comparison_scenario_name = "现状_启源已入股"
+
+# 站址与电网接入占单站总投资的比例：**这是"只买到地"值多少钱的全部依据**。
+# 信源谱系：信达证券 2022（援引协鑫）乘用车站 491 万中"线路及其他投资"100 万 = 20.4%、
+# 重卡站 914 万中 235 万 = 25.7%；中信证券 2023 拆分中"建设成本（土建）"约 20%。取 0.20。
+# **三条必须同时说出的限定**：
+#   ① 口径污染——"线路及其他"未再拆分，无法确认纯电力接入与纯土建各占多少；
+#   ② 数据陈旧且方向偏高——蔚来单站成本 150 万(四代)→100 万(五代)、
+#      宁德时代地基深度 2.3–2.7 米压到 0.8 米，土建占比大概率在降；
+#   ③ **占比低 ≠ 价值低**——北京亦庄某重卡换电站投产一年多无法服务，原因是变压器功率不足，
+#      "电力扩容难度极大、成本极高"；而选址到验收的时间（宁德时代自述原本近 3 个月、
+#      流程改造后 16 天）在成本表里根本不体现。**这部分是期权价值，不是会计价值。**
+site_and_grid_cost_share.v = 0.20
+site_and_grid_cost_share.label = "站址与电网接入占单站造价比例"
+site_and_grid_cost_share.unit = "%"
+site_and_grid_cost_share.decimals = 0
+site_and_grid_cost_share.scale = 100.0
+site_and_grid_cost_share.note = "并购只买到站址时能省下的那一份。信源见本字段上方注释；**它是会计下限，不含时间与电力容量的期权价值**"
 
 [[mna.scenarios]]
-name = "纯自建_无并购参考"
-label = "纯自建参考：不含启源与蔚来交易"
-purchase_price_yi = 0.0
-assumed_debt_yi = 0.0
-integration_cost_yi = 0.0
-heavy_catl_swap_share_uplift = 0.00
-passenger_catl_swap_share_uplift = 0.00
-physically_reusable_heavy_stations = 0
-physically_reusable_choco_stations = 0
-network_acceleration_years = 0.0
-acquired_network_stations = 0
-acquired_battery_bank_gwh = 0.0
-price_basis = "纯自建对照，不发生交易"
-price_status = "仅作资本对比基准"
-
-[[mna.scenarios]]
-name = "启源入股_不收蔚来"
-label = "启源股权收购已完成；暂不假设物理整合，不收购蔚来"
+name = "现状_启源已入股"
+label = "现状：启源 24.87% 股权已摘牌；物理整合未发生，不含蔚来交易"
 purchase_price_yi = 25.5566
 assumed_debt_yi = 0.0
 integration_cost_yi = 0.0
@@ -1341,43 +1356,67 @@ heavy_catl_swap_share_uplift = 0.00
 passenger_catl_swap_share_uplift = 0.00
 physically_reusable_heavy_stations = 0
 physically_reusable_choco_stations = 0
+site_only_reusable_heavy_stations = 0
+site_only_reusable_choco_stations = 0
 network_acceleration_years = 0.25
 acquired_network_stations = 0
 acquired_battery_bank_gwh = 0.0
 price_basis = "启源芯动力25%股权摘牌价（评估值102.75亿×24.8726%）"
-price_status = "股权摘牌已发生；业务协同尚未发生"
+price_status = "股权摘牌已发生（2026-08-18）；业务协同与物理整合尚未发生"
 
 [[mna.scenarios]]
-name = "启源入股加蔚来全网络电池银行"
-label = "启源股权收购，加收购蔚来网络与电池银行"
-purchase_price_yi = 174.8266
-assumed_debt_yi = 224.83
-integration_cost_yi = 15.0
-heavy_catl_swap_share_uplift = 0.01
-passenger_catl_swap_share_uplift = 0.03
-physically_reusable_heavy_stations = 0
-physically_reusable_choco_stations = 0
-network_acceleration_years = 0.75
-acquired_network_stations = 3790
-acquired_battery_bank_gwh = 42.0
-price_basis = "启源25.56亿＋蔚能剩余权益约92.42亿＋3790站按150万元/站重置成本56.85亿"
-price_status = "蔚来交易未发生；权益与站网价格均为可调研究锚"
-
-[[mna.scenarios]]
-name = "启源入股加蔚来电池银行"
-label = "启源股权收购，加收购蔚来电池银行；站网由地方国资持有"
+name = "加蔚来_只收电池银行"
+label = "加收蔚能电池银行；站网不收（站址资源不进手）"
 purchase_price_yi = 117.9766
 assumed_debt_yi = 224.83
 integration_cost_yi = 10.0
-heavy_catl_swap_share_uplift = 0.01
-passenger_catl_swap_share_uplift = 0.02
+heavy_catl_swap_share_uplift = 0.00
+passenger_catl_swap_share_uplift = 0.00
 physically_reusable_heavy_stations = 0
 physically_reusable_choco_stations = 0
-network_acceleration_years = 0.60
+site_only_reusable_heavy_stations = 0
+site_only_reusable_choco_stations = 0
+network_acceleration_years = 0.25
 acquired_network_stations = 0
 acquired_battery_bank_gwh = 42.0
 price_basis = "启源25.56亿＋蔚能参考股权价值100亿扣除CATL现持7.58%后的约92.42亿"
-price_status = "蔚来交易未发生；蔚能权益估值与负债承担方式为可调研究锚"
+price_status = "未发生。蔚来已把武汉首批36座站资产卖给光谷交通集团并保留运营权，且已与25省40+家国资共建800+座（约占其总站数1/5）——**这批站的资产所有权已不在蔚来体内，买股权买不到**"
+
+[[mna.scenarios]]
+name = "加蔚来_站址复用"
+label = "**基准档**：全收站网与电池银行；站体按不兼容重建，仅站址与电网接入复用"
+purchase_price_yi = 178.07
+assumed_debt_yi = 224.83
+integration_cost_yi = 15.0
+heavy_catl_swap_share_uplift = 0.00
+passenger_catl_swap_share_uplift = 0.00
+physically_reusable_heavy_stations = 0
+physically_reusable_choco_stations = 0
+site_only_reusable_heavy_stations = 0
+site_only_reusable_choco_stations = 3984
+network_acceleration_years = 0.75
+acquired_network_stations = 4006
+acquired_battery_bank_gwh = 42.0
+price_basis = "启源25.56亿＋蔚能剩余权益约92.42亿＋4006站按150万元/座重置成本60.09亿（站数更新至2026-08-07，信源 src.nio_network_202608）"
+price_status = "未发生。**站址复用座数按巧克力乘用站兑现年需求 3984 座封顶**（蔚来现有 4006 座，数量上够；超出部分没有用武之地）。份额层的影响归 `[[event]] weilai_battery_bank`，此处只管资本侧，两边不重复计价"
+
+[[mna.scenarios]]
+name = "加蔚来_整站复用"
+label = "乐观档：假设站体可改造复用（**没有任何证据支撑，仅作上界**）"
+purchase_price_yi = 178.07
+assumed_debt_yi = 224.83
+integration_cost_yi = 30.0
+heavy_catl_swap_share_uplift = 0.00
+passenger_catl_swap_share_uplift = 0.00
+physically_reusable_heavy_stations = 0
+physically_reusable_choco_stations = 2964
+site_only_reusable_heavy_stations = 0
+site_only_reusable_choco_stations = 0
+network_acceleration_years = 1.50
+acquired_network_stations = 4006
+acquired_battery_bank_gwh = 42.0
+price_basis = "同上；改造费按整合成本 30 亿粗估（无信源，纯上界假设）"
+price_status = "**这一档没有证据**，存在的意义只有一个：让「站体兼容与否」值多少钱被量出来。复用座数 2964 ＝ 巧克力乘用站兑现年需求 3984 − 2025 年底已建成 1020——**可复用的站只能顶替还没建的站，顶替不了已经建好的站**（R8 修复后由 scale 强制，见 2026-09-15k）"
 
 # ----------------------体检指标（非决策框架）-----------------------------
 # 语义降级说明（MANIFEST §1.1 历史注记+演进链 §8.11）：v4.2 将此三阈值当决策框架，
@@ -1664,11 +1703,13 @@ kind    = "预期"
 title   = "收购蔚来电池银行与换电网络"
 src     = "src.qiyuan_appraisal"
 trigger = "**看交易公告，不看传闻**：蔚来能源（蔚能）控制权或其电池资产包发生转让，且受让方为 CATL 或其关联方。次级信号（不足以判定兑现、但会改变概率）：蔚能新一轮融资由 CATL 领投、或双方公告换电标准并网"
-why     = "并购启源关掉的是**重卡赛道内的独立对手**，蔚来关掉的是**乘用私家车这一侧的另一套标准**——两者不是同一件事。**只动私家车，不动其他车型**（2026-09-15 按用户判断改）：蔚来是卖高端私家车起家的，即便它在往低端拓展，那些车也不大可能拿去做营运车，所以它的用户与电池资产落不到重卡、出租、网约这几个池子里。**必须同时说清它登记不全**：`[[mna.scenarios]]`「启源入股加蔚来全网络电池银行」那张卡还带着 3,790 座站网与 42GWh 电池银行（资本侧节省）与 174.8 亿对价（资本侧支出），这两侧本卡都没算——所以本卡的差分是**份额层的下界**，不是这笔交易的全貌。完整口径见并购情景表"
+why     = "**与收购启源同构：收编赛道内最强且存量规模最大的对手**，份额因此取同一档 0.80——不取 1.0 是因为其他对手竞争力虽弱但仍留一定空间，算保守估计。 **只动乘用车（出租/网约/私家车），不动重卡与城配**：蔚来是卖高端私家车起家的，营运场景的专属方案公司自述 2027 年才推出，它的用户与电池资产落不到重卡、城配池子里。 **必须同时说清它买到的是什么**：李斌 2025-11 明确表示萤火虫不会接入巧克力换电，理由是液冷 vs 风冷——**站体物理不兼容有一手表态**，所以资本侧对应并购情景表里「站址与电网接入可复用、站体需重建」那一档，不是整站复用。 本卡只登记**份额层**；资本侧（站址复用省下的造价、承接的电池银行、对价）归 [[mna.scenarios]] 一家，两边不重复计价"
 changes = [
-  { param = "vehicles.private.scenes.0.catl_swap_share", from = 0.50, to = 0.53 },
-  { param = "vehicles.private.scenes.1.catl_swap_share", from = 0.50, to = 0.53 },
-  { param = "vehicles.private.scenes.2.catl_swap_share", from = 0.50, to = 0.53 },
+  { param = "vehicles.taxi.scenes.0.catl_swap_share", from = 0.50, to = 0.80 },
+  { param = "vehicles.ridehail.scenes.0.catl_swap_share", from = 0.50, to = 0.80 },
+  { param = "vehicles.private.scenes.0.catl_swap_share", from = 0.50, to = 0.80 },
+  { param = "vehicles.private.scenes.1.catl_swap_share", from = 0.50, to = 0.80 },
+  { param = "vehicles.private.scenes.2.catl_swap_share", from = 0.50, to = 0.80 },
 ]
 
 [[event]]
@@ -1678,13 +1719,16 @@ kind  = "中检点"
 title = "绿色甲醇价格向灰醇收敛（下行）"
 trigger = "绿色甲醇到岸价 ÷ 灰甲醇价 ≤ 1.3（当前约 3 倍）。**看价格不看渗透率**：价格是因、渗透率是果，且价格月度可查、渗透率要等年报口径"
 src   = "src.methanol_tco_2026"
-why   = "甲醇电动的整车购置成本低于纯电（约 1/1.2），且吉利远程「远醇」已建 1000+ 座加注站、规划 2027 年底 4000 座——它是一个**正在出现的承重方**，虽然它扛的是加注网络而非燃料成本曲线。若干线场景被甲醇分走，压的是「换电占电动」这一层。**推/拉判据：CATL 自己说甲醇不行＝推；燃料生产商（非整车厂）自建加注网络＝拉**"
+why   = "【2026-09-15 改对了它动哪一层】此前这张卡动的是 `swap_penetration`（换电占纯电）——**那是错的**。甲醇与电动之争是**动力源之争**，不是补能方式之争：一辆车要么烧甲醇要么用电，它压的是**纯电渗透率**这一层，压不到「已经是纯电的车里有多少用换电」那一层。改为下调 `nev_rates` 与 `nev_ceiling`。幅度口径：甲醇拿走的是干线，重卡三场景里中途 0.50 ＋ 长途 0.12 ＝ 权重 0.62，假设其中约四分之一永久归甲醇 → 0.62×0.25 ≈ 0.155，取 **绝对下调 0.15**；天花板同步从 0.80 降到 0.65（干线那一块退出电动化，上限就不该还停在原处）。**这个 0.25 是声明不是测算**，什么会让我改它：出现干线甲醇重卡的实际保有量数据。原判断（甲醇电动购置成本低于纯电、吉利远程已建 1000+ 座加注站并规划 2027 年底 4000 座、它是一个正在出现的承重方但扛的是加注网络而非燃料成本曲线）不变。**推/拉判据：CATL 自己说甲醇不行＝推；燃料生产商（非整车厂）自建加注网络＝拉**"
 changes = [
-  { param = "vehicles.heavy.scenes.1.swap_penetration", from = 0.50, to = 0.35 },
-  { param = "vehicles.heavy.scenes.2.swap_penetration", from = 0.70, to = 0.55 },
+  { param = "vehicles.heavy.nev_rates.0", from = 0.35, to = 0.20 },
+  { param = "vehicles.heavy.nev_rates.1", from = 0.41, to = 0.26 },
+  { param = "vehicles.heavy.nev_rates.2", from = 0.48, to = 0.33 },
+  { param = "vehicles.heavy.nev_rates.3", from = 0.54, to = 0.39 },
+  { param = "vehicles.heavy.nev_rates.4", from = 0.59, to = 0.44 },
+  { param = "vehicles.heavy.nev_ceiling", from = 0.80, to = 0.65 },
 ]
 
-# ── 绿色甲醇路线（2026-09-13j 新增）：只供叙述引用，不进计算 ──────────────
 [[external_quote]]
 key = "ext.methanol_vs_diesel_saving"
 label = "甲醇电动牵引车对柴油的每公里节省"

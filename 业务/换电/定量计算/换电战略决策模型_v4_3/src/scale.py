@@ -423,6 +423,19 @@ def _city_stock_layer(config: dict) -> dict:
     }
 
 
+def _opening_stations_of_pool(config: dict, pool_key: str, daily_swaps: dict) -> int:
+    """本池 2025 年底已建成站数。拆分规则与 capex 一致：
+    巧克力按 base.toml 的池级显式拆分，骐骥按池需求份额程序拆分。"""
+    con = config.get("construction", {})
+    group = POOL_STATION_GROUP[pool_key]
+    if group == "choco":
+        by_pool = con.get("opening_2025_choco_by_pool") or {}
+        if pool_key in by_pool:
+            return int(by_pool[pool_key])
+    total = int((con.get("opening_2025_stations") or {}).get(group, 0))
+    return int(split_group_station_count(total, group, daily_swaps)[pool_key])
+
+
 def build_scale(
     config: dict,
     sourcing: SourcingAdjustment,
@@ -637,7 +650,16 @@ def build_scale(
         absorbable = base_stations * headroom_per_station
         overflow = max(0.0, private_demand - absorbable)
         extra_stations = math.ceil(overflow / capacity) if overflow > 0 else 0
-        stations[pool_key] = max(0, base_stations + extra_stations - split_reusable)
+        # 【R8 修复 2026-09-15】下限不是 0，是**这一池 2025 年底已经建成的站数**。
+        # 原来写 max(0, …)：并购带来的"整站复用"可以把站数一路减到 0，
+        # 等于**把已经建成的存量站拆掉**——现实里不会发生，模型里则会让
+        # 「终局站数标量」低于「建站排期 + 2025 存量」，逐年存量矩阵当场对不上
+        # （实测：站内存量 GWh 矩阵 19.230 vs 标量 16.988）。
+        # **可复用的站只能顶替"还没建的站"，顶替不了"已经建好的站"。**
+        opening_floor = _opening_stations_of_pool(config, pool_key, daily_swaps)
+        stations[pool_key] = max(
+            opening_floor, base_stations + extra_stations - split_reusable
+        )
 
     # 【删除】不再按 heavy/choco 两个站组计算“站内周转电池寿命”。
     # 原因：站内电池与装车电池属于同一个共享流转池，寿命应按四个实际电池池统一核算。

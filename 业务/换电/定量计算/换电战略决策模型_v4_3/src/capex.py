@@ -103,7 +103,12 @@ def _station_schedule(
     时不再拆站，故对累计目标做单调钳制（新增站数不为负）。这让向下情景轴不会因
     "规划站数跌破 2025 存量" 而让模型抛错；基线/乐观档本就满足单调，钳制为恒等。"""
     cumulative_target_2026 = max(opening_2025, cumulative_target_2026)
-    cumulative_target_2028 = max(cumulative_target_2026, cumulative_target_2028)
+    cumulative_target_2028 = max(opening_2025, cumulative_target_2028)
+    # 【R8 修复 2026-09-15·第二处】2026 里程碑也要向下钳到终局需求。
+    # 原来只有向上钳制（2028 ≥ 2026），于是终局需求被并购的"整站复用"打下去之后，
+    # **排期仍按 2026 里程碑把站建满**，逐年矩阵比终局标量多出一截，断言当场炸。
+    # 语义：**终局都不需要那么多站了，2026 的里程碑没有理由还立在那儿。**
+    cumulative_target_2026 = min(cumulative_target_2026, cumulative_target_2028)
     new_2026 = cumulative_target_2026 - opening_2025
     new_2027_to_2028 = cumulative_target_2028 - cumulative_target_2026
     new_2027 = round(new_2027_to_2028 / 2)
@@ -197,7 +202,17 @@ def build_capex(
        同时做折旧会计恒等式（按构造成立）与分池汇总一致性两类断言。
     5. 聚合成 CapexResult：从上面几步的累加器和字典组装最终返回值。
     """
-    del sourcing  # 物理复用已在scale的站数需求中反映。
+    # 【2026-09-15】此前这里是 `del sourcing`，注释写着"物理复用已在 scale 的站数需求中反映"。
+    # 那句话对**整站复用**成立（scale 里 站数 = 需求 − 可复用），
+    # 但对**只买到站址**不成立——站体照建，省的是土建与电网接入那一份，站数一座不少。
+    # 并购能不能省钱的主战场恰恰在这里，所以 sourcing 从这一轮起真的被用起来。
+    site_reuse_left = {
+        "heavy": int(getattr(sourcing, "site_only_reusable_heavy_stations", 0) or 0),
+        "choco": int(getattr(sourcing, "site_only_reusable_choco_stations", 0) or 0),
+    }
+    _site_share = config.get("mna", {}).get("site_and_grid_cost_share", 0.0)
+    site_share = float(_site_share["v"] if isinstance(_site_share, dict) else _site_share)
+    site_saving_total = 0.0
     years = config["construction"]["years"]
     completion_year = config["construction"]["station_network_completion_year"]
     if years != [2026, 2027, 2028, 2029, 2030] or completion_year != 2028:
@@ -295,9 +310,16 @@ def build_capex(
         station_body_by_pool = {pk: 0.0 for pk in BATTERY_POOLS}
         for pool_key in BATTERY_POOLS:
             count = station_schedules[pool_key][index]
-            pool_body_capex = (
-                count * config["stations"][pool_key]["station_body_capex_wan"] / 1e4
-            )
+            unit = config["stations"][pool_key]["station_body_capex_wan"] / 1e4
+            pool_body_capex = count * unit
+            # 站址复用按**建设年份先后**消耗额度：先建的先用上买来的地。
+            grp = POOL_STATION_GROUP[pool_key]
+            take = min(count, site_reuse_left.get(grp, 0))
+            if take > 0:
+                saving = take * unit * site_share
+                pool_body_capex -= saving
+                site_saving_total += saving
+                site_reuse_left[grp] -= take
             station_body_capex += pool_body_capex
             station_body_by_pool[pool_key] += pool_body_capex
             # 【重构｜4站型】站内电池直接按池登记cohort，用所属池寿命。

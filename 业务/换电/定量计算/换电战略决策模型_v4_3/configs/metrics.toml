@@ -986,6 +986,170 @@ unit = "元/kWh"
 decimals = 3
 group = "⑧重卡"
 
+# ── 分场景换电 vs 充电（2026-09-17f）：持有期＝更新周期；换电列不含时间价值，充电列含中途换电池；
+#    翻转门槛＝(换电−充电)÷持有期，单车年时间价值高于它换电才更省。算式见 src/tco.py `_scene_tco`。
+[[metric]]
+key = "tco.short_swap_wan"
+source = "tco"
+label = "重卡短途·换电总额"
+at = "swap_business.heavy_economics.short.swap_wan"
+unit = "万元"
+decimals = 1
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.short_charge_wan"
+source = "tco"
+label = "重卡短途·充电总额"
+at = "swap_business.heavy_economics.short.charge_wan"
+unit = "万元"
+decimals = 1
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.short_flip_gain_wan"
+source = "tco"
+label = "重卡短途·时间价值翻转门槛"
+at = "swap_business.heavy_economics.short.flip_gain_wan"
+unit = "万元/年"
+decimals = 1
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.short_charge_battery_life"
+source = "tco"
+label = "重卡短途·充电车电池寿命"
+at = "swap_business.heavy_economics.short.charge_battery_life"
+unit = "年"
+decimals = 1
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.short_replacements"
+source = "tco"
+label = "重卡短途·充电车换电池次数"
+at = "swap_business.heavy_economics.short.replacements"
+unit = "次"
+decimals = 0
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.short_swap_price_rmb_kwh"
+source = "tco"
+label = "重卡短途·换电能源单价"
+at = "swap_business.heavy_economics.short.swap_price_rmb_kwh"
+unit = "元/kWh"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.mid_swap_wan"
+source = "tco"
+label = "重卡中途·换电总额"
+at = "swap_business.heavy_economics.mid.swap_wan"
+unit = "万元"
+decimals = 1
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.mid_charge_wan"
+source = "tco"
+label = "重卡中途·充电总额"
+at = "swap_business.heavy_economics.mid.charge_wan"
+unit = "万元"
+decimals = 1
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.mid_flip_gain_wan"
+source = "tco"
+label = "重卡中途·时间价值翻转门槛"
+at = "swap_business.heavy_economics.mid.flip_gain_wan"
+unit = "万元/年"
+decimals = 1
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.mid_charge_battery_life"
+source = "tco"
+label = "重卡中途·充电车电池寿命"
+at = "swap_business.heavy_economics.mid.charge_battery_life"
+unit = "年"
+decimals = 1
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.mid_replacements"
+source = "tco"
+label = "重卡中途·充电车换电池次数"
+at = "swap_business.heavy_economics.mid.replacements"
+unit = "次"
+decimals = 0
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.mid_swap_price_rmb_kwh"
+source = "tco"
+label = "重卡中途·换电能源单价"
+at = "swap_business.heavy_economics.mid.swap_price_rmb_kwh"
+unit = "元/kWh"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.long_swap_wan"
+source = "tco"
+label = "重卡长途·换电总额"
+at = "swap_business.heavy_economics.long.swap_wan"
+unit = "万元"
+decimals = 1
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.long_charge_wan"
+source = "tco"
+label = "重卡长途·充电总额"
+at = "swap_business.heavy_economics.long.charge_wan"
+unit = "万元"
+decimals = 1
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.long_flip_gain_wan"
+source = "tco"
+label = "重卡长途·时间价值翻转门槛"
+at = "swap_business.heavy_economics.long.flip_gain_wan"
+unit = "万元/年"
+decimals = 1
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.long_charge_battery_life"
+source = "tco"
+label = "重卡长途·充电车电池寿命"
+at = "swap_business.heavy_economics.long.charge_battery_life"
+unit = "年"
+decimals = 1
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.long_replacements"
+source = "tco"
+label = "重卡长途·充电车换电池次数"
+at = "swap_business.heavy_economics.long.replacements"
+unit = "次"
+decimals = 0
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.long_swap_price_rmb_kwh"
+source = "tco"
+label = "重卡长途·换电能源单价"
+at = "swap_business.heavy_economics.long.swap_price_rmb_kwh"
+unit = "元/kWh"
+decimals = 2
+group = "⑧重卡"
+
 # ── 以下两条是算出来的输出（at 取快照），只是历史上搭车在外部锚组里登记；
 #    真正的输入（兑现年/driver/外锚/阈值）已改为 base.toml 功能段就地信封，
 #    本字典只保留模型输出（2026-09-13 两层定稿）。

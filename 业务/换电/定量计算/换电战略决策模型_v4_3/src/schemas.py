@@ -519,6 +519,29 @@ class TcoRow:
 
 
 @dataclass
+class SceneTco:
+    """重卡单一场景的「换电 vs 充电」持有期全成本（2026-09-17f 立）。
+
+    为什么要分场景：短途车日里程低、电池循环慢，充电车的电池能用满日历寿命，
+    平均口径下"持有期越长充电越占优"的结论在这里只在**允许停歇**时成立；
+    短途若需连续作业，补能时间本身值钱。故这里**不把时间价值算进换电列**，
+    而是反推「时间价值要多大换电才划算」＝翻转门槛，交给读者按场景判断。
+    """
+
+    name: str                                   # 场景名（短途／中途／长途）
+    pool: str                                   # 换电电池池
+    annual_km: float                            # 年里程＝日里程 × 年运营天数
+    battery_kwh: float                          # 单车带电量（场景配置）
+    holding_years: float                        # 持有期＝重卡更新周期
+    swap_price_rmb_kwh: float                   # 换电用户能源全口径单价（本池服务费+租金 ＋ 谷电 ＋ 价差）
+    swap_wan: float                             # 换电：持有期总成本，不含时间价值（万元/辆）
+    charge_wan: float                           # 充电：持有期总成本，含中途换电池（万元/辆）
+    charge_battery_life: float                  # 充电车电池寿命（年，按本场景循环强度现算）
+    replacements: int                           # 持有期内充电车需换电池的次数
+    flip_gain_wan: float                        # 翻转门槛：单车年时间价值高于它，换电才更省（万元/年；负数＝不靠时间价值也省）
+
+
+@dataclass
 class HeavyEconomics:
     """重卡用户经济性：模型实时量 + JPM 外部事实的组合，只服务于结论区取数。
 
@@ -537,6 +560,9 @@ class HeavyEconomics:
     battery_purchase_cut_pct: float = 0.0       # 免购置额占电动重卡整车价比例（百分点，结论区占位符用）
     n1: TcoRow | None = None                    # 持有期 = 模型电池寿命
     n2: TcoRow | None = None                    # 持有期 = 更新周期
+    short: SceneTco | None = None               # 分场景换电 vs 充电（2026-09-17f）：短途
+    mid: SceneTco | None = None                 # 中途
+    long: SceneTco | None = None                # 长途
 
 
 @dataclass

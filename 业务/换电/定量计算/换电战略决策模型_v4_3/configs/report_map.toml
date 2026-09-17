@@ -72,7 +72,8 @@ owns = ["ops.veh_ops", "tco.swap_wan"]
 uses = []
 support = ["ops.veh_heavy", "ops.veh_city", "ops.veh_passenger_ops", "ops.veh_private",
            "ops.market_total", "ops.share_of_market", "vehicles.heavy.stock_wan",
-           "ops.heavy_pen_pct", "tco.lng_wan", "tco.diesel_wan"]
+           "ops.heavy_pen_pct", "tco.lng_wan", "tco.diesel_wan",
+           "tco.short_flip_gain_wan", "tco.mid_flip_gain_wan", "tco.long_flip_gain_wan"]
 topics = ["目标用户_谁的痛点"]
 
 [[chapter]]

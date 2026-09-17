@@ -25,18 +25,28 @@
    其余（购车/税/补贴/维保/载重损失）照搬 JPM 电动列，三者同一套自洽参数对照。
 3. 换电专属两项单独计：BaaS 免去的电池购置按「单车带电量 × 模型电池价」（曲线参数，随调参变）；
    年增收 4 万（JPM §8.3 时间价值）从年运营成本中扣。
+4. 【2026-09-17f】换电 vs 充电**分场景**算（`_scene_tco`）：平均口径把短途（循环慢、电池寿命长）
+   与干线（循环快、寿命短）搅在一起，会得出"持有期越长充电越占优"这种只对允许停歇的车成立的结论。
+   分场景后：换电列**不含**时间价值，充电列含中途换电池；二者之差摊到每年＝翻转门槛——
+   单车年时间价值超过它换电才划算。时间价值本身随"要不要连续作业"而变，留给读者按场景判，不在这里拍。
 """
 from __future__ import annotations
 
-from derived import battery_price_rmb_kwh
+import math
+
+from derived import battery_life_years, battery_price_rmb_kwh
 from scale import POOL_STATION_GROUP
 from schemas import (
     CapexResult,
     HeavyEconomics,
     PoolOperations,
     ScaleResult,
+    SceneTco,
     TcoRow,
 )
+
+# 场景名 → HeavyEconomics 上的字段名（lab 的 at 路径不支持列表下标，故用具名字段）
+_SCENE_FIELD = {"短途": "short", "中途": "mid", "长途": "long"}
 
 
 def _heavy_pool_keys() -> tuple[str, ...]:
@@ -139,6 +149,12 @@ def build_heavy_economics(
     purchase_price_rmb = float(tco["purchase_price"])
     cut_pct = (cut / purchase_price_rmb * 100.0) if purchase_price_rmb else 0.0
 
+    scenes = {
+        _SCENE_FIELD[sc["name"]]: _scene_tco(config, tco, sc, pool_ops, cycle, battery_kwh)
+        for sc in heavy_cfg.get("scenes", []) or []
+        if sc.get("name") in _SCENE_FIELD
+    }
+
     return HeavyEconomics(
         battery_life_years=life,
         replacement_cycle_years=cycle,
@@ -150,4 +166,70 @@ def build_heavy_economics(
         battery_purchase_cut_pct=cut_pct,
         n1=_row(life),
         n2=_row(cycle),
+        **scenes,
+    )
+
+
+def _scene_tco(
+    config: dict, tco: dict, scene: dict, pool_ops: dict[str, PoolOperations],
+    holding: float | None, fleet_battery_kwh: float,
+) -> SceneTco | None:
+    """单一重卡场景：换电（不含时间价值）vs 充电（含中途换电池）的持有期全成本。
+
+    - 年里程＝日里程 × 年运营天数；年耗电＝年里程 × 本场景单公里能耗。
+    - 换电单价取**本场景所在池**的（服务费＋租金）/电量，再加谷电与价差（口径同第 2 条）。
+    - 充电单价＝JPM 电动列（年能源成本 ÷ 年耗电，即工商业充电价），不另拍。
+    - 裸车价＝整车价 − 全车队口径带电量 × 基准年电池价；充电车在裸车价上按本场景带电量加回电池。
+    - 充电车电池寿命按本场景日均循环（日耗电 ÷ 带电量）用同一条寿命公式现算；
+      持有期内换电池 ceil(N/寿命)−1 次，每次按更换那年的曲线电池价计，
+      **最后一块只计持有期内用掉的那一段**（按寿命线性分摊），不让残值偏向任何一边。
+    - 维保、载重损失两边相同（同一辆车、同一块电池重量），照搬 JPM 电动列。
+    """
+    pk = scene.get("battery_pool")
+    ops = pool_ops.get(pk)
+    if ops is None or not ops.annual_energy_yi_kwh or not holding or holding <= 0:
+        return None
+    sb = config.get("swap_business") or {}
+    days = float(sb.get("operating_days") or 0.0)
+    valley = float(sb.get("valley_power_price_rmb_kwh") or 0.0)
+    spread = float(sb.get("grid_spread_rmb_kwh") or 0.0)
+    swap_price = (ops.service_revenue_yi + ops.battery_rent_yi) / ops.annual_energy_yi_kwh + valley + spread
+
+    annual_km = float(scene["daily_km"]) * days
+    annual_kwh = annual_km * float(scene["energy_consumption_kwh_km"])
+    kwh = float(scene["onboard_battery_kwh"])
+    charge_price = float(tco["ev_energy_cost_year"]) / (float(tco["annual_km"]) * float(tco["kwh_per_km"]))
+
+    ref = float(config["meta"]["reference_year"])
+    p0 = battery_price_rmb_kwh(config, ref)
+    tax = 1.0 + float(tco["purchase_tax_rate"])
+    subsidy = float(tco["purchase_subsidy"])
+    bare = float(tco["purchase_price"]) - fleet_battery_kwh * p0
+    buy_swap = max(0.0, bare * tax - subsidy)
+    buy_charge = max(0.0, (bare + kwh * p0) * tax - subsidy)
+    fixed = float(tco["maintenance"]) + float(tco["payload_loss"])
+
+    life = battery_life_years(config, (annual_kwh / days / kwh) if days and kwh else 0.0)
+    n = float(holding)
+    count = max(0, math.ceil(n / life - 1e-9) - 1) if life > 0 else 0
+    packs = 0.0
+    for i in range(1, count + 1):
+        start = i * life
+        used = min(life, n - start) / life
+        packs += kwh * battery_price_rmb_kwh(config, ref + start) * used
+
+    swap_total = buy_swap + (annual_kwh * swap_price + fixed) * n
+    charge_total = buy_charge + (annual_kwh * charge_price + fixed) * n + packs
+    return SceneTco(
+        name=scene["name"],
+        pool=pk,
+        annual_km=annual_km,
+        battery_kwh=kwh,
+        holding_years=n,
+        swap_price_rmb_kwh=swap_price,
+        swap_wan=swap_total / 1e4,
+        charge_wan=charge_total / 1e4,
+        charge_battery_life=life,
+        replacements=count,
+        flip_gain_wan=(swap_total - charge_total) / n / 1e4,
     )

@@ -2143,7 +2143,7 @@ value = 59.0
 unit = "%"
 src = "src.hdt_swap_battery_2025h1"
 as_of = "2025-06"
-note = "换电重卡里仍有四成电池不是宁德时代供的——心智与标准是否记在宁德时代名下的直接读数"
+note = "换电重卡里的电池份额由电池银行持有方的采购决定（2026-09-17f 改读法）：第二梯队的份额主要来自启源体系订单，接手后看新增采购是否转向宁德时代"
 
 [[external_quote]]
 key = "ext.swap_battery_share_2nd"

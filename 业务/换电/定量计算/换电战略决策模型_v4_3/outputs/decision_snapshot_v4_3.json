@@ -3099,6 +3099,45 @@
         "lng_kwh": 1.814567901234568,
         "diesel_wan": 447.7254,
         "diesel_kwh": 2.2109896296296294
+      },
+      "short": {
+        "name": "短途",
+        "pool": "qiji75_short",
+        "annual_km": 45500.0,
+        "battery_kwh": 342.0,
+        "holding_years": 9.0,
+        "swap_price_rmb_kwh": 1.6278190280043865,
+        "swap_wan": 205.01378379516945,
+        "charge_wan": 178.42315,
+        "charge_battery_life": 10.0,
+        "replacements": 0,
+        "flip_gain_wan": 2.9545148661299376
+      },
+      "mid": {
+        "name": "中途",
+        "pool": "qiji75_trunk",
+        "annual_km": 140000.0,
+        "battery_kwh": 513.0,
+        "holding_years": 9.0,
+        "swap_price_rmb_kwh": 1.2363421069467218,
+        "swap_wan": 369.8494793079878,
+        "charge_wan": 348.48669809925525,
+        "charge_battery_life": 4.310924369747899,
+        "replacements": 2,
+        "flip_gain_wan": 2.373642356525843
+      },
+      "long": {
+        "name": "长途",
+        "pool": "qiji75_trunk",
+        "annual_km": 227500.0,
+        "battery_kwh": 513.0,
+        "holding_years": 9.0,
+        "swap_price_rmb_kwh": 1.2363421069467218,
+        "swap_wan": 535.3647788754802,
+        "charge_wan": 498.0182487918294,
+        "charge_battery_life": 2.6528765352294763,
+        "replacements": 3,
+        "flip_gain_wan": 4.149614453738979
       }
     }
   },
@@ -3435,6 +3474,45 @@
           "lng_kwh": 1.814567901234568,
           "diesel_wan": 447.7254,
           "diesel_kwh": 2.2109896296296294
+        },
+        "short": {
+          "name": "短途",
+          "pool": "qiji75_short",
+          "annual_km": 45500.0,
+          "battery_kwh": 342.0,
+          "holding_years": 9.0,
+          "swap_price_rmb_kwh": 1.6278190280043865,
+          "swap_wan": 205.01378379516945,
+          "charge_wan": 178.42315,
+          "charge_battery_life": 10.0,
+          "replacements": 0,
+          "flip_gain_wan": 2.9545148661299376
+        },
+        "mid": {
+          "name": "中途",
+          "pool": "qiji75_trunk",
+          "annual_km": 140000.0,
+          "battery_kwh": 513.0,
+          "holding_years": 9.0,
+          "swap_price_rmb_kwh": 1.2363421069467218,
+          "swap_wan": 369.8494793079878,
+          "charge_wan": 348.48669809925525,
+          "charge_battery_life": 4.310924369747899,
+          "replacements": 2,
+          "flip_gain_wan": 2.373642356525843
+        },
+        "long": {
+          "name": "长途",
+          "pool": "qiji75_trunk",
+          "annual_km": 227500.0,
+          "battery_kwh": 513.0,
+          "holding_years": 9.0,
+          "swap_price_rmb_kwh": 1.2363421069467218,
+          "swap_wan": 535.3647788754802,
+          "charge_wan": 498.0182487918294,
+          "charge_battery_life": 2.6528765352294763,
+          "replacements": 3,
+          "flip_gain_wan": 4.149614453738979
         }
       }
     },

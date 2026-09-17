@@ -168,7 +168,10 @@ def _metric_cell(k: str) -> dict | None:
 
 
 def _chapter_payload() -> dict:
-    """八章骨架 + 两张反查表（卡→章 / 读数→章），供 A 类跳转使用。
+    """主链骨架（0 + 九章）+ 两张反查表（卡→章 / 读数→章），供 A 类跳转使用。
+
+    2026-09-17c：章文件名与副题从索引表的 file / subtitle 字段直接透传，
+    前端不再用"章号_标题"拼路径（见 DECISIONS 2026-09-17c）。
 
     跳转为什么要反查表而不是写死：卡片与一页纸行**各自**知道自己的读数，
     章号由索引表决定——两边一乘就是跳转目标，不需要任何一处手写"第几章"。
@@ -188,6 +191,7 @@ def _chapter_payload() -> dict:
                  for g in REPORT_MAP["gate"] if g.get("chapter") == no]
         chapters.append({
             "no": no, "title": c.get("title", ""), "answers": c.get("answers", ""),
+            "subtitle": c.get("subtitle", ""), "file": c.get("file", ""),
             "owns": owns,
             "uses": [x for k in (c.get("uses") or []) if (x := _metric_cell(k))],
             "qual": c.get("qual", ""),

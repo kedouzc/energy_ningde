@@ -1,8 +1,8 @@
 # 报告骨架：读数池的三个索引
 #
 # ── 主语是「读数池」（src/lab.py 的 METRICS），不是「章」────────────────────
-# 三个视图（八章正文 / 顶部结论卡 / 一页纸）都从**同一个池子**里挑数，
-# 彼此是**重排关系**：八章按"决策问题"分组，卡片按"重要度"取主题，
+# 三个视图（主链正文 / 顶部结论卡 / 一页纸）都从**同一个池子**里挑数，
+# 彼此是**重排关系**：主链按"论证依赖"分组，卡片按"重要度"取主题，
 # 一页纸按"决策核对"分组（格式见 narrative/一页纸.md，不在此表）。
 #
 # ── 主张 vs 引用（2026-09-11 定）──────────────────────────────────────────
@@ -14,150 +14,179 @@
 # ── 定量收口与定性收口 ────────────────────────────────────────────────────
 #   owns = 定量收口（必须是 METRICS key）
 #   qual = 定性收口（文字，用于纯定性章：它的收口是**外部可观察的事实**，模型算不出来）
-# 两者至少要有一样；定量章的 owns 上限 2 个（第 4 章例外，见它的 [[gate]]）。
+# 两者至少要有一样；定量章的 owns 上限 2 个；章内检验项另见 [[gate]]。
 #
 # ── 为什么放 toml 而不是 .py / .md ────────────────────────────────────────
 # 它是"顺序与归属的声明"，属参数层；放 toml 才能被 Python 生成期与浏览器运行期
 # 读到**同一份**（configs/sandbox_dashboard.toml 是先例）。
 
-# ═══════════════════════════════════════════════ 索引一：八章正文（主链）
+# ── 2026-09-17c 主链换骨架 ────────────────────────────────────────────────
+# 「0 + 八章」→「0 + 九章」双视角共振结构（见 DECISIONS 2026-09-17 / 17b / 17c，框架提案 §1.1.1）。
+# file 字段是章文件名的唯一家（沙盘显示路径从这里取，不再用"章号_标题"拼）。
+# [[gate]] 在界面上叫「检验项」：章内有通过／不通过形状的子判断（旧第 4 章五道门拆到第 5、6 章）。
+
+# ═══════════════════════════════════════════════ 索引一：主链正文（0 + 九章）
 
 [[chapter]]
 no = 0
-title = "决策卡"
-file = "0_决策卡.src.md"
-answers = "买不买、**几年几倍**、什么会推翻（开宗明义——最终判断在这里给，论证在后面各章）"
+title = "投资结论"
+subtitle = "几年几倍、仓位与证伪清单"
+file = "0_投资结论.src.md"
+answers = "买不买、**几年几倍**、仓位、当前共振状态、什么会推翻（结论先行——论证在后面各章）"
 owns = ["meta.target_year", "val.incr_over_mktcap"]
 uses = ["val.swap_increment", "val.mfg_increment", "swap.coverage", "capex.peak_call"]
 support = []
-topics = ["非共识_类型判定与证据形态", "赔率与跟踪_从世界A到世界B"]
+topics = ["兑现年_为什么是2030", "赔率与跟踪_从世界A到世界B"]
 
 [[chapter]]
 no = 1
-title = "非共识在哪"
-file = "1_非共识在哪.src.md"
-answers = "这个结论与市场普遍理解的差异在哪；断档接不上的**原因**是哪一类"
-# 纯定性章：收口是**共识锚三条外部观察**（卖方用不用 SOTP／换电有没有被单独列示／
-# 有没有机构给过独立估值）——这是外部形式证据，模型算不出来，也不该进 METRICS。
+title = "行业相变研判"
+subtitle = "动力电池会不会从“卖产品”变成“卖用能”"
+file = "1_行业相变研判.src.md"
+answers = "行业大场基线；线性内耗是否真实；相变假说与序参量；对照组（模式没变的不算）；制造商下沉做运营的反例"
 owns = []
-uses = ["val.incr_over_mktcap", "val.op_ev_multiple", "val.ev_dcf_perpetual"]
-qual = "共识锚三条外部观察：卖方是否用 SOTP / 换电是否被单独列示 / 是否有机构给过独立估值（三个「否」＝市场没给它估值）"
-support = ["finance.swap_ev_ebitda", "val.swap_increment", "val.power_with_swap"]
-topics = ["非共识_类型判定与证据形态"]
+uses = ["val.incr_over_mktcap"]
+qual = "序参量＝动力电池里以服务方式交付、由运营方持有的电量占比；对照组（卖电芯的储能、AIDC 供电、固态电池）判为商业模式未变"
+support = ["ops.market_total", "ops.share_of_market", "mk.share_elec_latest"]
+topics = ["非共识_类型判定与证据形态", "必要性_三条路为什么是换电"]
 
 [[chapter]]
 no = 2
-title = "必要性"
-file = "2_必要性.src.md"
-answers = "不做会失去多少（**防守＝下限**）；以及为什么值得做成这么大（**愿景＝上限**，论证在第 6 章）"
-owns = ["val.mfg_increment"]
+title = "业务本质"
+subtitle = "电池生意到底在卖什么"
+file = "2_业务本质.src.md"
+answers = "能量与信息的价值归因（能量为主、信息使能）；用户付钱的是用掉的能量总金额；七步拆解链与性质判定"
+owns = []
 uses = []
-support = ["mfg.with_swap_np", "mfg.no_swap_np", "val.power_with_swap", "val.power_no_swap",
-           "mfg.repl_gwh", "mfg.repl_share_pct"]
-topics = ["必要性_三条路为什么是换电", "增量价值_运营单体加制造影响"]
+qual = "第七步性质判定——技术变革／场景拓展／标准确立；与第 1 章的相变判断交叉校验，不一致即有一边判错"
+support = ["ops.annual_energy"]
+topics = ["业务本质_第一性原理拆解"]
 
 [[chapter]]
 no = 3
-title = "目标市场"
-file = "3_目标市场.src.md"
-answers = "载体本质 → 关键指标 → 谁最敏感 → 谁是真用户、重心在哪（营运车是基本盘、重卡是重心）；这个市场撑多大（第 4 章的输入）"
+title = "需求验证"
+subtitle = "谁真的需要换电"
+file = "3_需求验证.src.md"
+answers = "谁的用能金额大、高频、价格敏感（营运车、重卡）；两层对比：用哪种能源 → 选了电，充电还是换电；换电份额下滑的正面处理"
 owns = ["ops.veh_ops", "tco.swap_wan"]
 uses = []
 support = ["ops.veh_heavy", "ops.veh_city", "ops.veh_passenger_ops", "ops.veh_private",
            "ops.market_total", "ops.share_of_market", "vehicles.heavy.stock_wan",
            "ops.heavy_pen_pct", "tco.lng_wan", "tco.diesel_wan"]
-topics = ["业务本质_第一性原理拆解", "目标用户_谁的痛点"]
+topics = ["目标用户_谁的痛点"]
 
 [[chapter]]
 no = 4
-title = "可行性"
-file = "4_可行性.src.md"
-answers = "五道门：物理（含产能核查）／经济／资金／博弈／能力。定量门各有一个收口数，博弈与能力是纯定性"
-# 章级主收口取最关键的那一道（经济门）；五道门各自的收口见下面的 [[gate]]。
-owns = ["swap.coverage"]
+title = "商业模式与壁垒"
+subtitle = "换电凭什么立成用能标准"
+file = "4_商业模式与壁垒.src.md"
+answers = "三层机制（电池与车分开→金融；站网运营→信息；用能标准→购车决策前移、产业链话语权倒置）；标准怎么立起来（点火→临界→自我强化）；用什么观察判断它没立住"
+owns = []
+uses = ["ops.heavy_pen_pct"]
+qual = "立标准的三条证伪——用户心智是否记在宁德时代名下／没被找上门的第三方车企是否自发按换电规格设计（拉）／营运端换电车保有量是否持续增长（存量锁定）"
+support = ["ops.veh_ops", "ops.battery_total"]
+topics = ["非共识_类型判定与证据形态", "运营期限_换电是哪类资产"]
+
+[[chapter]]
+no = 5
+title = "产业格局与主导者"
+subtitle = "利润够不够分、谁掌握成本"
+file = "5_产业格局与主导者.src.md"
+answers = "利润够不够分（经济检验）；供给侧切分；谁决定最终成本效益（承重方）；候选者逐一排查 → 为什么宁德时代赢面最大；还有谁有空间（列入下一步研究）"
+owns = ["swap.coverage", "swap.ebitda"]
 uses = []
-support = ["capex.initial_capex", "capex.equity_call", "capex.project_debt",
-           "fund.peak_cash_to_cfo", "fund.closing_liquidity", "swap.revenue", "swap.ebitda",
-           "scale.stations_total"]
-topics = ["竞争格局_三足鼎立与赛道内玩家", "用人信号_战略定力与执行跟踪"]
-
-# 五道门的形状：名字 / 通过？ / 余量 / 翻转参数 / 翻转阈值。
-# 定量门（physical / econ / capital）的 closing 必须是 METRICS key；
-# 定性门（game / capability）没有 closing，靠 topics 承载论证。
-[[gate]]
-chapter = 4
-name = "物理（含产能核查）"
-closing = "mfg.total_gwh_2030"
-qual = ""
-note = "兑现年目标装机（换电+充电合计，占用全线产能）必须远小于现有＋规划产能，并给储能、AIDC 等留出余量"
+support = ["swap.revenue", "swap.net_profit", "scale.stations_total", "capex.initial_capex",
+           "ops.annual_energy"]
+topics = ["竞争格局_三足鼎立与赛道内玩家", "业务本质_第一性原理拆解"]
 
 [[gate]]
-chapter = 4
+chapter = 5
 name = "经济"
 closing = "swap.coverage"
 qual = ""
 note = "可交付 EBITDA ÷ 门槛 EBITDA；这两条是**独立路径**，相除是安全边际不是误差"
 
 [[gate]]
-chapter = 4
+chapter = 5
+name = "承重方"
+closing = ""
+qual = "谁能同时控制电池成本与寿命两端；排除“电池厂寿命担保 ＋ 低资金成本方持有”这类组合能否复制（纯定性）"
+note = ""
+
+[[chapter]]
+no = 6
+title = "公司能力"
+subtitle = "宁德时代能不能做成、会不会坚持"
+file = "6_公司能力.src.md"
+answers = "企业家端：战略决心（升维式防守，不做会失去多少＝下限）；资源（产能、资金）；合作方博弈；一号位与组织文化；用人信号"
+owns = ["val.mfg_increment", "capex.peak_call"]
+uses = ["swap.coverage"]
+support = ["mfg.with_swap_np", "mfg.no_swap_np", "mfg.repl_gwh", "mfg.repl_share_pct",
+           "capex.equity_call", "capex.project_debt", "fund.peak_cash_to_cfo",
+           "fund.closing_liquidity", "ops.battery_total"]
+topics = ["必要性_三条路为什么是换电", "增量价值_运营单体加制造影响", "并购_节奏与竞合",
+          "用人信号_战略定力与执行跟踪", "能力门_一号位与组织文化"]
+
+[[gate]]
+chapter = 6
+name = "产能"
+closing = "mfg.total_gwh_2030"
+qual = ""
+note = "兑现年目标装机（换电+充电合计，占用全线产能）必须远小于现有＋规划产能，并给储能、AIDC 等留出余量"
+
+[[gate]]
+chapter = 6
 name = "资金"
 closing = "capex.peak_call"
 qual = ""
 note = "峰值年权益出资是否超出承受；含回购对照"
 
 [[gate]]
-chapter = 4
-name = "博弈"
+chapter = 6
+name = "合作方博弈"
 closing = ""
 qual = "会不会被替代、合作方配不配合（纯定性，无定量收口）"
 note = ""
 
 [[gate]]
-chapter = 4
-name = "能力"
+chapter = 6
+name = "一号位与组织"
 closing = ""
-qual = "自己干不干得了（纯定性；用人信号是「推」不是「拉」，能证明决心不能证明标准已立）"
+qual = "制造文化能否承载运营与结盟的生意；关键人与继任风险（纯定性；用人信号是「推」不是「拉」）"
 note = ""
 
 [[chapter]]
-no = 5
-title = "业绩"
-file = "5_业绩.src.md"
-answers = "兑现年经营业绩 ＋ **业务口径**的市场地位（**不涉及**资本市场定价）"
-owns = ["swap.ebitda", "ops.battery_total"]
-uses = []
-support = ["ops.annual_energy", "scale.stations_total", "mk.share_storage_2025",
-           "mk.share_elec_latest", "swap.net_profit", "swap.catl_net_profit", "ops.veh_total"]
-topics = ["业务本质_第一性原理拆解"]
-
-[[chapter]]
-no = 6
-title = "冲击与重估"
-file = "6_冲击与重估.src.md"
-answers = "对现有业务线的冲击（**引用**制造侧增量）；会不会整体重估；拍定倍数凭什么站得住"
+no = 7
+title = "估值与回报"
+subtitle = "几年几倍，市场定价了没有"
+file = "7_估值与回报.src.md"
+answers = "资本端：时间窗 → 兑现年业绩 → 估值方式 → 倍数（双向收敛）→ 市场定价了没有 → 反身性加成 → 汇总到个股"
 owns = ["val.swap_increment", "val.op_ev_multiple"]
-uses = ["val.mfg_increment"]
+uses = ["val.mfg_increment", "swap.ebitda"]
+qual = "定价非共识的三条外部观察：卖方是否用分部估值／换电是否被单独列示／是否有机构给过独立估值（三个「否」＝市场没给它估值）"
 support = ["val.power_with_swap", "val.power_no_swap", "val.op_equity_gross",
            "val.ev_dcf_true", "val.catl_dcf_perpetual", "finance.swap_ev_ebitda",
            "val.ev_dcf_perpetual"]
-topics = ["估值_为什么拍这个倍数", "资本闭环_REITs与轻资产化", "增量价值_运营单体加制造影响"]
+topics = ["估值_为什么拍这个倍数", "资本闭环_REITs与轻资产化", "兑现年_为什么是2030"]
 
 [[chapter]]
-no = 7
-title = "投资建议与操作指引"
-file = "7_投资建议与操作指引.src.md"
-answers = "赢面多大；什么会变好/变差；加仓与清仓的触发条件（**不报期望值**）"
+no = 8
+title = "共振跟踪与操作"
+subtitle = "什么信号加仓、什么信号离场"
+file = "8_共振跟踪与操作.src.md"
+answers = "当前共振状态（信号矩阵）；跟踪什么；一定不成清单；三段刻度与操作（不报期望值）"
 owns = []
 uses = ["val.swap_increment", "val.incr_over_mktcap", "swap.coverage", "ops.share_of_market"]
-qual = "三段刻度的操作触发：中检看不到＝需求侧假设错；决断看不到＝论点被证伪，与价格无关；兑现看不到＝相变没发生"
+qual = "三段刻度与信号矩阵：中检看不到＝需求侧假设错；决断看不到＝论点被证伪、与价格无关；兑现看不到＝相变没发生；两端与大场的信号组合决定加码／核心加仓／红队／穿透审计／退出"
 support = ["mk.share_storage_2025", "meta.target_year"]
 topics = ["赔率与跟踪_从世界A到世界B", "并购_节奏与竞合"]
 
 [[chapter]]
-no = 8
-title = "反思与后续思考"
-file = "8_反思与后续思考.src.md"
-answers = "犯过什么错；现在还可能错在哪；下一步盯什么（**两半都由程序生成**）"
+no = 9
+title = "复盘与反思"
+subtitle = "认知怎么演化、还可能错在哪"
+file = "9_复盘与反思.src.md"
+answers = "犯过什么错（决策日志生成）；现在还可能错在哪（弹性排名生成）"
 owns = []
 uses = ["val.swap_increment"]
 qual = "犯过的错由 DECISIONS.md 生成，现在可能错在哪由 lab.py scan 的弹性排名生成"
@@ -170,7 +199,7 @@ topics = []
 
 [[card]]
 title = "必要性"
-chapter = 2
+chapter = 6
 closing = ["val.mfg_increment"]
 
 [[card]]
@@ -180,7 +209,7 @@ closing = ["swap.ebitda", "swap.revenue"]
 
 [[card]]
 title = "估值"
-chapter = 6
+chapter = 7
 closing = ["val.swap_increment", "val.incr_over_mktcap"]
 
 [[card]]
@@ -190,7 +219,7 @@ closing = ["mk.share_storage_2025", "mk.share_elec_latest"]
 
 [[card]]
 title = "ROI"
-chapter = 4
+chapter = 5
 closing = ["capex.peak_call", "swap.coverage"]
 
 [[card]]

@@ -415,7 +415,7 @@ function setTier(i){
 // 注意：\n 在 Python 源里要写成双反斜杠，否则这个正则会被 Python 先解成真换行 → JS 语法错
 const nl2br=s=>String(s==null?"":s).replace(/\n/g,"<br>");
 let OP_INDEX=[];        // 全局行序 → 所属层/行，供自定义态回填（与 texts 数组同序）
-/* §4 论证主链（0 + 八章）：骨架来自 configs/report_map.toml，正文来自 narrative/chapters/*.src.md。
+/* §4 论证主链（0 + 九章，2026-09-17c 换骨架）：骨架来自 configs/report_map.toml，正文来自 narrative/chapters/*.src.md。
    本函数只渲染骨架与**收口读数的当前值**——正文待写期间，这里就是跳转的落点：
    点卡片或一页纸行跳进来，至少能看到"这一章由哪个数收口、它现在是多少、什么会让它翻"。 */
 /* ⑥ 复核区：变更台账（我写的话）× 读数留痕（程序写的数）× 事件表 × 经济门三档。
@@ -771,22 +771,22 @@ function renderChapters(M){
     const owns=(c.owns||[]).map(cellOf).join("　·　");
     const uses=(c.uses||[]).map(cellOf).join("　·　");
     const sup=(c.support||[]).map(m=>m.label).join("、");
-    // 五道门：定量门给读数，定性门给文字——"门"本来就该有通过/不通过的形状
+    // 检验项（索引表里的 [[gate]]）：定量项给读数，定性项给文字——有通过/不通过的形状（2026-09-17c 由"门"改称，见 DECISIONS 17c）
     const gates=(c.gates||[]).map(g=>{
       const v=g.closing?cellOf(g.closing):null;
       return `<li><b>${g.name}</b>：${v?v+" "+g.closing.label:g.qual||"（待补）"}`
            + (g.note?`<div class="note">${g.note}</div>`:"")+`</li>`;
     }).join("");
     return `<details class="chitem" id="ch-${c.no}">`
-      + `<summary><b>§${c.no} ${c.title}</b></summary>`
+      + `<summary><b>§${c.no} ${c.title}</b>${c.subtitle?`<span class="note"> · ${c.subtitle}</span>`:""}</summary>`
       + `<div class="chbody">`
       + `<div class="note" style="margin-bottom:6px"><b>回答什么</b>：${c.answers||"（待写）"}</div>`
       + (owns?`<div style="margin-bottom:6px"><b>主张</b>（这一章对它负责，它翻了这章结论就翻）：${owns}</div>`:"")
       + (c.qual?`<div style="margin-bottom:6px"><b>定性收口</b>：${c.qual}</div>`:"")
       + (uses?`<div style="margin-bottom:6px" class="note"><b>引用</b>（不对它负责）：${uses}</div>`:"")
-      + (gates?`<div style="margin-bottom:6px"><b>门</b>：<ul style="margin:4px 0;padding-left:18px">${gates}</ul></div>`:"")
+      + (gates?`<div style="margin-bottom:6px"><b>检验项</b>：<ul style="margin:4px 0;padding-left:18px">${gates}</ul></div>`:"")
       + (sup?`<div class="note"><b>支撑读数</b>：${sup}</div>`:"")
-      + `<div class="note" style="margin-top:6px">正文见 <code>narrative/chapters/${c.no}_${c.title}.src.md</code>（占位骨架，待写）</div>`
+      + `<div class="note" style="margin-top:6px">正文见 <code>narrative/chapters/${c.file||(c.no+"_"+c.title+".src.md")}</code>（占位骨架，待写；每章结尾固定两节：双视角指标、关键判断）</div>`
       + `</div></details>`;
   }).join("");
 }

@@ -778,7 +778,7 @@ function renderChapters(M){
            + (g.note?`<div class="note">${g.note}</div>`:"")+`</li>`;
     }).join("");
     return `<details class="chitem" id="ch-${c.no}">`
-      + `<summary><b>§${c.no} ${c.title}</b>${c.subtitle?`<span class="note"> · ${c.subtitle}</span>`:""}</summary>`
+      + `<summary><b>§${c.no} ${c.title}</b>${c.subtitle?`<span class="note"> · ${c.subtitle}</span>`:""}${c.status==="正文"?` <span class="note" style="color:#2e8b6f">✓ 正文已写</span>`:""}</summary>`
       + `<div class="chbody">`
       + `<div class="note" style="margin-bottom:6px"><b>回答什么</b>：${c.answers||"（待写）"}</div>`
       + (owns?`<div style="margin-bottom:6px"><b>主张</b>（这一章对它负责，它翻了这章结论就翻）：${owns}</div>`:"")
@@ -786,7 +786,9 @@ function renderChapters(M){
       + (uses?`<div style="margin-bottom:6px" class="note"><b>引用</b>（不对它负责）：${uses}</div>`:"")
       + (gates?`<div style="margin-bottom:6px"><b>检验项</b>：<ul style="margin:4px 0;padding-left:18px">${gates}</ul></div>`:"")
       + (sup?`<div class="note"><b>支撑读数</b>：${sup}</div>`:"")
-      + `<div class="note" style="margin-top:6px">正文见 <code>narrative/chapters/${c.file||(c.no+"_"+c.title+".src.md")}</code>（占位骨架，待写；每章结尾固定两节：双视角指标、关键判断）</div>`
+      + `<div class="note" style="margin-top:6px">正文见 <code>narrative/chapters/${c.file||(c.no+"_"+c.title+".src.md")}</code>`
+      + (c.status==="正文"?`（已写，注入读数后的版本在 <code>outputs/${(c.file||"").replace(".src.md",".md")}</code>；沙盘内嵌正文待 C 组装配）`:`（占位骨架，待写）`)
+      + `；每章结尾固定两节：双视角指标、关键判断</div>`
       + `</div></details>`;
   }).join("");
 }

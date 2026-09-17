@@ -167,6 +167,18 @@ def _metric_cell(k: str) -> dict | None:
                                    "unit": m.unit, "decimals": m.decimals}
 
 
+def _chapter_status(fname: str) -> str:
+    """章文件的写作状态：文件头（前 24 行）写了 `- 状态: 骨架` 为「骨架」，否则为「正文」；文件不存在为「缺失」。"""
+    p = ROOT / "narrative" / "chapters" / fname
+    if not fname or not p.exists():
+        return "缺失"
+    for raw in p.read_text("utf-8").splitlines()[:24]:
+        s = raw.strip().lstrip("-*").strip()
+        if s.startswith("状态") and "骨架" in s:
+            return "骨架"
+    return "正文"
+
+
 def _chapter_payload() -> dict:
     """主链骨架（0 + 九章）+ 两张反查表（卡→章 / 读数→章），供 A 类跳转使用。
 
@@ -192,6 +204,9 @@ def _chapter_payload() -> dict:
         chapters.append({
             "no": no, "title": c.get("title", ""), "answers": c.get("answers", ""),
             "subtitle": c.get("subtitle", ""), "file": c.get("file", ""),
+            # 2026-09-17d：章的写作状态（骨架／正文）从章文件头读，前端据此不再把已写的章标成"待写"
+            # （判据与 inject.status_of 同一条：文件头有 `- 状态: 骨架` 即骨架，否则正文；见 DECISIONS 17d）
+            "status": _chapter_status(c.get("file", "")),
             "owns": owns,
             "uses": [x for k in (c.get("uses") or []) if (x := _metric_cell(k))],
             "qual": c.get("qual", ""),

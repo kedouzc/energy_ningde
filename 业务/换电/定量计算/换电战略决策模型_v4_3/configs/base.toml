@@ -2102,3 +2102,115 @@ unit = ""
 src = "src.dcr_hdt_monthly"
 as_of = "2026-06"
 note = "换电在长大，只是长得慢——份额之争，当期对手是充电不是甲醇"
+
+
+# ── 2026-09-17e：第 3、5 章写作新增引述（见 DECISIONS 2026-09-17e）──────────────
+[[external_quote]]
+key = "ext.methanol_l_per_100km"
+label = "甲醇电动重卡百公里醇耗（厂商纪录）"
+text = "约 51.7 升/百公里（满载 42 吨，纪录活动）"
+value = 51.7
+unit = "升/百公里"
+src = "src.xinghan_methanol_record"
+as_of = "2024-10"
+note = "厂商纪录活动口径，工况偏理想；实际运营醇耗通常更高"
+
+[[external_quote]]
+key = "ext.methanol_cost_per_km_record"
+label = "甲醇电动重卡每公里燃料成本（厂商纪录）"
+text = "约 1.03 元/公里"
+value = 1.034
+unit = "元/公里"
+src = "src.xinghan_methanol_record"
+as_of = "2024-10"
+note = "同一纪录活动；灰色（煤制）甲醇价格口径"
+
+[[external_quote]]
+key = "ext.methanol_price_202608"
+label = "甲醇出厂价（2026 年 8 月）"
+text = "约 2,280–2,465 元/吨（出厂成交口径）"
+value = 2400.0
+unit = "元/吨"
+src = "src.methanol_price_202608"
+as_of = "2026-08"
+note = "出厂价，不是加注站零售价；零售价更高。与绿色甲醇 6000–8000 元/吨对照"
+
+[[external_quote]]
+key = "ext.swap_battery_share_catl"
+label = "换电重卡电池装车份额·宁德时代"
+text = "59%（2025 年上半年）"
+value = 59.0
+unit = "%"
+src = "src.hdt_swap_battery_2025h1"
+as_of = "2025-06"
+note = "换电重卡里仍有四成电池不是宁德时代供的——心智与标准是否记在宁德时代名下的直接读数"
+
+[[external_quote]]
+key = "ext.swap_battery_share_2nd"
+label = "换电重卡电池装车份额·瑞浦兰钧与国轩高科"
+text = "瑞浦兰钧 18%、国轩高科 13%（2025 年上半年）"
+value = 31.0
+unit = "%"
+src = "src.hdt_swap_battery_2025h1"
+as_of = "2025-06"
+note = "第二梯队电池企业已经在给换电重卡供电池（多为启源体系）"
+
+[[external_quote]]
+key = "ext.qiyuan_deal"
+label = "宁德时代受让启源芯动力股权"
+text = "24.87%，25.56 亿元（2026-08-18，成为第一大股东）"
+value = 24.87
+unit = "%"
+src = "src.hdt_route_202609"
+as_of = "2026-08"
+note = "与 src.chinapower_qiyuan 公告口径一致"
+
+[[external_quote]]
+key = "ext.qiyuan_scale"
+label = "启源芯动力换电网络规模"
+text = "换电站超 1,200 座、重卡换电市占超七成"
+value = 1200.0
+unit = "座"
+src = "src.hdt_route_202609"
+as_of = "2026-09"
+note = "媒体口径"
+
+[[external_quote]]
+key = "ext.qiyuan_leverage"
+label = "启源芯动力资产负债率"
+text = "超 80%（总负债约 202 亿元）"
+value = 80.0
+unit = "%"
+src = "src.hdt_route_202609"
+as_of = "2026-09"
+note = "低资金成本方持有电池资产的自然实验：规模做到第一，杠杆也做到了极限"
+
+[[external_quote]]
+key = "ext.irr_weineng"
+label = "换电电池资产证券化发行收益率（蔚能）"
+text = "4.68%"
+value = 4.68
+unit = "%"
+src = "src.nio_abs_appraisal_2026"
+as_of = "2026"
+note = "参照谱系下沿：资产端融资成本"
+
+[[external_quote]]
+key = "ext.irr_mature_asset"
+label = "成熟换电资产收益率区间"
+text = "8.5–9.1%"
+value = 8.8
+unit = "%"
+src = "src.qiyuan_appraisal"
+as_of = "2026-08"
+note = "参照谱系中段"
+
+[[external_quote]]
+key = "ext.wacc_qiyuan"
+label = "启源芯动力股权评估折现率"
+text = "10.34%"
+value = 10.34
+unit = "%"
+src = "src.qiyuan_appraisal"
+as_of = "2026-08"
+note = "参照谱系上沿：股权端"

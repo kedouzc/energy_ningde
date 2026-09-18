@@ -661,6 +661,7 @@ def build_swap_business(config: dict, scale: ScaleResult, capex: CapexResult) ->
     }
     return SwapBusinessResult(
         annual_energy_yi_kwh=annual_energy,
+        charged_energy_yi_kwh=_sum("charged_energy_yi_kwh"),
         rent_vehicle_gwh=cumulative_vehicle_gwh,
         # 2026-09-12 从 lab.py 下沉：装机口径汇总（分池求和属于经营口径，算在这里）
         station_battery_gwh=sum(p.station_battery_gwh for p in pool_ops.values()),

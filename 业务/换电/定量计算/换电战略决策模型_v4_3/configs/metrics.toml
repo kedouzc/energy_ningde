@@ -2474,3 +2474,438 @@ unit = ""
 decimals = 4
 group = "⑤估值"
 note = "无换电情形下制造业务净利率（小数，非百分数）"
+
+
+[[metric]]
+key = "tco.short_gap_service_year_wan"
+source = "tco"
+label = "重卡短途·服务费差·每年"
+at = "swap_business.heavy_economics.short.gap_service_year_wan"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+note = "换电服务费 − 充电服务费中枢，再乘本场景年耗电；正数＝换电的补能服务费更贵"
+
+[[metric]]
+key = "tco.short_gap_service_floor_year_wan"
+source = "tco"
+label = "重卡短途·服务费差·充电取下沿"
+at = "swap_business.heavy_economics.short.gap_service_floor_year_wan"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+note = "充电服务费按已出现的下沿取值时的同一读数——服务费价格战打到底会怎样"
+
+[[metric]]
+key = "tco.short_gap_power_year_wan"
+source = "tco"
+label = "重卡短途·电价差·每年"
+at = "swap_business.heavy_economics.short.gap_power_year_wan"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+note = "换电站谷充口径 − 充电裸电价，负数＝换电占优（充电时点的选择权值多少钱）"
+
+[[metric]]
+key = "tco.short_rent_year_wan"
+source = "tco"
+label = "重卡短途·电池租金·每年"
+at = "swap_business.heavy_economics.short.rent_year_wan"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+note = "车电分离的资本对价，不是能源费；它的镜像是省下的首付"
+
+[[metric]]
+key = "tco.mid_gap_service_year_wan"
+source = "tco"
+label = "重卡中途·服务费差·每年"
+at = "swap_business.heavy_economics.mid.gap_service_year_wan"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+note = "换电服务费 − 充电服务费中枢，再乘本场景年耗电；正数＝换电的补能服务费更贵"
+
+[[metric]]
+key = "tco.mid_gap_service_floor_year_wan"
+source = "tco"
+label = "重卡中途·服务费差·充电取下沿"
+at = "swap_business.heavy_economics.mid.gap_service_floor_year_wan"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+note = "充电服务费按已出现的下沿取值时的同一读数——服务费价格战打到底会怎样"
+
+[[metric]]
+key = "tco.mid_gap_power_year_wan"
+source = "tco"
+label = "重卡中途·电价差·每年"
+at = "swap_business.heavy_economics.mid.gap_power_year_wan"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+note = "换电站谷充口径 − 充电裸电价，负数＝换电占优（充电时点的选择权值多少钱）"
+
+[[metric]]
+key = "tco.mid_rent_year_wan"
+source = "tco"
+label = "重卡中途·电池租金·每年"
+at = "swap_business.heavy_economics.mid.rent_year_wan"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+note = "车电分离的资本对价，不是能源费；它的镜像是省下的首付"
+
+[[metric]]
+key = "tco.long_gap_service_year_wan"
+source = "tco"
+label = "重卡长途·服务费差·每年"
+at = "swap_business.heavy_economics.long.gap_service_year_wan"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+note = "换电服务费 − 充电服务费中枢，再乘本场景年耗电；正数＝换电的补能服务费更贵"
+
+[[metric]]
+key = "tco.long_gap_service_floor_year_wan"
+source = "tco"
+label = "重卡长途·服务费差·充电取下沿"
+at = "swap_business.heavy_economics.long.gap_service_floor_year_wan"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+note = "充电服务费按已出现的下沿取值时的同一读数——服务费价格战打到底会怎样"
+
+[[metric]]
+key = "tco.long_gap_power_year_wan"
+source = "tco"
+label = "重卡长途·电价差·每年"
+at = "swap_business.heavy_economics.long.gap_power_year_wan"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+note = "换电站谷充口径 − 充电裸电价，负数＝换电占优（充电时点的选择权值多少钱）"
+
+[[metric]]
+key = "tco.long_rent_year_wan"
+source = "tco"
+label = "重卡长途·电池租金·每年"
+at = "swap_business.heavy_economics.long.rent_year_wan"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+note = "车电分离的资本对价，不是能源费；它的镜像是省下的首付"
+
+[[metric]]
+key = "base.charge_power_price"
+source = "external"
+label = "重卡充电裸电价"
+at_cfg = "tco_jpm.charge_power_price_rmb_kwh"
+unit = "元/kWh"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "base.charge_service_fee"
+source = "external"
+label = "重卡充电服务费中枢"
+at_cfg = "tco_jpm.charge_service_fee_rmb_kwh"
+unit = "元/kWh"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "base.charge_service_floor"
+source = "external"
+label = "重卡充电服务费下沿"
+at_cfg = "tco_jpm.charge_service_fee_floor_rmb_kwh"
+unit = "元/kWh"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "mfg.cell_buy_price"
+source = "scale"
+label = "外购电芯市价"
+at = "scale.cell_buy_price"
+unit = "元/kWh"
+decimals = 0
+group = "②制造出货"
+
+[[metric]]
+key = "mfg.newcomer_dep_full"
+source = "scale"
+label = "新进入者产线折旧·满产"
+at = "scale.newcomer_dep_full"
+unit = "元/kWh"
+decimals = 1
+group = "②制造出货"
+
+[[metric]]
+key = "mfg.newcomer_dep_half"
+source = "scale"
+label = "新进入者产线折旧·半产"
+at = "scale.newcomer_dep_half"
+unit = "元/kWh"
+decimals = 1
+group = "②制造出货"
+
+[[metric]]
+key = "mfg.newcomer_dep_ramp"
+source = "scale"
+label = "新进入者产线折旧·爬坡期"
+at = "scale.newcomer_dep_ramp"
+unit = "元/kWh"
+decimals = 1
+group = "②制造出货"
+
+[[metric]]
+key = "mfg.selfmake_cost_full"
+source = "scale"
+label = "自建单位全成本·满产"
+at = "scale.selfmake_cost_full"
+unit = "元/kWh"
+decimals = 0
+group = "②制造出货"
+
+[[metric]]
+key = "mfg.selfmake_cost_half"
+source = "scale"
+label = "自建单位全成本·半产"
+at = "scale.selfmake_cost_half"
+unit = "元/kWh"
+decimals = 0
+group = "②制造出货"
+
+[[metric]]
+key = "mfg.selfmake_cost_ramp"
+source = "scale"
+label = "自建单位全成本·爬坡期"
+at = "scale.selfmake_cost_ramp"
+unit = "元/kWh"
+decimals = 0
+group = "②制造出货"
+
+[[metric]]
+key = "mfg.selfmake_gap_full"
+source = "scale"
+label = "自建减外购·满产"
+at = "scale.selfmake_gap_full"
+unit = "元/kWh"
+decimals = 0
+group = "②制造出货"
+
+[[metric]]
+key = "mfg.selfmake_gap_half"
+source = "scale"
+label = "自建减外购·半产"
+at = "scale.selfmake_gap_half"
+unit = "元/kWh"
+decimals = 0
+group = "②制造出货"
+
+[[metric]]
+key = "mfg.selfmake_gap_ramp"
+source = "scale"
+label = "自建减外购·爬坡期"
+at = "scale.selfmake_gap_ramp"
+unit = "元/kWh"
+decimals = 0
+group = "②制造出货"
+
+[[metric]]
+key = "mfg.selfmake_breakeven_price"
+source = "scale"
+label = "自建打平所需外购价"
+at = "scale.selfmake_breakeven_price"
+unit = "元/kWh"
+decimals = 0
+group = "②制造出货"
+
+[[metric]]
+key = "base.self_cash_cost"
+source = "external"
+label = "自建现金成本"
+at_cfg = "capacity_investment.self_cash_cost_rmb_kwh"
+unit = "元/kWh"
+decimals = 0
+group = "②制造出货"
+
+[[metric]]
+key = "base.yield_gap"
+source = "external"
+label = "与龙头的良率差"
+at_cfg = "capacity_investment.yield_gap_rmb_kwh"
+unit = "元/kWh"
+decimals = 0
+group = "②制造出货"
+
+[[metric]]
+key = "val.base_price_per_share"
+source = "consolidation"
+label = "基准每股价值"
+at = "ledger.base_price_per_share"
+unit = "元/股"
+decimals = 1
+group = "⑤估值"
+
+[[metric]]
+key = "val.increment_per_share"
+source = "consolidation"
+label = "每股换电增量价值"
+at = "ledger.increment_per_share"
+unit = "元/股"
+decimals = 1
+group = "⑤估值"
+
+[[metric]]
+key = "val.target_price_per_share"
+source = "consolidation"
+label = "兑现年目标价"
+at = "ledger.target_price_per_share"
+unit = "元/股"
+decimals = 1
+group = "⑤估值"
+
+[[metric]]
+key = "val.upside_over_spot_pct"
+source = "consolidation"
+label = "目标价对现价的空间"
+at = "ledger.upside_over_spot_pct"
+unit = "%"
+decimals = 0
+group = "⑤估值"
+
+[[metric]]
+key = "val.margin_of_safety_pct"
+source = "consolidation"
+label = "安全边际"
+at = "ledger.margin_of_safety_pct"
+unit = "%"
+decimals = 0
+group = "⑤估值"
+
+[[metric]]
+key = "val.annualized_to_target_pct"
+source = "consolidation"
+label = "持到兑现年的年化回报"
+at = "ledger.annualized_to_target_pct"
+unit = "%"
+decimals = 1
+group = "⑤估值"
+
+[[metric]]
+key = "val.discount_to_base"
+source = "consolidation"
+label = "现价相对基准的折让"
+at = "ledger.discount_to_base_pct"
+unit = "%"
+decimals = 0
+group = "⑤估值"
+
+
+[[metric]]
+key = "swap.charged_energy"
+source = "business"
+label = "站端充电电量"
+at = "swap_business.charged_energy_yi_kwh"
+unit = "亿kWh"
+decimals = 1
+group = "④运营"
+note = "换电电量 ÷ 综合效率 ×（1＋站用电率）；它与换电电量之差就是净额法下唯一进成本的电量"
+
+[[metric]]
+key = "base.rte"
+source = "external"
+label = "充放电综合效率"
+at_cfg = "swap_business.rte"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "④运营"
+
+[[metric]]
+key = "base.aux_power_rate"
+source = "external"
+label = "站用电率"
+at_cfg = "swap_business.auxiliary_power_rate"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "④运营"
+
+[[metric]]
+key = "base.site_rent"
+source = "external"
+label = "单站年租"
+at_cfg = "swap_business.site_rent_wan_year"
+unit = "万元/年"
+decimals = 0
+group = "④运营"
+
+[[metric]]
+key = "base.heavy_labor"
+source = "external"
+label = "骐骥站单站年人工"
+at_cfg = "swap_business.heavy_station_labor_wan_year"
+unit = "万元/年"
+decimals = 2
+group = "④运营"
+
+[[metric]]
+key = "base.choco_labor"
+source = "external"
+label = "巧克力站单站年人工"
+at_cfg = "swap_business.passenger_station_labor_wan_year"
+unit = "万元/年"
+decimals = 3
+group = "④运营"
+
+[[metric]]
+key = "base.battery_insurance_rate"
+source = "external"
+label = "电池保险费率"
+at_cfg = "swap_business.battery_insurance_rate"
+unit = "%"
+decimals = 2
+scale = 100.0
+group = "④运营"
+
+[[metric]]
+key = "base.equipment_insurance_rate"
+source = "external"
+label = "设备保险费率"
+at_cfg = "swap_business.equipment_insurance_rate"
+unit = "%"
+decimals = 2
+scale = 100.0
+group = "④运营"
+
+[[metric]]
+key = "base.pooling_maintenance_rate"
+source = "external"
+label = "池化维护费率"
+at_cfg = "swap_business.pooling_maintenance_rate"
+unit = "%"
+decimals = 2
+scale = 100.0
+group = "④运营"
+
+[[metric]]
+key = "base.warehouse_logistics_rate"
+source = "external"
+label = "仓储物流费率"
+at_cfg = "swap_business.warehouse_logistics_rate"
+unit = "%"
+decimals = 2
+scale = 100.0
+group = "④运营"
+
+[[metric]]
+key = "base.software_opex"
+source = "external"
+label = "软件年投入"
+at_cfg = "swap_business.software_opex_yi_year"
+unit = "亿元/年"
+decimals = 1
+group = "④运营"

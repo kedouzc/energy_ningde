@@ -1103,6 +1103,21 @@ def _capacity_investment(config: dict, swap_gwh: float, total_gwh: float) -> dic
     gap = max(0.0, total_gwh - have)
     # 亿元/GWh → 元/kWh：1 亿元 ÷ 1 GWh = 1e8 元 ÷ 1e6 kWh = 100 元/kWh；再按折旧年限摊
     dep_full = (lead * 100.0 / years) if years else 0.0
+    # 【2026-09-18b】只算到折旧还到不了结论。「自建划不划算」要比的是
+    #   自建单位全成本（现金成本 ＋ 产线折旧 ＋ 与龙头的良率差） vs 外购价。
+    # 折旧是纯固定成本、与利用率成反比，所以满产／半产／爬坡三档分开算——
+    # 这三档之间的差，正是"新建产能备案要求利用率过半"这条政策的杀伤力所在。
+    buy = float(cfg.get("cell_purchase_price_rmb_kwh") or 0.0)
+    cash = float(cfg.get("self_cash_cost_rmb_kwh") or 0.0)
+    yield_gap = float(cfg.get("yield_gap_rmb_kwh") or 0.0)
+    half_u = float(cfg.get("half_utilization") or 0.0)
+    ramp_u = float(cfg.get("ramp_utilization") or 0.0)
+    new_dep_full = (new * 100.0 / years) if years else 0.0
+    new_dep_half = (new_dep_full / half_u) if half_u else 0.0
+    new_dep_ramp = (new_dep_full / ramp_u) if ramp_u else 0.0
+    self_full = cash + new_dep_full + yield_gap
+    self_half = cash + new_dep_half + yield_gap
+    self_ramp = cash + new_dep_ramp + yield_gap
     return {
         "capacity_gap_gwh": gap,
         "capacity_capex_yi": gap * lead,
@@ -1110,4 +1125,17 @@ def _capacity_investment(config: dict, swap_gwh: float, total_gwh: float) -> dic
         "newcomer_line_capex_yi": line * new,
         "dep_per_kwh_full": dep_full,
         "dep_per_kwh_half": dep_full * 2.0,
+        "cell_buy_price": buy,
+        "newcomer_dep_full": new_dep_full,
+        "newcomer_dep_half": new_dep_half,
+        "newcomer_dep_ramp": new_dep_ramp,
+        "selfmake_cost_full": self_full,
+        "selfmake_cost_half": self_half,
+        "selfmake_cost_ramp": self_ramp,
+        # 正数＝自建比外购更贵。这才是"自建有没有利可图"的直接读数
+        "selfmake_gap_full": self_full - buy,
+        "selfmake_gap_half": self_half - buy,
+        "selfmake_gap_ramp": self_ramp - buy,
+        # 外购价要涨到这个数，满产自建才刚好打平——可证伪的跟踪刻度
+        "selfmake_breakeven_price": self_full,
     }

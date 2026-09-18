@@ -193,12 +193,21 @@ def _scene_tco(
     days = float(sb.get("operating_days") or 0.0)
     valley = float(sb.get("valley_power_price_rmb_kwh") or 0.0)
     spread = float(sb.get("grid_spread_rmb_kwh") or 0.0)
-    swap_price = (ops.service_revenue_yi + ops.battery_rent_yi) / ops.annual_energy_yi_kwh + valley + spread
+    # 【2026-09-18b】换电侧单价拆成三段，充电侧拆成两段——「能源单价差」这一个总数掩盖了
+    # 三件性质完全不同的事：服务费差是补能网络的定价竞争，电价差是充电时点的选择权，
+    # 电池租金则根本不是能源费、而是车电分离的资本对价（它的镜像就是省下的首付）。
+    # 合成关系（按构造成立）：swap_price − charge_price ＝ 服务费差 ＋ 电价差 ＋ 电池租金。
+    swap_service_p = ops.service_revenue_yi / ops.annual_energy_yi_kwh
+    swap_rent_p = ops.battery_rent_yi / ops.annual_energy_yi_kwh
+    swap_price = swap_service_p + swap_rent_p + valley + spread
 
     annual_km = float(scene["daily_km"]) * days
     annual_kwh = annual_km * float(scene["energy_consumption_kwh_km"])
     kwh = float(scene["onboard_battery_kwh"])
-    charge_price = float(tco["ev_energy_cost_year"]) / (float(tco["annual_km"]) * float(tco["kwh_per_km"]))
+    charge_power_p = float(tco.get("charge_power_price_rmb_kwh") or 0.0)
+    charge_service_p = float(tco.get("charge_service_fee_rmb_kwh") or 0.0)
+    charge_service_floor = float(tco.get("charge_service_fee_floor_rmb_kwh") or 0.0)
+    charge_price = charge_power_p + charge_service_p
 
     ref = float(config["meta"]["reference_year"])
     p0 = battery_price_rmb_kwh(config, ref)
@@ -262,6 +271,10 @@ def _scene_tco(
             buy_charge - buy_swap, annual_kwh * (swap_price - charge_price), pack_flows, n),
         battery_upfront_wan=(buy_charge - buy_swap) / 1e4,
         gap_energy_year_wan=annual_kwh * (swap_price - charge_price) / 1e4,
+        gap_service_year_wan=annual_kwh * (swap_service_p - charge_service_p) / 1e4,
+        gap_service_floor_year_wan=annual_kwh * (swap_service_p - charge_service_floor) / 1e4,
+        gap_power_year_wan=annual_kwh * (valley + spread - charge_power_p) / 1e4,
+        rent_year_wan=annual_kwh * swap_rent_p / 1e4,
         packs_total_wan=packs / 1e4,
         **_hstar_set(
             tco, buy_swap, buy_charge, annual_kwh * swap_price + fixed,

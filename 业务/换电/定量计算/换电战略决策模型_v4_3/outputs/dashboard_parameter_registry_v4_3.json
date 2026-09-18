@@ -219,7 +219,17 @@
   },
   {
     "key": "financial_2026e.group_market_cap_ah_yi",
-    "value": 20000.0,
+    "value": 17757.0,
+    "type": "float"
+  },
+  {
+    "key": "financial_2026e.total_shares_yi",
+    "value": 46.2677,
+    "type": "float"
+  },
+  {
+    "key": "financial_2026e.spot_price_a_rmb",
+    "value": 304.3,
     "type": "float"
   },
   {
@@ -373,18 +383,33 @@
     "type": "float"
   },
   {
+    "key": "tco_jpm.charge_power_price_rmb_kwh",
+    "value": 0.65,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.charge_service_fee_rmb_kwh",
+    "value": 0.2,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.charge_service_fee_floor_rmb_kwh",
+    "value": 0.08,
+    "type": "float"
+  },
+  {
     "key": "tco_jpm.fleet_discount_rate_low",
     "value": 0.03,
     "type": "float"
   },
   {
     "key": "tco_jpm.fleet_discount_rate_mid",
-    "value": 0.08,
+    "value": 0.12,
     "type": "float"
   },
   {
     "key": "tco_jpm.fleet_discount_rate_high",
-    "value": 0.3,
+    "value": 0.22,
     "type": "float"
   },
   {
@@ -1912,7 +1937,7 @@
   },
   {
     "key": "capacity_investment.newcomer_intensity_yi_per_gwh",
-    "value": 3.5,
+    "value": 3.0,
     "type": "float"
   },
   {
@@ -1933,6 +1958,31 @@
   {
     "key": "capacity_investment.benchmark_line_gwh",
     "value": 18.0,
+    "type": "float"
+  },
+  {
+    "key": "capacity_investment.cell_purchase_price_rmb_kwh",
+    "value": 400.0,
+    "type": "float"
+  },
+  {
+    "key": "capacity_investment.self_cash_cost_rmb_kwh",
+    "value": 370.0,
+    "type": "float"
+  },
+  {
+    "key": "capacity_investment.yield_gap_rmb_kwh",
+    "value": 20.0,
+    "type": "float"
+  },
+  {
+    "key": "capacity_investment.ramp_utilization",
+    "value": 0.3,
+    "type": "float"
+  },
+  {
+    "key": "capacity_investment.half_utilization",
+    "value": 0.5,
     "type": "float"
   }
 ]

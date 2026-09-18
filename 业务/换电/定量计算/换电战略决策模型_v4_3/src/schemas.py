@@ -134,6 +134,18 @@ class ScaleResult:
     newcomer_line_capex_yi: float = 0.0   # 新进入者建一条对标产线的投资（按新进入者强度）
     dep_per_kwh_full: float = 0.0         # 满产时每 kWh 电池要摊的产线折旧（元/kWh）
     dep_per_kwh_half: float = 0.0         # 产能利用率只有一半时的同一口径（元/kWh）
+    # 【2026-09-18b】自建 vs 外购：把投资强度一路算到单位电池全成本，再和市价比
+    cell_buy_price: float = 0.0           # 外购电芯市价（元/kWh）
+    newcomer_dep_full: float = 0.0        # 新进入者产线折旧·满产（元/kWh）
+    newcomer_dep_half: float = 0.0        # 同上·半产
+    newcomer_dep_ramp: float = 0.0        # 同上·爬坡期
+    selfmake_cost_full: float = 0.0       # 自建单位全成本·满产（现金＋折旧＋良率差，元/kWh）
+    selfmake_cost_half: float = 0.0       # 同上·半产
+    selfmake_cost_ramp: float = 0.0       # 同上·爬坡期
+    selfmake_gap_full: float = 0.0        # 自建 − 外购·满产（正数＝自建更贵，元/kWh）
+    selfmake_gap_half: float = 0.0        # 同上·半产
+    selfmake_gap_ramp: float = 0.0        # 同上·爬坡期
+    selfmake_breakeven_price: float = 0.0 # 外购价涨到这个数，满产自建才打平（元/kWh）
     market_total_wan: float = 0.0         # 营运车总市场（分母，来自 config 运营事实）
     share_of_market_pct: float = float("nan")   # 营运车覆盖率 = veh_ops_total / market_total
     heavy_pen_pct: float = float("nan")   # 换电重卡 ÷ 重卡保有量（分母是外部事实）
@@ -366,6 +378,9 @@ class PoolOperations:
 @dataclass
 class SwapBusinessResult:
     annual_energy_yi_kwh: float
+    # 【2026-09-18b】站端实际充进去的电量＝换电电量 ÷ 综合效率 ×（1＋站用电率）。
+    # 它与 annual_energy_yi_kwh 的差额，就是净额法下唯一计入成本的那部分电量。
+    charged_energy_yi_kwh: float
     rent_vehicle_gwh: float
     rent_station_external_gwh: float
     rent_eligible_gwh: float
@@ -564,6 +579,12 @@ class SceneTco:
     hstar_mw_high: float = 0.0                  # 高档（兆瓦超充）
     # 【2026-09-18】把四项差异折成"每年多花多少钱"，再与时间价值直接相减——定量结论在这一层
     gap_energy_year_wan: float = 0.0            # 能源单价差：换电每年多付（万元/年，名义）
+    # 【2026-09-18b】把上面这一个总数拆成三段——它们性质不同，合成一个数就看不出是哪一段在动：
+    #   服务费差（补能网络的定价竞争）＋ 电价差（充电时点的选择权）＋ 电池租金（车电分离的资本对价）
+    gap_service_year_wan: float = 0.0           # 服务费差：换电服务费 − 充电服务费中枢（万元/年）
+    gap_service_floor_year_wan: float = 0.0     # 同上，充电服务费取已出现的下沿（万元/年）
+    gap_power_year_wan: float = 0.0             # 电价差：换电站谷充口径 − 充电裸电价（万元/年，负数＝换电占优）
+    rent_year_wan: float = 0.0                  # 电池租金（万元/年）——它的镜像是省下的首付，不是能源费
     packs_total_wan: float = 0.0                # 充电车持有期内自费换电池合计（万元，名义）
     net_year_low: float = 0.0                   # 年化净差额（换电 − 充电，不含时间价值；万元/年）·资金成本低
     net_year_mid: float = 0.0
@@ -671,6 +692,14 @@ class ConsolidatedLedger:
     # 2026-09-12 从 lab.py 下沉：合并增量价值（业务整体口径）
     # = 运营项目权益价值(100%) + 制造侧增量价值；归属股东口径见 total_swap_increment_value_yi
     combined_increment_value_yi: float = 0.0
+    # 【2026-09-18b】每股刻度：把增量价值换算到和屏幕上同一个数轴上，供第 8 章定调仓
+    base_price_per_share: float = 0.0       # 基准市值 ÷ 总股本（元/股）
+    increment_per_share: float = 0.0        # 换电增量价值 ÷ 总股本（元/股，兑现年时点）
+    target_price_per_share: float = 0.0     # 兑现年目标价＝基准每股 ＋ 每股增量（元/股）
+    upside_over_spot_pct: float = 0.0       # 目标价相对现价的空间（%，兑现年口径，不是今天的空间）
+    margin_of_safety_pct: float = 0.0       # 安全边际：现价相对目标价的折让（%）
+    annualized_to_target_pct: float = 0.0   # 从现价持到兑现年的年化回报（%）——可与机会成本直接比
+    discount_to_base_pct: float = 0.0       # 现价相对基准每股的折让（%，负数＝比基准便宜）
 
 
 @dataclass

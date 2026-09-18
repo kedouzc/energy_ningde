@@ -110,4 +110,50 @@ def build_consolidated_ledger(
             power_value_with, baseline.power_market_value_2026e_yi, year_gap
         ),
         value_bridge_error_yi=bridge_error,
+        **_per_share(config, current_group_value, total_value_increment, year_gap),
     )
+
+
+def _per_share(
+    config: dict, base_cap_yi: float, increment_yi: float, year_gap: float
+) -> dict[str, float]:
+    """【2026-09-18b】把"增量价值"折成每股，作为调仓的刻度。
+
+    为什么必须做这一步：第 8 章原来只判断资本端"有没有定价"，那是个是非题；
+    要决定**加多少、在什么价位加**，就得把亿元换算成元/股，和屏幕上的价格放在同一个数轴上。
+
+    三条口径必须写死，否则这个数会被误用：
+    1. **增量价值是兑现年时点口径**（运营侧＝兑现年 EBITDA × 倍数，制造侧＝兑现年净利 × PE），
+       没有折回今天。所以目标价是**兑现年的价**，不能直接和今天的股价比"空间"，
+       只能比**年化回报**——那才是可以和机会成本对齐的量。
+    2. **基准每股假定主业价值不变**，即这段时间里除换电以外什么都没发生。这是"世界 A"的
+       静态基准，不是主业预测；主业自身的增减不在本模型的解释范围内。
+    3. **每股按总股本摊**，但 A 股与 H 股同股不同价（H 对 A 溢价约五成）。同一个
+       "每股增量价值"落到两个市场上，占各自股价的比例不同——用在哪个市场就取哪个现价。
+    """
+    fin = config.get("financial_2026e") or {}
+    shares = float(fin.get("total_shares_yi") or 0.0)
+    spot = float(fin.get("spot_price_a_rmb") or 0.0)
+    if shares <= 0:
+        return {}
+    base_ps = base_cap_yi / shares
+    incr_ps = increment_yi / shares
+    target_ps = base_ps + incr_ps
+    out = {
+        "base_price_per_share": base_ps,
+        "increment_per_share": incr_ps,
+        "target_price_per_share": target_ps,
+    }
+    if spot > 0 and target_ps:
+        out["upside_over_spot_pct"] = (target_ps / spot - 1.0) * 100.0
+        # 安全边际：现价相对兑现年目标价的折让，是"还能跌多少才不亏"的刻度
+        out["margin_of_safety_pct"] = (1.0 - spot / target_ps) * 100.0
+        if year_gap > 0:
+            out["annualized_to_target_pct"] = (
+                (target_ps / spot) ** (1.0 / year_gap) - 1.0
+            ) * 100.0
+        # 现价相对基准每股的折让。**它不是"换电被定价了多少"**——基准本身就是市场自己的报价，
+        # 里面已经含着市场对换电的任何看法，无法从价格里单独剥离出来。能读的只有：
+        # 现价相对这一季的自身均值偏离多少，也就是"买点相对基准便宜还是贵"。
+        out["discount_to_base_pct"] = (spot / base_ps - 1.0) * 100.0 if base_ps else 0.0
+    return out

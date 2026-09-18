@@ -598,7 +598,9 @@ megawatt_session_minutes = 18.0
 # 低档 3%：大型车队/国企背景运输企业，接近银行贷款利率（src.cv_finance_regulation 反面参照）
 # 中档 8%：一般车队，接近本报告 WACC 与成熟资产收益率区间
 # 高档 30%：个体司机与中小物流企业，商用车融资租赁综合费率被监管点名的水平（src.cv_finance_regulation）
-fleet_discount_rates = [0.03, 0.08, 0.30]
+fleet_discount_rate_low = 0.03      # 大型车队/国企背景运输企业，接近银行贷款利率
+fleet_discount_rate_mid = 0.08      # 一般车队，接近本报告 WACC 与成熟资产收益率区间
+fleet_discount_rate_high = 0.30     # 个体司机与中小物流企业，商用车融资租赁综合费率被监管点名的水平（src.cv_finance_regulation）
 
 # ----------------------车辆层（MANIFEST §2）-----------------------------
 # 车辆运营年限法规：网约车 8 年退役/60 万公里报废（交通部暂行办法 39 条）、
@@ -2588,7 +2590,7 @@ note = "结构性过剩与价格战的背景"
 [[external_quote]]
 key = "ext.geely_chongqing_line"
 label = "宁德时代收购的吉利系电池产线"
-text = "吉利重庆涪陵工厂：一期规划年产能 18 GWh（摩根大通口径为即将完工的 24 GWh 项目），2021 年动工、已获无条件批准"
+text = "重庆涪陵工厂：一期规划年产能 18 GWh（摩根大通口径为即将完工的 24 GWh 项目），2021 年动工、已获无条件批准"
 value = 18.0
 unit = "GWh"
 src = "src.geely_line_202609"
@@ -2654,3 +2656,19 @@ unit = "亿元"
 src = "src.swapteam_stcn"
 as_of = "2025-02"
 note = "继任者任内的结盟动作：与出行平台合资落地"
+
+# ----------------------产能投资强度（2026-09-18 新增）-----------------------------
+# 用途：① 测算满足兑现年装机所需的产能投资额；② 论证车企自建与二线扩张的门槛。
+# 口径与出处：
+#  - 头部厂商单位产能投资额已从 2020 年的约 8.3 亿元/GWh 降到 2025 上半年的约 2 亿元/GWh
+#    （设备投资 1.14 亿元/GWh、设备占比约六成，按宁德时代扩产路径推算，src.qianzhan_equipment_2026）；
+#  - 新进入者按 2022 年项目口径 3–4.9 亿元/GWh（宁德时代自身当年披露"每 GWh 约 3 亿元"，
+#    弗迪、楚能、中创新航项目 4–4.5 亿元/GWh，src.gasgoo_capex_2022），本报告取区间中位 3.5；
+#  - 现有与在建产能取公司 2025 年报（src.catl_ar2025_news）。
+[capacity_investment]
+leader_intensity_yi_per_gwh = 2.0     # 头部厂商单位产能投资强度
+newcomer_intensity_yi_per_gwh = 3.5   # 新进入者（车企自建、二线新基地）单位产能投资强度
+existing_capacity_gwh = 772.0         # 2025 年末现有产能
+under_construction_gwh = 321.0        # 2025 年末在建产能
+depreciation_years = 8.0              # 产线折旧年限（用于把投资强度换成每 kWh 的折旧负担）
+benchmark_line_gwh = 18.0             # 对标产线规模：吉利重庆涪陵一期规划年产能（src.geely_line_202609）

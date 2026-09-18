@@ -127,6 +127,13 @@ class ScaleResult:
     swap_gwh_2030: float = 0.0            # 兑现年出货·换电装车 GWh
     charge_gwh_2030: float = 0.0          # 兑现年出货·充电装车 GWh
     total_gwh_2030: float = 0.0           # 兑现年出货合计 GWh（产能核查口径：换电+充电）
+    # 【2026-09-18】产能投资强度：满足兑现年装机要花多少钱、新进入者的门槛有多高
+    capacity_gap_gwh: float = 0.0         # 兑现年车辆装机合计 − （现有产能 + 在建产能），不足则为 0
+    capacity_capex_yi: float = 0.0        # 补上这个缺口需要的产能投资（按头部强度）
+    swap_capacity_capex_yi: float = 0.0   # 其中换电装车对应的产能投资
+    newcomer_line_capex_yi: float = 0.0   # 新进入者建一条对标产线的投资（按新进入者强度）
+    dep_per_kwh_full: float = 0.0         # 满产时每 kWh 电池要摊的产线折旧（元/kWh）
+    dep_per_kwh_half: float = 0.0         # 产能利用率只有一半时的同一口径（元/kWh）
     market_total_wan: float = 0.0         # 营运车总市场（分母，来自 config 运营事实）
     share_of_market_pct: float = float("nan")   # 营运车覆盖率 = veh_ops_total / market_total
     heavy_pen_pct: float = float("nan")   # 换电重卡 ÷ 重卡保有量（分母是外部事实）
@@ -555,6 +562,20 @@ class SceneTco:
     hstar_mw_low: float = 0.0                   # 低档（兆瓦超充）
     hstar_mw_mid: float = 0.0                   # 中档（兆瓦超充）
     hstar_mw_high: float = 0.0                  # 高档（兆瓦超充）
+    # 【2026-09-18】把四项差异折成"每年多花多少钱"，再与时间价值直接相减——定量结论在这一层
+    gap_energy_year_wan: float = 0.0            # 能源单价差：换电每年多付（万元/年，名义）
+    packs_total_wan: float = 0.0                # 充电车持有期内自费换电池合计（万元，名义）
+    net_year_low: float = 0.0                   # 年化净差额（换电 − 充电，不含时间价值；万元/年）·资金成本低
+    net_year_mid: float = 0.0
+    net_year_high: float = 0.0
+    tv_year_wan: float = 0.0                    # 参照时间价值（常规快充口径，万元/年）
+    tv_mw_year_wan: float = 0.0                 # 同一时薪下，超充只剩多少时间价值（万元/年）
+    adv_low: float = 0.0                        # 常规快充下换电的净优势（万元/年，负数＝充电更省）·资金成本低
+    adv_mid: float = 0.0
+    adv_high: float = 0.0
+    adv_mw_low: float = 0.0                     # 兆瓦超充下的同一读数
+    adv_mw_mid: float = 0.0
+    adv_mw_high: float = 0.0
 
 
 @dataclass

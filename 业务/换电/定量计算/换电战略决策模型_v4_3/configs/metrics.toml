@@ -1508,6 +1508,546 @@ unit = "元/小时"
 decimals = 0
 group = "⑧重卡"
 
+# ── 分场景的年化分解（2026-09-18）：四项差异折成"每年多花多少钱"，与时间价值直接相减。
+#    净优势为负＝这一档资金成本的车队会选充电/超充。
+[[metric]]
+key = "tco.short_gap_energy_year_wan"
+source = "tco"
+label = "重卡短途·能源单价差·每年"
+at = "swap_business.heavy_economics.short.gap_energy_year_wan"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.short_packs_total_wan"
+source = "tco"
+label = "重卡短途·充电车持有期换电池合计"
+at = "swap_business.heavy_economics.short.packs_total_wan"
+unit = "万元"
+decimals = 1
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.short_tv_year_wan"
+source = "tco"
+label = "重卡短途·参照时间价值·常规快充"
+at = "swap_business.heavy_economics.short.tv_year_wan"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.short_tv_mw_year_wan"
+source = "tco"
+label = "重卡短途·参照时间价值·兆瓦超充"
+at = "swap_business.heavy_economics.short.tv_mw_year_wan"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.short_net_year_low"
+source = "tco"
+label = "重卡短途·年化净差额（资金成本低）"
+at = "swap_business.heavy_economics.short.net_year_low"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.short_adv_low"
+source = "tco"
+label = "重卡短途·换电净优势·常规快充（资金成本低）"
+at = "swap_business.heavy_economics.short.adv_low"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.short_adv_mw_low"
+source = "tco"
+label = "重卡短途·换电净优势·兆瓦超充（资金成本低）"
+at = "swap_business.heavy_economics.short.adv_mw_low"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.short_net_year_mid"
+source = "tco"
+label = "重卡短途·年化净差额（资金成本中）"
+at = "swap_business.heavy_economics.short.net_year_mid"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.short_adv_mid"
+source = "tco"
+label = "重卡短途·换电净优势·常规快充（资金成本中）"
+at = "swap_business.heavy_economics.short.adv_mid"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.short_adv_mw_mid"
+source = "tco"
+label = "重卡短途·换电净优势·兆瓦超充（资金成本中）"
+at = "swap_business.heavy_economics.short.adv_mw_mid"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.short_net_year_high"
+source = "tco"
+label = "重卡短途·年化净差额（资金成本高）"
+at = "swap_business.heavy_economics.short.net_year_high"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.short_adv_high"
+source = "tco"
+label = "重卡短途·换电净优势·常规快充（资金成本高）"
+at = "swap_business.heavy_economics.short.adv_high"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.short_adv_mw_high"
+source = "tco"
+label = "重卡短途·换电净优势·兆瓦超充（资金成本高）"
+at = "swap_business.heavy_economics.short.adv_mw_high"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.mid_gap_energy_year_wan"
+source = "tco"
+label = "重卡中途·能源单价差·每年"
+at = "swap_business.heavy_economics.mid.gap_energy_year_wan"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.mid_packs_total_wan"
+source = "tco"
+label = "重卡中途·充电车持有期换电池合计"
+at = "swap_business.heavy_economics.mid.packs_total_wan"
+unit = "万元"
+decimals = 1
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.mid_tv_year_wan"
+source = "tco"
+label = "重卡中途·参照时间价值·常规快充"
+at = "swap_business.heavy_economics.mid.tv_year_wan"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.mid_tv_mw_year_wan"
+source = "tco"
+label = "重卡中途·参照时间价值·兆瓦超充"
+at = "swap_business.heavy_economics.mid.tv_mw_year_wan"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.mid_net_year_low"
+source = "tco"
+label = "重卡中途·年化净差额（资金成本低）"
+at = "swap_business.heavy_economics.mid.net_year_low"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.mid_adv_low"
+source = "tco"
+label = "重卡中途·换电净优势·常规快充（资金成本低）"
+at = "swap_business.heavy_economics.mid.adv_low"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.mid_adv_mw_low"
+source = "tco"
+label = "重卡中途·换电净优势·兆瓦超充（资金成本低）"
+at = "swap_business.heavy_economics.mid.adv_mw_low"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.mid_net_year_mid"
+source = "tco"
+label = "重卡中途·年化净差额（资金成本中）"
+at = "swap_business.heavy_economics.mid.net_year_mid"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.mid_adv_mid"
+source = "tco"
+label = "重卡中途·换电净优势·常规快充（资金成本中）"
+at = "swap_business.heavy_economics.mid.adv_mid"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.mid_adv_mw_mid"
+source = "tco"
+label = "重卡中途·换电净优势·兆瓦超充（资金成本中）"
+at = "swap_business.heavy_economics.mid.adv_mw_mid"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.mid_net_year_high"
+source = "tco"
+label = "重卡中途·年化净差额（资金成本高）"
+at = "swap_business.heavy_economics.mid.net_year_high"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.mid_adv_high"
+source = "tco"
+label = "重卡中途·换电净优势·常规快充（资金成本高）"
+at = "swap_business.heavy_economics.mid.adv_high"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.mid_adv_mw_high"
+source = "tco"
+label = "重卡中途·换电净优势·兆瓦超充（资金成本高）"
+at = "swap_business.heavy_economics.mid.adv_mw_high"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.long_gap_energy_year_wan"
+source = "tco"
+label = "重卡长途·能源单价差·每年"
+at = "swap_business.heavy_economics.long.gap_energy_year_wan"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.long_packs_total_wan"
+source = "tco"
+label = "重卡长途·充电车持有期换电池合计"
+at = "swap_business.heavy_economics.long.packs_total_wan"
+unit = "万元"
+decimals = 1
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.long_tv_year_wan"
+source = "tco"
+label = "重卡长途·参照时间价值·常规快充"
+at = "swap_business.heavy_economics.long.tv_year_wan"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.long_tv_mw_year_wan"
+source = "tco"
+label = "重卡长途·参照时间价值·兆瓦超充"
+at = "swap_business.heavy_economics.long.tv_mw_year_wan"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.long_net_year_low"
+source = "tco"
+label = "重卡长途·年化净差额（资金成本低）"
+at = "swap_business.heavy_economics.long.net_year_low"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.long_adv_low"
+source = "tco"
+label = "重卡长途·换电净优势·常规快充（资金成本低）"
+at = "swap_business.heavy_economics.long.adv_low"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.long_adv_mw_low"
+source = "tco"
+label = "重卡长途·换电净优势·兆瓦超充（资金成本低）"
+at = "swap_business.heavy_economics.long.adv_mw_low"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.long_net_year_mid"
+source = "tco"
+label = "重卡长途·年化净差额（资金成本中）"
+at = "swap_business.heavy_economics.long.net_year_mid"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.long_adv_mid"
+source = "tco"
+label = "重卡长途·换电净优势·常规快充（资金成本中）"
+at = "swap_business.heavy_economics.long.adv_mid"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.long_adv_mw_mid"
+source = "tco"
+label = "重卡长途·换电净优势·兆瓦超充（资金成本中）"
+at = "swap_business.heavy_economics.long.adv_mw_mid"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.long_net_year_high"
+source = "tco"
+label = "重卡长途·年化净差额（资金成本高）"
+at = "swap_business.heavy_economics.long.net_year_high"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.long_adv_high"
+source = "tco"
+label = "重卡长途·换电净优势·常规快充（资金成本高）"
+at = "swap_business.heavy_economics.long.adv_high"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.long_adv_mw_high"
+source = "tco"
+label = "重卡长途·换电净优势·兆瓦超充（资金成本高）"
+at = "swap_business.heavy_economics.long.adv_mw_high"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+# ── 产能投资强度（2026-09-18）：满足兑现年装机要花多少钱、新进入者的门槛有多高。
+[[metric]]
+key = "mfg.capacity_gap_gwh"
+source = "scale"
+label = "兑现年产能缺口"
+at = "scale.capacity_gap_gwh"
+unit = "GWh"
+decimals = 1
+group = "②制造出货"
+note = "兑现年车辆装机合计 −（现有产能＋在建产能）；为 0 表示在建产能投产后车辆装机不缺产能"
+
+[[metric]]
+key = "mfg.capacity_capex_yi"
+source = "scale"
+label = "补产能缺口所需投资"
+at = "scale.capacity_capex_yi"
+unit = "亿元"
+decimals = 0
+group = "②制造出货"
+
+[[metric]]
+key = "mfg.swap_capacity_capex_yi"
+source = "scale"
+label = "换电装车对应的产能投资"
+at = "scale.swap_capacity_capex_yi"
+unit = "亿元"
+decimals = 0
+group = "②制造出货"
+
+[[metric]]
+key = "mfg.newcomer_line_capex_yi"
+source = "scale"
+label = "新进入者建一条对标产线的投资"
+at = "scale.newcomer_line_capex_yi"
+unit = "亿元"
+decimals = 0
+group = "②制造出货"
+
+[[metric]]
+key = "mfg.dep_per_kwh_full"
+source = "scale"
+label = "产线折旧·满产"
+at = "scale.dep_per_kwh_full"
+unit = "元/kWh"
+decimals = 1
+group = "②制造出货"
+
+[[metric]]
+key = "mfg.dep_per_kwh_half"
+source = "scale"
+label = "产线折旧·利用率减半"
+at = "scale.dep_per_kwh_half"
+unit = "元/kWh"
+decimals = 1
+group = "②制造出货"
+
+[[metric]]
+key = "base.fleet_rate_low"
+source = "external"
+label = "车队资金成本·低档"
+at_cfg = "tco_jpm.fleet_discount_rate_low"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "⑧重卡"
+
+[[metric]]
+key = "base.fleet_rate_mid"
+source = "external"
+label = "车队资金成本·中档"
+at_cfg = "tco_jpm.fleet_discount_rate_mid"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "⑧重卡"
+
+[[metric]]
+key = "base.fleet_rate_high"
+source = "external"
+label = "车队资金成本·高档"
+at_cfg = "tco_jpm.fleet_discount_rate_high"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "⑧重卡"
+
+[[metric]]
+key = "base.leader_capex_intensity"
+source = "external"
+label = "头部单位产能投资强度"
+at_cfg = "capacity_investment.leader_intensity_yi_per_gwh"
+unit = "亿元/GWh"
+decimals = 1
+group = "②制造出货"
+
+[[metric]]
+key = "base.newcomer_capex_intensity"
+source = "external"
+label = "新进入者单位产能投资强度"
+at_cfg = "capacity_investment.newcomer_intensity_yi_per_gwh"
+unit = "亿元/GWh"
+decimals = 1
+group = "②制造出货"
+
+# ── 收入与成本的结构（2026-09-18）：第 7 章要把"参数 → 收入/成本 → EBITDA"的链条摆出来。
+
+[[metric]]
+key = "swap.arbitrage"
+source = "business"
+label = "峰谷套利收入"
+at = "swap_business.arbitrage_yi"
+unit = "亿元"
+decimals = 1
+group = "④运营"
+
+[[metric]]
+key = "swap.energy_cost"
+source = "business"
+label = "电费成本"
+at = "swap_business.energy_cost_yi"
+unit = "亿元"
+decimals = 1
+group = "④运营"
+
+[[metric]]
+key = "swap.station_rent"
+source = "business"
+label = "站址租金"
+at = "swap_business.station_rent_yi"
+unit = "亿元"
+decimals = 1
+group = "④运营"
+
+[[metric]]
+key = "swap.labor"
+source = "business"
+label = "站点人工"
+at = "swap_business.labor_yi"
+unit = "亿元"
+decimals = 1
+group = "④运营"
+
+[[metric]]
+key = "swap.depreciation"
+source = "business"
+label = "折旧"
+at = "swap_business.depreciation_yi"
+unit = "亿元"
+decimals = 1
+group = "④运营"
+
+[[metric]]
+key = "swap.rent_eligible"
+source = "business"
+label = "可收租电池"
+at = "swap_business.rent_eligible_gwh"
+unit = "GWh"
+decimals = 1
+group = "④运营"
+
+[[metric]]
+key = "base.service_fee"
+source = "external"
+label = "度电服务费"
+at_cfg = "swap_business.service_fee_rmb_kwh"
+unit = "元/kWh"
+decimals = 2
+group = "④运营"
+
+[[metric]]
+key = "base.battery_rent"
+source = "external"
+label = "电池月租"
+at_cfg = "swap_business.battery_rent_rmb_kwh_month"
+unit = "元/kWh·月"
+decimals = 1
+group = "④运营"
+
+[[metric]]
+key = "base.operating_days"
+source = "external"
+label = "年运营天数"
+at_cfg = "swap_business.operating_days"
+unit = "天"
+decimals = 0
+group = "④运营"
+
 # ── 以下两条是算出来的输出（at 取快照），只是历史上搭车在外部锚组里登记；
 #    真正的输入（兑现年/driver/外锚/阈值）已改为 base.toml 功能段就地信封，
 #    本字典只保留模型输出（2026-09-13 两层定稿）。

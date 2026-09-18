@@ -233,6 +233,11 @@ def _scene_tco(
     stop_h = max(0.0, (daily_kwh / power if power else 0.0) - sessions * swap_h)
     stop_h_mw = max(0.0, sessions * (mw_h - swap_h))
 
+    # 参照时间价值：JPM 全行业平均的单车年增收，是"常规快充下省出的那些小时"值的钱；
+    # 换成兆瓦超充，省出的小时数按 stop_h_mw/stop_h 等比缩小，同一时薪下年时间价值也同比缩小。
+    tv_year = float(tco.get("annual_gain_swap") or 0.0)
+    tv_mw_year = tv_year * (stop_h_mw / stop_h) if stop_h > 0 else 0.0
+
     swap_total = buy_swap + (annual_kwh * swap_price + fixed) * n
     charge_total = buy_charge + (annual_kwh * charge_price + fixed) * n + packs
     return SceneTco(
@@ -256,16 +261,19 @@ def _scene_tco(
         battery_buy_irr=_battery_buy_irr(
             buy_charge - buy_swap, annual_kwh * (swap_price - charge_price), pack_flows, n),
         battery_upfront_wan=(buy_charge - buy_swap) / 1e4,
+        gap_energy_year_wan=annual_kwh * (swap_price - charge_price) / 1e4,
+        packs_total_wan=packs / 1e4,
         **_hstar_set(
             tco, buy_swap, buy_charge, annual_kwh * swap_price + fixed,
-            annual_kwh * charge_price + fixed, pack_flows, n, days, stop_h, stop_h_mw),
+            annual_kwh * charge_price + fixed, pack_flows, n, days, stop_h, stop_h_mw,
+            tv_year, tv_mw_year),
     )
 
 
 def _hstar_set(
     tco: dict, buy_swap: float, buy_charge: float, swap_annual: float, charge_annual: float,
     pack_flows: list[tuple[float, float]], years: float, days: float,
-    stop_h: float, stop_h_mw: float,
+    stop_h: float, stop_h_mw: float, tv_year: float, tv_mw_year: float,
 ) -> dict[str, float]:
     """【2026-09-18】把三项可算的差异（能源单价、车电分离的资金占用、电池更换）折到同一张账上，
     得到**换电成立所需的最低时间价值**：h*(r) ＝ [PV(换电支出) − PV(充电支出)] ÷ PV(充电每年多停的小时数)。
@@ -275,7 +283,7 @@ def _hstar_set(
     - 时间价值 h 是读者按自己的场景填的数：实际 h 高于 h*，换电更省。
     - 兆瓦超充一档只改"多停的小时数"，不改支出——它把同一笔差额摊到更少的小时上，所以门槛更高。
     """
-    rates = [float(x) for x in (tco.get("fleet_discount_rates") or [])]
+    rates = [float(tco.get(f"fleet_discount_rate_{n}") or 0.0) for n in ("low", "mid", "high")]
     names = ("low", "mid", "high")
     out: dict[str, float] = {}
 
@@ -294,6 +302,13 @@ def _hstar_set(
         gap = pv_swap - pv_charge
         out[f"hstar_{name}"] = gap / (days * stop_h * ann) if stop_h > 0 and ann > 0 else 0.0
         out[f"hstar_mw_{name}"] = gap / (days * stop_h_mw * ann) if stop_h_mw > 0 and ann > 0 else 0.0
+        # 年化净差额：把持有期的现值差摊成每年多花多少钱，直接与"每年的时间价值"相减
+        net_year = gap / ann if ann > 0 else 0.0
+        out[f"net_year_{name}"] = net_year / 1e4
+        out[f"adv_{name}"] = (tv_year - net_year) / 1e4
+        out[f"adv_mw_{name}"] = (tv_mw_year - net_year) / 1e4
+    out["tv_year_wan"] = tv_year / 1e4
+    out["tv_mw_year_wan"] = tv_mw_year / 1e4
     return out
 
 

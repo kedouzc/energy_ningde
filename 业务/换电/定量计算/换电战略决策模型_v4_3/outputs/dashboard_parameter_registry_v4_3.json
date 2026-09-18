@@ -373,13 +373,19 @@
     "type": "float"
   },
   {
-    "key": "tco_jpm.fleet_discount_rates",
-    "value": [
-      0.03,
-      0.08,
-      0.3
-    ],
-    "type": "list"
+    "key": "tco_jpm.fleet_discount_rate_low",
+    "value": 0.03,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.fleet_discount_rate_mid",
+    "value": 0.08,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.fleet_discount_rate_high",
+    "value": 0.3,
+    "type": "float"
   },
   {
     "key": "vehicles.heavy.label",
@@ -1898,5 +1904,35 @@
       }
     ],
     "type": "list"
+  },
+  {
+    "key": "capacity_investment.leader_intensity_yi_per_gwh",
+    "value": 2.0,
+    "type": "float"
+  },
+  {
+    "key": "capacity_investment.newcomer_intensity_yi_per_gwh",
+    "value": 3.5,
+    "type": "float"
+  },
+  {
+    "key": "capacity_investment.existing_capacity_gwh",
+    "value": 772.0,
+    "type": "float"
+  },
+  {
+    "key": "capacity_investment.under_construction_gwh",
+    "value": 321.0,
+    "type": "float"
+  },
+  {
+    "key": "capacity_investment.depreciation_years",
+    "value": 8.0,
+    "type": "float"
+  },
+  {
+    "key": "capacity_investment.benchmark_line_gwh",
+    "value": 18.0,
+    "type": "float"
   }
 ]

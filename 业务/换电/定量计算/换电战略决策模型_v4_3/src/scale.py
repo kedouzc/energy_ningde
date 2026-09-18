@@ -799,6 +799,7 @@ def build_scale(
         charge_gwh_2030=charge_gwh,
         # 产能核查口径：换电需求占用全线产能，只算换电会低估占用率
         total_gwh_2030=swap_gwh + charge_gwh,
+        **_capacity_investment(config, swap_gwh, swap_gwh + charge_gwh),
         total_veh_2030_wan=swap_veh_2030_wan + charge_veh_2030_wan,
         market_total_wan=market_total,
         share_of_market_pct=(veh_ops_total / market_total * 100.0) if market_total else float("nan"),
@@ -1079,3 +1080,34 @@ def assert_yearly_stock_aligned(scale: ScaleResult, swap_business) -> None:
             "逐年存量矩阵兑现年列与⑧组标量对不上（存量/流量口径可能被污染）：\n  "
             + "\n  ".join(failures)
         )
+
+
+def _capacity_investment(config: dict, swap_gwh: float, total_gwh: float) -> dict[str, float]:
+    """【2026-09-18】产能投资强度：满足兑现年装机要花多少钱，新进入者的门槛有多高。
+
+    为什么放在 scale：它的输入就是本模块算出的兑现年装机量，输出只是"装机量 × 单位投资强度"，
+    不涉及换电项目的资本结构（那是 capex 的事），所以不另开模块。
+
+    三个读数各自回答一个问题：
+    - `capacity_capex_yi`：兑现年的车辆装机合计超出"现有＋在建产能"的部分，按头部强度要投多少钱；
+    - `newcomer_line_capex_yi`：新进入者（车企自建、二线新基地）建一条对标产线要投多少钱——**门槛的量级**；
+    - `dep_per_kwh_full/half`：单位产能投资折成每 kWh 电池的产线折旧，满产与半产各一个——
+      **利用率不足的代价**，也是"扩产审批要求利用率过半"这条政策为什么有杀伤力。
+    """
+    cfg = config.get("capacity_investment") or {}
+    lead = float(cfg.get("leader_intensity_yi_per_gwh") or 0.0)
+    new = float(cfg.get("newcomer_intensity_yi_per_gwh") or 0.0)
+    have = float(cfg.get("existing_capacity_gwh") or 0.0) + float(cfg.get("under_construction_gwh") or 0.0)
+    years = float(cfg.get("depreciation_years") or 0.0)
+    line = float(cfg.get("benchmark_line_gwh") or 0.0)
+    gap = max(0.0, total_gwh - have)
+    # 亿元/GWh → 元/kWh：1 亿元 ÷ 1 GWh = 1e8 元 ÷ 1e6 kWh = 100 元/kWh；再按折旧年限摊
+    dep_full = (lead * 100.0 / years) if years else 0.0
+    return {
+        "capacity_gap_gwh": gap,
+        "capacity_capex_yi": gap * lead,
+        "swap_capacity_capex_yi": swap_gwh * lead,
+        "newcomer_line_capex_yi": line * new,
+        "dep_per_kwh_full": dep_full,
+        "dep_per_kwh_half": dep_full * 2.0,
+    }

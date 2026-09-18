@@ -692,14 +692,23 @@ class ConsolidatedLedger:
     # 2026-09-12 从 lab.py 下沉：合并增量价值（业务整体口径）
     # = 运营项目权益价值(100%) + 制造侧增量价值；归属股东口径见 total_swap_increment_value_yi
     combined_increment_value_yi: float = 0.0
-    # 【2026-09-18b】每股刻度：把增量价值换算到和屏幕上同一个数轴上，供第 8 章定调仓
-    base_price_per_share: float = 0.0       # 基准市值 ÷ 总股本（元/股）
-    increment_per_share: float = 0.0        # 换电增量价值 ÷ 总股本（元/股，兑现年时点）
-    target_price_per_share: float = 0.0     # 兑现年目标价＝基准每股 ＋ 每股增量（元/股）
-    upside_over_spot_pct: float = 0.0       # 目标价相对现价的空间（%，兑现年口径，不是今天的空间）
-    margin_of_safety_pct: float = 0.0       # 安全边际：现价相对目标价的折让（%）
-    annualized_to_target_pct: float = 0.0   # 从现价持到兑现年的年化回报（%）——可与机会成本直接比
-    discount_to_base_pct: float = 0.0       # 现价相对基准每股的折让（%，负数＝比基准便宜）
+    # 【2026-09-18d】每股刻度：**分市场各算各的**。A/H 同股不同价，价格不可加总，
+    # 混算出来的"合计市值 ÷ 总股本"既不是 A 股的价也不是 H 股的价（上一版的错）。
+    mktcap_a_yi: float = 0.0                # A 股市值＝A 股股本 × A 股基准价（亿元）
+    mktcap_h_yi: float = 0.0                # H 股市值＝H 股股本 × H 股基准价 × 汇率（亿元）
+    mktcap_ah_yi: float = 0.0               # 两地合计（先分后合，用于校验基准分母）
+    increment_per_share: float = 0.0        # 换电增量价值 ÷ 总股本（元/股，兑现年时点，两地同权）
+    target_price_a: float = 0.0             # A 股兑现年目标价（元/股）
+    target_price_h_hkd: float = 0.0         # H 股兑现年目标价（港元/股）
+    upside_a_pct: float = 0.0               # A 股目标价相对现价的空间（%，兑现年口径）
+    upside_h_pct: float = 0.0               # H 股同上
+    margin_of_safety_a_pct: float = 0.0     # A 股安全边际（%）
+    margin_of_safety_h_pct: float = 0.0     # H 股安全边际（%）
+    annualized_a_pct: float = 0.0           # A 股从现价持到兑现年的年化回报（%）
+    annualized_h_pct: float = 0.0           # H 股同上
+    pure_multiple: float = 0.0              # 纯增量倍数＝1 ＋ 增量 ÷ 当前市值（兑现年时点，不折现）
+    increment_pv_yi: float = 0.0            # 增量按隐含股权成本折回今天（亿元）
+    pure_multiple_pv: float = 0.0           # 折现口径的纯增量倍数
 
 
 @dataclass

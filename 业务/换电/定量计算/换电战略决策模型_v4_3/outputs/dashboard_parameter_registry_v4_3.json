@@ -223,6 +223,31 @@
     "type": "float"
   },
   {
+    "key": "financial_2026e.a_shares_yi",
+    "value": 44.0847,
+    "type": "float"
+  },
+  {
+    "key": "financial_2026e.h_shares_yi",
+    "value": 2.183,
+    "type": "float"
+  },
+  {
+    "key": "financial_2026e.a_price_avg_rmb",
+    "value": 374.5,
+    "type": "float"
+  },
+  {
+    "key": "financial_2026e.h_price_avg_hkd",
+    "value": 624.55,
+    "type": "float"
+  },
+  {
+    "key": "financial_2026e.hkd_to_cny",
+    "value": 0.915,
+    "type": "float"
+  },
+  {
     "key": "financial_2026e.total_shares_yi",
     "value": 46.2677,
     "type": "float"
@@ -230,6 +255,11 @@
   {
     "key": "financial_2026e.spot_price_a_rmb",
     "value": 304.3,
+    "type": "float"
+  },
+  {
+    "key": "financial_2026e.spot_price_h_hkd",
+    "value": 505.0,
     "type": "float"
   },
   {

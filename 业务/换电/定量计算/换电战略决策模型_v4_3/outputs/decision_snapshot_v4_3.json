@@ -3748,13 +3748,21 @@
     "power_value_cagr_2026_to_2030": 0.15686095606592887,
     "value_bridge_error_yi": 2.1316282072803006e-14,
     "combined_increment_value_yi": 23436.98059896383,
-    "base_price_per_share": 383.78825833140615,
+    "mktcap_a_yi": 16509.72015,
+    "mktcap_h_yi": 1247.50427475,
+    "mktcap_ah_yi": 17757.224424750002,
     "increment_per_share": 218.69595359119506,
-    "target_price_per_share": 602.4842119226012,
-    "upside_over_spot_pct": 97.99021095057547,
-    "margin_of_safety_pct": 49.492452419800124,
-    "annualized_to_target_pct": 18.620822103229283,
-    "discount_to_base_pct": -20.71148780762516
+    "target_price_a": 593.1959535911951,
+    "target_price_h_hkd": 863.561971137918,
+    "upside_a_pct": 94.93787498889093,
+    "upside_h_pct": 71.00237052236,
+    "margin_of_safety_a_pct": 48.701605572699115,
+    "margin_of_safety_h_pct": 41.52127850945543,
+    "annualized_a_pct": 18.160972551621725,
+    "annualized_h_pct": 14.353782051560104,
+    "pure_multiple": 1.569834925492557,
+    "increment_pv_yi": 5600.450117444413,
+    "pure_multiple_pv": 1.315393935768678
   },
   "light_asset": [
     {

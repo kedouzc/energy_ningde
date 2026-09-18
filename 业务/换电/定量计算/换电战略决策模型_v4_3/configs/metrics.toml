@@ -1918,56 +1918,6 @@ decimals = 1
 group = "②制造出货"
 
 [[metric]]
-key = "base.fleet_rate_low"
-source = "external"
-label = "车队资金成本·低档"
-at_cfg = "tco_jpm.fleet_discount_rate_low"
-unit = "%"
-decimals = 0
-scale = 100.0
-group = "⑧重卡"
-
-[[metric]]
-key = "base.fleet_rate_mid"
-source = "external"
-label = "车队资金成本·中档"
-at_cfg = "tco_jpm.fleet_discount_rate_mid"
-unit = "%"
-decimals = 0
-scale = 100.0
-group = "⑧重卡"
-
-[[metric]]
-key = "base.fleet_rate_high"
-source = "external"
-label = "车队资金成本·高档"
-at_cfg = "tco_jpm.fleet_discount_rate_high"
-unit = "%"
-decimals = 0
-scale = 100.0
-group = "⑧重卡"
-
-[[metric]]
-key = "base.leader_capex_intensity"
-source = "external"
-label = "头部单位产能投资强度"
-at_cfg = "capacity_investment.leader_intensity_yi_per_gwh"
-unit = "亿元/GWh"
-decimals = 1
-group = "②制造出货"
-
-[[metric]]
-key = "base.newcomer_capex_intensity"
-source = "external"
-label = "新进入者单位产能投资强度"
-at_cfg = "capacity_investment.newcomer_intensity_yi_per_gwh"
-unit = "亿元/GWh"
-decimals = 1
-group = "②制造出货"
-
-# ── 收入与成本的结构（2026-09-18）：第 7 章要把"参数 → 收入/成本 → EBITDA"的链条摆出来。
-
-[[metric]]
 key = "swap.arbitrage"
 source = "business"
 label = "峰谷套利收入"
@@ -2021,36 +1971,6 @@ unit = "GWh"
 decimals = 1
 group = "④运营"
 
-[[metric]]
-key = "base.service_fee"
-source = "external"
-label = "度电服务费"
-at_cfg = "swap_business.service_fee_rmb_kwh"
-unit = "元/kWh"
-decimals = 2
-group = "④运营"
-
-[[metric]]
-key = "base.battery_rent"
-source = "external"
-label = "电池月租"
-at_cfg = "swap_business.battery_rent_rmb_kwh_month"
-unit = "元/kWh·月"
-decimals = 1
-group = "④运营"
-
-[[metric]]
-key = "base.operating_days"
-source = "external"
-label = "年运营天数"
-at_cfg = "swap_business.operating_days"
-unit = "天"
-decimals = 0
-group = "④运营"
-
-# ── 以下两条是算出来的输出（at 取快照），只是历史上搭车在外部锚组里登记；
-#    真正的输入（兑现年/driver/外锚/阈值）已改为 base.toml 功能段就地信封，
-#    本字典只保留模型输出（2026-09-13 两层定稿）。
 [[metric]]
 key = "ops.market_total"
 source = "scale"
@@ -2597,33 +2517,6 @@ group = "⑧重卡"
 note = "车电分离的资本对价，不是能源费；它的镜像是省下的首付"
 
 [[metric]]
-key = "base.charge_power_price"
-source = "external"
-label = "重卡充电裸电价"
-at_cfg = "tco_jpm.charge_power_price_rmb_kwh"
-unit = "元/kWh"
-decimals = 2
-group = "⑧重卡"
-
-[[metric]]
-key = "base.charge_service_fee"
-source = "external"
-label = "重卡充电服务费中枢"
-at_cfg = "tco_jpm.charge_service_fee_rmb_kwh"
-unit = "元/kWh"
-decimals = 2
-group = "⑧重卡"
-
-[[metric]]
-key = "base.charge_service_floor"
-source = "external"
-label = "重卡充电服务费下沿"
-at_cfg = "tco_jpm.charge_service_fee_floor_rmb_kwh"
-unit = "元/kWh"
-decimals = 2
-group = "⑧重卡"
-
-[[metric]]
 key = "mfg.cell_buy_price"
 source = "scale"
 label = "外购电芯市价"
@@ -2723,30 +2616,42 @@ decimals = 0
 group = "②制造出货"
 
 [[metric]]
-key = "base.self_cash_cost"
-source = "external"
-label = "自建现金成本"
-at_cfg = "capacity_investment.self_cash_cost_rmb_kwh"
-unit = "元/kWh"
-decimals = 0
-group = "②制造出货"
-
-[[metric]]
-key = "base.yield_gap"
-source = "external"
-label = "与龙头的良率差"
-at_cfg = "capacity_investment.yield_gap_rmb_kwh"
-unit = "元/kWh"
-decimals = 0
-group = "②制造出货"
-
-[[metric]]
-key = "val.base_price_per_share"
-source = "consolidation"
-label = "基准每股价值"
-at = "ledger.base_price_per_share"
-unit = "元/股"
+key = "swap.charged_energy"
+source = "business"
+label = "站端充电电量"
+at = "swap_business.charged_energy_yi_kwh"
+unit = "亿kWh"
 decimals = 1
+group = "④运营"
+note = "换电电量 ÷ 综合效率 ×（1＋站用电率）；它与换电电量之差就是净额法下唯一进成本的电量"
+
+
+
+[[metric]]
+key = "val.mktcap_a"
+source = "consolidation"
+label = "A股市值"
+at = "ledger.mktcap_a_yi"
+unit = "亿元"
+decimals = 0
+group = "⑤估值"
+
+[[metric]]
+key = "val.mktcap_h"
+source = "consolidation"
+label = "H股市值"
+at = "ledger.mktcap_h_yi"
+unit = "亿元"
+decimals = 0
+group = "⑤估值"
+
+[[metric]]
+key = "val.mktcap_ah"
+source = "consolidation"
+label = "两地合计市值"
+at = "ledger.mktcap_ah_yi"
+unit = "亿元"
+decimals = 0
 group = "⑤估值"
 
 [[metric]]
@@ -2759,153 +2664,100 @@ decimals = 1
 group = "⑤估值"
 
 [[metric]]
-key = "val.target_price_per_share"
+key = "val.target_price_a"
 source = "consolidation"
-label = "兑现年目标价"
-at = "ledger.target_price_per_share"
+label = "A股兑现年目标价"
+at = "ledger.target_price_a"
 unit = "元/股"
 decimals = 1
 group = "⑤估值"
 
 [[metric]]
-key = "val.upside_over_spot_pct"
+key = "val.target_price_h"
 source = "consolidation"
-label = "目标价对现价的空间"
-at = "ledger.upside_over_spot_pct"
+label = "H股兑现年目标价"
+at = "ledger.target_price_h_hkd"
+unit = "港元/股"
+decimals = 1
+group = "⑤估值"
+
+[[metric]]
+key = "val.upside_a"
+source = "consolidation"
+label = "A股目标价对现价的空间"
+at = "ledger.upside_a_pct"
 unit = "%"
 decimals = 0
 group = "⑤估值"
 
 [[metric]]
-key = "val.margin_of_safety_pct"
+key = "val.upside_h"
 source = "consolidation"
-label = "安全边际"
-at = "ledger.margin_of_safety_pct"
+label = "H股目标价对现价的空间"
+at = "ledger.upside_h_pct"
 unit = "%"
 decimals = 0
 group = "⑤估值"
 
 [[metric]]
-key = "val.annualized_to_target_pct"
+key = "val.mos_a"
 source = "consolidation"
-label = "持到兑现年的年化回报"
-at = "ledger.annualized_to_target_pct"
+label = "A股安全边际"
+at = "ledger.margin_of_safety_a_pct"
+unit = "%"
+decimals = 0
+group = "⑤估值"
+
+[[metric]]
+key = "val.mos_h"
+source = "consolidation"
+label = "H股安全边际"
+at = "ledger.margin_of_safety_h_pct"
+unit = "%"
+decimals = 0
+group = "⑤估值"
+
+[[metric]]
+key = "val.annualized_a"
+source = "consolidation"
+label = "A股持到兑现年的年化回报"
+at = "ledger.annualized_a_pct"
 unit = "%"
 decimals = 1
 group = "⑤估值"
 
 [[metric]]
-key = "val.discount_to_base"
+key = "val.annualized_h"
 source = "consolidation"
-label = "现价相对基准的折让"
-at = "ledger.discount_to_base_pct"
+label = "H股持到兑现年的年化回报"
+at = "ledger.annualized_h_pct"
 unit = "%"
+decimals = 1
+group = "⑤估值"
+
+[[metric]]
+key = "val.pure_multiple"
+source = "consolidation"
+label = "纯增量倍数"
+at = "ledger.pure_multiple"
+unit = "倍"
+decimals = 2
+group = "⑤估值"
+
+[[metric]]
+key = "val.increment_pv"
+source = "consolidation"
+label = "增量价值折现到今天"
+at = "ledger.increment_pv_yi"
+unit = "亿元"
 decimals = 0
 group = "⑤估值"
 
-
 [[metric]]
-key = "swap.charged_energy"
-source = "business"
-label = "站端充电电量"
-at = "swap_business.charged_energy_yi_kwh"
-unit = "亿kWh"
-decimals = 1
-group = "④运营"
-note = "换电电量 ÷ 综合效率 ×（1＋站用电率）；它与换电电量之差就是净额法下唯一进成本的电量"
-
-[[metric]]
-key = "base.rte"
-source = "external"
-label = "充放电综合效率"
-at_cfg = "swap_business.rte"
-unit = "%"
-decimals = 0
-scale = 100.0
-group = "④运营"
-
-[[metric]]
-key = "base.aux_power_rate"
-source = "external"
-label = "站用电率"
-at_cfg = "swap_business.auxiliary_power_rate"
-unit = "%"
-decimals = 0
-scale = 100.0
-group = "④运营"
-
-[[metric]]
-key = "base.site_rent"
-source = "external"
-label = "单站年租"
-at_cfg = "swap_business.site_rent_wan_year"
-unit = "万元/年"
-decimals = 0
-group = "④运营"
-
-[[metric]]
-key = "base.heavy_labor"
-source = "external"
-label = "骐骥站单站年人工"
-at_cfg = "swap_business.heavy_station_labor_wan_year"
-unit = "万元/年"
+key = "val.pure_multiple_pv"
+source = "consolidation"
+label = "纯增量倍数·折现口径"
+at = "ledger.pure_multiple_pv"
+unit = "倍"
 decimals = 2
-group = "④运营"
-
-[[metric]]
-key = "base.choco_labor"
-source = "external"
-label = "巧克力站单站年人工"
-at_cfg = "swap_business.passenger_station_labor_wan_year"
-unit = "万元/年"
-decimals = 3
-group = "④运营"
-
-[[metric]]
-key = "base.battery_insurance_rate"
-source = "external"
-label = "电池保险费率"
-at_cfg = "swap_business.battery_insurance_rate"
-unit = "%"
-decimals = 2
-scale = 100.0
-group = "④运营"
-
-[[metric]]
-key = "base.equipment_insurance_rate"
-source = "external"
-label = "设备保险费率"
-at_cfg = "swap_business.equipment_insurance_rate"
-unit = "%"
-decimals = 2
-scale = 100.0
-group = "④运营"
-
-[[metric]]
-key = "base.pooling_maintenance_rate"
-source = "external"
-label = "池化维护费率"
-at_cfg = "swap_business.pooling_maintenance_rate"
-unit = "%"
-decimals = 2
-scale = 100.0
-group = "④运营"
-
-[[metric]]
-key = "base.warehouse_logistics_rate"
-source = "external"
-label = "仓储物流费率"
-at_cfg = "swap_business.warehouse_logistics_rate"
-unit = "%"
-decimals = 2
-scale = 100.0
-group = "④运营"
-
-[[metric]]
-key = "base.software_opex"
-source = "external"
-label = "软件年投入"
-at_cfg = "swap_business.software_opex_yi_year"
-unit = "亿元/年"
-decimals = 1
-group = "④运营"
+group = "⑤估值"

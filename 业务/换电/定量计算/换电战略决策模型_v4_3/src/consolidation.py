@@ -110,50 +110,74 @@ def build_consolidated_ledger(
             power_value_with, baseline.power_market_value_2026e_yi, year_gap
         ),
         value_bridge_error_yi=bridge_error,
-        **_per_share(config, current_group_value, total_value_increment, year_gap),
+        **_per_share(config, current_group_value, total_value_increment, year_gap,
+                     float(getattr(swap, "dcf_ke_derived", 0.0) or 0.0)),
     )
 
 
 def _per_share(
-    config: dict, base_cap_yi: float, increment_yi: float, year_gap: float
+    config: dict, base_cap_yi: float, increment_yi: float, year_gap: float, ke: float = 0.0
 ) -> dict[str, float]:
-    """【2026-09-18b】把"增量价值"折成每股，作为调仓的刻度。
+    """【2026-09-18d 重写】把"增量价值"折成每股——**分市场各算各的，不混算**。
 
-    为什么必须做这一步：第 8 章原来只判断资本端"有没有定价"，那是个是非题；
-    要决定**加多少、在什么价位加**，就得把亿元换算成元/股，和屏幕上的价格放在同一个数轴上。
+    为什么必须分开（上一版的错）：A 股与 H 股同股不同价（H 对 A 溢价约五成）。
+    "合计市值 ÷ 总股本"得到的是一个**混合价**，它既不是 A 股的价、也不是 H 股的价，
+    拿它跟任一市场的现价比空间，比的是两个不存在的东西。
+    **能加总的是价值，不能加总的是价格**——这与分部估值是同一条纪律。
 
-    三条口径必须写死，否则这个数会被误用：
-    1. **增量价值是兑现年时点口径**（运营侧＝兑现年 EBITDA × 倍数，制造侧＝兑现年净利 × PE），
-       没有折回今天。所以目标价是**兑现年的价**，不能直接和今天的股价比"空间"，
-       只能比**年化回报**——那才是可以和机会成本对齐的量。
-    2. **基准每股假定主业价值不变**，即这段时间里除换电以外什么都没发生。这是"世界 A"的
-       静态基准，不是主业预测；主业自身的增减不在本模型的解释范围内。
-    3. **每股按总股本摊**，但 A 股与 H 股同股不同价（H 对 A 溢价约五成）。同一个
-       "每股增量价值"落到两个市场上，占各自股价的比例不同——用在哪个市场就取哪个现价。
+    正确的做法：
+    - 市值：A 股股本 × A 股价 ＋ H 股股本 × H 股价 × 汇率，**先分后合**；
+    - 每股增量：增量价值 ÷ **总股本**（同一份股东权益，两地同权，这一项确实该按总股本摊）；
+    - 目标价：各自的基准价 ＋ 每股增量（H 股按汇率折回港元），**两个市场各得一个目标价**。
+
+    "几年几倍"的口径（2026-09-18d 按研究者的框架改）：
+    除换电以外的业务都是可线性外推的，**当前市值已经是市场对它们的有效定价**，
+    所以不需要"假定主业价值不变"这个说法——那是把一个定价事实说成了假设。
+    换电当前被当作零（第 7 章三条外部观察），因此它是**纯增量**：
+        纯增量倍数 ＝ 1 ＋ 增量价值 ÷ 当前市值
+    唯一要补的严谨性是**时点**：增量是兑现年的价值，当前市值是今天的价格。
+    所以同时给出折现口径（按本报告隐含股权成本折回今天），两个数一起看：
+    **不折现的倍数回答"到那一年能变成几倍"，折现的倍数回答"今天该为它付多少"。**
     """
     fin = config.get("financial_2026e") or {}
     shares = float(fin.get("total_shares_yi") or 0.0)
-    spot = float(fin.get("spot_price_a_rmb") or 0.0)
-    if shares <= 0:
+    a_sh = float(fin.get("a_shares_yi") or 0.0)
+    h_sh = float(fin.get("h_shares_yi") or 0.0)
+    a_avg = float(fin.get("a_price_avg_rmb") or 0.0)
+    h_avg = float(fin.get("h_price_avg_hkd") or 0.0)
+    fx = float(fin.get("hkd_to_cny") or 0.0)
+    spot_a = float(fin.get("spot_price_a_rmb") or 0.0)
+    spot_h = float(fin.get("spot_price_h_hkd") or 0.0)
+    if shares <= 0 or a_sh <= 0 or h_sh <= 0 or fx <= 0:
         return {}
-    base_ps = base_cap_yi / shares
-    incr_ps = increment_yi / shares
-    target_ps = base_ps + incr_ps
-    out = {
-        "base_price_per_share": base_ps,
-        "increment_per_share": incr_ps,
-        "target_price_per_share": target_ps,
+
+    out: dict[str, float] = {
+        "mktcap_a_yi": a_sh * a_avg,
+        "mktcap_h_yi": h_sh * h_avg * fx,
     }
-    if spot > 0 and target_ps:
-        out["upside_over_spot_pct"] = (target_ps / spot - 1.0) * 100.0
-        # 安全边际：现价相对兑现年目标价的折让，是"还能跌多少才不亏"的刻度
-        out["margin_of_safety_pct"] = (1.0 - spot / target_ps) * 100.0
+    out["mktcap_ah_yi"] = out["mktcap_a_yi"] + out["mktcap_h_yi"]
+    # 每股增量按总股本摊——两地同股同权，增量价值不区分在哪个市场上市
+    incr_ps = increment_yi / shares
+    out["increment_per_share"] = incr_ps
+    out["target_price_a"] = a_avg + incr_ps
+    out["target_price_h_hkd"] = h_avg + incr_ps / fx
+
+    def _leg(tag: str, spot: float, target: float) -> None:
+        if spot <= 0 or target <= 0:
+            return
+        out[f"upside_{tag}_pct"] = (target / spot - 1.0) * 100.0
+        out[f"margin_of_safety_{tag}_pct"] = (1.0 - spot / target) * 100.0
         if year_gap > 0:
-            out["annualized_to_target_pct"] = (
-                (target_ps / spot) ** (1.0 / year_gap) - 1.0
-            ) * 100.0
-        # 现价相对基准每股的折让。**它不是"换电被定价了多少"**——基准本身就是市场自己的报价，
-        # 里面已经含着市场对换电的任何看法，无法从价格里单独剥离出来。能读的只有：
-        # 现价相对这一季的自身均值偏离多少，也就是"买点相对基准便宜还是贵"。
-        out["discount_to_base_pct"] = (spot / base_ps - 1.0) * 100.0 if base_ps else 0.0
+            out[f"annualized_{tag}_pct"] = ((target / spot) ** (1.0 / year_gap) - 1.0) * 100.0
+
+    _leg("a", spot_a, out["target_price_a"])
+    _leg("h", spot_h, out["target_price_h_hkd"])
+
+    # 纯增量倍数：当前市值已有效定价了可线性外推的业务，换电被当作零，所以它是纯加项
+    if base_cap_yi > 0:
+        out["pure_multiple"] = 1.0 + increment_yi / base_cap_yi
+        if ke > 0 and year_gap > 0:
+            pv = increment_yi / (1.0 + ke) ** year_gap
+            out["increment_pv_yi"] = pv
+            out["pure_multiple_pv"] = 1.0 + pv / base_cap_yi
     return out

@@ -539,6 +539,14 @@ class SceneTco:
     charge_battery_life: float                  # 充电车电池寿命（年，按本场景循环强度现算）
     replacements: int                           # 持有期内充电车需换电池的次数
     flip_gain_wan: float                        # 翻转门槛：单车年时间价值高于它，换电才更省（万元/年；负数＝不靠时间价值也省）
+    extra_stop_hours_day: float = 0.0          # 充电比换电每天多停的小时数（常规直流快充）
+    flip_per_hour: float = 0.0                  # 每少停一小时至少要值多少元（常规快充对照）
+    extra_stop_hours_day_mw: float = 0.0        # 同上，兆瓦超充对照
+    flip_per_hour_mw: float = 0.0               # 同上，兆瓦超充对照（元/小时）
+    flip_price_gap: float = 0.0                 # 充电每度电再贵多少，换电不靠时间价值也更省（元/kWh；翻转门槛 ÷ 年耗电）
+    battery_buy_irr: float | None = None        # 车队视角：充电车"多买一块电池"这笔投资的内部收益率（不含时间价值）；
+                                                #   车队资金成本高于它，租电（换电）更划算；None＝不存在（多买电池从不回本）
+    battery_upfront_wan: float = 0.0            # 充电车比换电车多付的购车款（万元，即首付差）
 
 
 @dataclass

@@ -353,6 +353,26 @@
     "type": "float"
   },
   {
+    "key": "tco_jpm.charge_power_kw",
+    "value": 211.0,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.charge_soc_window",
+    "value": 0.75,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.swap_minutes",
+    "value": 5.0,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.megawatt_session_minutes",
+    "value": 18.0,
+    "type": "float"
+  },
+  {
     "key": "vehicles.heavy.label",
     "value": "重卡",
     "type": "str"

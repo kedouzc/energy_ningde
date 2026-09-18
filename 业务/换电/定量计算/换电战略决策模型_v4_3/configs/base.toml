@@ -579,6 +579,15 @@ diesel_energy_cost_year = 430806.0
 diesel_maintenance = 30000.0
 diesel_payload_loss = 0.0
 diesel_purchase_total = 330000.0
+# —— 补能耗时（2026-09-17g）：把「翻转门槛（万元/年）」换算成「每少停一小时要值多少元」——
+# 常规直流快充：281.92 kWh 电池 20%→95% 约 1 小时（src.charge_time_36kr）→ 有效功率 ≈ 281.92×0.75÷1 ≈ 211 kW；
+# 每天充电小时数 ＝ 日耗电 ÷ 有效功率（与电池大小无关）；每次充电用掉 soc_window 的电量。
+charge_power_kw = 211.0
+charge_soc_window = 0.75
+# 换电一次约 5 分钟（src.charge_time_36kr；另一源 3–5 分钟）
+swap_minutes = 5.0
+# 兆瓦超充对照：10%→90% 约 18 分钟（src.megawatt_202609，华为干线实测），只作对照档，不进主结论
+megawatt_session_minutes = 18.0
 
 # ----------------------车辆层（MANIFEST §2）-----------------------------
 # 车辆运营年限法规：网约车 8 年退役/60 万公里报废（交通部暂行办法 39 条）、
@@ -2214,3 +2223,323 @@ unit = "%"
 src = "src.qiyuan_appraisal"
 as_of = "2026-08"
 note = "参照谱系上沿：股权端"
+
+[[external_quote]]
+key = "ext.charge_time_conventional"
+label = "重卡常规快充单次时长"
+text = "281.92 kWh 电池 20%→95% 约 1 小时"
+value = 1.0
+unit = "小时"
+src = "src.charge_time_36kr"
+as_of = "2026-09"
+note = "常规直流快充口径；模型据此取有效功率（charge_power_kw）"
+
+[[external_quote]]
+key = "ext.swap_time"
+label = "重卡换电单次时长"
+text = "约 5 分钟（另一源 3–5 分钟）"
+value = 5.0
+unit = "分钟"
+src = "src.charge_time_36kr"
+as_of = "2026-09"
+note = "模型取 swap_minutes"
+
+[[external_quote]]
+key = "ext.megawatt_time"
+label = "兆瓦超充单次时长"
+text = "10%→90% 最快约 18 分钟（干线实测）"
+value = 18.0
+unit = "分钟"
+src = "src.megawatt_202609"
+as_of = "2026-09"
+note = "对照档，不进主结论；超充电价未必是工商业充电价"
+
+[[external_quote]]
+key = "ext.megawatt_trunk_share"
+label = "干线新能源重卡超充车型占比"
+text = "已超 70%"
+value = 70.0
+unit = "%"
+src = "src.megawatt_202609"
+as_of = "2026-09"
+note = "干线正在走向超充——与长途门槛最高、超充对照下门槛陡升一致"
+
+[[external_quote]]
+key = "ext.battery_rent_market"
+label = "重卡电池市场月租"
+text = "每月 7,000–8,000 元"
+value = 7500.0
+unit = "元/月"
+src = "src.megawatt_202609"
+as_of = "2026-09"
+note = "模型租金按容量计，低于此口径——短途真实门槛可能更高"
+
+[[external_quote]]
+key = "ext.swap_vs_mw_tco"
+label = "换电对兆瓦超充的五年成本差（媒体口径）"
+text = "年里程超 12 万公里的固定线路车队，换电单车五年总成本低 8–15 万元"
+value = 11.5
+unit = "万元"
+src = "src.megawatt_202609"
+as_of = "2026-09"
+note = "交叉校验：与本报告口径不同（是否计时间价值、超充电价未说明）"
+
+[[external_quote]]
+key = "ext.driver_wage"
+label = "重卡打工司机月薪"
+text = "约 8,000–15,000 元/月"
+value = 11500.0
+unit = "元/月"
+src = "src.truck_income_blog"
+as_of = "2026-09"
+note = "低可信度：厂商博客汇总，只作量级"
+
+[[external_quote]]
+key = "ext.qiyuan_catl_total"
+label = "宁德时代在启源芯动力的合计持股"
+text = "5.44% → 30.32%（第一大股东）"
+value = 30.32
+unit = "%"
+src = "src.qiyuan_catl_202609"
+as_of = "2026-09"
+note = "受让前已持有；受让后仍非过半"
+
+[[external_quote]]
+key = "ext.qiyuan_fin_2025"
+label = "启源芯动力经营业绩（2025）"
+text = "营收约 95.2 亿元、净利润约 3.56 亿元"
+value = 95.2
+unit = "亿元"
+src = "src.qiyuan_listing_202607"
+as_of = "2026-07"
+note = "挂牌披露口径：启源本身盈利"
+
+[[external_quote]]
+key = "ext.qiyuan_scale_202609"
+label = "启源芯动力网络与车型（2026）"
+text = "充换电站超 1,600 座、换电重卡市占 55%、兼容车型 731 款"
+value = 1600.0
+unit = "座"
+src = "src.qiyuan_catl_202609"
+as_of = "2026-09"
+note = "与 ext.qiyuan_scale（换电站超 1,200 座、市占超七成）口径不同：此处含充电站、市占取销量口径"
+
+[[external_quote]]
+key = "ext.qiyuan_route_fit"
+label = "启源后背式换电的车型适配面"
+text = "适配 80% 以上换电重卡公告车型"
+value = 80.0
+unit = "%"
+src = "src.qiyuan_catl_202609"
+as_of = "2026-09"
+note = "封闭场景主力；宁德时代底盘式主攻干线"
+
+[[external_quote]]
+key = "ext.catl_choco_stations"
+label = "巧克力换电累计落站（2026 年中）"
+text = "累计 2,000 座（2026-06-30，31 省 180 城），2026 年目标超 3,000 座"
+value = 2000.0
+unit = "座"
+src = "src.catl_choco_202606"
+as_of = "2026-06"
+note = "宁德时代乘用与城配自建网络的点火进度"
+
+[[external_quote]]
+key = "ext.charge_service_fee_trend"
+label = "重卡充电服务费走势"
+text = "两年间从约 0.2 元/度降到 0.1 元，部分区域低至 0.08 元"
+value = 0.1
+unit = "元/kWh"
+src = "src.charge_fee_202609"
+as_of = "2026-09"
+note = "充电侧价格战：抬高换电的门槛；不少场站已保本或亏损"
+
+[[external_quote]]
+key = "ext.short_haul_ev_rate"
+label = "港口矿区短途运输电动化率"
+text = "已突破 70%"
+value = 70.0
+unit = "%"
+src = "src.charge_fee_202609"
+as_of = "2026-09"
+note = "含充电与换电；300–500 公里城际干线仅二成多"
+
+[[external_quote]]
+key = "ext.qiji_sales_2026h1"
+label = "骐骥底盘换电重卡销量（2026 上半年）"
+text = "近 4,200 辆，同比增长 1179%"
+value = 4200.0
+unit = "辆"
+src = "src.huoge_qiyuan_202609"
+as_of = "2026-09"
+note = "作者据重卡保险数据统计（转述其上篇）"
+
+[[external_quote]]
+key = "ext.qiji_station_plan_2026"
+label = "骐骥底盘换电站建设计划（2026）"
+text = "计划 2026 年建成 900 座"
+value = 900.0
+unit = "座"
+src = "src.huoge_qiyuan_202609"
+as_of = "2026-09"
+note = "计划数，不是建成数"
+
+[[external_quote]]
+key = "ext.qiyuan_assets_202609"
+label = "启源芯动力网络资产（2026）"
+text = "充换电站超 1,800 座；干线组网 100 余组、补能里程超 5 万公里；服务车辆 12 万"
+value = 1800.0
+unit = "座"
+src = "src.huoge_qiyuan_202609"
+as_of = "2026-09"
+note = "与 ext.qiyuan_scale、ext.qiyuan_scale_202609 口径不同，时点更新"
+
+[[external_quote]]
+key = "ext.qiyuan_standards"
+label = "启源芯动力标准与专利"
+text = "主编/参编标准 130 余项、授权专利超 1,200 项（2024 年末）"
+value = 130.0
+unit = "项"
+src = "src.huoge_qiyuan_202609"
+as_of = "2024-12"
+note = "标准话语权的读数"
+
+[[external_quote]]
+key = "ext.qiyuan_cells_source"
+label = "启源芯动力电芯来源"
+text = "电芯主要来自瑞浦兰钧与启源旗下的远航锦锂（车储共用电池）"
+value = 2.0
+unit = "家"
+src = "src.huoge_qiyuan_202609"
+as_of = "2026-09"
+note = "启源有自己的电池业务：采购切换不只是换供应商，还涉及它自有电池业务的去留"
+
+[[external_quote]]
+key = "ext.catl_hdt_battery_share_2026h1"
+label = "宁德时代新能源重卡电池装车（2026 上半年）"
+text = "37.36 GWh，占 61.1%"
+value = 61.1
+unit = "%"
+src = "src.huoge_qiyuan_202609"
+as_of = "2026-06"
+note = "作者转引电车资源；全部新能源重卡口径（含充电）"
+
+[[external_quote]]
+key = "ext.qiyuan_sale_gain"
+label = "中国电力出售启源确认收益"
+text = "约 13.76 亿元"
+value = 13.76
+unit = "亿元"
+src = "src.huoge_qiyuan_202609"
+as_of = "2026-07"
+note = "卖方在高位兑现"
+
+[[external_quote]]
+key = "ext.catl_capacity_2025"
+label = "宁德时代电池产能（2025 年末）"
+text = "总产能 772 GWh、在建产能 321 GWh"
+value = 772.0
+unit = "GWh"
+src = "src.catl_ar2025_news"
+as_of = "2025-12"
+note = "产能核查的分母"
+
+[[external_quote]]
+key = "ext.catl_sales_2025"
+label = "宁德时代锂电池销量（2025）"
+text = "661 GWh"
+value = 661.0
+unit = "GWh"
+src = "src.catl_ar2025_news"
+as_of = "2025-12"
+note = "—"
+
+[[external_quote]]
+key = "ext.catl_ocf_2025"
+label = "宁德时代经营活动现金流净额（2025）"
+text = "1,332 亿元"
+value = 1332.0
+unit = "亿元"
+src = "src.catl_ar2025_news"
+as_of = "2025-12"
+note = "资金门的对照"
+
+[[external_quote]]
+key = "ext.catl_qiji_2025"
+label = "骐骥换电网络（2025 年末）"
+text = "建站超 300 座、覆盖 26 个省份，换电绿网总长 7.8 万公里"
+value = 300.0
+unit = "座"
+src = "src.catl_ar2025_news"
+as_of = "2025-12"
+note = "公司口径"
+
+[[external_quote]]
+key = "ext.catl_dividend_policy"
+label = "宁德时代分红政策"
+text = "连续三年按归母净利润 50% 现金分红"
+value = 50.0
+unit = "%"
+src = "src.catl_ar2025_news"
+as_of = "2025-12"
+note = "—"
+
+[[external_quote]]
+key = "ext.cv_lease_cost"
+label = "商用车融资租赁综合费率（被监管点名的高位）"
+text = "综合费率被推高至 30% 以上（个体司机、中小物流企业为主）"
+value = 30.0
+unit = "%"
+src = "src.cv_finance_regulation"
+as_of = "2026-05"
+note = "上沿参照：监管正在压降；大型车队与国企的资金成本远低于此"
+
+[[external_quote]]
+key = "ext.catl_mktcap_202609"
+label = "宁德时代总市值（2026 年 9 月）"
+text = "约 1.53 万亿元（A+H，2026-09-08；5 月高点约 2.13 万亿元）"
+value = 15300.0
+unit = "亿元"
+src = "src.catl_mktcap_202609"
+as_of = "2026-09"
+note = "低于模型的集团市值基准；9 月中旬股价又有下行"
+
+[[external_quote]]
+key = "ext.catl_pe_202609"
+label = "宁德时代市盈率（2026 年 9 月）"
+text = "TTM 约 16.6 倍、静态约 19.6 倍（2026-09-15 股价约 300 元）"
+value = 16.6
+unit = "倍"
+src = "src.catl_reprice_202609"
+as_of = "2026-09"
+note = "市场改按周期制造企业定价"
+
+[[external_quote]]
+key = "ext.catl_util_2026h1"
+label = "宁德时代产能利用率（2026 上半年）"
+text = "94.86%；产量 498 GWh、在建产能 764 GWh"
+value = 94.86
+unit = "%"
+src = "src.catl_h1_2026"
+as_of = "2026-06"
+note = "接近满产"
+
+[[external_quote]]
+key = "ext.catl_util_2025"
+label = "宁德时代产能利用率（2025）"
+text = "96.9%（产能 772 GWh、产量 748 GWh），公司称短期产能不足导致部分订单外溢"
+value = 96.9
+unit = "%"
+src = "src.battery_spillover_202604"
+as_of = "2025-12"
+note = "订单外溢到二三线电池厂"
+
+[[external_quote]]
+key = "ext.genlead_capacity"
+label = "远航锦锂电芯产能"
+text = "年 5 GWh 方形电芯；总投资 100 亿元的项目计划 2027 年建成（江苏盐城）"
+value = 5.0
+unit = "GWh"
+src = "src.genlead_202506"
+as_of = "2025-06"
+note = "与启源深度绑定的电芯供应商（有报道称为启源旗下）；已配套三一、重汽、陕汽等重卡"

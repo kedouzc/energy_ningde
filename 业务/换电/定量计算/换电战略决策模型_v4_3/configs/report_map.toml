@@ -73,7 +73,9 @@ uses = []
 support = ["ops.veh_heavy", "ops.veh_city", "ops.veh_passenger_ops", "ops.veh_private",
            "ops.market_total", "ops.share_of_market", "vehicles.heavy.stock_wan",
            "ops.heavy_pen_pct", "tco.lng_wan", "tco.diesel_wan",
-           "tco.short_flip_gain_wan", "tco.mid_flip_gain_wan", "tco.long_flip_gain_wan"]
+           "tco.short_flip_per_hour", "tco.mid_flip_per_hour", "tco.long_flip_per_hour",
+           "tco.mid_flip_price_gap", "tco.long_flip_price_gap",
+           "tco.short_battery_buy_irr", "tco.mid_battery_buy_irr", "tco.long_battery_buy_irr"]
 topics = ["目标用户_谁的痛点"]
 
 [[chapter]]
@@ -163,7 +165,7 @@ subtitle = "几年几倍，市场定价了没有"
 file = "7_估值与回报.src.md"
 answers = "资本端：时间窗 → 兑现年业绩 → 估值方式 → 倍数（双向收敛）→ 市场定价了没有 → 反身性加成 → 汇总到个股"
 owns = ["val.swap_increment", "val.op_ev_multiple"]
-uses = ["val.mfg_increment", "swap.ebitda"]
+uses = ["val.mfg_increment", "swap.ebitda", "val.incr_over_mktcap", "meta.target_year"]
 qual = "定价非共识的三条外部观察：卖方是否用分部估值／换电是否被单独列示／是否有机构给过独立估值（三个「否」＝市场没给它估值）"
 support = ["val.power_with_swap", "val.power_no_swap", "val.op_equity_gross",
            "val.ev_dcf_true", "val.catl_dcf_perpetual", "finance.swap_ev_ebitda",

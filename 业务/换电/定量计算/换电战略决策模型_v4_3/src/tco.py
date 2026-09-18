@@ -213,10 +213,25 @@ def _scene_tco(
     n = float(holding)
     count = max(0, math.ceil(n / life - 1e-9) - 1) if life > 0 else 0
     packs = 0.0
+    pack_flows: list[tuple[float, float]] = []   # (发生时点·年, 金额·元)，供 IRR 用
     for i in range(1, count + 1):
         start = i * life
         used = min(life, n - start) / life
-        packs += kwh * battery_price_rmb_kwh(config, ref + start) * used
+        cost = kwh * battery_price_rmb_kwh(config, ref + start) * used
+        packs += cost
+        pack_flows.append((start, cost))
+
+    # 【2026-09-17g】门槛换成「每少停一小时要值多少元」——读者能拿司机时薪、单车每小时毛利对照。
+    # 常规快充：每天充电小时＝日耗电÷有效功率；每天补能次数＝日耗电÷(带电量×可用区间)；
+    # 换电每次也要停 swap_minutes，扣掉后才是"多停"的时间。兆瓦超充只换单次时长，次数相同。
+    daily_kwh = annual_kwh / days if days else 0.0
+    power = float(tco.get("charge_power_kw") or 0.0)
+    window = float(tco.get("charge_soc_window") or 0.0)
+    swap_h = float(tco.get("swap_minutes") or 0.0) / 60.0
+    mw_h = float(tco.get("megawatt_session_minutes") or 0.0) / 60.0
+    sessions = daily_kwh / (kwh * window) if kwh and window else 0.0
+    stop_h = max(0.0, (daily_kwh / power if power else 0.0) - sessions * swap_h)
+    stop_h_mw = max(0.0, sessions * (mw_h - swap_h))
 
     swap_total = buy_swap + (annual_kwh * swap_price + fixed) * n
     charge_total = buy_charge + (annual_kwh * charge_price + fixed) * n + packs
@@ -232,4 +247,55 @@ def _scene_tco(
         charge_battery_life=life,
         replacements=count,
         flip_gain_wan=(swap_total - charge_total) / n / 1e4,
+        extra_stop_hours_day=stop_h,
+        flip_per_hour=_per_hour(swap_total - charge_total, n, days, stop_h),
+        extra_stop_hours_day_mw=stop_h_mw,
+        flip_per_hour_mw=_per_hour(swap_total - charge_total, n, days, stop_h_mw),
+        # 【2026-09-17h】超充的真正考点是电价：充电每度电再贵多少，换电不靠时间也更省
+        flip_price_gap=((swap_total - charge_total) / n / annual_kwh) if annual_kwh else 0.0,
+        battery_buy_irr=_battery_buy_irr(
+            buy_charge - buy_swap, annual_kwh * (swap_price - charge_price), pack_flows, n),
+        battery_upfront_wan=(buy_charge - buy_swap) / 1e4,
     )
+
+
+def _battery_buy_irr(
+    upfront: float, annual_saving: float, pack_flows: list[tuple[float, float]], years: float
+) -> float | None:
+    """【2026-09-17i】车队视角：充电车在购车时多付一块电池（upfront），此后每年少付换电的电费差价（annual_saving），
+    期间自己出钱换电池（pack_flows）。这笔"多买电池"投资的内部收益率——车队的资金成本高于它，租电更划算。
+
+    不含时间价值（对兆瓦超充，时间优势已基本抹平，正好是这里要回答的问题）。
+    现金流按年末计，换电池按实际发生时点（可为小数年）贴现；二分法求解，区间 [-0.99, 5]。
+    多买电池在区间内从不回本时返回 None。
+    """
+    if upfront <= 0:
+        return None
+
+    def npv(r: float) -> float:
+        v = -upfront
+        whole = int(years)
+        for t in range(1, whole + 1):
+            v += annual_saving / (1 + r) ** t
+        if years > whole:                       # 不足一年的尾段按比例
+            v += annual_saving * (years - whole) / (1 + r) ** years
+        for t, cost in pack_flows:
+            v -= cost / (1 + r) ** t
+        return v
+
+    lo, hi = -0.99, 5.0
+    if npv(lo) < 0 or npv(hi) > 0:
+        return None
+    for _ in range(200):
+        mid = (lo + hi) / 2
+        if npv(mid) > 0:
+            lo = mid
+        else:
+            hi = mid
+    return (lo + hi) / 2
+
+
+def _per_hour(gap_rmb: float, years: float, days: float, stop_hours_day: float) -> float:
+    """持有期总差额 → 每少停一小时要值多少元（年差额 ÷ 一年多停的小时数）。多停为零时返回 0。"""
+    hours = days * stop_hours_day
+    return gap_rmb / years / hours if hours > 0 and years > 0 else 0.0

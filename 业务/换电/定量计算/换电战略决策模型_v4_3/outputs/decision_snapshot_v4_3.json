@@ -3111,7 +3111,14 @@
         "charge_wan": 178.42315,
         "charge_battery_life": 10.0,
         "replacements": 0,
-        "flip_gain_wan": 2.9545148661299376
+        "flip_gain_wan": 2.9545148661299376,
+        "extra_stop_hours_day": 0.8608177896030228,
+        "flip_per_hour": 98.06338981421875,
+        "extra_stop_hours_day_mw": 0.16471734892787523,
+        "flip_per_hour_mw": 512.4822067031811,
+        "flip_price_gap": 0.4328959510813095,
+        "battery_buy_irr": 0.20312377321194475,
+        "battery_upfront_wan": 21.1869
       },
       "mid": {
         "name": "中途",
@@ -3124,7 +3131,14 @@
         "charge_wan": 348.48669809925525,
         "charge_battery_life": 4.310924369747899,
         "replacements": 2,
-        "flip_gain_wan": 2.373642356525843
+        "flip_gain_wan": 2.373642356525843,
+        "extra_stop_hours_day": 3.0754670304571916,
+        "flip_per_hour": 22.051399794558613,
+        "extra_stop_hours_day_mw": 0.3829326402425818,
+        "flip_per_hour_mw": 177.1025656121496,
+        "flip_price_gap": 0.09973287212293458,
+        "battery_buy_irr": 0.11602688945346717,
+        "battery_upfront_wan": 31.78035
       },
       "long": {
         "name": "长途",
@@ -3137,7 +3151,14 @@
         "charge_wan": 498.0182487918294,
         "charge_battery_life": 2.6528765352294763,
         "replacements": 3,
-        "flip_gain_wan": 4.149614453738979
+        "flip_gain_wan": 4.149614453738979,
+        "extra_stop_hours_day": 4.997633924492936,
+        "flip_per_hour": 23.723308820783643,
+        "extra_stop_hours_day_mw": 0.6222655403941953,
+        "flip_per_hour_mw": 190.53025640607498,
+        "flip_price_gap": 0.10729449137010937,
+        "battery_buy_irr": 0.18000812366115448,
+        "battery_upfront_wan": 31.78035
       }
     }
   },
@@ -3486,7 +3507,14 @@
           "charge_wan": 178.42315,
           "charge_battery_life": 10.0,
           "replacements": 0,
-          "flip_gain_wan": 2.9545148661299376
+          "flip_gain_wan": 2.9545148661299376,
+          "extra_stop_hours_day": 0.8608177896030228,
+          "flip_per_hour": 98.06338981421875,
+          "extra_stop_hours_day_mw": 0.16471734892787523,
+          "flip_per_hour_mw": 512.4822067031811,
+          "flip_price_gap": 0.4328959510813095,
+          "battery_buy_irr": 0.20312377321194475,
+          "battery_upfront_wan": 21.1869
         },
         "mid": {
           "name": "中途",
@@ -3499,7 +3527,14 @@
           "charge_wan": 348.48669809925525,
           "charge_battery_life": 4.310924369747899,
           "replacements": 2,
-          "flip_gain_wan": 2.373642356525843
+          "flip_gain_wan": 2.373642356525843,
+          "extra_stop_hours_day": 3.0754670304571916,
+          "flip_per_hour": 22.051399794558613,
+          "extra_stop_hours_day_mw": 0.3829326402425818,
+          "flip_per_hour_mw": 177.1025656121496,
+          "flip_price_gap": 0.09973287212293458,
+          "battery_buy_irr": 0.11602688945346717,
+          "battery_upfront_wan": 31.78035
         },
         "long": {
           "name": "长途",
@@ -3512,7 +3547,14 @@
           "charge_wan": 498.0182487918294,
           "charge_battery_life": 2.6528765352294763,
           "replacements": 3,
-          "flip_gain_wan": 4.149614453738979
+          "flip_gain_wan": 4.149614453738979,
+          "extra_stop_hours_day": 4.997633924492936,
+          "flip_per_hour": 23.723308820783643,
+          "extra_stop_hours_day_mw": 0.6222655403941953,
+          "flip_per_hour_mw": 190.53025640607498,
+          "flip_price_gap": 0.10729449137010937,
+          "battery_buy_irr": 0.18000812366115448,
+          "battery_upfront_wan": 31.78035
         }
       }
     },

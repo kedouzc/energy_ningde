@@ -1345,6 +1345,169 @@ unit = "万元"
 decimals = 1
 group = "⑧重卡"
 
+# ── 合成读法（2026-09-18）：换电成立所需的最低时间价值 h*(资金成本)；三档资金成本 × 两类对手。
+[[metric]]
+key = "tco.short_hstar_low"
+source = "tco"
+label = "重卡短途·所需时间价值（资金成本低）"
+at = "swap_business.heavy_economics.short.hstar_low"
+unit = "元/小时"
+decimals = 0
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.short_hstar_mw_low"
+source = "tco"
+label = "重卡短途·所需时间价值·超充（资金成本低）"
+at = "swap_business.heavy_economics.short.hstar_mw_low"
+unit = "元/小时"
+decimals = 0
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.short_hstar_mid"
+source = "tco"
+label = "重卡短途·所需时间价值（资金成本中）"
+at = "swap_business.heavy_economics.short.hstar_mid"
+unit = "元/小时"
+decimals = 0
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.short_hstar_mw_mid"
+source = "tco"
+label = "重卡短途·所需时间价值·超充（资金成本中）"
+at = "swap_business.heavy_economics.short.hstar_mw_mid"
+unit = "元/小时"
+decimals = 0
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.short_hstar_high"
+source = "tco"
+label = "重卡短途·所需时间价值（资金成本高）"
+at = "swap_business.heavy_economics.short.hstar_high"
+unit = "元/小时"
+decimals = 0
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.short_hstar_mw_high"
+source = "tco"
+label = "重卡短途·所需时间价值·超充（资金成本高）"
+at = "swap_business.heavy_economics.short.hstar_mw_high"
+unit = "元/小时"
+decimals = 0
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.mid_hstar_low"
+source = "tco"
+label = "重卡中途·所需时间价值（资金成本低）"
+at = "swap_business.heavy_economics.mid.hstar_low"
+unit = "元/小时"
+decimals = 0
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.mid_hstar_mw_low"
+source = "tco"
+label = "重卡中途·所需时间价值·超充（资金成本低）"
+at = "swap_business.heavy_economics.mid.hstar_mw_low"
+unit = "元/小时"
+decimals = 0
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.mid_hstar_mid"
+source = "tco"
+label = "重卡中途·所需时间价值（资金成本中）"
+at = "swap_business.heavy_economics.mid.hstar_mid"
+unit = "元/小时"
+decimals = 0
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.mid_hstar_mw_mid"
+source = "tco"
+label = "重卡中途·所需时间价值·超充（资金成本中）"
+at = "swap_business.heavy_economics.mid.hstar_mw_mid"
+unit = "元/小时"
+decimals = 0
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.mid_hstar_high"
+source = "tco"
+label = "重卡中途·所需时间价值（资金成本高）"
+at = "swap_business.heavy_economics.mid.hstar_high"
+unit = "元/小时"
+decimals = 0
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.mid_hstar_mw_high"
+source = "tco"
+label = "重卡中途·所需时间价值·超充（资金成本高）"
+at = "swap_business.heavy_economics.mid.hstar_mw_high"
+unit = "元/小时"
+decimals = 0
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.long_hstar_low"
+source = "tco"
+label = "重卡长途·所需时间价值（资金成本低）"
+at = "swap_business.heavy_economics.long.hstar_low"
+unit = "元/小时"
+decimals = 0
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.long_hstar_mw_low"
+source = "tco"
+label = "重卡长途·所需时间价值·超充（资金成本低）"
+at = "swap_business.heavy_economics.long.hstar_mw_low"
+unit = "元/小时"
+decimals = 0
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.long_hstar_mid"
+source = "tco"
+label = "重卡长途·所需时间价值（资金成本中）"
+at = "swap_business.heavy_economics.long.hstar_mid"
+unit = "元/小时"
+decimals = 0
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.long_hstar_mw_mid"
+source = "tco"
+label = "重卡长途·所需时间价值·超充（资金成本中）"
+at = "swap_business.heavy_economics.long.hstar_mw_mid"
+unit = "元/小时"
+decimals = 0
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.long_hstar_high"
+source = "tco"
+label = "重卡长途·所需时间价值（资金成本高）"
+at = "swap_business.heavy_economics.long.hstar_high"
+unit = "元/小时"
+decimals = 0
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.long_hstar_mw_high"
+source = "tco"
+label = "重卡长途·所需时间价值·超充（资金成本高）"
+at = "swap_business.heavy_economics.long.hstar_mw_high"
+unit = "元/小时"
+decimals = 0
+group = "⑧重卡"
+
 # ── 以下两条是算出来的输出（at 取快照），只是历史上搭车在外部锚组里登记；
 #    真正的输入（兑现年/driver/外锚/阈值）已改为 base.toml 功能段就地信封，
 #    本字典只保留模型输出（2026-09-13 两层定稿）。

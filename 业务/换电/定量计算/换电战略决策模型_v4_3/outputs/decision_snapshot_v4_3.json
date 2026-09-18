@@ -3118,7 +3118,13 @@
         "flip_per_hour_mw": 512.4822067031811,
         "flip_price_gap": 0.4328959510813095,
         "battery_buy_irr": 0.20312377321194475,
-        "battery_upfront_wan": 21.1869
+        "battery_upfront_wan": 21.1869,
+        "hstar_low": 85.88177468731186,
+        "hstar_mid": 63.627936100087915,
+        "hstar_high": -56.73128881949916,
+        "hstar_mw_low": 448.82072188939685,
+        "hstar_mw_mid": 332.52149617016414,
+        "hstar_mw_high": -296.4794113115277
       },
       "mid": {
         "name": "中途",
@@ -3138,7 +3144,13 @@
         "flip_per_hour_mw": 177.1025656121496,
         "flip_price_gap": 0.09973287212293458,
         "battery_buy_irr": 0.11602688945346717,
-        "battery_upfront_wan": 31.78035
+        "battery_upfront_wan": 31.78035,
+        "hstar_low": 16.65871839993511,
+        "hstar_mid": 7.1801397581970585,
+        "hstar_high": -40.38582525964074,
+        "hstar_mw_low": 133.79204022988353,
+        "hstar_mw_mid": 57.66623363947547,
+        "hstar_mw_high": -324.35280002547773
       },
       "long": {
         "name": "长途",
@@ -3158,7 +3170,13 @@
         "flip_per_hour_mw": 190.53025640607498,
         "flip_price_gap": 0.10729449137010937,
         "battery_buy_irr": 0.18000812366115448,
-        "battery_upfront_wan": 31.78035
+        "battery_upfront_wan": 31.78035,
+        "hstar_low": 20.006574435146984,
+        "hstar_mid": 13.579858535355704,
+        "hstar_high": -17.245379567738922,
+        "hstar_mw_low": 160.67985228081957,
+        "hstar_mw_mid": 109.06463125551811,
+        "hstar_mw_high": -138.5037228863611
       }
     }
   },
@@ -3514,7 +3532,13 @@
           "flip_per_hour_mw": 512.4822067031811,
           "flip_price_gap": 0.4328959510813095,
           "battery_buy_irr": 0.20312377321194475,
-          "battery_upfront_wan": 21.1869
+          "battery_upfront_wan": 21.1869,
+          "hstar_low": 85.88177468731186,
+          "hstar_mid": 63.627936100087915,
+          "hstar_high": -56.73128881949916,
+          "hstar_mw_low": 448.82072188939685,
+          "hstar_mw_mid": 332.52149617016414,
+          "hstar_mw_high": -296.4794113115277
         },
         "mid": {
           "name": "中途",
@@ -3534,7 +3558,13 @@
           "flip_per_hour_mw": 177.1025656121496,
           "flip_price_gap": 0.09973287212293458,
           "battery_buy_irr": 0.11602688945346717,
-          "battery_upfront_wan": 31.78035
+          "battery_upfront_wan": 31.78035,
+          "hstar_low": 16.65871839993511,
+          "hstar_mid": 7.1801397581970585,
+          "hstar_high": -40.38582525964074,
+          "hstar_mw_low": 133.79204022988353,
+          "hstar_mw_mid": 57.66623363947547,
+          "hstar_mw_high": -324.35280002547773
         },
         "long": {
           "name": "长途",
@@ -3554,7 +3584,13 @@
           "flip_per_hour_mw": 190.53025640607498,
           "flip_price_gap": 0.10729449137010937,
           "battery_buy_irr": 0.18000812366115448,
-          "battery_upfront_wan": 31.78035
+          "battery_upfront_wan": 31.78035,
+          "hstar_low": 20.006574435146984,
+          "hstar_mid": 13.579858535355704,
+          "hstar_high": -17.245379567738922,
+          "hstar_mw_low": 160.67985228081957,
+          "hstar_mw_mid": 109.06463125551811,
+          "hstar_mw_high": -138.5037228863611
         }
       }
     },

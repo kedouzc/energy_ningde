@@ -73,8 +73,9 @@ uses = []
 support = ["ops.veh_heavy", "ops.veh_city", "ops.veh_passenger_ops", "ops.veh_private",
            "ops.market_total", "ops.share_of_market", "vehicles.heavy.stock_wan",
            "ops.heavy_pen_pct", "tco.lng_wan", "tco.diesel_wan",
-           "tco.short_flip_per_hour", "tco.mid_flip_per_hour", "tco.long_flip_per_hour",
-           "tco.mid_flip_price_gap", "tco.long_flip_price_gap",
+           "tco.short_hstar_low", "tco.short_hstar_high", "tco.mid_hstar_low", "tco.mid_hstar_high",
+           "tco.long_hstar_low", "tco.long_hstar_high",
+           "tco.short_hstar_mw_low", "tco.mid_hstar_mw_low", "tco.long_hstar_mw_low",
            "tco.short_battery_buy_irr", "tco.mid_battery_buy_irr", "tco.long_battery_buy_irr"]
 topics = ["目标用户_谁的痛点"]
 

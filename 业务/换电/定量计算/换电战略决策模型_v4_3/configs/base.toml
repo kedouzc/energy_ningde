@@ -481,6 +481,12 @@ trading_assets_yi = 681.58
 
 [financial_2026e]
 group_net_profit_consensus_yi = 1000.0   # 一致预期上沿（区间 909–1024，39 家均值 958）
+# 【口径 2026-09-18】A+H 合计市值，作为"增量/市值"的分母。
+# 两地上市的合计市值波动大于单地，且本报告是多年期判断，分母若用当日收盘会把行情噪音带进结论——
+# 因此**基准取 60 个交易日均值**（A 股按人民币、H 股按当日汇率折算后相加），每次更新写明取数区间；
+# 当日市值只作跟踪读数（见 ext.catl_mktcap_202609），不进基线。
+# ⚠️ 当前值 20,000 为 2026E 口径的旧基准，**尚未换成 60 日均值**——更新它会改变基线读数 val.incr_over_mktcap，
+# 需研究者确认后再改（登记在 交接.md 待办）。
 group_market_cap_ah_yi = 20000.0
 # 644GWh：东吴 26H1 动力电池销量 325GWh×2 年化≈650 合理取整（动力口径）
 power_battery_shipments_gwh.v = 644.0
@@ -584,10 +590,15 @@ diesel_purchase_total = 330000.0
 # 每天充电小时数 ＝ 日耗电 ÷ 有效功率（与电池大小无关）；每次充电用掉 soc_window 的电量。
 charge_power_kw = 211.0
 charge_soc_window = 0.75
-# 换电一次约 5 分钟（src.charge_time_36kr；另一源 3–5 分钟）
+# 换电一次 5 分钟（src.catl_swap_5min，公司口径）
 swap_minutes = 5.0
 # 兆瓦超充对照：10%→90% 约 18 分钟（src.megawatt_202609，华为干线实测），只作对照档，不进主结论
 megawatt_session_minutes = 18.0
+# —— 车队资金成本三档（2026-09-18）：把时间价值与首付资金价值合到一张账上时的贴现率 ——
+# 低档 3%：大型车队/国企背景运输企业，接近银行贷款利率（src.cv_finance_regulation 反面参照）
+# 中档 8%：一般车队，接近本报告 WACC 与成熟资产收益率区间
+# 高档 30%：个体司机与中小物流企业，商用车融资租赁综合费率被监管点名的水平（src.cv_finance_regulation）
+fleet_discount_rates = [0.03, 0.08, 0.30]
 
 # ----------------------车辆层（MANIFEST §2）-----------------------------
 # 车辆运营年限法规：网约车 8 年退役/60 万公里报废（交通部暂行办法 39 条）、
@@ -2237,10 +2248,10 @@ note = "常规直流快充口径；模型据此取有效功率（charge_power_kw
 [[external_quote]]
 key = "ext.swap_time"
 label = "重卡换电单次时长"
-text = "约 5 分钟（另一源 3–5 分钟）"
+text = "5 分钟（公司口径；单站日均可服务近 200 辆重卡）"
 value = 5.0
 unit = "分钟"
-src = "src.charge_time_36kr"
+src = "src.catl_swap_5min"
 as_of = "2026-09"
 note = "模型取 swap_minutes"
 
@@ -2543,3 +2554,103 @@ unit = "GWh"
 src = "src.genlead_202506"
 as_of = "2025-06"
 note = "与启源深度绑定的电芯供应商（有报道称为启源旗下）；已配套三一、重汽、陕汽等重卡"
+
+[[external_quote]]
+key = "ext.capacity_approval_pause"
+label = "电池新增产能备案与审批（2026）"
+text = "2026 年 6 月起多地暂停受理新增动力/储能电池产能备案，审批权上收国家层面统一审批"
+value = 1.0
+unit = "项"
+src = "src.eeo_capacity_202609"
+as_of = "2026-09"
+note = "扩产不再是有钱就能建；现成产线成为稀缺资源"
+
+[[external_quote]]
+key = "ext.capacity_util_threshold"
+label = "新建电池产能的利用率门槛"
+text = "企业产能利用率需达 50% 以上"
+value = 50.0
+unit = "%"
+src = "src.eeo_capacity_202609"
+as_of = "2026-09"
+note = "硬性门槛：中小企业 40%–65%、尾部低于 30%，多数达不到"
+
+[[external_quote]]
+key = "ext.industry_inventory_h1"
+label = "锂电行业上半年新增库存（2026）"
+text = "超 400 GWh；上半年产量 1,068.9 GWh（同比增长 53.3%）"
+value = 400.0
+unit = "GWh"
+src = "src.eeo_capacity_202609"
+as_of = "2026-06"
+note = "结构性过剩与价格战的背景"
+
+[[external_quote]]
+key = "ext.geely_chongqing_line"
+label = "宁德时代收购的吉利系电池产线"
+text = "吉利重庆涪陵工厂：一期规划年产能 18 GWh（摩根大通口径为即将完工的 24 GWh 项目），2021 年动工、已获无条件批准"
+value = 18.0
+unit = "GWh"
+src = "src.geely_line_202609"
+as_of = "2026-09"
+note = "买现成产线补供给，并绑定车企长期订单"
+
+[[external_quote]]
+key = "ext.geely_self_supply"
+label = "吉利的电池自供目标"
+text = "中长期自供比例 50%（自研＋战略合作＋多元补充三层体系）"
+value = 50.0
+unit = "%"
+src = "src.geely_line_202609"
+as_of = "2026-09"
+note = "车企自供的黄金比例：不做全自供"
+
+[[external_quote]]
+key = "ext.oem_self_supply_barrier"
+label = "车企自建电池厂的门槛"
+text = "拿地动工到投产要三四年、固定资产几十上百亿；年销几十万辆撑不起一座满产电池厂，利用率不足会让每度电成本高出头部厂商几毛钱"
+value = 3.0
+unit = "年"
+src = "src.geely_line_202609"
+as_of = "2026-09"
+note = "解释车企为什么退回部分自供"
+
+[[external_quote]]
+key = "ext.jpm_catl_call"
+label = "摩根大通对宁德时代的评级与目标价"
+text = "增持，目标价 725 港元；称收购电池资产预示行业整合启动"
+value = 725.0
+unit = "港元"
+src = "src.jpm_catl_ma_202609"
+as_of = "2026-09"
+note = "卖方仍按整体框架给估值，未单独给换电估值"
+
+[[external_quote]]
+key = "ext.evogo_stations_2024"
+label = "巧克力换电（原 EVOGO）建站进度（2024 年中）"
+text = "截至 2024-07-02，福州、合肥、厦门、贵阳四城合计约 27 座；仅东风富康、一汽奔腾等极少数车型适配"
+value = 27.0
+unit = "座"
+src = "src.swapteam_huxiu"
+as_of = "2024-07"
+note = "前任任内推进不利的量化佐证；对照发布时两三年建成全球最大服务网络的目标"
+
+[[external_quote]]
+key = "ext.shidai_dianfu"
+label = "时代电服成立"
+text = "2021 年 8 月注册成立，注册资本 2 亿元人民币"
+value = 2.0
+unit = "亿元"
+src = "src.swapteam_huxiu"
+as_of = "2021-08"
+note = "换电条线的公司化起点"
+
+[[external_quote]]
+key = "ext.shidai_xiaoju"
+label = "时代小桔合资公司"
+text = "2025 年 2 月成立（厦门），注册资本 3.3 亿元，宁德时代持股 69.7%、滴滴持股 30.3%"
+value = 3.3
+unit = "亿元"
+src = "src.swapteam_stcn"
+as_of = "2025-02"
+note = "继任者任内的结盟动作：与出行平台合资落地"

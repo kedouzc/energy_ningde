@@ -547,6 +547,14 @@ class SceneTco:
     battery_buy_irr: float | None = None        # 车队视角：充电车"多买一块电池"这笔投资的内部收益率（不含时间价值）；
                                                 #   车队资金成本高于它，租电（换电）更划算；None＝不存在（多买电池从不回本）
     battery_upfront_wan: float = 0.0            # 充电车比换电车多付的购车款（万元，即首付差）
+    # 合成读法（2026-09-18）：把能源价差、车电分离、电池更换三项折到同一张账上，
+    # 剩下的差额除以"充电多停的小时数"＝换电成立所需的最低时间价值。资金成本三档。
+    hstar_low: float = 0.0                      # 资金成本低档下的每小时门槛（元/小时，常规快充）
+    hstar_mid: float = 0.0                      # 中档
+    hstar_high: float = 0.0                     # 高档
+    hstar_mw_low: float = 0.0                   # 低档（兆瓦超充）
+    hstar_mw_mid: float = 0.0                   # 中档（兆瓦超充）
+    hstar_mw_high: float = 0.0                  # 高档（兆瓦超充）
 
 
 @dataclass

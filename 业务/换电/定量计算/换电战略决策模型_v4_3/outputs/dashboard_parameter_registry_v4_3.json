@@ -373,6 +373,15 @@
     "type": "float"
   },
   {
+    "key": "tco_jpm.fleet_discount_rates",
+    "value": [
+      0.03,
+      0.08,
+      0.3
+    ],
+    "type": "list"
+  },
+  {
     "key": "vehicles.heavy.label",
     "value": "重卡",
     "type": "str"

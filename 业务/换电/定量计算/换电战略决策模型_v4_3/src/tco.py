@@ -256,7 +256,45 @@ def _scene_tco(
         battery_buy_irr=_battery_buy_irr(
             buy_charge - buy_swap, annual_kwh * (swap_price - charge_price), pack_flows, n),
         battery_upfront_wan=(buy_charge - buy_swap) / 1e4,
+        **_hstar_set(
+            tco, buy_swap, buy_charge, annual_kwh * swap_price + fixed,
+            annual_kwh * charge_price + fixed, pack_flows, n, days, stop_h, stop_h_mw),
     )
+
+
+def _hstar_set(
+    tco: dict, buy_swap: float, buy_charge: float, swap_annual: float, charge_annual: float,
+    pack_flows: list[tuple[float, float]], years: float, days: float,
+    stop_h: float, stop_h_mw: float,
+) -> dict[str, float]:
+    """【2026-09-18】把三项可算的差异（能源单价、车电分离的资金占用、电池更换）折到同一张账上，
+    得到**换电成立所需的最低时间价值**：h*(r) ＝ [PV(换电支出) − PV(充电支出)] ÷ PV(充电每年多停的小时数)。
+
+    - r 是**车队自己的资金成本**（配置 `fleet_discount_rates` 三档）：r 越高，车电分离省下的首付越值钱，h* 越低；
+      h*(r)＝0 的那个 r，正是"多买一块电池"的内部收益率——两个维度在这里合成同一条分界线。
+    - 时间价值 h 是读者按自己的场景填的数：实际 h 高于 h*，换电更省。
+    - 兆瓦超充一档只改"多停的小时数"，不改支出——它把同一笔差额摊到更少的小时上，所以门槛更高。
+    """
+    rates = [float(x) for x in (tco.get("fleet_discount_rates") or [])]
+    names = ("low", "mid", "high")
+    out: dict[str, float] = {}
+
+    def pv_annuity(r: float) -> float:
+        whole = int(years)
+        v = sum(1.0 / (1 + r) ** t for t in range(1, whole + 1))
+        if years > whole:
+            v += (years - whole) / (1 + r) ** years
+        return v
+
+    for name, r in zip(names, rates):
+        ann = pv_annuity(r)
+        pv_swap = buy_swap + swap_annual * ann
+        pv_charge = buy_charge + charge_annual * ann + sum(
+            cost / (1 + r) ** t for t, cost in pack_flows)
+        gap = pv_swap - pv_charge
+        out[f"hstar_{name}"] = gap / (days * stop_h * ann) if stop_h > 0 and ann > 0 else 0.0
+        out[f"hstar_mw_{name}"] = gap / (days * stop_h_mw * ann) if stop_h_mw > 0 and ann > 0 else 0.0
+    return out
 
 
 def _battery_buy_irr(

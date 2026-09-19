@@ -2925,6 +2925,8 @@ note = "继任者任内的结盟动作：与出行平台合资落地"
 #   年化capex ＝ (单位装机造价 − 残值现值) × 资本回收系数(寿命, 折现率)
 #   容量电费  ＝ 配容比 × 月费 × 12 × 是否征收开关
 # 单站绝对规模在公式里被消掉——度电固定成本只与**单位装机造价**和**利用率**有关，与站多大无关。
+
+# ----------------------超充站参数（2026-09-19 新增）-----------------------------
 [charging_station]
 # 常规重卡快充站单位装机造价（元/kW，全站口径，含增容与土建，不含地价）。
 # 双源互证：充换电研究院问卷 150–300 万元/站、单车位 10–16 万元（src.hdt_charging_report_2026）；
@@ -2994,6 +2996,18 @@ utilization_heavy_observed.unit = "%"
 utilization_heavy_observed.decimals = 0
 utilization_heavy_observed.scale = 100.0
 utilization_heavy_observed.note = "能量利用率口径，实测区间 18%–40%，取偏低一侧的中位"
+# 实测区间两端：黄骅港 18.8%（最闲）与承德亿度 39.3%（最忙）。
+# 电网容量倍数对这两端极其敏感，所以报区间不报点值。
+utilization_heavy_low.v = 0.18
+utilization_heavy_low.label = "重卡充电站实测利用率·区间下沿"
+utilization_heavy_low.unit = "%"
+utilization_heavy_low.decimals = 0
+utilization_heavy_low.scale = 100.0
+utilization_heavy_high.v = 0.40
+utilization_heavy_high.label = "重卡充电站实测利用率·区间上沿"
+utilization_heavy_high.unit = "%"
+utilization_heavy_high.decimals = 0
+utilization_heavy_high.scale = 100.0
 utilization_passenger_observed.v = 0.067
 utilization_passenger_observed.label = "乘用车公共桩利用率"
 utilization_passenger_observed.unit = "%"

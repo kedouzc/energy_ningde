@@ -3331,9 +3331,17 @@
       "margin_heavy_observed": 0.1555404279216306,
       "margin_passenger_observed": 0.019759614071025874,
       "breakeven_utilization": 0.060842352824377985,
+      "swap_daily_delivered_kwh": 78791.08013937283,
+      "swap_daily_grid_kwh": 87355.32798060901,
+      "swap_station_grid_kw": 4500.0,
+      "swap_load_factor": 0.8088456294500834,
       "swap_grid_kw_per_daily_mwh": 57.11306396663163,
+      "swap_required_kw_in_window": 5459.707998788063,
+      "swap_window_hours": 16.0,
       "charge_grid_kw_per_daily_mwh": 189.39393939393938,
-      "grid_intensity_ratio": 3.3161229014887557
+      "grid_intensity_ratio": 3.3161229014887557,
+      "grid_intensity_ratio_busy": 1.8238675958188155,
+      "grid_intensity_ratio_idle": 4.05303910181959
     }
   },
   "ledger": {
@@ -3884,9 +3892,17 @@
         "margin_heavy_observed": 0.1555404279216306,
         "margin_passenger_observed": 0.019759614071025874,
         "breakeven_utilization": 0.060842352824377985,
+        "swap_daily_delivered_kwh": 78791.08013937283,
+        "swap_daily_grid_kwh": 87355.32798060901,
+        "swap_station_grid_kw": 4500.0,
+        "swap_load_factor": 0.8088456294500834,
         "swap_grid_kw_per_daily_mwh": 57.11306396663163,
+        "swap_required_kw_in_window": 5459.707998788063,
+        "swap_window_hours": 16.0,
         "charge_grid_kw_per_daily_mwh": 189.39393939393938,
-        "grid_intensity_ratio": 3.3161229014887557
+        "grid_intensity_ratio": 3.3161229014887557,
+        "grid_intensity_ratio_busy": 1.8238675958188155,
+        "grid_intensity_ratio_idle": 4.05303910181959
       }
     },
     "power_net_profit_2030_no_swap_yi": 445.2361754181818,

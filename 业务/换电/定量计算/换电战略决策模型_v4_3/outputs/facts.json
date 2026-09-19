@@ -4127,6 +4127,66 @@
   "note": "两条路线最硬的一条结构性差异，而且是物理的、不随价格战变化；电力增容占充电站总投资35%–50%",
   "origin": "metric"
  },
+ "charge.swap_load_factor": {
+  "label": "换电站的电网负荷率",
+  "v": 80.88456294500834,
+  "text": "81%",
+  "bare": "81",
+  "unit": "%",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "charging",
+  "note": "日用电量摊到24小时后占箱变容量的比例。电池可以整天慢慢充，所以这个数高——电网容量优势全部来自这里",
+  "origin": "metric"
+ },
+ "charge.grid_ratio_busy": {
+  "label": "超充对换电的电网容量倍数·超充最忙",
+  "v": 1.8238675958188155,
+  "text": "1.82倍",
+  "bare": "1.82",
+  "unit": "倍",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "charging",
+  "note": "超充站取实测最忙一档时的同一读数。倍数随对手利用率上升而衰减，所以本项要报区间",
+  "origin": "metric"
+ },
+ "charge.grid_ratio_idle": {
+  "label": "超充对换电的电网容量倍数·超充最闲",
+  "v": 4.05303910181959,
+  "text": "4.05倍",
+  "bare": "4.05",
+  "unit": "倍",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "charging",
+  "note": "超充站取实测最闲一档时的同一读数",
+  "origin": "metric"
+ },
+ "charge.swap_daily_grid_kwh": {
+  "label": "换电站单站日用电量",
+  "v": 87355.32798060901,
+  "text": "87,355kWh/天",
+  "bare": "87,355",
+  "unit": "kWh/天",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "charging",
+  "note": "交付给车的电量 ÷ 充放综合效率 ×（1＋站用电率）＝ 站端真正要从电网买的电",
+  "origin": "metric"
+ },
+ "charge.swap_required_kw": {
+  "label": "换电站在充电窗口内所需功率",
+  "v": 5459.707998788063,
+  "text": "5,460kW",
+  "bare": "5,460",
+  "unit": "kW",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "charging",
+  "note": "日用电量 ÷ 配置的充电窗口。**与箱变容量对比即可看出这个吞吐假设是否物理可行**",
+  "origin": "metric"
+ },
  "meta.target_year": {
   "label": "兑现年",
   "v": 2030.0,
@@ -5013,6 +5073,30 @@
   "watch": 0.03,
   "from": "external",
   "note": "能量利用率口径，实测区间 18%–40%，取偏低一侧的中位",
+  "origin": "metric"
+ },
+ "charging_station.utilization_heavy_low": {
+  "label": "重卡充电站实测利用率·区间下沿",
+  "v": 18.0,
+  "text": "18%",
+  "bare": "18",
+  "unit": "%",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "external",
+  "note": "",
+  "origin": "metric"
+ },
+ "charging_station.utilization_heavy_high": {
+  "label": "重卡充电站实测利用率·区间上沿",
+  "v": 40.0,
+  "text": "40%",
+  "bare": "40",
+  "unit": "%",
+  "kind": "num",
+  "watch": 0.03,
+  "from": "external",
+  "note": "",
   "origin": "metric"
  },
  "charging_station.utilization_passenger_observed": {

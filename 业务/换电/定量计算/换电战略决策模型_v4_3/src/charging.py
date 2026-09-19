@@ -120,27 +120,60 @@ def build_charging_economics(config: dict, scale, capex) -> dict | None:
         fixed_year / (_HOURS_YEAR * net_fee) if net_fee > 0 else None)
 
     # —— 电网容量强度：同样的日交付电量，各要占多少电网容量 ——
-    # 【这是本模块最重要的一条】超充按瞬时功率要容量，换电按平均功率要容量。
-    # 单位统一成「每天每交付 1 MWh 需要多少 kW 电网容量」，两条路线因此可以直接相除。
+    # 【这一条是负荷率之比，不是别的】两座站交付同样多的电，电网接口谁大谁小，
+    # 只取决于**这份电摊在多少小时里**：
+    #     电网容量 ≈ 日交付电量 ÷ (24h × 负荷率)
+    # 换电站的负荷率高，因为电池可以整天慢慢充；超充站的负荷率就等于它的能量利用率，
+    # 因为它只有在车插枪的时候才用电。**两者之比 ＝ 负荷率之比，就这么简单。**
+    #
+    # ⚠️【2026-09-19b 纠正】此前把这个倍数说成"与公司'单个车位服务能力是配储充电站 3 倍'
+    # 的口径独立吻合"——**那是过度解读**。公司那句话说的是**车位占用时长**
+    # （换电一次 5 分钟、兆瓦超充一次约 18 分钟，3.6 比 1），与电网容量无关。
+    # 两个数都接近 3 是巧合，机理完全不同。本模块不再声称任何外部印证。
+    #
+    # ⚠️ 这个倍数**对超充站有多忙极其敏感**（实测 18%–40%，对应倍数差一倍以上），
+    # 所以给的是区间不是点值。超充站越忙，换电的这项优势越小。
     heavy_pools = [pk for pk, grp in POOL_STATION_GROUP.items() if grp == "heavy"]
     days = float(sb.get("operating_days") or 0.0)
-    swap_kw_per_mwh = None
+    rte = float(sb.get("rte") or 1.0)
+    aux = float(sb.get("auxiliary_power_rate") or 0.0)
     best = None
     for pk in heavy_pools:
         stations = float(capex.station_targets.get(pk, 0) or 0)
         energy = scale.mature_annual_energy_yi_kwh.get(pk, 0.0) * 1e8
-        station_kw = float((config.get("stations", {}).get(pk, {}) or {}).get("charging_power_kw") or 0.0)
+        st = config.get("stations", {}).get(pk, {}) or {}
+        station_kw = float(st.get("charging_power_kw") or 0.0)
         if not stations or not energy or not station_kw or not days:
             continue
-        daily_mwh = energy / stations / days / 1000.0
-        val = station_kw / daily_mwh
         # 取干线池（出电量最大的那个）作代表：它是换电与超充正面相遇的场景
-        if best is None or energy > best:
-            best, swap_kw_per_mwh = energy, val
-    if swap_kw_per_mwh:
-        charge_kw_per_mwh = 1000.0 / (24.0 * u_heavy) if u_heavy > 0 else None
-        out["swap_grid_kw_per_daily_mwh"] = swap_kw_per_mwh
-        out["charge_grid_kw_per_daily_mwh"] = charge_kw_per_mwh
-        out["grid_intensity_ratio"] = (
-            charge_kw_per_mwh / swap_kw_per_mwh if charge_kw_per_mwh else None)
+        if best is not None and energy <= best:
+            continue
+        best = energy
+        daily_out = energy / stations / days            # 每站每天交付给车的电量 kWh
+        # 站端真正要从电网买进来的电量：交付量 ÷ 充放综合效率 ×（1＋站用电率）
+        daily_in = daily_out / rte * (1.0 + aux) if rte else daily_out
+        out["swap_daily_delivered_kwh"] = daily_out
+        out["swap_daily_grid_kwh"] = daily_in
+        out["swap_station_grid_kw"] = station_kw
+        # 负荷率：把日用电量摊到 24 小时，占箱变容量的多少
+        out["swap_load_factor"] = daily_in / 24.0 / station_kw
+        out["swap_grid_kw_per_daily_mwh"] = station_kw / (daily_out / 1000.0)
+        # 站端若只在配置的充电窗口内充电，需要多大功率——与箱变容量对比即可看出是否可行
+        hours = float(st.get("operating_hours_day") or 24.0)
+        out["swap_required_kw_in_window"] = daily_in / hours if hours else None
+        out["swap_window_hours"] = hours
+
+    if out.get("swap_grid_kw_per_daily_mwh"):
+        base = out["swap_grid_kw_per_daily_mwh"]
+
+        def _ratio(u: float) -> float | None:
+            return (1000.0 / (24.0 * u)) / base if u > 0 else None
+
+        out["charge_grid_kw_per_daily_mwh"] = 1000.0 / (24.0 * u_heavy) if u_heavy > 0 else None
+        out["grid_intensity_ratio"] = _ratio(u_heavy)
+        # 区间两端：超充站取实测最忙与最闲两档，倍数随之变化
+        out["grid_intensity_ratio_busy"] = _ratio(
+            float(cfg.get("utilization_heavy_high") or 0.40))
+        out["grid_intensity_ratio_idle"] = _ratio(
+            float(cfg.get("utilization_heavy_low") or 0.18))
     return out

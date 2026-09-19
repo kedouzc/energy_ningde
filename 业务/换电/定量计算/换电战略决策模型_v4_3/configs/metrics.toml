@@ -3347,3 +3347,54 @@ unit = "倍"
 decimals = 2
 group = "⑧重卡"
 note = "两条路线最硬的一条结构性差异，而且是物理的、不随价格战变化；电力增容占充电站总投资35%–50%"
+
+[[metric]]
+key = "charge.swap_load_factor"
+source = "charging"
+label = "换电站的电网负荷率"
+at = "swap_business.charging_economics.swap_load_factor"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "⑧重卡"
+note = "日用电量摊到24小时后占箱变容量的比例。电池可以整天慢慢充，所以这个数高——电网容量优势全部来自这里"
+
+[[metric]]
+key = "charge.grid_ratio_busy"
+source = "charging"
+label = "超充对换电的电网容量倍数·超充最忙"
+at = "swap_business.charging_economics.grid_intensity_ratio_busy"
+unit = "倍"
+decimals = 2
+group = "⑧重卡"
+note = "超充站取实测最忙一档时的同一读数。倍数随对手利用率上升而衰减，所以本项要报区间"
+
+[[metric]]
+key = "charge.grid_ratio_idle"
+source = "charging"
+label = "超充对换电的电网容量倍数·超充最闲"
+at = "swap_business.charging_economics.grid_intensity_ratio_idle"
+unit = "倍"
+decimals = 2
+group = "⑧重卡"
+note = "超充站取实测最闲一档时的同一读数"
+
+[[metric]]
+key = "charge.swap_daily_grid_kwh"
+source = "charging"
+label = "换电站单站日用电量"
+at = "swap_business.charging_economics.swap_daily_grid_kwh"
+unit = "kWh/天"
+decimals = 0
+group = "⑧重卡"
+note = "交付给车的电量 ÷ 充放综合效率 ×（1＋站用电率）＝ 站端真正要从电网买的电"
+
+[[metric]]
+key = "charge.swap_required_kw"
+source = "charging"
+label = "换电站在充电窗口内所需功率"
+at = "swap_business.charging_economics.swap_required_kw_in_window"
+unit = "kW"
+decimals = 0
+group = "⑧重卡"
+note = "日用电量 ÷ 配置的充电窗口。**与箱变容量对比即可看出这个吞吐假设是否物理可行**"

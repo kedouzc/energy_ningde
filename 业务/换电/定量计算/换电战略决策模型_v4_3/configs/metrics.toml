@@ -3228,54 +3228,285 @@ group = "④经营"
 note = "资本压在哪一层的一个数：它决定了价格战打在哪一层，也决定了两段收费该把利润中枢放在哪一段"
 
 [[metric]]
-key = "charge.cost_heavy"
+key = "charge.ref_revenue"
 source = "charging"
-label = "重卡充电站度电固定成本·实测利用率"
-at = "swap_business.charging_economics.cost_heavy_observed"
-unit = "元/kWh"
-decimals = 3
+label = "参照超充站·年服务费收入"
+at = "swap_business.charging_economics.charge_mid_revenue_wan"
+unit = "万元/年"
+decimals = 0
 group = "⑧重卡"
-note = "年化capex＋固定运维，摊到实测能量利用率上；不含购电成本，对应'服务费要覆盖什么'"
+note = "26桩×320kW参照站，按实测利用率中位"
 
 [[metric]]
-key = "charge.cost_heavy_capfee"
+key = "charge.ref_cashcost"
 source = "charging"
-label = "重卡充电站度电固定成本·容量电费照收档"
-at = "swap_business.charging_economics.cost_heavy_with_capacity_fee"
-unit = "元/kWh"
-decimals = 3
+label = "参照超充站·年现金成本"
+at = "swap_business.charging_economics.charge_mid_cash_cost_wan"
+unit = "万元/年"
+decimals = 0
 group = "⑧重卡"
-note = "压力档：集中式充换电设施免收基本电费的政策状态未证实，若照收，这一项比利用率更能决定成败"
+note = "平台分成＋电损＋运维＋场地＋人工，不含折旧、不含资金成本"
 
 [[metric]]
-key = "charge.cost_passenger"
+key = "charge.ref_cashflow"
 source = "charging"
-label = "乘用车公共桩度电固定成本"
-at = "swap_business.charging_economics.cost_passenger_observed"
-unit = "元/kWh"
-decimals = 3
+label = "参照超充站·年现金流"
+at = "swap_business.charging_economics.charge_mid_cash_flow_wan"
+unit = "万元/年"
+decimals = 0
 group = "⑧重卡"
-note = "同一公式、换成乘用车实测利用率——'充电在亏本卖'这个叙事出自这一档，不适用于重卡"
+note = "收入减现金成本。不扣折旧、不扣利息、不扣税"
 
 [[metric]]
-key = "charge.cost_mw_design"
+key = "charge.ref_return"
 source = "charging"
-label = "兆瓦超充站度电固定成本·设计工况"
-at = "swap_business.charging_economics.cost_mw_design"
-unit = "元/kWh"
-decimals = 3
+label = "参照超充站·全投资现金回报率"
+at = "swap_business.charging_economics.charge_mid_cash_return"
+unit = "%"
+decimals = 0
+scale = 100.0
 group = "⑧重卡"
-note = "按示范站设计日充量反推的利用率；高于当前服务费，说明兆瓦级按设计工况收不回成本"
+note = "年现金流 ÷ 总投资。**不加杠杆、不含资金成本**——投资人拿它跟自己别的机会比"
 
 [[metric]]
-key = "charge.cost_mw_at_heavy"
+key = "charge.ref_payback"
 source = "charging"
-label = "兆瓦超充站度电固定成本·按重卡实测利用率"
-at = "swap_business.charging_economics.cost_mw_at_heavy_utilization"
+label = "参照超充站·静态回收期"
+at = "swap_business.charging_economics.charge_mid_payback_years"
+unit = "年"
+decimals = 1
+group = "⑧重卡"
+note = "总投资 ÷ 年现金流"
+
+[[metric]]
+key = "charge.ref_cost"
+source = "charging"
+label = "参照超充站·度电成本"
+at = "swap_business.charging_economics.charge_mid_cost_rmb_kwh"
 unit = "元/kWh"
 decimals = 3
 group = "⑧重卡"
-note = "若兆瓦站能做到重卡快充站的实测利用率，它的度电固定成本落在哪"
+note = "含直线折旧的会计口径度电成本，可直接与服务费比"
+
+[[metric]]
+key = "charge.ref_return_idle"
+source = "charging"
+label = "参照超充站·全投资回报率（最闲一档）"
+at = "swap_business.charging_economics.charge_low_cash_return"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "⑧重卡"
+note = "利用率取实测区间下沿"
+
+[[metric]]
+key = "charge.ref_return_busy"
+source = "charging"
+label = "参照超充站·全投资回报率（最忙一档）"
+at = "swap_business.charging_economics.charge_high_cash_return"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "⑧重卡"
+note = "利用率取实测区间上沿"
+
+[[metric]]
+key = "charge.ref_return_platform"
+source = "charging"
+label = "参照超充站·全投资回报率（计平台分成）"
+at = "swap_business.charging_economics.charge_mid_cash_return_with_platform"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "⑧重卡"
+note = "压力档：按重卡场景唯一一条实际平台报价抽成"
+
+[[metric]]
+key = "charge.breakeven_util"
+source = "charging"
+label = "参照超充站·现金打平利用率"
+at = "swap_business.charging_economics.charge_cash_breakeven_utilization"
+unit = "%"
+decimals = 1
+scale = 100.0
+group = "⑧重卡"
+note = "现金流为零所需的能量利用率；实测远高于它"
+
+[[metric]]
+key = "charge.swap_capex"
+source = "charging"
+label = "换电站·单站投资"
+at = "swap_business.charging_economics.swap_station_capex_wan"
+unit = "万元"
+decimals = 0
+group = "⑧重卡"
+note = "站体 ＋ 站内周转电池。**不含车端电池**——那是电池银行的资产，靠租金回收"
+
+[[metric]]
+key = "charge.swap_battery_wan"
+source = "charging"
+label = "换电站·其中站内周转电池"
+at = "swap_business.charging_economics.swap_station_battery_wan"
+unit = "万元"
+decimals = 0
+group = "⑧重卡"
+note = "按基准年电池价计"
+
+[[metric]]
+key = "charge.swap_revenue"
+source = "charging"
+label = "换电站·年服务费收入"
+at = "swap_business.charging_economics.swap_revenue_wan"
+unit = "万元/年"
+decimals = 0
+group = "⑧重卡"
+note = "只算服务费。电池租金归电池银行，不归站"
+
+[[metric]]
+key = "charge.swap_cashflow"
+source = "charging"
+label = "换电站·年现金流"
+at = "swap_business.charging_economics.swap_cash_flow_wan"
+unit = "万元/年"
+decimals = 0
+group = "⑧重卡"
+note = "与超充站同一套定义"
+
+[[metric]]
+key = "charge.swap_return"
+source = "charging"
+label = "换电站·全投资现金回报率"
+at = "swap_business.charging_economics.swap_cash_return"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "⑧重卡"
+note = "**这个数建立在未经验证的吞吐假设上，必须与下面的可行性比一起读**"
+
+[[metric]]
+key = "charge.swap_payback"
+source = "charging"
+label = "换电站·静态回收期"
+at = "swap_business.charging_economics.swap_payback_years"
+unit = "年"
+decimals = 1
+group = "⑧重卡"
+note = "同上口径"
+
+[[metric]]
+key = "charge.swap_feasible_ratio"
+source = "charging"
+label = "换电站·吞吐假设对站端充电能力的比"
+at = "swap_business.charging_economics.swap_feasible_ratio"
+unit = "倍"
+decimals = 2
+group = "⑧重卡"
+note = "假设的日交付量 ÷（站端功率×充电窗口能充进的电）。**大于一＝物理上不成立**"
+
+[[metric]]
+key = "charge.swap_capped_return"
+source = "charging"
+label = "换电站·全投资回报率（吞吐压回可行上限）"
+at = "swap_business.charging_economics.swap_capped_cash_return"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "⑧重卡"
+note = "把日交付量压到站端充电能力的上限再算一遍——这才是可辩护的那个数"
+
+[[metric]]
+key = "charge.swap_capped_payback"
+source = "charging"
+label = "换电站·静态回收期（吞吐压回可行上限）"
+at = "swap_business.charging_economics.swap_capped_payback_years"
+unit = "年"
+decimals = 1
+group = "⑧重卡"
+note = "同上"
+
+[[metric]]
+key = "charge.swap_load_factor"
+source = "charging"
+label = "换电站的电网负荷率"
+at = "swap_business.charging_economics.swap_load_factor"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "⑧重卡"
+note = "日用电量摊到24小时后占箱变容量的比例"
+
+[[metric]]
+key = "charge.grid_ratio"
+source = "charging"
+label = "超充对换电的电网容量倍数"
+at = "swap_business.charging_economics.grid_intensity_ratio"
+unit = "倍"
+decimals = 1
+group = "⑧重卡"
+note = "负荷率之比。**2030年前免收容量电费，所以这项差异只走capex（增容占总投资35%–50%），不走运营成本**"
+
+[[metric]]
+key = "charge.grid_ratio_busy"
+source = "charging"
+label = "超充对换电的电网容量倍数·超充最忙"
+at = "swap_business.charging_economics.grid_intensity_ratio_busy"
+unit = "倍"
+decimals = 1
+group = "⑧重卡"
+note = "倍数随对手利用率上升而衰减"
+
+[[metric]]
+key = "charge.grid_ratio_idle"
+source = "charging"
+label = "超充对换电的电网容量倍数·超充最闲"
+at = "swap_business.charging_economics.grid_intensity_ratio_idle"
+unit = "倍"
+decimals = 1
+group = "⑧重卡"
+note = ""
+
+[[metric]]
+key = "charge.swap_level_return"
+source = "charging"
+label = "换电站·全投资回报率（同价同吞吐）"
+at = "swap_business.charging_economics.swap_level_cash_return"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "⑧重卡"
+note = "把换电站的服务费与单站吞吐都换成超充的实测水平再算。**剥掉两个假设之后，剩下的就是两种站的资产结构之比**"
+
+[[metric]]
+key = "charge.swap_level_payback"
+source = "charging"
+label = "换电站·静态回收期（同价同吞吐）"
+at = "swap_business.charging_economics.swap_level_payback_years"
+unit = "年"
+decimals = 1
+group = "⑧重卡"
+note = "同上口径"
+
+[[metric]]
+key = "charge.swap_fee_premium"
+source = "charging"
+label = "换电服务费对超充的溢价"
+at = "swap_business.charging_economics.swap_fee_premium"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "⑧重卡"
+note = "本报告假设的换电服务费比重卡充电服务费实测中值高出多少。**这是假设，不是实测**"
+
+[[metric]]
+key = "charge.swap_throughput_premium"
+source = "charging"
+label = "换电单站吞吐对超充实测的溢价"
+at = "swap_business.charging_economics.swap_throughput_premium"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "⑧重卡"
+note = "本报告假设的换电单站年交付电量比超充参照站高出多少。**同样是假设，而且与站端充电能力矛盾**"
 
 [[metric]]
 key = "charge.service_fee"
@@ -3285,38 +3516,7 @@ at = "swap_business.charging_economics.service_fee_observed"
 unit = "元/kWh"
 decimals = 2
 group = "⑧重卡"
-note = "主流区间中值；与上面几条比较，看充电站现在是赚是亏"
-
-[[metric]]
-key = "charge.margin_heavy"
-source = "charging"
-label = "重卡充电站度电毛差·实测"
-at = "swap_business.charging_economics.margin_heavy_observed"
-unit = "元/kWh"
-decimals = 3
-group = "⑧重卡"
-note = "服务费 − 度电固定成本 − 电损成本。**正数＝对手现在是赚钱的，不能指望等它亏死**"
-
-[[metric]]
-key = "charge.margin_passenger"
-source = "charging"
-label = "乘用车公共桩度电毛差·对照"
-at = "swap_business.charging_economics.margin_passenger_observed"
-unit = "元/kWh"
-decimals = 3
-group = "⑧重卡"
-note = "同一算法的乘用车对照，用来显示两个市场差多远"
-
-[[metric]]
-key = "charge.breakeven_util"
-source = "charging"
-label = "重卡充电站打平所需利用率"
-at = "swap_business.charging_economics.breakeven_utilization"
-unit = "%"
-decimals = 1
-scale = 100.0
-group = "⑧重卡"
-note = "按实测服务费与本模型成本曲线反推；实测利用率远高于它"
+note = "主流 0.21–0.25 的中值；黄骅港 0.2085、吐鲁番 0.2194 为按月度收入与电量反推，三源互证"
 
 [[metric]]
 key = "charge.swap_grid_intensity"
@@ -3336,65 +3536,5 @@ at = "swap_business.charging_economics.charge_grid_kw_per_daily_mwh"
 unit = "kW/(MWh·天)"
 decimals = 0
 group = "⑧重卡"
-note = "同一口径。超充按**瞬时功率**要容量：一辆车要多大功率，站就得有多大接口"
+note = "同一口径。超充按**瞬时功率**要容量：车拉多大功率，站就得有多大接口"
 
-[[metric]]
-key = "charge.grid_intensity_ratio"
-source = "charging"
-label = "超充对换电的电网容量倍数"
-at = "swap_business.charging_economics.grid_intensity_ratio"
-unit = "倍"
-decimals = 2
-group = "⑧重卡"
-note = "两条路线最硬的一条结构性差异，而且是物理的、不随价格战变化；电力增容占充电站总投资35%–50%"
-
-[[metric]]
-key = "charge.swap_load_factor"
-source = "charging"
-label = "换电站的电网负荷率"
-at = "swap_business.charging_economics.swap_load_factor"
-unit = "%"
-decimals = 0
-scale = 100.0
-group = "⑧重卡"
-note = "日用电量摊到24小时后占箱变容量的比例。电池可以整天慢慢充，所以这个数高——电网容量优势全部来自这里"
-
-[[metric]]
-key = "charge.grid_ratio_busy"
-source = "charging"
-label = "超充对换电的电网容量倍数·超充最忙"
-at = "swap_business.charging_economics.grid_intensity_ratio_busy"
-unit = "倍"
-decimals = 2
-group = "⑧重卡"
-note = "超充站取实测最忙一档时的同一读数。倍数随对手利用率上升而衰减，所以本项要报区间"
-
-[[metric]]
-key = "charge.grid_ratio_idle"
-source = "charging"
-label = "超充对换电的电网容量倍数·超充最闲"
-at = "swap_business.charging_economics.grid_intensity_ratio_idle"
-unit = "倍"
-decimals = 2
-group = "⑧重卡"
-note = "超充站取实测最闲一档时的同一读数"
-
-[[metric]]
-key = "charge.swap_daily_grid_kwh"
-source = "charging"
-label = "换电站单站日用电量"
-at = "swap_business.charging_economics.swap_daily_grid_kwh"
-unit = "kWh/天"
-decimals = 0
-group = "⑧重卡"
-note = "交付给车的电量 ÷ 充放综合效率 ×（1＋站用电率）＝ 站端真正要从电网买的电"
-
-[[metric]]
-key = "charge.swap_required_kw"
-source = "charging"
-label = "换电站在充电窗口内所需功率"
-at = "swap_business.charging_economics.swap_required_kw_in_window"
-unit = "kW"
-decimals = 0
-group = "⑧重卡"
-note = "日用电量 ÷ 配置的充电窗口。**与箱变容量对比即可看出这个吞吐假设是否物理可行**"

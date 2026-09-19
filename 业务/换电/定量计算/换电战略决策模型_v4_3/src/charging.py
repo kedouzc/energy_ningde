@@ -1,179 +1,244 @@
-"""对手方：充电站的度电成本曲线，以及电网容量强度对比（2026-09-19 立）。
+"""补能站的全投资收益率：超充站与换电站站层，放在同一把尺子上（2026-09-19 立，09-20 重订口径）。
 
-【为什么要有这个模块】
-此前报告拿两个数代表超充的成本——"度电成本地板 0.34"与"20 车位站 0.4 元保本"。
-回查结果是：前者**查无出处**，后者出自乘用车站、隐含利用率 5%–10%，**搬到重卡站是范畴错误**。
-更要紧的是，"地板"这个概念本身有误导性：**固定成本摊销是利用率的双曲线，没有地板。**
-所以这里不存一个数，存一条**可复核、可证伪的曲线**，并把换电放到同一根轴上。
+【这个模块回答一个问题】
+**同样一笔钱投下去，这两种站各自一年能挣回多少？**
 
-【两条输出，各回答一个问题】
-1. `cost_curve`：充电站的度电固定成本随利用率怎么变（常规重卡站 / 兆瓦站 × 免不免容量电费）。
-   回答"超充到底多便宜"，以及"它现在是不是在亏本卖"。
-2. `grid_intensity`：**同样的日交付电量，两条路线各要占多少电网容量。**
-   回答"换电的结构性优势到底在哪一层"。
+【口径三条，是本轮重订的要点】
 
-【第 2 条是本模块的重点，因为它是物理的，不是会计的】
-超充按**瞬时功率**要电网容量：一辆车要 1.44MW，站就得有 1.44MW 的接口，哪怕它一天只来几趟。
-换电按**平均功率**要电网容量：电池什么时候充都行，站只要有"日均出电量 ÷ 充电窗口"那么大的接口。
-所以同样的日交付电量，超充要的电网容量是换电的数倍——而**电力增容占充电站总投资的 35%–50%**，
-容量电费（若征收）又按配电容量收。**这一层的差距比服务费那一层大得多，而且它不随价格战变化。**
+1. **不含资金成本，算的是「全投资收益率」。**
+   此前用资本回收系数（隐含 6% 折现率）把投资摊成年金——那是把**融资假设**混进了**成本**。
+   投资人先看这门生意本身能挣多少（不加杠杆的现金回报），再拿它跟自己别的机会比，
+   决定投不投、要不要借钱。**所以折旧走直线法（投资减残值除以年限），全程不出现折现率。**
 
-【口径三条】
-- 利用率一律是**能量利用率**（年电量 ÷ 装机 × 8760），不是时间利用率、也不是功率利用率。
-  三者混用是市面上几乎所有测算失真的主因（能量 ≈ 时间 × 功率）。
-- 度电固定成本**不含购电成本**，只含年化 capex、固定运维与容量电费——它对应的是"服务费要覆盖什么"。
-- 电损单列，因为它是唯一真正的变动成本。
+2. **平台分成单列，而且重卡不按乘用车取值。**
+   乘用车公共站要给聚合平台让出服务费的 10%–20%（小桔约 15%、云快充约 10%；
+   上市聚合平台披露的毛 take rate 是交易额的 9%–13%）。
+   **但重卡站是车队直签**：有运营商明说"主动避开线上平台 6% 的抽佣，改用线下会员卡直接收款"，
+   多个场站自有及合作车队贡献五到六成电量。**所以基准取零、压力档取 6%**——
+   取零同样是"把有利条件给对手"。
+   **华为超充联盟不叠加在这里**：它是设备供应商形态（按瓦收钱），成本已经在设备单价里。
+
+3. **两边用同一套定义**：收入只算补能服务费（换电侧的电池租金属于电池银行，不属于站）；
+   成本只算站这一层的现金支出；投资只算建这座站要花的钱。
+
+【必须随结论一起读的两条警告】
+- **超充站这一侧是用公开披露的实际运营数据算的**（某港口站的投资额、月充电量、月服务费收入三者齐全）。
+- **换电站这一侧是用模型的成熟期假设算的，而那个假设本身与站的充电能力冲突**
+  （详见 `swap_feasible_ratio`：假设的日交付量超出"站端功率 × 充电窗口"能充进来的电量）。
+  **两边的证据等级不同，这件事必须写在结论旁边，不能只比数字。**
 """
 from __future__ import annotations
 
+from derived import battery_price_rmb_kwh
 from scale import POOL_STATION_GROUP
 
-# 一年的小时数。能量利用率的分母用它，不用运营天数——装机容量是全年都在占着的。
 _HOURS_YEAR = 8760.0
 
 
-def _crf(rate: float, years: float) -> float:
-    """资本回收系数：把一次性投资摊成等额年金。"""
-    if years <= 0:
-        return 0.0
-    if rate <= 0:
-        return 1.0 / years
-    return rate / (1.0 - (1.0 + rate) ** -years)
+def _station_economics(
+    *, capex_wan: float, annual_kwh: float, service_fee: float,
+    life_years: float, salvage_rate: float, opex_rate: float,
+    platform_rate: float, loss_rate: float, power_price: float,
+    other_cash_wan: float = 0.0,
+) -> dict[str, float]:
+    """一座站的一年：收入、现金成本、现金流、全投资收益率。单位统一用「万元」。
 
-
-def _annual_fixed_per_kw(cfg: dict, capex_per_kw: float) -> dict[str, float]:
-    """每 kW 装机每年要背多少固定成本（元/kW·年），拆成三段。"""
-    r = float(cfg.get("operator_discount_rate") or 0.0)
-    n = float(cfg.get("equipment_life_years") or 0.0)
-    s = float(cfg.get("salvage_rate") or 0.0)
-    # 残值在期末回收，先折现再从投资额里扣，然后整体摊成年金
-    net = capex_per_kw - capex_per_kw * s / ((1.0 + r) ** n) if n > 0 else capex_per_kw
+    所有口径都不含资金成本，也不含所得税——回答的是"这门生意本身一年挣多少"。
+    """
+    revenue = annual_kwh * service_fee / 1e4                  # 服务费收入
+    platform = revenue * platform_rate                        # 平台分成（按服务费抽）
+    loss = annual_kwh * loss_rate * power_price / 1e4         # 电损：多买的那部分电
+    maintenance = capex_wan * opex_rate                       # 设备运维
+    cash_cost = platform + loss + maintenance + other_cash_wan
+    cash_flow = revenue - cash_cost
+    depreciation = capex_wan * (1.0 - salvage_rate) / life_years if life_years else 0.0
     return {
-        "capex": net * _crf(r, n),
-        "opex": capex_per_kw * float(cfg.get("opex_rate_of_capex") or 0.0),
-        # 容量电费按配电容量收，与发出多少电无关——所以它是纯固定成本，低利用率下极其致命
-        "capacity_fee": (
-            float(cfg.get("capacity_ratio_kva_per_kw") or 0.0)
-            * float(cfg.get("capacity_fee_rmb_kva_month") or 0.0)
-            * 12.0
-            * float(cfg.get("capacity_fee_applies") or 0.0)
-        ),
+        "revenue_wan": revenue,
+        "platform_wan": platform,
+        "loss_wan": loss,
+        "maintenance_wan": maintenance,
+        "other_cash_wan": other_cash_wan,
+        "cash_cost_wan": cash_cost,
+        "cash_flow_wan": cash_flow,
+        "depreciation_wan": depreciation,
+        "ebit_wan": cash_flow - depreciation,
+        "capex_wan": capex_wan,
+        # 全投资现金回报率：不加杠杆、不扣税，一年的现金流除以总投资
+        "cash_return": cash_flow / capex_wan if capex_wan else 0.0,
+        # 静态回收期：多少年把本金挣回来
+        "payback_years": capex_wan / cash_flow if cash_flow > 0 else None,
+        # 会计口径的度电成本（含直线折旧），用来和服务费直接比
+        "cost_rmb_kwh": (cash_cost + depreciation) * 1e4 / annual_kwh if annual_kwh else None,
     }
 
 
-def charging_cost_rmb_kwh(cfg: dict, utilization: float, *, megawatt: bool = False,
-                          with_capacity_fee: bool | None = None) -> float | None:
-    """充电站的度电固定成本（元/kWh）。利用率为零或缺配置时返回 None，绝不返回一个看着正常的数。"""
-    if not cfg or utilization <= 0:
-        return None
-    key = "mw_capex_rmb_per_kw" if megawatt else "capex_rmb_per_kw"
-    capex = float(cfg.get(key) or 0.0)
-    if capex <= 0:
-        return None
-    parts = _annual_fixed_per_kw(cfg, capex)
-    fixed = parts["capex"] + parts["opex"]
-    if with_capacity_fee is None:
-        fixed += parts["capacity_fee"]
-    elif with_capacity_fee:
-        # 显式要压力档：不管开关怎么设，都把容量电费算进去
-        r = float(cfg.get("capacity_ratio_kva_per_kw") or 0.0)
-        fixed += r * float(cfg.get("capacity_fee_rmb_kva_month") or 0.0) * 12.0
-    return fixed / (_HOURS_YEAR * utilization)
-
-
-def build_charging_economics(config: dict, scale, capex) -> dict | None:
-    """充电站成本曲线 ＋ 两条路线的电网容量强度对比。缺 [charging_station] 时返回 None。"""
+def build_charging_economics(config: dict, scale, capex, pool_ops: dict) -> dict | None:
+    """超充站与换电站站层的全投资收益率对比。缺 [charging_station] 时返回 None。"""
     cfg = config.get("charging_station")
     if not cfg:
         return None
-
-    u_heavy = float(cfg.get("utilization_heavy_observed") or 0.0)
-    u_pass = float(cfg.get("utilization_passenger_observed") or 0.0)
-    u_mw = float(cfg.get("utilization_mw_design") or 0.0)
-    fee = float(cfg.get("service_fee_observed") or 0.0)
-
-    out: dict = {
-        # —— 曲线上的几个关键点 ——
-        "cost_heavy_observed": charging_cost_rmb_kwh(cfg, u_heavy),
-        "cost_heavy_with_capacity_fee": charging_cost_rmb_kwh(cfg, u_heavy, with_capacity_fee=True),
-        "cost_passenger_observed": charging_cost_rmb_kwh(cfg, u_pass),
-        "cost_mw_design": charging_cost_rmb_kwh(cfg, u_mw, megawatt=True),
-        "cost_mw_at_heavy_utilization": charging_cost_rmb_kwh(cfg, u_heavy, megawatt=True),
-        "service_fee_observed": fee,
-    }
-    # 毛差：服务费减去度电固定成本再减电损。正数＝充电站现在是赚钱的。
-    loss = float(cfg.get("loss_rate") or 0.0)
     sb = config.get("swap_business") or {}
     power_price = float(sb.get("valley_power_price_rmb_kwh") or 0.0)
-    loss_cost = loss * power_price
-    if out["cost_heavy_observed"] is not None:
-        out["margin_heavy_observed"] = fee - out["cost_heavy_observed"] - loss_cost
-    if out["cost_passenger_observed"] is not None:
-        # 乘用车侧用同一服务费只是为了显示量级差，不代表乘用车实际收这个价
-        out["margin_passenger_observed"] = fee - out["cost_passenger_observed"] - loss_cost
-    # 服务费打平所需的利用率：固定成本 ÷ (服务费 − 电损成本) ÷ 8760
-    net_fee = fee - loss_cost
-    capex_kw = float(cfg.get("capex_rmb_per_kw") or 0.0)
-    parts = _annual_fixed_per_kw(cfg, capex_kw)
-    fixed_year = parts["capex"] + parts["opex"] + parts["capacity_fee"]
-    out["breakeven_utilization"] = (
-        fixed_year / (_HOURS_YEAR * net_fee) if net_fee > 0 else None)
 
-    # —— 电网容量强度：同样的日交付电量，各要占多少电网容量 ——
-    # 【这一条是负荷率之比，不是别的】两座站交付同样多的电，电网接口谁大谁小，
-    # 只取决于**这份电摊在多少小时里**：
-    #     电网容量 ≈ 日交付电量 ÷ (24h × 负荷率)
-    # 换电站的负荷率高，因为电池可以整天慢慢充；超充站的负荷率就等于它的能量利用率，
-    # 因为它只有在车插枪的时候才用电。**两者之比 ＝ 负荷率之比，就这么简单。**
-    #
-    # ⚠️【2026-09-19b 纠正】此前把这个倍数说成"与公司'单个车位服务能力是配储充电站 3 倍'
-    # 的口径独立吻合"——**那是过度解读**。公司那句话说的是**车位占用时长**
-    # （换电一次 5 分钟、兆瓦超充一次约 18 分钟，3.6 比 1），与电网容量无关。
-    # 两个数都接近 3 是巧合，机理完全不同。本模块不再声称任何外部印证。
-    #
-    # ⚠️ 这个倍数**对超充站有多忙极其敏感**（实测 18%–40%，对应倍数差一倍以上），
-    # 所以给的是区间不是点值。超充站越忙，换电的这项优势越小。
-    heavy_pools = [pk for pk, grp in POOL_STATION_GROUP.items() if grp == "heavy"]
+    life = float(cfg.get("equipment_life_years") or 0.0)
+    salvage = float(cfg.get("salvage_rate") or 0.0)
+    opex_rate = float(cfg.get("opex_rate_of_capex") or 0.0)
+    loss_rate = float(cfg.get("loss_rate") or 0.0)
+    fee = float(cfg.get("service_fee_observed") or 0.0)
+    platform = float(cfg.get("platform_commission_rate") or 0.0)
+    platform_hi = float(cfg.get("platform_commission_rate_high") or 0.0)
+    unit_capex = float(cfg.get("capex_rmb_per_kw") or 0.0)
+    station_kw = float(cfg.get("reference_station_kw") or 0.0)
+    site_wan = float(cfg.get("site_rent_wan_year") or 0.0)
+    labor_wan = float(cfg.get("labor_wan_year") or 0.0)
+
+    out: dict = {"service_fee_observed": fee}
+
+    # —— 超充站：按"一座参照站"算，规模可约掉，但写成一座站更好读 ——
+    def _charge_at(u: float, rate: float = platform) -> dict[str, float]:
+        return _station_economics(
+            capex_wan=unit_capex * station_kw / 1e4,
+            annual_kwh=station_kw * _HOURS_YEAR * u,
+            service_fee=fee, life_years=life, salvage_rate=salvage,
+            opex_rate=opex_rate, platform_rate=rate, loss_rate=loss_rate,
+            power_price=power_price, other_cash_wan=site_wan + labor_wan)
+
+    # 三档利用率各算一遍。**字段名全部写成字面量**——注册表按名字在源码里核对取数路径，
+    # 用 f-string 拼出来的名字它找不到，等于断了血缘。
+    mid = _charge_at(float(cfg.get("utilization_heavy_observed") or 0.0))
+    out["charge_mid_revenue_wan"] = mid["revenue_wan"]
+    out["charge_mid_cash_cost_wan"] = mid["cash_cost_wan"]
+    out["charge_mid_cash_flow_wan"] = mid["cash_flow_wan"]
+    out["charge_mid_cash_return"] = mid["cash_return"]
+    out["charge_mid_payback_years"] = mid["payback_years"]
+    out["charge_mid_cost_rmb_kwh"] = mid["cost_rmb_kwh"]
+    out["charge_low_cash_return"] = _charge_at(
+        float(cfg.get("utilization_heavy_low") or 0.0))["cash_return"]
+    out["charge_high_cash_return"] = _charge_at(
+        float(cfg.get("utilization_heavy_high") or 0.0))["cash_return"]
+    # 压力档：平台分成按重卡实际报价的那一档计
+    u_mid = float(cfg.get("utilization_heavy_observed") or 0.0)
+    if u_mid > 0 and platform_hi > 0:
+        out["charge_mid_cash_return_with_platform"] = _charge_at(u_mid, platform_hi)["cash_return"]
+    # 打平利用率：现金流为零时的利用率（含直线折旧才算"会计打平"，这里给现金打平）
+    fixed_wan = unit_capex * station_kw / 1e4 * opex_rate + site_wan + labor_wan
+    net_per_kwh = fee * (1.0 - platform) - loss_rate * power_price
+    out["charge_cash_breakeven_utilization"] = (
+        fixed_wan * 1e4 / (net_per_kwh * station_kw * _HOURS_YEAR)
+        if net_per_kwh > 0 and station_kw else None)
+
+    # —— 换电站站层：同一套定义，但收入只算服务费（租金归电池银行，不归站）——
+    heavy = [pk for pk, grp in POOL_STATION_GROUP.items() if grp == "heavy"]
     days = float(sb.get("operating_days") or 0.0)
     rte = float(sb.get("rte") or 1.0)
     aux = float(sb.get("auxiliary_power_rate") or 0.0)
+    swap_fee = float(sb.get("service_fee_rmb_kwh") or 0.0)
     best = None
-    for pk in heavy_pools:
+    for pk in heavy:
         stations = float(capex.station_targets.get(pk, 0) or 0)
         energy = scale.mature_annual_energy_yi_kwh.get(pk, 0.0) * 1e8
         st = config.get("stations", {}).get(pk, {}) or {}
-        station_kw = float(st.get("charging_power_kw") or 0.0)
-        if not stations or not energy or not station_kw or not days:
+        body_wan = float(st.get("station_body_capex_wan") or 0.0)
+        p_kw = float(st.get("charging_power_kw") or 0.0)
+        hours = float(st.get("operating_hours_day") or 0.0)
+        if not stations or not energy or not body_wan or not days:
             continue
-        # 取干线池（出电量最大的那个）作代表：它是换电与超充正面相遇的场景
         if best is not None and energy <= best:
             continue
         best = energy
-        daily_out = energy / stations / days            # 每站每天交付给车的电量 kWh
-        # 站端真正要从电网买进来的电量：交付量 ÷ 充放综合效率 ×（1＋站用电率）
+        annual = energy / stations                                   # 单站年交付电量
+        daily_out = annual / days
         daily_in = daily_out / rte * (1.0 + aux) if rte else daily_out
+        # 站内周转电池：它也是这座站要花的钱，必须算进投资。
+        # 不含车端电池——那是电池银行的资产，靠租金回收，不靠站的服务费回收。
+        ops = pool_ops.get(pk)
+        station_bat_gwh = float(getattr(ops, "station_battery_gwh", 0.0) or 0.0) if ops else 0.0
+        bat_price = battery_price_rmb_kwh(config, config["meta"]["reference_year"])
+        bat_wan = station_bat_gwh * 1e6 / stations * bat_price / 1e4 if station_bat_gwh else 0.0
+        r = _station_economics(
+            capex_wan=body_wan + bat_wan,
+            annual_kwh=annual, service_fee=swap_fee,
+            life_years=float(config.get("finance", {}).get("model_horizon_years") or life),
+            salvage_rate=salvage,
+            opex_rate=float(sb.get("equipment_insurance_rate") or 0.0),
+            platform_rate=0.0,                       # 换电为自有闭环，未见平台分成科目
+            loss_rate=(1.0 / rte * (1.0 + aux) - 1.0) if rte else 0.0,
+            power_price=power_price,
+            other_cash_wan=float(sb.get("site_rent_wan_year") or 0.0)
+            + float(sb.get("heavy_station_labor_wan_year") or 0.0))
+        out["swap_station_capex_wan"] = body_wan + bat_wan
+        out["swap_station_body_wan"] = body_wan
+        out["swap_station_battery_wan"] = bat_wan
+        out["swap_annual_kwh"] = annual
         out["swap_daily_delivered_kwh"] = daily_out
         out["swap_daily_grid_kwh"] = daily_in
-        out["swap_station_grid_kw"] = station_kw
-        # 负荷率：把日用电量摊到 24 小时，占箱变容量的多少
-        out["swap_load_factor"] = daily_in / 24.0 / station_kw
-        out["swap_grid_kw_per_daily_mwh"] = station_kw / (daily_out / 1000.0)
-        # 站端若只在配置的充电窗口内充电，需要多大功率——与箱变容量对比即可看出是否可行
-        hours = float(st.get("operating_hours_day") or 24.0)
+        out["swap_revenue_wan"] = r["revenue_wan"]
+        out["swap_cash_cost_wan"] = r["cash_cost_wan"]
+        out["swap_cash_flow_wan"] = r["cash_flow_wan"]
+        out["swap_cash_return"] = r["cash_return"]
+        out["swap_payback_years"] = r["payback_years"]
+        out["swap_cost_rmb_kwh"] = r["cost_rmb_kwh"]
+        # 【可行性校验】假设的日交付量，站端功率 × 充电窗口能不能充进来
+        window_kwh = p_kw * hours * rte / (1.0 + aux) if rte else p_kw * hours
+        out["swap_feasible_daily_kwh"] = window_kwh
+        out["swap_feasible_ratio"] = daily_out / window_kwh if window_kwh else None
+        # —— 电网容量强度：同样的日交付电量，各要占多少电网容量 ——
+        # 【口径】这就是**负荷率之比**：换电站的电池可以整天慢慢充，负荷率高；
+        # 超充站只有车插枪时才用电，负荷率就等于它的能量利用率。
+        # ⚠️ 2030 年前集中式充（换）电设施免收需量（容量）电费（src.mot_energy_2025），
+        # **所以这项差异在兑现年之前只走 capex 一条路（电力增容占充电站总投资 35%–50%），
+        # 不走运营成本。**此前把容量电费当作第二条传导路径，是错的。
+        out["swap_load_factor"] = daily_in / 24.0 / p_kw if p_kw else None
+        out["swap_grid_kw_per_daily_mwh"] = p_kw / (daily_out / 1000.0) if daily_out else None
         out["swap_required_kw_in_window"] = daily_in / hours if hours else None
-        out["swap_window_hours"] = hours
+        base_int = out.get("swap_grid_kw_per_daily_mwh")
+        if base_int:
+            def _inten(key: str) -> float | None:
+                u = float(cfg.get(key) or 0.0)
+                return 1000.0 / (24.0 * u) if u > 0 else None
 
-    if out.get("swap_grid_kw_per_daily_mwh"):
-        base = out["swap_grid_kw_per_daily_mwh"]
+            im, ib, ii = (_inten("utilization_heavy_observed"),
+                          _inten("utilization_heavy_high"),
+                          _inten("utilization_heavy_low"))
+            out["charge_grid_kw_per_daily_mwh"] = im
+            out["grid_intensity_ratio"] = im / base_int if im else None
+            out["grid_intensity_ratio_busy"] = ib / base_int if ib else None
+            out["grid_intensity_ratio_idle"] = ii / base_int if ii else None
 
-        def _ratio(u: float) -> float | None:
-            return (1000.0 / (24.0 * u)) / base if u > 0 else None
+        # —— 【同价同吞吐】把换电站放到超充站的价与量上再算一遍 ——
+        # 换电站账面好看，靠的是两个**假设**：服务费比超充高、单站吞吐比超充实测高。
+        # 两个假设都没有实测支撑。所以必须问一句：**如果把这两项拉平，谁的站更赚钱？**
+        # 这是本模块最要紧的一次对照——它剥掉假设，只剩两种站的资产结构在比。
+        ref_kwh = station_kw * _HOURS_YEAR * float(cfg.get("utilization_heavy_observed") or 0.0)
+        level = _station_economics(
+            capex_wan=body_wan + bat_wan,
+            annual_kwh=ref_kwh, service_fee=fee,          # ← 用超充的服务费
+            life_years=float(config.get("finance", {}).get("model_horizon_years") or life),
+            salvage_rate=salvage,
+            opex_rate=float(sb.get("equipment_insurance_rate") or 0.0),
+            platform_rate=0.0,
+            loss_rate=(1.0 / rte * (1.0 + aux) - 1.0) if rte else 0.0,
+            power_price=power_price,
+            other_cash_wan=float(sb.get("site_rent_wan_year") or 0.0)
+            + float(sb.get("heavy_station_labor_wan_year") or 0.0))
+        out["swap_level_cash_return"] = level["cash_return"]
+        out["swap_level_payback_years"] = level["payback_years"]
+        out["swap_fee_premium"] = (swap_fee / fee - 1.0) if fee else None
+        out["swap_throughput_premium"] = (annual / ref_kwh - 1.0) if ref_kwh else None
 
-        out["charge_grid_kw_per_daily_mwh"] = 1000.0 / (24.0 * u_heavy) if u_heavy > 0 else None
-        out["grid_intensity_ratio"] = _ratio(u_heavy)
-        # 区间两端：超充站取实测最忙与最闲两档，倍数随之变化
-        out["grid_intensity_ratio_busy"] = _ratio(
-            float(cfg.get("utilization_heavy_high") or 0.40))
-        out["grid_intensity_ratio_idle"] = _ratio(
-            float(cfg.get("utilization_heavy_low") or 0.18))
+        # 把吞吐压回物理可行的上限，再算一遍——这才是可辩护的那个数
+        if window_kwh and daily_out > window_kwh:
+            r2 = _station_economics(
+                capex_wan=body_wan + bat_wan,
+                annual_kwh=window_kwh * days, service_fee=swap_fee,
+                life_years=float(config.get("finance", {}).get("model_horizon_years") or life),
+                salvage_rate=salvage,
+                opex_rate=float(sb.get("equipment_insurance_rate") or 0.0),
+                platform_rate=0.0,
+                loss_rate=(1.0 / rte * (1.0 + aux) - 1.0) if rte else 0.0,
+                power_price=power_price,
+                other_cash_wan=float(sb.get("site_rent_wan_year") or 0.0)
+                + float(sb.get("heavy_station_labor_wan_year") or 0.0))
+            out["swap_capped_cash_return"] = r2["cash_return"]
+            out["swap_capped_payback_years"] = r2["payback_years"]
     return out

@@ -2921,12 +2921,15 @@ note = "继任者任内的结盟动作：与出行平台合资落地"
 # **重卡充电站现在是赚钱的，不是亏钱的。**"对手在亏本卖、撑不住"这个判断来自乘用车市场，
 # 直接搬到重卡侧是把另一个市场的事实借过来用。**不能靠等对手亏死。**
 #
-# 【曲线】度电固定成本(u) ＝ [年化capex ＋ 固定运维 ＋ 容量电费] ÷ (8760 × u)
-#   年化capex ＝ (单位装机造价 − 残值现值) × 资本回收系数(寿命, 折现率)
-#   容量电费  ＝ 配容比 × 月费 × 12 × 是否征收开关
-# 单站绝对规模在公式里被消掉——度电固定成本只与**单位装机造价**和**利用率**有关，与站多大无关。
-
-# ----------------------超充站参数（2026-09-19 新增）-----------------------------
+# 【2026-09-20 重订口径】原来用资本回收系数把投资摊成年金——那隐含一个 6% 的折现率，
+# 等于把**融资假设**混进了**成本**。投资人先看这门生意本身能挣多少（不加杠杆的现金回报），
+# 再拿它跟自己别的机会比，决定投不投、要不要借钱。
+# **所以现在：折旧走直线法，全程不出现折现率，主输出改为「全投资现金回报率」与「静态回收期」。**
+# 资金成本参数保留，只用于需要折现的地方（如第 3 章的持有期 TCO），不进成本线。
+#
+# 【容量电费】**已查实：2030 年前免收**（交规划发〔2025〕42 号第二十一条，src.mot_energy_2025）。
+# 所以两条路线在电网容量上的差异，**在兑现年之前只通过 capex 传导**（电力增容占充电站总投资 35%–50%），
+# **不通过运营成本**。此前把容量电费当作第二条传导路径，是错的。
 [charging_station]
 # 常规重卡快充站单位装机造价（元/kW，全站口径，含增容与土建，不含地价）。
 # 双源互证：充换电研究院问卷 150–300 万元/站、单车位 10–16 万元（src.hdt_charging_report_2026）；
@@ -2980,13 +2983,13 @@ capacity_fee_rmb_kva_month.v = 30.0
 capacity_fee_rmb_kva_month.label = "容量电费单价"
 capacity_fee_rmb_kva_month.unit = "元/kVA·月"
 capacity_fee_rmb_kva_month.decimals = 0
-capacity_fee_rmb_kva_month.note = "两部制基本电费；**是否对充换电设施免收未证实**，故默认开关置零、单列敏感项"
+capacity_fee_rmb_kva_month.note = "两部制基本电费。**政策已查实：2030 年前对集中式充（换）电设施免收（src.mot_energy_2025）**，故开关置零不再是保守假设而是事实；它只在兑现年之后才可能重新出现"
 # 默认按免收计（0＝免收，1＝照收）。基准取 0 是**保守选择**：它让对手的成本更低。
 capacity_fee_applies.v = 0.0
 capacity_fee_applies.label = "容量电费是否征收"
 capacity_fee_applies.unit = ""
 capacity_fee_applies.decimals = 0
-capacity_fee_applies.note = "基准取 0（免收）＝把有利条件给对手；取 1 是压力档"
+capacity_fee_applies.note = "取 0＝免收，**这是政策事实（交规划发〔2025〕42 号，2030 年前）**，不是假设；取 1 只用于看兑现年之后的情形"
 # 实测能量利用率：能量利用率 ＝ 年充电量 ÷ (装机 × 8760) ≈ 时间利用率 × 功率利用率。
 # 三个口径混用是市面上几乎所有测算失真的主因，此处只用能量口径。
 # 承德亿度站 39.3%、承德磊丰站 27.3%、重庆站 21%、黄骅港站 18.8%（均为按公开充电量与装机推算）。
@@ -3026,6 +3029,42 @@ loss_rate.unit = "%"
 loss_rate.decimals = 0
 loss_rate.scale = 100.0
 loss_rate.note = "重卡站实测 4%–6%（运城/广西/枣庄/重庆），显著低于乘用车模型常用的 10%"
+# 平台分成：聚合平台按**充电服务费**抽成。乘用车公共站是服务费的 10%–20%
+# （小桔约 15%、云快充约 10%，src.charge_platform_36kr；上市聚合平台披露的毛 take rate
+# 是交易额的 9%–13%，src.naas_fy2023）。**但重卡站不按这个取值**：
+# 重卡是车队直签、团体账户月结，有运营商明说"主动避开线上平台 6% 的抽佣、改线下会员卡直收"，
+# 多个场站自有及合作车队贡献五到六成电量（src.hdt_charging_report_2026）。
+# 故基准取零（＝把有利条件给对手），压力档取重卡场景实际报价的 6%。
+# ⚠️ 华为超充联盟**不叠加在这里**：它是设备供应商形态（按瓦收钱，约 0.8 元/W），
+# 成本已经在设备单价里，公开资料未见持续性平台分成（src.huawei_charger_36kr）。
+platform_commission_rate.v = 0.0
+platform_commission_rate.label = "充电站平台分成率"
+platform_commission_rate.unit = "%"
+platform_commission_rate.decimals = 0
+platform_commission_rate.scale = 100.0
+platform_commission_rate.note = "按服务费抽成。重卡以车队直签为主，基准取零；乘用车是 10%–20%，不适用"
+platform_commission_rate_high.v = 0.06
+platform_commission_rate_high.label = "充电站平台分成率·压力档"
+platform_commission_rate_high.unit = "%"
+platform_commission_rate_high.decimals = 0
+platform_commission_rate_high.scale = 100.0
+platform_commission_rate_high.note = "重卡场景唯一一条实际平台报价；抽成基数（服务费 vs 交易额）原文未言明，取服务费口径"
+# 参照站规模：用黄骅港站的口径（26 桩 × 320kW），它是少数投资额、月充电量、月服务费收入三者齐全的公开样本
+reference_station_kw.v = 8320.0
+reference_station_kw.label = "参照超充站装机"
+reference_station_kw.unit = "kW"
+reference_station_kw.decimals = 0
+reference_station_kw.note = "26 桩 × 320kW，对应总投资 500 万元（src.chargeonline_2026）"
+site_rent_wan_year.v = 15.0
+site_rent_wan_year.label = "充电站站址年租金"
+site_rent_wan_year.unit = "万元/年"
+site_rent_wan_year.decimals = 0
+site_rent_wan_year.note = "与换电站取同一口径，便于两边同尺比较；重卡站场地数据只有县域单点，属弱信源"
+labor_wan_year.v = 26.88
+labor_wan_year.label = "充电站站点年人工"
+labor_wan_year.unit = "万元/年"
+labor_wan_year.decimals = 2
+labor_wan_year.note = "与换电重卡站取同一口径（双班两人）；部分充电站无人值守，取这个数对充电站偏保守"
 service_fee_observed.v = 0.23
 service_fee_observed.label = "重卡充电服务费实测中值"
 service_fee_observed.unit = "元/kWh"
@@ -3407,4 +3446,14 @@ unit = "元/kVA·月"
 src = "src.jingneng_2026"
 as_of = "2026-06"
 note = "企业高管具名口径，说明在他的测算里是照收的。**集中式充换电设施免收基本电费的政策是否仍有效、何时到期，查遍发改委与省级文件未取到正文条款——这是本轮最大的未解风险点**"
+
+[[external_quote]]
+key = "ext.capacity_fee_waiver"
+label = "2030 年前免收容量电费的政策"
+text = "2030 年前对实行两部制电价的集中式充（换）电设施用电免收需量（容量）电费"
+value = 2030.0
+unit = "年"
+src = "src.mot_energy_2025"
+as_of = "2025-03"
+note = "十部门联合发文第（二十一）条原文。**它同时适用于充电与换电**，所以两条路线在兑现年之前都不交这笔钱——电网容量的差异因此只通过建站投资传导，不通过运营成本"
 

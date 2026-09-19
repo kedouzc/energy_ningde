@@ -78,7 +78,8 @@ def _build_core(
     swap.price_response = response or compute_response(config, swap.heavy_economics)
     # 对手方的成本曲线与两条路线的电网容量强度对比（charging.py）。
     # 与 TCO 一样是**用户/对手侧支链**：只挂快照供叙述层取数，不回灌规模与估值。
-    swap.charging_economics = build_charging_economics(config, scale, capex)
+    swap.charging_economics = build_charging_economics(
+        config, scale, capex, swap.pool_operations)
     # 逐年存量/流量明细矩阵（2026-09-13）：明细落快照（ScaleResult.yearly_stock），
     # 标量仍走输出字典；兑现年列与⑧组在网电池标量硬对齐，口径漂移在此刻中断而不是在页面暴露。
     scale.yearly_stock = build_yearly_stock(config, scale, capex)

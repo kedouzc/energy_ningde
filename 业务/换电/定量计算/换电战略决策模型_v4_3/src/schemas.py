@@ -502,6 +502,10 @@ class SwapBusinessResult:
     # v4.3 新增：电池银行侧费率三项（蔚能四项成本对照框架补齐）
     battery_asset_yi: float = 0.0
     equipment_asset_yi: float = 0.0
+    # 【2026-09-18h】资本压在哪一层：电池资产 ÷ 站体设备资产。
+    # 这门生意的核心资产是电池银行还是站网，这一个比值就回答了——
+    # 也因此决定了价格战打在哪一层、两段收费该把利润中枢放在哪一段（见第 7 章）。
+    battery_to_equipment_asset_ratio: float = 0.0
     insurance_yi: float = 0.0
     pooling_maintenance_yi: float = 0.0
     warehouse_logistics_yi: float = 0.0
@@ -522,6 +526,11 @@ class SwapBusinessResult:
     # 【新增 2026-09-10】重卡用户经济性（结论区 ①「用户 TCO」一句取这里）。
     # 未配置 [tco_jpm] 时为 None，页面按 [待补] 显示，不编数。
     heavy_economics: HeavyEconomics | None = None
+    # 【新增 2026-09-18g】价格 → 净优势 → 份额的结算结果（price_response.compute_response）。
+    # 基准价上为 None（乘数恒为 1，不作用）；滑离基准时记录各场景的可服务份额与份额乘数。
+    price_response: dict | None = None
+    # 【新增 2026-09-19】对手方（充电站）的度电成本曲线与电网容量强度对比。见 charging.py。
+    charging_economics: dict | None = None
 
 
 @dataclass
@@ -581,8 +590,9 @@ class SceneTco:
     gap_energy_year_wan: float = 0.0            # 能源单价差：换电每年多付（万元/年，名义）
     # 【2026-09-18b】把上面这一个总数拆成三段——它们性质不同，合成一个数就看不出是哪一段在动：
     #   服务费差（补能网络的定价竞争）＋ 电价差（充电时点的选择权）＋ 电池租金（车电分离的资本对价）
-    gap_service_year_wan: float = 0.0           # 服务费差：换电服务费 − 充电服务费中枢（万元/年）
-    gap_service_floor_year_wan: float = 0.0     # 同上，充电服务费取已出现的下沿（万元/年）
+    gap_service_year_wan: float = 0.0           # 服务费差·基准（充电取成本地板）：换电服务费 − 充电服务费（万元/年，负数＝换电服务费更低）
+    gap_service_spot_year_wan: float = 0.0      # 同上，充电服务费取当前现价（万元/年，压力档）
+    gap_service_floor_year_wan: float = 0.0     # 同上，充电服务费取价格战下沿（万元/年，极端压力档）
     gap_power_year_wan: float = 0.0             # 电价差：换电站谷充口径 − 充电裸电价（万元/年，负数＝换电占优）
     rent_year_wan: float = 0.0                  # 电池租金（万元/年）——它的镜像是省下的首付，不是能源费
     packs_total_wan: float = 0.0                # 充电车持有期内自费换电池合计（万元，名义）
@@ -597,6 +607,20 @@ class SceneTco:
     adv_mw_low: float = 0.0                     # 兆瓦超充下的同一读数
     adv_mw_mid: float = 0.0
     adv_mw_high: float = 0.0
+    # 压力档：充电服务费不回到成本地板、而是把当前现价撑满整个持有期（万元/年）。
+    # 现价与基准只差一个常数 Δ，按构造 adv_spot ＝ adv − 年耗电 × Δ，无需重算全表。
+    adv_mw_spot_low: float = 0.0
+    adv_mw_spot_mid: float = 0.0
+    adv_mw_spot_high: float = 0.0
+    # 【站层成本线】换电这一侧的服务费成本线——用来做「成本线对成本线」的对称比较。
+    # 只含站这一层（站体设备摊销、站址租金、人工、软件调度、设备保险、充放损耗电费），
+    # **不含电池**：电池的成本由租金那条腿承担，不由服务费承担（两段收费，见第 7 章）。
+    swap_station_cost_rmb_kwh: float = 0.0      # 站层全成本 ÷ 年换电量（元/kWh，成熟期吞吐口径）
+    swap_station_equip_rmb_kwh: float = 0.0     # 其中仅站体设备摊销，已折算到与超充地板相同的年限（元/kWh）
+    swap_station_fixed_rmb_kwh: float = 0.0     # 站层固定成本部分（元/kWh，随吞吐反比变化）
+    swap_station_util_at_floor: float = 0.0     # 吞吐降到成熟期假设的百分之几时，换电站层成本线升到超充地板（%）
+    swap_swaps_per_day_at_floor: float = 0.0    # 同上换算成单站日均服务车次（次/天）
+    swap_swaps_per_day_mature: float = 0.0      # 成熟期假设的单站日均服务车次（次/天）
 
 
 @dataclass

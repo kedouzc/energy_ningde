@@ -734,6 +734,10 @@ def build_swap_business(config: dict, scale: ScaleResult, capex: CapexResult) ->
         # v4.3 新增：电池银行侧费率三项及资产基数（=四池之和）
         battery_asset_yi=bank_totals["battery_asset_yi"],
         equipment_asset_yi=bank_totals["equipment_asset_yi"],
+        battery_to_equipment_asset_ratio=(
+            bank_totals["battery_asset_yi"] / bank_totals["equipment_asset_yi"]
+            if bank_totals["equipment_asset_yi"] else 0.0
+        ),
         insurance_yi=bank_totals["insurance_yi"],
         pooling_maintenance_yi=bank_totals["pooling_maintenance_yi"],
         warehouse_logistics_yi=bank_totals["warehouse_logistics_yi"],

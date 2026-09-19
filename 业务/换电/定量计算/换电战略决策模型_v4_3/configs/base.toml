@@ -649,25 +649,48 @@ charge_soc_window = 0.75
 swap_minutes = 5.0
 # 兆瓦超充对照：10%→90% 约 18 分钟（src.megawatt_202609，华为干线实测），只作对照档，不进主结论
 megawatt_session_minutes = 18.0
-# —— 充电侧能源单价的两段拆分（2026-09-18b）——
+# —— 充电侧能源单价的两段拆分 ——
 # JPM 电动列 0.85 元/kWh 是「电费 ＋ 充电服务费」的合计价。裸电价两条路线相同（都按补能当时的电网电价结算），
-# 真正构成路线差异的只有服务费——那是补能网络投资方收的钱。故本轮把 0.85 拆成两段显式入参，
-# 合计仍等于 ev_energy_cost_year 反算出的 0.85（留作口径校验），拆分本身不改任何读数。
+# 真正构成路线差异的只有服务费——那是补能网络投资方收的钱。故把 0.85 拆成两段显式入参。
+#
+# 【基准取成本线，不取现价】TCO 是**持有期决策**：买车这天算的是往后若干年的平均补能价，
+# 不是采购当天的现货价。而充电服务费的现货价（0.20，下沿 0.08）**低于超充设备自身的度电摊销地板**——
+# 一个低于成本的价格不可能成为持有期的均值。所以主表基准直接取**成本地板**
+# （即下面的 supercharge_cost_floor_rmb_kwh），现价与下沿降为压力档。
+# 这不是给换电挑一个有利的价：它假定充电侧把利润全部竞争掉、只收回成本，
+# 而换电侧仍按本报告收入端假设的 0.30 收费（远高于换电自己的站层成本线）——有利条件全给对手。
 charge_power_price_rmb_kwh.v = 0.65
 charge_power_price_rmb_kwh.label = "重卡充电裸电价"
 charge_power_price_rmb_kwh.unit = "元/kWh"
 charge_power_price_rmb_kwh.decimals = 2
 charge_power_price_rmb_kwh.note = "重卡充电裸电价（矿区 0.25、城市商业 0.6–0.8、高速 >0.8，取城市商业中枢，src.chezhijia_price_202605）"
-charge_service_fee_rmb_kwh.v = 0.20
-charge_service_fee_rmb_kwh.label = "重卡充电服务费中枢"
-charge_service_fee_rmb_kwh.unit = "元/kWh"
-charge_service_fee_rmb_kwh.decimals = 2
-charge_service_fee_rmb_kwh.note = "重卡充电服务费中枢（中国汽车报记录 0.4→0.25→0.2 三段下跌，src.cav_charge_fee_202608）"
+charge_service_fee_spot_rmb_kwh.v = 0.20
+charge_service_fee_spot_rmb_kwh.label = "重卡充电服务费·当前现价"
+charge_service_fee_spot_rmb_kwh.unit = "元/kWh"
+charge_service_fee_spot_rmb_kwh.decimals = 2
+charge_service_fee_spot_rmb_kwh.note = "中国汽车报记录 0.4→0.25→0.2 三段下跌（src.cav_charge_fee_202608）；低于成本地板，压力档不作基准"
 charge_service_fee_floor_rmb_kwh.v = 0.08
-charge_service_fee_floor_rmb_kwh.label = "重卡充电服务费下沿"
+charge_service_fee_floor_rmb_kwh.label = "重卡充电服务费·价格战下沿"
 charge_service_fee_floor_rmb_kwh.unit = "元/kWh"
 charge_service_fee_floor_rmb_kwh.decimals = 2
-charge_service_fee_floor_rmb_kwh.note = "重卡充电服务费下沿（枣庄/吕梁/京津冀已到 0.08，矿区出现归零，src.swb_charge_fee_202609）"
+charge_service_fee_floor_rmb_kwh.note = "枣庄/吕梁/京津冀已到 0.08，矿区出现归零（src.swb_charge_fee_202609）；极端压力档"
+# 超充的度电成本地板，**同时就是本模型充电服务费的基准值**：
+# 全液冷超充按十年摊销的设备度电成本（src.huawei_charger_cost_2023）。
+# 它是"充电服务费能跌到哪里为止"的物理下限——服务费长期低于它，投资方收不回设备钱。
+# 当前重卡充电服务费（现价 0.20、下沿 0.08）**全部低于这条地板**：这说明现在的低价是产能过剩与
+# 价格战的结果，不是成本优势。全国公共桩平均利用率 6.2%、盈亏线 8.5%，头部运营商度电净利 0.04 元
+# （src.charge_margin_202609）；而 2026 年多地核心商圈服务费已从 0.2–0.3 回升到 0.4–0.6
+# （src.charge_price_rebound_202609）——均值回归已经开始。
+supercharge_cost_floor_rmb_kwh.v = 0.34
+supercharge_cost_floor_rmb_kwh.label = "超充的度电成本地板"
+supercharge_cost_floor_rmb_kwh.unit = "元/kWh"
+supercharge_cost_floor_rmb_kwh.decimals = 2
+supercharge_cost_floor_rmb_kwh.note = "设备十年摊销口径，不含电费、场地与增容；兆瓦级按 1kVA:1kW 配容后这条地板只会更高。本模型以它为充电服务费基准"
+supercharge_floor_life_years.v = 10.0
+supercharge_floor_life_years.label = "超充地板的设备摊销年限"
+supercharge_floor_life_years.unit = "年"
+supercharge_floor_life_years.decimals = 0
+supercharge_floor_life_years.note = "外部口径用十年；换电站的站体设备摊销折算到同一年限才可比（见 tco.py 站层成本线）"
 # —— 车队资金成本三档（2026-09-18b 重订）：把时间价值与首付资金价值合到一张账上时的贴现率 ——
 # 三档一律是 **IRR（真实年化）口径**，不是行业报价常用的「平铺费率」——同一笔业务报 8% 平铺费率、三年期 IRR 是 14.5%，
 # 口径混用会把中档系统性调低。上一版（3/8/30）的高档源自一篇无法核实的转载（同一篇把金规〔2025〕25 号写成
@@ -1166,6 +1189,58 @@ secondary_market_discount.unit = "%"
 secondary_market_discount.decimals = 0
 secondary_market_discount.scale = 100.0
 secondary_market_discount.note = "期中回收与期末残值两个场景都适用——都是把一块非全新电池按变现价计入现金流，都要打二手市场的流动性折价"
+
+# ═══════════════════════════════════════════════════════════════════════
+# 【价格 → 净优势 → 份额】把补能定价接回换电渗透率（2026-09-18g）
+# ───────────────────────────────────────────────────────────────────────
+# 在此之前这条链是断的：把换电服务费从基准拉到两倍，第 3 章的九宫格全线翻负，
+# 而模型的渗透率纹丝不动。**一个自己不响应自己结论的模型，只能解释、不能推演。**
+# 机制与三条口径见 src/price_response.py；链条是：
+#   服务费／电池租金／充电服务费 → 各档资金成本下的换电净优势 → 净优势为正的车队占比
+#   → 相对参考价的占比之比（份额乘数）→ 乘到 vehicles.heavy.scenes.*.swap_penetration
+#
+# ⚠️ **参考价必须与基准价逐项相等**：这样基准处乘数恒为 1.0、探针不跑、基线七个读数一格不动。
+#    改了上面任何一个基准价，就必须同步改这里——否则基准情景会被自己的反馈推走。
+#    每轮 changelog 的 watch 行核对七个读数，就是为了当场抓住这件事。
+[price_response]
+ref_swap_service_fee_rmb_kwh = 0.30       # ＝ swap_business.service_fee_rmb_kwh
+ref_battery_rent_rmb_kwh_month = 10.0     # ＝ swap_business.battery_rent_rmb_kwh_month
+ref_charge_service_fee_rmb_kwh = 0.34     # ＝ tco_jpm.supercharge_cost_floor_rmb_kwh
+# 份额乘数的下限：**不是为了让模型好看，是因为有一部分需求根本不按 TCO 重选。**
+# 港口、钢厂、矿山这类封闭短倒，补能方式由场景方在建厂时定死（场地、电力接入、车辆都是配套的），
+# 车队没有逐年按资金成本重新比价的自由度。这部分需求对补能定价不敏感，
+# 所以即使九宫格全线翻负，份额也不会归零。取 0.10 是保守下限，不是测算值。
+# （顺带：乘数真到 0 会让下游的加权除法失去分母——但那是症状，不是设这条下限的理由。）
+response_floor = 0.10
+# 三场景渗透率的参考值（＝ vehicles.heavy.scenes.*.swap_penetration 的基准值）。
+# **份额反馈只在"份额还没被人手工定过"时出力**：配置里的渗透率一旦偏离这三个数，
+# 说明调用方（情景三档的 drivers.swap_penetration 轴，或沙盘的渗透率滑块）已经就份额下过判断，
+# 这时再乘一道反馈就是**替人改答案**，不是补一条链。
+#
+# 这一条针对的是情景三档：悲观档同时调低定价与份额、乐观档同时调高两者——
+# 在 TCO 这一条腿上，高定价本该压低份额，所以若放任反馈出力，乐观档的份额会被自己的定价拉回去。
+# 但情景三档说的是"换电这条路走没走通"这个**联合状态**：走通了，网络密度与场景方接受度都更好，
+# 定价能力与份额本来就可以同高——那部分理由**不在 TCO 模型里**。
+# 用一条只建了 TCO 腿的反馈去改写一个联合判断，是拿局部覆盖全局。故此处让位。
+# ⚠️ 改三场景基准渗透率时必须同步改这里。
+ref_heavy_penetration = [0.30, 0.50, 0.70]
+
+# ───────────────────────────────────────────────────────────────────────
+# 【声明】车队资金成本的分布权重是**经验假设，不是统计**
+# ───────────────────────────────────────────────────────────────────────
+# 营运重卡买方按资金成本分成几档、各占多少，**没有任何公开数据**——查过运联研究院的
+# 货运市场结构、交通运输部行业发展统计公报、以及商用车融资租赁的行业报告，
+# 都只有"车辆数按车队规模分布"，没有"新能源重卡买方按融资成本分布"。
+# 所以这三个权重是判断：资金便宜的大型车队与场景方（港口/钢厂/电厂）买得少但单笔大，
+# 一般车队走融资租赁是主力，个体司机数量多、单笔小。**置信度低，按此对待。**
+#
+# **它只影响弹性的陡峭程度，不影响基准**：基准处乘数按构造恒为 1.0，所以这三个数错了，
+# 污染不到基线七个读数，只会让沙盘里的价格弹性偏陡或偏缓。要改就整组一起改并跑敏感性。
+# **什么会让我改它**：出现新能源重卡买方结构（大型车队／一般车队／个体）的抽样调查。
+[fleet_capital_mix]
+low = 0.25      # 资金成本低档（大型车队、国企背景运输企业、场景方自购）
+mid = 0.45      # 中档（一般车队，融资租赁为主）
+high = 0.30     # 高档（个体司机与中小物流）
 
 # ----------------------运营层（MANIFEST §4）-----------------------------
 
@@ -2827,6 +2902,122 @@ src = "src.swapteam_stcn"
 as_of = "2025-02"
 note = "继任者任内的结盟动作：与出行平台合资落地"
 
+# ═══════════════════════════════════════════════════════════════════════
+# 【对手方：充电站的成本结构】把"超充到底多便宜"从断言变成一条可复核的曲线
+# ───────────────────────────────────────────────────────────────────────
+# **为什么必须有这一段**：此前报告用两个数来代表超充的成本——"度电成本地板 0.34"
+# 与"20 车位站 0.4 元保本"。逐个回查的结果是：
+#   ① **0.34 查无出处。**六种检索式都找不到任何一手或可追溯的二手来源，应当弃用。
+#   ② **0.4 元找得到出处，但口径完全对不上。**它出自一位乘用车充电平台运营负责人的具名受访
+#      （src.charge_breakeven_21cbh）：20 车位、装机 1200kW、建设成本 100 万元，折出 0.2 元设备
+#      ＋0.1 元场地＋0.1 元运维。反推它隐含的年吞吐只有 ~500 万度全周期，对应**能量利用率约 5%–10%**
+#      ——那是乘用车公共桩的水平。**把它搬到重卡站上是范畴错误。**
+#   ③ **"地板"这个词本身就是错的。**固定成本摊销是利用率的双曲线，没有地板，
+#      只有"给定利用率下的值"。所以这里不存参数化的地板，存**曲线的六个入参**。
+#
+# **一个必须写在最前面的纠正**：重卡充电站的实测能量利用率是 18%–40%（承德/重庆/黄骅港，
+# src.hdt_charging_report_2026、src.jingneng_2026），是乘用车公共桩（6.7%）的 3–6 倍。
+# 在这个利用率下，重卡充电站的度电固定成本只有 0.05–0.07 元，而服务费 0.21–0.25 元——
+# **重卡充电站现在是赚钱的，不是亏钱的。**"对手在亏本卖、撑不住"这个判断来自乘用车市场，
+# 直接搬到重卡侧是把另一个市场的事实借过来用。**不能靠等对手亏死。**
+#
+# 【曲线】度电固定成本(u) ＝ [年化capex ＋ 固定运维 ＋ 容量电费] ÷ (8760 × u)
+#   年化capex ＝ (单位装机造价 − 残值现值) × 资本回收系数(寿命, 折现率)
+#   容量电费  ＝ 配容比 × 月费 × 12 × 是否征收开关
+# 单站绝对规模在公式里被消掉——度电固定成本只与**单位装机造价**和**利用率**有关，与站多大无关。
+[charging_station]
+# 常规重卡快充站单位装机造价（元/kW，全站口径，含增容与土建，不含地价）。
+# 双源互证：充换电研究院问卷 150–300 万元/站、单车位 10–16 万元（src.hdt_charging_report_2026）；
+# 黄骅港站 500 万元 / 26 桩×320kW ＝ 601 元/kW（src.chargeonline_2026，按 320kW/桩推算）。
+capex_rmb_per_kw.v = 600.0
+capex_rmb_per_kw.label = "重卡快充站单位装机造价"
+capex_rmb_per_kw.unit = "元/kW"
+capex_rmb_per_kw.decimals = 0
+capex_rmb_per_kw.note = "全站含增容与土建、不含地价；区间 550–650，取中值"
+# 兆瓦级超充站：北川百兆瓦示范站 1.5 亿元 / 90.7MW ＝ 1,653 元/kW（src.huawei_beichuan_2025）。
+# 含 70 亩地、近 1MW 光伏、430kWh 储能、100MW 配电，**带示范站溢价，单样本，置信度中**。
+mw_capex_rmb_per_kw.v = 1650.0
+mw_capex_rmb_per_kw.label = "兆瓦超充站单位装机造价"
+mw_capex_rmb_per_kw.unit = "元/kW"
+mw_capex_rmb_per_kw.decimals = 0
+mw_capex_rmb_per_kw.note = "北川示范站单样本推算，区间 1,200–1,800；含地与光储，有示范溢价"
+# 设备经济寿命与残值：券商模型与重卡站模型两源一致取 8 年（src.donghai_charging_2024）。
+# ⚠️ 液冷超充 2023 年才规模商用，**8–10 年的实证寿命数据尚不存在**，这是外推。
+equipment_life_years.v = 8.0
+equipment_life_years.label = "充电设备折旧年限"
+equipment_life_years.unit = "年"
+equipment_life_years.decimals = 0
+equipment_life_years.note = "会计与模型口径双源一致；液冷设备无实证寿命，属外推"
+salvage_rate.v = 0.05
+salvage_rate.label = "充电设备残值率"
+salvage_rate.unit = "%"
+salvage_rate.decimals = 0
+salvage_rate.scale = 100.0
+operator_discount_rate.v = 0.06
+operator_discount_rate.label = "充电运营方资金成本"
+operator_discount_rate.unit = "%"
+operator_discount_rate.decimals = 0
+operator_discount_rate.scale = 100.0
+operator_discount_rate.note = "券商模型口径：50% 负债、6% 利率"
+opex_rate_of_capex.v = 0.035
+opex_rate_of_capex.label = "充电站年运维率"
+opex_rate_of_capex.unit = "%"
+opex_rate_of_capex.decimals = 1
+opex_rate_of_capex.scale = 100.0
+opex_rate_of_capex.note = "占初始投资比例，含设备维保（src.donghai_charging_2024）"
+# 配容比：北川 100MW 配电 : 90.7MW 充电 ＝ 1.10。兆瓦级同时率高，取上限一侧。
+capacity_ratio_kva_per_kw.v = 1.05
+capacity_ratio_kva_per_kw.label = "充电站配容比"
+capacity_ratio_kva_per_kw.unit = "kVA/kW"
+capacity_ratio_kva_per_kw.decimals = 2
+# 容量电费：一座 2500kVA 重卡站按 30 元/kVA·月 计，年 90 万元（京能新能源副总裁具名，
+# src.jingneng_2026）。**这是全表最重要、也最没查实的一个数**：
+# 集中式充换电设施免收容（需）量电费的政策是否仍然有效、何时到期，逐个查发改委与省级文件均未取到正文条款。
+# 若征收，它在 15% 利用率下让度电固定成本从 0.087 跳到 0.375（4.3 倍）——**比利用率更能决定成败**。
+capacity_fee_rmb_kva_month.v = 30.0
+capacity_fee_rmb_kva_month.label = "容量电费单价"
+capacity_fee_rmb_kva_month.unit = "元/kVA·月"
+capacity_fee_rmb_kva_month.decimals = 0
+capacity_fee_rmb_kva_month.note = "两部制基本电费；**是否对充换电设施免收未证实**，故默认开关置零、单列敏感项"
+# 默认按免收计（0＝免收，1＝照收）。基准取 0 是**保守选择**：它让对手的成本更低。
+capacity_fee_applies.v = 0.0
+capacity_fee_applies.label = "容量电费是否征收"
+capacity_fee_applies.unit = ""
+capacity_fee_applies.decimals = 0
+capacity_fee_applies.note = "基准取 0（免收）＝把有利条件给对手；取 1 是压力档"
+# 实测能量利用率：能量利用率 ＝ 年充电量 ÷ (装机 × 8760) ≈ 时间利用率 × 功率利用率。
+# 三个口径混用是市面上几乎所有测算失真的主因，此处只用能量口径。
+# 承德亿度站 39.3%、承德磊丰站 27.3%、重庆站 21%、黄骅港站 18.8%（均为按公开充电量与装机推算）。
+utilization_heavy_observed.v = 0.22
+utilization_heavy_observed.label = "重卡充电站实测利用率"
+utilization_heavy_observed.unit = "%"
+utilization_heavy_observed.decimals = 0
+utilization_heavy_observed.scale = 100.0
+utilization_heavy_observed.note = "能量利用率口径，实测区间 18%–40%，取偏低一侧的中位"
+utilization_passenger_observed.v = 0.067
+utilization_passenger_observed.label = "乘用车公共桩利用率"
+utilization_passenger_observed.unit = "%"
+utilization_passenger_observed.decimals = 1
+utilization_passenger_observed.scale = 100.0
+utilization_passenger_observed.note = "2023 年全国均值，对照用——亏损叙事出自这一档，不适用于重卡"
+utilization_mw_design.v = 0.138
+utilization_mw_design.label = "兆瓦超充站设计利用率"
+utilization_mw_design.unit = "%"
+utilization_mw_design.decimals = 1
+utilization_mw_design.scale = 100.0
+utilization_mw_design.note = "北川站设计日充 30 万度 ÷ (90.7MW×24)；设计工况本身就低于重卡快充实测"
+loss_rate.v = 0.05
+loss_rate.label = "充电站电损率"
+loss_rate.unit = "%"
+loss_rate.decimals = 0
+loss_rate.scale = 100.0
+loss_rate.note = "重卡站实测 4%–6%（运城/广西/枣庄/重庆），显著低于乘用车模型常用的 10%"
+service_fee_observed.v = 0.23
+service_fee_observed.label = "重卡充电服务费实测中值"
+service_fee_observed.unit = "元/kWh"
+service_fee_observed.decimals = 2
+service_fee_observed.note = "主流 0.21–0.25；黄骅港 0.2085、吐鲁番 0.2194 为按月度收入与电量反推，三源互证"
+
 # ----------------------产能投资强度（2026-09-18 新增）-----------------------------
 # 用途：① 测算满足兑现年装机所需的产能投资额；② 论证车企自建与二线扩张的门槛。
 # 口径与出处：
@@ -3058,3 +3249,148 @@ unit = "次/站·日"
 src = "src.nio_swap_counter"
 as_of = "2026-08"
 note = "不同运营商的单站次数不可横向比较：出租网约场景约两百次、乘用私家约二十几次、重卡站盈亏平衡线在百次量级而实际常低于三十次——差异是商业模式差异，不是效率差异"
+
+
+[[external_quote]]
+key = "ext.qiji_rent"
+label = "骐骥标准换电块的电池月租"
+text = "宁德时代骐骥三块 75# 标准换电块（合计 513 kWh）月租约 5,000 元，折合约 9.7 元/kWh·月"
+value = 9.7
+unit = "元/kWh·月"
+src = "src.qiji_rent_202505"
+as_of = "2025-05"
+note = "与本模型电池月租取值高度吻合——这是租金参数最直接的一手对照"
+
+[[external_quote]]
+key = "ext.backpack_rent"
+label = "后背式换电重卡的电池月租"
+text = "49 吨换电重卡（约 282 kWh）电池月租 7,000–8,000 元，折合约 25–28 元/kWh·月，包年租赁另有优惠"
+value = 26.6
+unit = "元/kWh·月"
+src = "src.backpack_rent_202606"
+as_of = "2026-06"
+note = "后背式路线的市场租金是骐骥口径的两倍多；按它算，用户侧的门槛会显著抬高"
+
+[[external_quote]]
+key = "ext.supercharge_cost_floor"
+label = "超充成本地板的外部口径"
+text = "全液冷超充（600kW）按十年摊销的设备度电成本 0.34 元/kWh，单枪售价 60 万元以上，回本期 6.7 年"
+value = 0.34
+unit = "元/kWh"
+src = "src.huawei_charger_cost_2023"
+as_of = "2023-12"
+note = "⚠️【2026-09-19 复核：查无出处，待替换】六种检索式均未找到这个数的任何一手或可追溯二手来源。更根本的是「地板」这个概念本身有误导性——固定成本摊销是利用率的双曲线，没有地板，只有给定利用率下的值。正确做法见 [charging_station] 的成本曲线。本卡暂留只因第 3 章正文仍引用它，第 3 章重写时一并清除"
+
+[[external_quote]]
+key = "ext.charge_margin"
+label = "充电运营的当前盈利状况"
+text = "头部充电运营商度电净利仅 0.04 元；全国公共桩平均利用率 6.2%，而盈亏线是 8.5%"
+value = 0.04
+unit = "元/kWh"
+src = "src.charge_margin_202609"
+as_of = "2026-09"
+note = "当前的低服务费不是成本优势，是产能过剩下的价格战——利用率连盈亏线都没到"
+
+[[external_quote]]
+key = "ext.charge_fee_rebound"
+label = "充电服务费的回升迹象"
+text = "2026 年多地核心商圈充电服务费从 0.2–0.3 元/kWh 回升至 0.4–0.6 元/kWh；20 车位标准站的盈亏线是服务费高于 0.4 元/kWh"
+value = 0.5
+unit = "元/kWh"
+src = "src.charge_price_rebound_202609"
+as_of = "2026-09"
+note = "均值回归已经开始；它发生在乘用车侧，重卡侧尚未出现，这是一条领先观察"
+
+# ═══════════════════════════════════════════════════════════════════════
+# 【竞争格局专题的引述卡片】2026-09-19 新增
+# ───────────────────────────────────────────────────────────────────────
+[[external_quote]]
+key = "ext.hdt_oem_mix"
+label = "车企在两条路线上的实际分配"
+text = "2026 上半年交强险口径，各家新能源重卡里换电占自身的比例：吉利远程 99.5%、福田 52%、徐工 38%、解放 29%、陕汽 29%、东风 19%、中国重汽 16%、三一 2.9%（三一同比 −32%）"
+value = 2.9
+unit = "%"
+src = "src.hdt_oem_mix_2026h1"
+as_of = "2026-06"
+note = "除远程外无一家把换电做成主力；三一自己卖充换一体站、换电整车却只占自身 2.9%。这是行为数据不是表态，证明力强于任何路线宣示"
+
+[[external_quote]]
+key = "ext.catl_super_swap_network"
+label = "超换一体站的铺设计划"
+text = "计划 2026 年底建成 4000 座超换一体站，覆盖近 190 座城市与 12 纵 11 横高速网络；2028 年底目标构建超 10 万座共享补能基础设施"
+value = 4000.0
+unit = "座"
+src = "src.catl_super_swap_2026"
+as_of = "2026-04"
+note = "披露口径基本是乘用车（巧克力），**重卡侧的超换一体站数量与投资额均未单独披露**，不得把乘用车的铺站节奏套到重卡投资逻辑上"
+
+[[external_quote]]
+key = "ext.huawei_truck_alliance"
+label = "华为重卡超充联盟的进展"
+text = "2026 华为超充·重卡生态大会：全液冷 2400A 持续稳态、15 分钟级补能；联盟车企累计推出超 100 款重卡；上海临港示范站最大功率 1.44MW"
+value = 100.0
+unit = "款"
+src = "src.huawei_truck_alliance_2026"
+as_of = "2026-08"
+note = "徐工既是换电重卡销量前列、又是该联盟成员——同一家车企同时在两条路线上"
+
+[[external_quote]]
+key = "ext.catl_supercharge_battery"
+label = "宁德时代自己在超充侧的产品"
+text = "天行Ⅱ轻商超充版 8C；第二代神行超充电池峰值 12C、充电功率 1.3MW"
+value = 12.0
+unit = "C"
+src = "src.catl_shenxing_2026"
+as_of = "2026-04"
+note = "公司自己两条路都押。这是判断「换电是不是孤注一掷」最直接的一手证据"
+
+[[external_quote]]
+key = "ext.baas_legal_gap"
+label = "车电分离是否只能靠换电"
+text = "律所实务口径明确区分两种结构：BaaS 可通过换电提供电池服务，而融资租赁模式「多适用于部分车型在技术上尚未实现物理换电操作的情况」"
+value = 2.0
+unit = "种结构"
+src = "src.hankun_baas_2022"
+as_of = "2022-08"
+note = "法理与金融结构上，车电分离不依赖换电。**但重卡场景查不到一个可交叉验证的充电车电池租赁落地案例**，这条论据目前是空的"
+
+[[external_quote]]
+key = "ext.subsidy_swap_only"
+label = "补贴对换电的专属倾斜"
+text = "新能源乘用车补贴前售价须在 30 万元以下，为鼓励换电新型商业模式发展，「换电模式」车辆不受此规定"
+value = 30.0
+unit = "万元"
+src = "src.mof_nev_subsidy_2020"
+as_of = "2020-04"
+note = "反向证据：政策红利明确绑定换电车型，所以「车电分离非换电独有」在中国实操环境里被削弱"
+
+[[external_quote]]
+key = "ext.retrofit_charging_port"
+label = "买换电车之后改用充电"
+text = "部分用户申领换电补贴后，因换电站匮乏或自建成本高而自行加装充电接口；产业联盟自身也承认「许多换电重卡补能以充电为主」"
+value = 1.0
+unit = "个信源"
+src = "src.cctp_liu_2025"
+as_of = "2025-08"
+note = "「只充不换」有多个信源、其中一条来自换电阵营自己（对己不利的证言）；但「物理加装充电口」只有单一转载源，**规模无任何量化**。只能当定性观察，不能当已证事实"
+
+[[external_quote]]
+key = "ext.hdt_station_econ"
+label = "重卡充电站的实测经营数据"
+text = "单站投资 150–300 万元、单车位 10–16 万元；电力增容与接入占总投资 35%–50% 且为第一大项；盈亏平衡利用率约 15%，超六成场站利用率已达 20% 以上；服务费主流 0.21–0.25 元/kWh"
+value = 15.0
+unit = "%"
+src = "src.hdt_charging_report_2026"
+as_of = "2026-07"
+note = "行业研究机构的问卷调研，是目前最完整的一手重卡充电站经营画像"
+
+[[external_quote]]
+key = "ext.capacity_fee"
+label = "容量电费这一项有多大"
+text = "一座 2500kVA 的典型重卡充电站，按每 kVA 每月 30 元估算，单月容量电费约 7.5 万元，一年约 90 万元"
+value = 30.0
+unit = "元/kVA·月"
+src = "src.jingneng_2026"
+as_of = "2026-06"
+note = "企业高管具名口径，说明在他的测算里是照收的。**集中式充换电设施免收基本电费的政策是否仍有效、何时到期，查遍发改委与省级文件未取到正文条款——这是本轮最大的未解风险点**"
+

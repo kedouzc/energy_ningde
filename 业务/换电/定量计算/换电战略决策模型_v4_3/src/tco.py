@@ -149,8 +149,10 @@ def build_heavy_economics(
     purchase_price_rmb = float(tco["purchase_price"])
     cut_pct = (cut / purchase_price_rmb * 100.0) if purchase_price_rmb else 0.0
 
+    station_line = _swap_station_cost_line(config, capex, pool_ops)
     scenes = {
-        _SCENE_FIELD[sc["name"]]: _scene_tco(config, tco, sc, pool_ops, cycle, battery_kwh)
+        _SCENE_FIELD[sc["name"]]: _scene_tco(
+            config, tco, sc, pool_ops, cycle, battery_kwh, station_line)
         for sc in heavy_cfg.get("scenes", []) or []
         if sc.get("name") in _SCENE_FIELD
     }
@@ -170,9 +172,61 @@ def build_heavy_economics(
     )
 
 
+def _swap_station_cost_line(
+    config: dict, capex: CapexResult, pool_ops: dict[str, PoolOperations]
+) -> dict[str, dict[str, float]]:
+    """【2026-09-18f】换电这一侧**自己的服务费成本线**，按池算。
+
+    【为什么必须有它】第 3 章把充电服务费的基准改成了超充的成本地板。如果只给对手换成本线、
+    自己仍报售价，那是两把尺子。这里给出换电侧的同一把尺子：**服务费要覆盖的是哪些成本**。
+
+    【边界】只含**站这一层**：站体设备摊销、站址租金、人工、软件调度、站体设备保险、
+    充放损耗电费。**不含电池**——电池的折旧、保险、集中维护与仓储由租金那条腿承担
+    （两段收费，见第 7 章）。把电池成本算进服务费，等于把会员费和商品加价混成一笔。
+
+    【口径警告】这条线是**吞吐量的函数**，不是常数：固定成本按 1/吞吐 变，只有损耗电费是变动的。
+    本模型算出来的是**成熟期假设吞吐下**的值，不是今天的值——今天单站车次远低于此，
+    今天换电站的站层成本线高于超充地板。所以同时给出「吞吐降到多少时两条线相交」，
+    让读者自己判断这个假设离现实有多远。
+    """
+    sb = config.get("swap_business") or {}
+    horizon = float(config.get("finance", {}).get("model_horizon_years") or 0.0)
+    floor = float((config.get("tco_jpm") or {}).get("supercharge_cost_floor_rmb_kwh") or 0.0)
+    floor_life = float((config.get("tco_jpm") or {}).get("supercharge_floor_life_years") or 0.0)
+    out: dict[str, dict[str, float]] = {}
+    for pk, ops in pool_ops.items():
+        energy = ops.annual_energy_yi_kwh
+        stations = float(capex.station_targets.get(pk, 0) or 0)
+        if not energy or not stations or not horizon:
+            continue
+        body_capex = stations * float(config["stations"][pk]["station_body_capex_wan"]) / 1e4
+        body_dep = capex.station_body_total_by_pool_yi.get(pk, 0.0) / horizon
+        site = stations * float(sb.get("site_rent_wan_year") or 0.0) / 1e4
+        equip_ins = body_capex * float(sb.get("equipment_insurance_rate") or 0.0)
+        fixed = body_dep + site + ops.labor_yi + ops.software_opex_yi + equip_ins
+        var = ops.energy_cost_yi                 # 充放损耗的电费，随电量走
+        fixed_p = fixed / energy
+        var_p = var / energy
+        # 站体设备摊销折算到与超充地板相同的年限，才是同尺可比的那一项
+        equip_p = (body_capex / floor_life / energy) if floor_life else 0.0
+        # 吞吐降到成熟期的 u 倍时成本线 ＝ fixed_p/u + var_p；令其等于超充地板求 u
+        util = (fixed_p / (floor - var_p)) if floor > var_p else 0.0
+        days = float(sb.get("operating_days") or 0.0)
+        out[pk] = {
+            "cost": fixed_p + var_p,
+            "equip": equip_p,
+            "fixed": fixed_p,
+            "util_at_floor": util,
+            # 单站日均出电量（kWh/站·天）：场景侧除以自己的单车带电量就是日均服务车次
+            "kwh_station_day": (energy * 1e8 / stations / days) if days else 0.0,
+        }
+    return out
+
+
 def _scene_tco(
     config: dict, tco: dict, scene: dict, pool_ops: dict[str, PoolOperations],
     holding: float | None, fleet_battery_kwh: float,
+    station_line: dict[str, dict[str, float]] | None = None,
 ) -> SceneTco | None:
     """单一重卡场景：换电（不含时间价值）vs 充电（含中途换电池）的持有期全成本。
 
@@ -205,7 +259,11 @@ def _scene_tco(
     annual_kwh = annual_km * float(scene["energy_consumption_kwh_km"])
     kwh = float(scene["onboard_battery_kwh"])
     charge_power_p = float(tco.get("charge_power_price_rmb_kwh") or 0.0)
-    charge_service_p = float(tco.get("charge_service_fee_rmb_kwh") or 0.0)
+    # 【2026-09-18f】充电服务费的**基准取成本地板**，不取现价。
+    # TCO 是持有期决策，用的必须是持有期均价；而现价低于超充设备自身的度电摊销地板，
+    # 一个低于成本的价格不可能是 8 年的均值。现价与价格战下沿降为压力档。
+    charge_service_p = float(tco.get("supercharge_cost_floor_rmb_kwh") or 0.0)
+    charge_service_spot = float(tco.get("charge_service_fee_spot_rmb_kwh") or 0.0)
     charge_service_floor = float(tco.get("charge_service_fee_floor_rmb_kwh") or 0.0)
     charge_price = charge_power_p + charge_service_p
 
@@ -247,6 +305,10 @@ def _scene_tco(
     tv_year = float(tco.get("annual_gain_swap") or 0.0)
     tv_mw_year = tv_year * (stop_h_mw / stop_h) if stop_h > 0 else 0.0
 
+    # 换电侧自己的服务费成本线（本场景所在池），以及成熟期假设的单站日均服务车次
+    line = (station_line or {}).get(pk, {})
+    swaps_day = (line.get("kwh_station_day", 0.0) / kwh) if kwh else 0.0
+
     swap_total = buy_swap + (annual_kwh * swap_price + fixed) * n
     charge_total = buy_charge + (annual_kwh * charge_price + fixed) * n + packs
     return SceneTco(
@@ -272,14 +334,21 @@ def _scene_tco(
         battery_upfront_wan=(buy_charge - buy_swap) / 1e4,
         gap_energy_year_wan=annual_kwh * (swap_price - charge_price) / 1e4,
         gap_service_year_wan=annual_kwh * (swap_service_p - charge_service_p) / 1e4,
+        gap_service_spot_year_wan=annual_kwh * (swap_service_p - charge_service_spot) / 1e4,
         gap_service_floor_year_wan=annual_kwh * (swap_service_p - charge_service_floor) / 1e4,
         gap_power_year_wan=annual_kwh * (valley + spread - charge_power_p) / 1e4,
         rent_year_wan=annual_kwh * swap_rent_p / 1e4,
         packs_total_wan=packs / 1e4,
+        swap_station_cost_rmb_kwh=line.get("cost", 0.0),
+        swap_station_equip_rmb_kwh=line.get("equip", 0.0),
+        swap_station_fixed_rmb_kwh=line.get("fixed", 0.0),
+        swap_station_util_at_floor=line.get("util_at_floor", 0.0),
+        swap_swaps_per_day_at_floor=swaps_day * line.get("util_at_floor", 0.0),
+        swap_swaps_per_day_mature=swaps_day,
         **_hstar_set(
             tco, buy_swap, buy_charge, annual_kwh * swap_price + fixed,
             annual_kwh * charge_price + fixed, pack_flows, n, days, stop_h, stop_h_mw,
-            tv_year, tv_mw_year),
+            tv_year, tv_mw_year, annual_kwh * (charge_service_p - charge_service_spot)),
     )
 
 
@@ -287,6 +356,7 @@ def _hstar_set(
     tco: dict, buy_swap: float, buy_charge: float, swap_annual: float, charge_annual: float,
     pack_flows: list[tuple[float, float]], years: float, days: float,
     stop_h: float, stop_h_mw: float, tv_year: float, tv_mw_year: float,
+    spot_relief_year: float = 0.0,
 ) -> dict[str, float]:
     """【2026-09-18】把三项可算的差异（能源单价、车电分离的资金占用、电池更换）折到同一张账上，
     得到**换电成立所需的最低时间价值**：h*(r) ＝ [PV(换电支出) − PV(充电支出)] ÷ PV(充电每年多停的小时数)。
@@ -320,6 +390,9 @@ def _hstar_set(
         out[f"net_year_{name}"] = net_year / 1e4
         out[f"adv_{name}"] = (tv_year - net_year) / 1e4
         out[f"adv_mw_{name}"] = (tv_mw_year - net_year) / 1e4
+        # 压力档：充电服务费不回到成本地板，而是把当前现价撑满整个持有期。
+        # 现价比基准低一个常数，充电每年少付 spot_relief_year 元，net_year 同额上升。
+        out[f"adv_mw_spot_{name}"] = (tv_mw_year - net_year - spot_relief_year) / 1e4
     out["tv_year_wan"] = tv_year / 1e4
     out["tv_mw_year_wan"] = tv_mw_year / 1e4
     return out

@@ -2399,17 +2399,17 @@ note = "无换电情形下制造业务净利率（小数，非百分数）"
 [[metric]]
 key = "tco.short_gap_service_year_wan"
 source = "tco"
-label = "重卡短途·服务费差·每年"
+label = "重卡短途·服务费差·基准"
 at = "swap_business.heavy_economics.short.gap_service_year_wan"
 unit = "万元/年"
 decimals = 2
 group = "⑧重卡"
-note = "换电服务费 − 充电服务费中枢，再乘本场景年耗电；正数＝换电的补能服务费更贵"
+note = "换电服务费 − 充电服务费（充电按成本地板取持有期均价），再乘本场景年耗电；负数＝换电的补能服务费更便宜"
 
 [[metric]]
 key = "tco.short_gap_service_floor_year_wan"
 source = "tco"
-label = "重卡短途·服务费差·充电取下沿"
+label = "重卡短途·服务费差·充电取价格战下沿"
 at = "swap_business.heavy_economics.short.gap_service_floor_year_wan"
 unit = "万元/年"
 decimals = 2
@@ -2439,17 +2439,17 @@ note = "车电分离的资本对价，不是能源费；它的镜像是省下的
 [[metric]]
 key = "tco.mid_gap_service_year_wan"
 source = "tco"
-label = "重卡中途·服务费差·每年"
+label = "重卡中途·服务费差·基准"
 at = "swap_business.heavy_economics.mid.gap_service_year_wan"
 unit = "万元/年"
 decimals = 2
 group = "⑧重卡"
-note = "换电服务费 − 充电服务费中枢，再乘本场景年耗电；正数＝换电的补能服务费更贵"
+note = "换电服务费 − 充电服务费（充电按成本地板取持有期均价），再乘本场景年耗电；负数＝换电的补能服务费更便宜"
 
 [[metric]]
 key = "tco.mid_gap_service_floor_year_wan"
 source = "tco"
-label = "重卡中途·服务费差·充电取下沿"
+label = "重卡中途·服务费差·充电取价格战下沿"
 at = "swap_business.heavy_economics.mid.gap_service_floor_year_wan"
 unit = "万元/年"
 decimals = 2
@@ -2479,17 +2479,17 @@ note = "车电分离的资本对价，不是能源费；它的镜像是省下的
 [[metric]]
 key = "tco.long_gap_service_year_wan"
 source = "tco"
-label = "重卡长途·服务费差·每年"
+label = "重卡长途·服务费差·基准"
 at = "swap_business.heavy_economics.long.gap_service_year_wan"
 unit = "万元/年"
 decimals = 2
 group = "⑧重卡"
-note = "换电服务费 − 充电服务费中枢，再乘本场景年耗电；正数＝换电的补能服务费更贵"
+note = "换电服务费 − 充电服务费（充电按成本地板取持有期均价），再乘本场景年耗电；负数＝换电的补能服务费更便宜"
 
 [[metric]]
 key = "tco.long_gap_service_floor_year_wan"
 source = "tco"
-label = "重卡长途·服务费差·充电取下沿"
+label = "重卡长途·服务费差·充电取价格战下沿"
 at = "swap_business.heavy_economics.long.gap_service_floor_year_wan"
 unit = "万元/年"
 decimals = 2
@@ -2761,3 +2761,589 @@ at = "ledger.pure_multiple_pv"
 unit = "倍"
 decimals = 2
 group = "⑤估值"
+
+
+[[metric]]
+key = "tco.short_gap_service_spot_year_wan"
+source = "tco"
+label = "重卡短途·服务费差·充电取当前现价"
+at = "swap_business.heavy_economics.short.gap_service_spot_year_wan"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+note = "压力档：充电服务费不回到成本地板、而把当前现价撑满整个持有期时的同一读数；正数＝换电的服务费更贵"
+
+[[metric]]
+key = "tco.short_direct_adv_low"
+source = "tco"
+label = "重卡短途·换电直接成本优势（资金成本低）"
+at = "swap_business.heavy_economics.short.net_year_low"
+unit = "万元/年"
+decimals = 2
+scale = -1.0
+group = "⑧重卡"
+note = "＝−年化净差额。正数＝不算时间价值，换电的直接成本已经更低；负数＝换电还贵这么多，要靠时间价值补回来"
+
+[[metric]]
+key = "tco.short_direct_adv_mid"
+source = "tco"
+label = "重卡短途·换电直接成本优势（资金成本中）"
+at = "swap_business.heavy_economics.short.net_year_mid"
+unit = "万元/年"
+decimals = 2
+scale = -1.0
+group = "⑧重卡"
+note = "＝−年化净差额。正数＝不算时间价值，换电的直接成本已经更低；负数＝换电还贵这么多，要靠时间价值补回来"
+
+[[metric]]
+key = "tco.short_direct_adv_high"
+source = "tco"
+label = "重卡短途·换电直接成本优势（资金成本高）"
+at = "swap_business.heavy_economics.short.net_year_high"
+unit = "万元/年"
+decimals = 2
+scale = -1.0
+group = "⑧重卡"
+note = "＝−年化净差额。正数＝不算时间价值，换电的直接成本已经更低；负数＝换电还贵这么多，要靠时间价值补回来"
+
+[[metric]]
+key = "tco.mid_gap_service_spot_year_wan"
+source = "tco"
+label = "重卡中途·服务费差·充电取当前现价"
+at = "swap_business.heavy_economics.mid.gap_service_spot_year_wan"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+note = "压力档：充电服务费不回到成本地板、而把当前现价撑满整个持有期时的同一读数；正数＝换电的服务费更贵"
+
+[[metric]]
+key = "tco.mid_direct_adv_low"
+source = "tco"
+label = "重卡中途·换电直接成本优势（资金成本低）"
+at = "swap_business.heavy_economics.mid.net_year_low"
+unit = "万元/年"
+decimals = 2
+scale = -1.0
+group = "⑧重卡"
+note = "＝−年化净差额。正数＝不算时间价值，换电的直接成本已经更低；负数＝换电还贵这么多，要靠时间价值补回来"
+
+[[metric]]
+key = "tco.mid_direct_adv_mid"
+source = "tco"
+label = "重卡中途·换电直接成本优势（资金成本中）"
+at = "swap_business.heavy_economics.mid.net_year_mid"
+unit = "万元/年"
+decimals = 2
+scale = -1.0
+group = "⑧重卡"
+note = "＝−年化净差额。正数＝不算时间价值，换电的直接成本已经更低；负数＝换电还贵这么多，要靠时间价值补回来"
+
+[[metric]]
+key = "tco.mid_direct_adv_high"
+source = "tco"
+label = "重卡中途·换电直接成本优势（资金成本高）"
+at = "swap_business.heavy_economics.mid.net_year_high"
+unit = "万元/年"
+decimals = 2
+scale = -1.0
+group = "⑧重卡"
+note = "＝−年化净差额。正数＝不算时间价值，换电的直接成本已经更低；负数＝换电还贵这么多，要靠时间价值补回来"
+
+[[metric]]
+key = "tco.long_gap_service_spot_year_wan"
+source = "tco"
+label = "重卡长途·服务费差·充电取当前现价"
+at = "swap_business.heavy_economics.long.gap_service_spot_year_wan"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+note = "压力档：充电服务费不回到成本地板、而把当前现价撑满整个持有期时的同一读数；正数＝换电的服务费更贵"
+
+[[metric]]
+key = "tco.long_direct_adv_low"
+source = "tco"
+label = "重卡长途·换电直接成本优势（资金成本低）"
+at = "swap_business.heavy_economics.long.net_year_low"
+unit = "万元/年"
+decimals = 2
+scale = -1.0
+group = "⑧重卡"
+note = "＝−年化净差额。正数＝不算时间价值，换电的直接成本已经更低；负数＝换电还贵这么多，要靠时间价值补回来"
+
+[[metric]]
+key = "tco.long_direct_adv_mid"
+source = "tco"
+label = "重卡长途·换电直接成本优势（资金成本中）"
+at = "swap_business.heavy_economics.long.net_year_mid"
+unit = "万元/年"
+decimals = 2
+scale = -1.0
+group = "⑧重卡"
+note = "＝−年化净差额。正数＝不算时间价值，换电的直接成本已经更低；负数＝换电还贵这么多，要靠时间价值补回来"
+
+[[metric]]
+key = "tco.long_direct_adv_high"
+source = "tco"
+label = "重卡长途·换电直接成本优势（资金成本高）"
+at = "swap_business.heavy_economics.long.net_year_high"
+unit = "万元/年"
+decimals = 2
+scale = -1.0
+group = "⑧重卡"
+note = "＝−年化净差额。正数＝不算时间价值，换电的直接成本已经更低；负数＝换电还贵这么多，要靠时间价值补回来"
+
+[[metric]]
+key = "tco.short_adv_mw_spot_low"
+source = "tco"
+label = "重卡短途·换电净优势·超充现价压力档（资金成本低）"
+at = "swap_business.heavy_economics.short.adv_mw_spot_low"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+note = "压力档：假定充电的价格战价撑满整个持有期。正数＝即使如此换电仍占优"
+[[metric]]
+key = "tco.short_adv_mw_spot_mid"
+source = "tco"
+label = "重卡短途·换电净优势·超充现价压力档（资金成本中）"
+at = "swap_business.heavy_economics.short.adv_mw_spot_mid"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+note = "压力档：假定充电的价格战价撑满整个持有期。正数＝即使如此换电仍占优"
+[[metric]]
+key = "tco.short_adv_mw_spot_high"
+source = "tco"
+label = "重卡短途·换电净优势·超充现价压力档（资金成本高）"
+at = "swap_business.heavy_economics.short.adv_mw_spot_high"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+note = "压力档：假定充电的价格战价撑满整个持有期。正数＝即使如此换电仍占优"
+[[metric]]
+key = "tco.short_swap_station_cost"
+source = "tco"
+label = "重卡短途·换电站的服务费成本线"
+at = "swap_business.heavy_economics.short.swap_station_cost_rmb_kwh"
+unit = "元/kWh"
+decimals = 3
+group = "⑧重卡"
+note = "只含站这一层（站体摊销、站址、人工、软件、设备保险、充放损耗电费），不含电池——电池由租金那条腿承担。成熟期假设吞吐口径"
+[[metric]]
+key = "tco.short_swap_station_equip"
+source = "tco"
+label = "重卡短途·换电站体设备的度电摊销"
+at = "swap_business.heavy_economics.short.swap_station_equip_rmb_kwh"
+unit = "元/kWh"
+decimals = 3
+group = "⑧重卡"
+note = "已折算到与超充成本地板相同的摊销年限，两者同尺可比"
+[[metric]]
+key = "tco.short_swap_util_at_floor"
+source = "tco"
+label = "重卡短途·换电成本线升到超充地板所需吞吐"
+at = "swap_business.heavy_economics.short.swap_station_util_at_floor"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "⑧重卡"
+note = "吞吐降到成熟期假设的这个比例时，换电的站层成本线才升到超充地板；低于它换电站层更贵"
+[[metric]]
+key = "tco.short_swaps_day_at_floor"
+source = "tco"
+label = "重卡短途·两条成本线相交的单站日均车次"
+at = "swap_business.heavy_economics.short.swap_swaps_per_day_at_floor"
+unit = "次/天"
+decimals = 0
+group = "⑧重卡"
+note = "换算成可实地核验的锚：单站日均服务车次低于它，换电站层成本高于超充地板"
+[[metric]]
+key = "tco.short_swaps_day_mature"
+source = "tco"
+label = "重卡短途·成熟期假设的单站日均车次"
+at = "swap_business.heavy_economics.short.swap_swaps_per_day_mature"
+unit = "次/天"
+decimals = 0
+group = "⑧重卡"
+note = "本模型成熟期假设隐含的单站日均服务车次——估值锚，也是最该做草根验证的一项"
+[[metric]]
+key = "tco.mid_adv_mw_spot_low"
+source = "tco"
+label = "重卡中途·换电净优势·超充现价压力档（资金成本低）"
+at = "swap_business.heavy_economics.mid.adv_mw_spot_low"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+note = "压力档：假定充电的价格战价撑满整个持有期。正数＝即使如此换电仍占优"
+[[metric]]
+key = "tco.mid_adv_mw_spot_mid"
+source = "tco"
+label = "重卡中途·换电净优势·超充现价压力档（资金成本中）"
+at = "swap_business.heavy_economics.mid.adv_mw_spot_mid"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+note = "压力档：假定充电的价格战价撑满整个持有期。正数＝即使如此换电仍占优"
+[[metric]]
+key = "tco.mid_adv_mw_spot_high"
+source = "tco"
+label = "重卡中途·换电净优势·超充现价压力档（资金成本高）"
+at = "swap_business.heavy_economics.mid.adv_mw_spot_high"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+note = "压力档：假定充电的价格战价撑满整个持有期。正数＝即使如此换电仍占优"
+[[metric]]
+key = "tco.mid_swap_station_cost"
+source = "tco"
+label = "重卡中途·换电站的服务费成本线"
+at = "swap_business.heavy_economics.mid.swap_station_cost_rmb_kwh"
+unit = "元/kWh"
+decimals = 3
+group = "⑧重卡"
+note = "只含站这一层（站体摊销、站址、人工、软件、设备保险、充放损耗电费），不含电池——电池由租金那条腿承担。成熟期假设吞吐口径"
+[[metric]]
+key = "tco.mid_swap_station_equip"
+source = "tco"
+label = "重卡中途·换电站体设备的度电摊销"
+at = "swap_business.heavy_economics.mid.swap_station_equip_rmb_kwh"
+unit = "元/kWh"
+decimals = 3
+group = "⑧重卡"
+note = "已折算到与超充成本地板相同的摊销年限，两者同尺可比"
+[[metric]]
+key = "tco.mid_swap_util_at_floor"
+source = "tco"
+label = "重卡中途·换电成本线升到超充地板所需吞吐"
+at = "swap_business.heavy_economics.mid.swap_station_util_at_floor"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "⑧重卡"
+note = "吞吐降到成熟期假设的这个比例时，换电的站层成本线才升到超充地板；低于它换电站层更贵"
+[[metric]]
+key = "tco.mid_swaps_day_at_floor"
+source = "tco"
+label = "重卡中途·两条成本线相交的单站日均车次"
+at = "swap_business.heavy_economics.mid.swap_swaps_per_day_at_floor"
+unit = "次/天"
+decimals = 0
+group = "⑧重卡"
+note = "换算成可实地核验的锚：单站日均服务车次低于它，换电站层成本高于超充地板"
+[[metric]]
+key = "tco.mid_swaps_day_mature"
+source = "tco"
+label = "重卡中途·成熟期假设的单站日均车次"
+at = "swap_business.heavy_economics.mid.swap_swaps_per_day_mature"
+unit = "次/天"
+decimals = 0
+group = "⑧重卡"
+note = "本模型成熟期假设隐含的单站日均服务车次——估值锚，也是最该做草根验证的一项"
+[[metric]]
+key = "tco.long_adv_mw_spot_low"
+source = "tco"
+label = "重卡长途·换电净优势·超充现价压力档（资金成本低）"
+at = "swap_business.heavy_economics.long.adv_mw_spot_low"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+note = "压力档：假定充电的价格战价撑满整个持有期。正数＝即使如此换电仍占优"
+[[metric]]
+key = "tco.long_adv_mw_spot_mid"
+source = "tco"
+label = "重卡长途·换电净优势·超充现价压力档（资金成本中）"
+at = "swap_business.heavy_economics.long.adv_mw_spot_mid"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+note = "压力档：假定充电的价格战价撑满整个持有期。正数＝即使如此换电仍占优"
+[[metric]]
+key = "tco.long_adv_mw_spot_high"
+source = "tco"
+label = "重卡长途·换电净优势·超充现价压力档（资金成本高）"
+at = "swap_business.heavy_economics.long.adv_mw_spot_high"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+note = "压力档：假定充电的价格战价撑满整个持有期。正数＝即使如此换电仍占优"
+[[metric]]
+key = "tco.long_swap_station_cost"
+source = "tco"
+label = "重卡长途·换电站的服务费成本线"
+at = "swap_business.heavy_economics.long.swap_station_cost_rmb_kwh"
+unit = "元/kWh"
+decimals = 3
+group = "⑧重卡"
+note = "只含站这一层（站体摊销、站址、人工、软件、设备保险、充放损耗电费），不含电池——电池由租金那条腿承担。成熟期假设吞吐口径"
+[[metric]]
+key = "tco.long_swap_station_equip"
+source = "tco"
+label = "重卡长途·换电站体设备的度电摊销"
+at = "swap_business.heavy_economics.long.swap_station_equip_rmb_kwh"
+unit = "元/kWh"
+decimals = 3
+group = "⑧重卡"
+note = "已折算到与超充成本地板相同的摊销年限，两者同尺可比"
+[[metric]]
+key = "tco.long_swap_util_at_floor"
+source = "tco"
+label = "重卡长途·换电成本线升到超充地板所需吞吐"
+at = "swap_business.heavy_economics.long.swap_station_util_at_floor"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "⑧重卡"
+note = "吞吐降到成熟期假设的这个比例时，换电的站层成本线才升到超充地板；低于它换电站层更贵"
+[[metric]]
+key = "tco.long_swaps_day_at_floor"
+source = "tco"
+label = "重卡长途·两条成本线相交的单站日均车次"
+at = "swap_business.heavy_economics.long.swap_swaps_per_day_at_floor"
+unit = "次/天"
+decimals = 0
+group = "⑧重卡"
+note = "换算成可实地核验的锚：单站日均服务车次低于它，换电站层成本高于超充地板"
+[[metric]]
+key = "tco.long_swaps_day_mature"
+source = "tco"
+label = "重卡长途·成熟期假设的单站日均车次"
+at = "swap_business.heavy_economics.long.swap_swaps_per_day_mature"
+unit = "次/天"
+decimals = 0
+group = "⑧重卡"
+note = "本模型成熟期假设隐含的单站日均服务车次——估值锚，也是最该做草根验证的一项"
+
+[[metric]]
+key = "ops.addressable_短途"
+source = "price_response"
+label = "重卡短途·可服务份额·基准"
+at = "swap_business.price_response.scenes.短途.addressable"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "⑧重卡"
+note = "按成本线基准，净优势为正的那部分车队占比（车队资金成本分布见 [fleet_capital_mix] 声明段，经验假设）"
+
+[[metric]]
+key = "ops.share_multiplier_spot_短途"
+source = "price_response"
+label = "重卡短途·份额乘数·现价压力档"
+at = "swap_business.price_response.scenes.短途.multiplier_spot"
+unit = "倍"
+decimals = 2
+group = "⑧重卡"
+note = "若充电的价格战价撑满整个持有期，本场景的可服务份额相对基准剩多少倍；基准处按构造为 1.00"
+
+[[metric]]
+key = "ops.addressable_中途"
+source = "price_response"
+label = "重卡中途·可服务份额·基准"
+at = "swap_business.price_response.scenes.中途.addressable"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "⑧重卡"
+note = "按成本线基准，净优势为正的那部分车队占比（车队资金成本分布见 [fleet_capital_mix] 声明段，经验假设）"
+
+[[metric]]
+key = "ops.share_multiplier_spot_中途"
+source = "price_response"
+label = "重卡中途·份额乘数·现价压力档"
+at = "swap_business.price_response.scenes.中途.multiplier_spot"
+unit = "倍"
+decimals = 2
+group = "⑧重卡"
+note = "若充电的价格战价撑满整个持有期，本场景的可服务份额相对基准剩多少倍；基准处按构造为 1.00"
+
+[[metric]]
+key = "ops.addressable_长途"
+source = "price_response"
+label = "重卡长途·可服务份额·基准"
+at = "swap_business.price_response.scenes.长途.addressable"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "⑧重卡"
+note = "按成本线基准，净优势为正的那部分车队占比（车队资金成本分布见 [fleet_capital_mix] 声明段，经验假设）"
+
+[[metric]]
+key = "ops.share_multiplier_spot_长途"
+source = "price_response"
+label = "重卡长途·份额乘数·现价压力档"
+at = "swap_business.price_response.scenes.长途.multiplier_spot"
+unit = "倍"
+decimals = 2
+group = "⑧重卡"
+note = "若充电的价格战价撑满整个持有期，本场景的可服务份额相对基准剩多少倍；基准处按构造为 1.00"
+
+[[metric]]
+key = "ops.weighted_swap_penetration"
+source = "price_response"
+label = "兑现年换电占纯电重卡·模型加权"
+at = "swap_business.price_response.weighted_penetration"
+unit = "%"
+decimals = 1
+scale = 100.0
+group = "⑧重卡"
+note = "三场景销量权重 × 各自换电渗透率。与实测占比对照，就能看出这个假设是多大幅度的反转预期"
+
+[[metric]]
+key = "ops.weighted_swap_penetration_spot"
+source = "price_response"
+label = "兑现年换电占纯电重卡·现价压力档"
+at = "swap_business.price_response.weighted_penetration_spot"
+unit = "%"
+decimals = 1
+scale = 100.0
+group = "⑧重卡"
+note = "同一加权口径下，若充电的价格战价撑满整个持有期，份额假设会落到哪里——价格战这一件事值多少份额"
+
+[[metric]]
+key = "swap.battery_asset_yi"
+source = "business"
+label = "电池资产·现价口径"
+at = "swap_business.battery_asset_yi"
+unit = "亿元"
+decimals = 0
+group = "④经营"
+note = "在网电池（车端＋站内周转）按基准年电池价计的资产额——租金那条腿背后压着的东西"
+
+[[metric]]
+key = "swap.equipment_asset_yi"
+source = "business"
+label = "站体设备资产"
+at = "swap_business.equipment_asset_yi"
+unit = "亿元"
+decimals = 0
+group = "④经营"
+note = "站数 × 单站站体造价——服务费那条腿背后压着的东西"
+
+[[metric]]
+key = "swap.asset_ratio"
+source = "business"
+label = "电池资产对站体资产的倍数"
+at = "swap_business.battery_to_equipment_asset_ratio"
+unit = "倍"
+decimals = 1
+group = "④经营"
+note = "资本压在哪一层的一个数：它决定了价格战打在哪一层，也决定了两段收费该把利润中枢放在哪一段"
+
+[[metric]]
+key = "charge.cost_heavy"
+source = "charging"
+label = "重卡充电站度电固定成本·实测利用率"
+at = "swap_business.charging_economics.cost_heavy_observed"
+unit = "元/kWh"
+decimals = 3
+group = "⑧重卡"
+note = "年化capex＋固定运维，摊到实测能量利用率上；不含购电成本，对应'服务费要覆盖什么'"
+
+[[metric]]
+key = "charge.cost_heavy_capfee"
+source = "charging"
+label = "重卡充电站度电固定成本·容量电费照收档"
+at = "swap_business.charging_economics.cost_heavy_with_capacity_fee"
+unit = "元/kWh"
+decimals = 3
+group = "⑧重卡"
+note = "压力档：集中式充换电设施免收基本电费的政策状态未证实，若照收，这一项比利用率更能决定成败"
+
+[[metric]]
+key = "charge.cost_passenger"
+source = "charging"
+label = "乘用车公共桩度电固定成本"
+at = "swap_business.charging_economics.cost_passenger_observed"
+unit = "元/kWh"
+decimals = 3
+group = "⑧重卡"
+note = "同一公式、换成乘用车实测利用率——'充电在亏本卖'这个叙事出自这一档，不适用于重卡"
+
+[[metric]]
+key = "charge.cost_mw_design"
+source = "charging"
+label = "兆瓦超充站度电固定成本·设计工况"
+at = "swap_business.charging_economics.cost_mw_design"
+unit = "元/kWh"
+decimals = 3
+group = "⑧重卡"
+note = "按示范站设计日充量反推的利用率；高于当前服务费，说明兆瓦级按设计工况收不回成本"
+
+[[metric]]
+key = "charge.cost_mw_at_heavy"
+source = "charging"
+label = "兆瓦超充站度电固定成本·按重卡实测利用率"
+at = "swap_business.charging_economics.cost_mw_at_heavy_utilization"
+unit = "元/kWh"
+decimals = 3
+group = "⑧重卡"
+note = "若兆瓦站能做到重卡快充站的实测利用率，它的度电固定成本落在哪"
+
+[[metric]]
+key = "charge.service_fee"
+source = "charging"
+label = "重卡充电服务费·成本曲线对照值"
+at = "swap_business.charging_economics.service_fee_observed"
+unit = "元/kWh"
+decimals = 2
+group = "⑧重卡"
+note = "主流区间中值；与上面几条比较，看充电站现在是赚是亏"
+
+[[metric]]
+key = "charge.margin_heavy"
+source = "charging"
+label = "重卡充电站度电毛差·实测"
+at = "swap_business.charging_economics.margin_heavy_observed"
+unit = "元/kWh"
+decimals = 3
+group = "⑧重卡"
+note = "服务费 − 度电固定成本 − 电损成本。**正数＝对手现在是赚钱的，不能指望等它亏死**"
+
+[[metric]]
+key = "charge.margin_passenger"
+source = "charging"
+label = "乘用车公共桩度电毛差·对照"
+at = "swap_business.charging_economics.margin_passenger_observed"
+unit = "元/kWh"
+decimals = 3
+group = "⑧重卡"
+note = "同一算法的乘用车对照，用来显示两个市场差多远"
+
+[[metric]]
+key = "charge.breakeven_util"
+source = "charging"
+label = "重卡充电站打平所需利用率"
+at = "swap_business.charging_economics.breakeven_utilization"
+unit = "%"
+decimals = 1
+scale = 100.0
+group = "⑧重卡"
+note = "按实测服务费与本模型成本曲线反推；实测利用率远高于它"
+
+[[metric]]
+key = "charge.swap_grid_intensity"
+source = "charging"
+label = "换电站的电网容量强度"
+at = "swap_business.charging_economics.swap_grid_kw_per_daily_mwh"
+unit = "kW/(MWh·天)"
+decimals = 0
+group = "⑧重卡"
+note = "每天每交付1MWh要占多少电网容量。换电按**平均功率**要容量：电池什么时候充都行"
+
+[[metric]]
+key = "charge.charge_grid_intensity"
+source = "charging"
+label = "超充站的电网容量强度"
+at = "swap_business.charging_economics.charge_grid_kw_per_daily_mwh"
+unit = "kW/(MWh·天)"
+decimals = 0
+group = "⑧重卡"
+note = "同一口径。超充按**瞬时功率**要容量：一辆车要多大功率，站就得有多大接口"
+
+[[metric]]
+key = "charge.grid_intensity_ratio"
+source = "charging"
+label = "超充对换电的电网容量倍数"
+at = "swap_business.charging_economics.grid_intensity_ratio"
+unit = "倍"
+decimals = 2
+group = "⑧重卡"
+note = "两条路线最硬的一条结构性差异，而且是物理的、不随价格战变化；电力增容占充电站总投资35%–50%"

@@ -418,13 +418,23 @@
     "type": "float"
   },
   {
-    "key": "tco_jpm.charge_service_fee_rmb_kwh",
+    "key": "tco_jpm.charge_service_fee_spot_rmb_kwh",
     "value": 0.2,
     "type": "float"
   },
   {
     "key": "tco_jpm.charge_service_fee_floor_rmb_kwh",
     "value": 0.08,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.supercharge_cost_floor_rmb_kwh",
+    "value": 0.34,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.supercharge_floor_life_years",
+    "value": 10.0,
     "type": "float"
   },
   {
@@ -1209,6 +1219,50 @@
     "type": "float"
   },
   {
+    "key": "price_response.ref_swap_service_fee_rmb_kwh",
+    "value": 0.3,
+    "type": "float"
+  },
+  {
+    "key": "price_response.ref_battery_rent_rmb_kwh_month",
+    "value": 10.0,
+    "type": "float"
+  },
+  {
+    "key": "price_response.ref_charge_service_fee_rmb_kwh",
+    "value": 0.34,
+    "type": "float"
+  },
+  {
+    "key": "price_response.response_floor",
+    "value": 0.1,
+    "type": "float"
+  },
+  {
+    "key": "price_response.ref_heavy_penetration",
+    "value": [
+      0.3,
+      0.5,
+      0.7
+    ],
+    "type": "list"
+  },
+  {
+    "key": "fleet_capital_mix.low",
+    "value": 0.25,
+    "type": "float"
+  },
+  {
+    "key": "fleet_capital_mix.mid",
+    "value": 0.45,
+    "type": "float"
+  },
+  {
+    "key": "fleet_capital_mix.high",
+    "value": 0.3,
+    "type": "float"
+  },
+  {
     "key": "swap_business.operating_days",
     "value": 350.0,
     "type": "float"
@@ -1959,6 +2013,76 @@
       }
     ],
     "type": "list"
+  },
+  {
+    "key": "charging_station.capex_rmb_per_kw",
+    "value": 600.0,
+    "type": "float"
+  },
+  {
+    "key": "charging_station.mw_capex_rmb_per_kw",
+    "value": 1650.0,
+    "type": "float"
+  },
+  {
+    "key": "charging_station.equipment_life_years",
+    "value": 8.0,
+    "type": "float"
+  },
+  {
+    "key": "charging_station.salvage_rate",
+    "value": 0.05,
+    "type": "float"
+  },
+  {
+    "key": "charging_station.operator_discount_rate",
+    "value": 0.06,
+    "type": "float"
+  },
+  {
+    "key": "charging_station.opex_rate_of_capex",
+    "value": 0.035,
+    "type": "float"
+  },
+  {
+    "key": "charging_station.capacity_ratio_kva_per_kw",
+    "value": 1.05,
+    "type": "float"
+  },
+  {
+    "key": "charging_station.capacity_fee_rmb_kva_month",
+    "value": 30.0,
+    "type": "float"
+  },
+  {
+    "key": "charging_station.capacity_fee_applies",
+    "value": 0.0,
+    "type": "float"
+  },
+  {
+    "key": "charging_station.utilization_heavy_observed",
+    "value": 0.22,
+    "type": "float"
+  },
+  {
+    "key": "charging_station.utilization_passenger_observed",
+    "value": 0.067,
+    "type": "float"
+  },
+  {
+    "key": "charging_station.utilization_mw_design",
+    "value": 0.138,
+    "type": "float"
+  },
+  {
+    "key": "charging_station.loss_rate",
+    "value": 0.05,
+    "type": "float"
+  },
+  {
+    "key": "charging_station.service_fee_observed",
+    "value": 0.23,
+    "type": "float"
   },
   {
     "key": "capacity_investment.leader_intensity_yi_per_gwh",

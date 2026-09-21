@@ -343,6 +343,10 @@ def _build_sensitivity(config: dict, base: ModelSnapshot) -> list[dict]:
             cfg["swap_business"]["battery_rent_rmb_kwh_month"] = (
                 config["swap_business"]["battery_rent_rmb_kwh_month"] * value
             )
+            if "battery_rent_passenger_rmb_kwh_month" in config["swap_business"]:
+                cfg["swap_business"]["battery_rent_passenger_rmb_kwh_month"] = (
+                    config["swap_business"]["battery_rent_passenger_rmb_kwh_month"] * value
+                )
 
         cases.append(("服务费+租金", f"基准×{factor:.1f}", set_prices))
     for crf in (0.10, 0.125, 0.15):

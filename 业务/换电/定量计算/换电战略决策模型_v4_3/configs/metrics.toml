@@ -488,7 +488,7 @@ at = "swap_business.forward_to_required_ebitda"
 unit = "×"
 decimals = 2
 group = "④运营财务"
-note = "＝稳态EBITDA ÷ 资本要求回报(EBITDA口径)；资本要求回报按 CRF=15%（隐含约12.4%/15年）计，非 WACC 7.5%（WACC 仅用于 DCF 净更新折现）"
+note = "EBITDA 对资本开支的覆盖倍数＝稳态 EBITDA ÷ 资本要求（全周期资本开支按 WACC、15 年折成每年要还的钱，再还原到 EBITDA 层、已计折旧税盾）。等于 1＝刚好赚回资金成本。【2026-09-21 更正：此前注释写 CRF＝15%，与 2026-09-15 起 CRF 由 WACC 派生的现行口径不符】"
 
 [[metric]]
 key = "swap.operating_value"
@@ -3538,3 +3538,51 @@ decimals = 0
 group = "⑧重卡"
 note = "同一口径。超充按**瞬时功率**要容量：车拉多大功率，站就得有多大接口"
 
+# ── 门① 均衡终局（2026-09-21）────────────────────────────────────────────
+[[metric]]
+key = "charge.equilibrium_fee"
+source = "charging"
+label = "充电均衡价（新进场者赚回资金成本）"
+at = "swap_business.charging_economics.equilibrium_fee_rmb_kwh"
+unit = "元/kWh"
+decimals = 3
+group = "⑧重卡"
+note = "参照站在中性利用率、门槛＝WACC 下的全成本；与 [tco_jpm] charge_service_fee_rmb_kwh 按构造相等（加载时断言）"
+
+[[metric]]
+key = "charge.cash_fee"
+source = "charging"
+label = "充电现金价（存量站关门线）"
+at = "swap_business.charging_economics.cash_fee_rmb_kwh"
+unit = "元/kWh"
+decimals = 3
+group = "⑧重卡"
+note = "只够付现金成本的价：价格战打到它之下，存量站才会关门"
+
+[[metric]]
+key = "tco.short_adv_lease"
+source = "tco"
+label = "重卡短途·换电对超充租电池的净优势"
+at = "swap_business.heavy_economics.short.adv_lease"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+note = "租金同价、都不付首付、都不自费换电池；只剩服务费差与兆瓦超充多停的时间。与资金成本无关"
+
+[[metric]]
+key = "tco.mid_adv_lease"
+source = "tco"
+label = "重卡中途·换电对超充租电池的净优势"
+at = "swap_business.heavy_economics.mid.adv_lease"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"
+
+[[metric]]
+key = "tco.long_adv_lease"
+source = "tco"
+label = "重卡长途·换电对超充租电池的净优势"
+at = "swap_business.heavy_economics.long.adv_lease"
+unit = "万元/年"
+decimals = 2
+group = "⑧重卡"

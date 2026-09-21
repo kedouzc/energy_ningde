@@ -49,7 +49,26 @@ def load_config(path: Path | None = None) -> dict[str, Any]:
     cfg = _unwrap_envelopes(load_config_raw(path))
     replay_events(cfg)
     _assert_crf_is_derived(cfg)
+    _assert_charge_fee_is_derived(cfg)
     return cfg
+
+
+def _assert_charge_fee_is_derived(cfg: dict[str, Any]) -> None:
+    """【2026-09-21 · 门①】充电服务费基准必须等于 [charging_station] 成本曲线推出的均衡价。
+
+    和 CRF 同一个道理：这个数是推论，不是第二个拍值。想改它，改它的来源（利用率、造价、WACC）。
+    只在加载基线时校验；情景三档会把利用率与两个服务费一起拨动，那是 [drivers.fee_level] 的事。
+    """
+    tco = cfg.get("tco_jpm") or {}
+    if "charge_service_fee_rmb_kwh" not in tco or not cfg.get("charging_station"):
+        return
+    from charging import equilibrium_service_fee   # 局部引入：避免装载期循环依赖
+    want = equilibrium_service_fee(cfg)["equilibrium_fee"]
+    have = float(tco["charge_service_fee_rmb_kwh"])
+    if abs(have - want) > 5e-4:
+        raise SystemExit(
+            f"[tco_jpm] charge_service_fee_rmb_kwh={have} 与 [charging_station] 成本曲线推出的均衡价 "
+            f"{want:.4f} 不符。**它是推论不是拍值**——要改就改利用率、造价或 WACC。")
 
 
 def replay_events(cfg: dict[str, Any]) -> list[str]:

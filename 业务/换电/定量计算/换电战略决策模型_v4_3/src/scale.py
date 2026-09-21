@@ -322,10 +322,15 @@ def _pool_life_config(config: dict, pool_key: str) -> dict:
     derived.battery_life_years，因此与原寿命函数保持同一参数体系。
     """
     override = config.get("battery_pool_model", {}).get("life_override", {}).get(pool_key, {})
-    if not override:
+    # 【2026-09-21 · 门①】池里多活几成：只乘在电池池的循环寿命上（充电车不乘），日历封顶照旧。
+    base_model = config["battery_life_model"]
+    mult = float(base_model.get("pool_life_multiplier") or 1.0)
+    if not override and mult == 1.0:
         return config
+    merged = {**base_model, **override}
+    merged["critical_cycles"] = float(merged["critical_cycles"]) * mult
     pool_config = dict(config)
-    pool_config["battery_life_model"] = {**config["battery_life_model"], **override}
+    pool_config["battery_life_model"] = merged
     return pool_config
 
 

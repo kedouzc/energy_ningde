@@ -72,6 +72,44 @@ def _station_economics(
     }
 
 
+def equilibrium_service_fee(config: dict, utilization: float | None = None) -> dict[str, float]:
+    """【2026-09-21 · 门① 均衡终局】充电服务费会停在哪：新进场的人刚好赚回资金成本的那个价。
+
+    与上面 `_station_economics` 的区别只有一处：那边回答"这门生意一年挣多少"，不放折现率；
+    这里回答"新进场的人要多少才肯来"，必须带门槛——门槛取 `finance.wacc`（综合资金成本对综合资金成本，
+    与模型里换电一侧的门槛同源）。设备钱按年金摊：每年要还 ＝ 投资 ×（年金系数 − 残值 × 偿债基金系数）。
+
+        均衡价 ＝ (固定现金成本 ＋ 每年要还的设备钱) ÷ 年电量 ＋ 电损，再按平台分成还原
+        现金价 ＝  固定现金成本 ÷ 年电量 ＋ 电损（低于它，存量站才会关门）
+
+    参照站、利用率、运维率、寿命、残值全部取 [charging_station]，不另拍数。
+    """
+    cfg = config.get("charging_station") or {}
+    sb = config.get("swap_business") or {}
+    r = float((config.get("finance") or {}).get("wacc") or 0.0)
+    u = float(utilization if utilization is not None else cfg.get("utilization_heavy_observed") or 0.0)
+    life = float(cfg.get("equipment_life_years") or 0.0)
+    salvage = float(cfg.get("salvage_rate") or 0.0)
+    opex_rate = float(cfg.get("opex_rate_of_capex") or 0.0)
+    loss_rate = float(cfg.get("loss_rate") or 0.0)
+    platform = float(cfg.get("platform_commission_rate") or 0.0)
+    station_kw = float(cfg.get("reference_station_kw") or 0.0)
+    capex_wan = float(cfg.get("capex_rmb_per_kw") or 0.0) * station_kw / 1e4
+    fixed_wan = capex_wan * opex_rate + float(cfg.get("site_rent_wan_year") or 0.0) \
+        + float(cfg.get("labor_wan_year") or 0.0)
+    power = float(sb.get("valley_power_price_rmb_kwh") or 0.0)
+    kwh = station_kw * _HOURS_YEAR * u
+    if not (r > 0 and life > 0 and kwh > 0):
+        return {"equilibrium_fee": 0.0, "cash_fee": 0.0, "capital_wan": 0.0, "fixed_wan": fixed_wan}
+    annuity = r / (1.0 - (1.0 + r) ** -life)
+    sinking = r / ((1.0 + r) ** life - 1.0)
+    capital_wan = capex_wan * (annuity - salvage * sinking)
+    loss_p = loss_rate * power
+    eq = ((fixed_wan + capital_wan) * 1e4 / kwh + loss_p) / (1.0 - platform)
+    cash = (fixed_wan * 1e4 / kwh + loss_p) / (1.0 - platform)
+    return {"equilibrium_fee": eq, "cash_fee": cash, "capital_wan": capital_wan, "fixed_wan": fixed_wan}
+
+
 def build_charging_economics(config: dict, scale, capex, pool_ops: dict) -> dict | None:
     """超充站与换电站站层的全投资收益率对比。缺 [charging_station] 时返回 None。"""
     cfg = config.get("charging_station")
@@ -93,6 +131,10 @@ def build_charging_economics(config: dict, scale, capex, pool_ops: dict) -> dict
     labor_wan = float(cfg.get("labor_wan_year") or 0.0)
 
     out: dict = {"service_fee_observed": fee}
+    # 门①：充电均衡价与现金价（中性利用率）；跟平跌破资金成本的那条利用率线见一页纸附录 A
+    _eq = equilibrium_service_fee(config)
+    out["equilibrium_fee_rmb_kwh"] = _eq["equilibrium_fee"]
+    out["cash_fee_rmb_kwh"] = _eq["cash_fee"]
 
     # —— 超充站：按"一座参照站"算，规模可约掉，但写成一座站更好读 ——
     def _charge_at(u: float, rate: float = platform) -> dict[str, float]:

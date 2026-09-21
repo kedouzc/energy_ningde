@@ -428,8 +428,8 @@
     "type": "float"
   },
   {
-    "key": "tco_jpm.supercharge_cost_floor_rmb_kwh",
-    "value": 0.34,
+    "key": "tco_jpm.charge_service_fee_rmb_kwh",
+    "value": 0.104,
     "type": "float"
   },
   {
@@ -444,12 +444,22 @@
   },
   {
     "key": "tco_jpm.fleet_discount_rate_mid",
-    "value": 0.12,
+    "value": 0.09,
     "type": "float"
   },
   {
     "key": "tco_jpm.fleet_discount_rate_high",
-    "value": 0.22,
+    "value": 0.18,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.fleet_pack_resale_ratio",
+    "value": 0.3,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.fleet_battery_hold_rmb_kwh_year",
+    "value": 11.0,
     "type": "float"
   },
   {
@@ -1220,17 +1230,17 @@
   },
   {
     "key": "price_response.ref_swap_service_fee_rmb_kwh",
-    "value": 0.3,
+    "value": 0.104,
     "type": "float"
   },
   {
     "key": "price_response.ref_battery_rent_rmb_kwh_month",
-    "value": 10.0,
+    "value": 13.3,
     "type": "float"
   },
   {
     "key": "price_response.ref_charge_service_fee_rmb_kwh",
-    "value": 0.34,
+    "value": 0.104,
     "type": "float"
   },
   {
@@ -1274,12 +1284,17 @@
   },
   {
     "key": "swap_business.service_fee_rmb_kwh",
-    "value": 0.3,
+    "value": 0.104,
     "type": "float"
   },
   {
     "key": "swap_business.battery_rent_rmb_kwh_month",
-    "value": 10.0,
+    "value": 13.3,
+    "type": "float"
+  },
+  {
+    "key": "swap_business.battery_rent_passenger_rmb_kwh_month",
+    "value": 9.0,
     "type": "float"
   },
   {
@@ -1399,7 +1414,12 @@
   },
   {
     "key": "battery_life_model.critical_cycles",
-    "value": 2000.0,
+    "value": 3500.0,
+    "type": "float"
+  },
+  {
+    "key": "battery_life_model.pool_life_multiplier",
+    "value": 1.2,
     "type": "float"
   },
   {
@@ -2065,6 +2085,16 @@
     "type": "float"
   },
   {
+    "key": "charging_station.utilization_heavy_low",
+    "value": 0.18,
+    "type": "float"
+  },
+  {
+    "key": "charging_station.utilization_heavy_high",
+    "value": 0.4,
+    "type": "float"
+  },
+  {
     "key": "charging_station.utilization_passenger_observed",
     "value": 0.067,
     "type": "float"
@@ -2077,6 +2107,31 @@
   {
     "key": "charging_station.loss_rate",
     "value": 0.05,
+    "type": "float"
+  },
+  {
+    "key": "charging_station.platform_commission_rate",
+    "value": 0.0,
+    "type": "float"
+  },
+  {
+    "key": "charging_station.platform_commission_rate_high",
+    "value": 0.06,
+    "type": "float"
+  },
+  {
+    "key": "charging_station.reference_station_kw",
+    "value": 8320.0,
+    "type": "float"
+  },
+  {
+    "key": "charging_station.site_rent_wan_year",
+    "value": 15.0,
+    "type": "float"
+  },
+  {
+    "key": "charging_station.labor_wan_year",
+    "value": 26.88,
     "type": "float"
   },
   {

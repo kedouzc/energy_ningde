@@ -51,7 +51,7 @@ def _prices(config: dict) -> dict[str, float]:
     return {
         "swap_service": float(sb.get("service_fee_rmb_kwh") or 0.0),
         "swap_rent_month": float(sb.get("battery_rent_rmb_kwh_month") or 0.0),
-        "charge_service": float(tco.get("supercharge_cost_floor_rmb_kwh") or 0.0),
+        "charge_service": float(tco.get("charge_service_fee_rmb_kwh") or 0.0),
     }
 
 

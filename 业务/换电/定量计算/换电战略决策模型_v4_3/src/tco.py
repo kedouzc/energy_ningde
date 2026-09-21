@@ -83,10 +83,10 @@ def build_heavy_economics(
     # LNG/柴油"含全部燃料"的成本，结论系统性偏乐观。
     # 注意：主模型里 arbitrage 是站方独立收入项、TCO 里从用户侧能源成本口径计入，二者视角不同
     # （前者算站方利润、后者算用户总持有成本），不重复——不要因此把 spread 从主模型删掉。
-    sb = config.get("swap_business") or {}
-    valley = float(sb.get("valley_power_price_rmb_kwh") or 0.0)
-    spread = float(sb.get("grid_spread_rmb_kwh") or 0.0)
-    user_energy = (price + valley + spread) if price is not None else None
+    # 【2026-09-21 · 门①】用户电价两边同取电网电价：换电与充电都按补能当时的电网电价结算，
+    # 峰谷价差是换电站的固有能力、归运营方（进经营账的套利收入），不再记到用户头上。
+    grid = float(tco.get("charge_power_price_rmb_kwh") or 0.0)
+    user_energy = (price + grid) if price is not None else None
 
     # 持有期 N1：模型算出的重卡加权电池寿命。权重=各池机队 GWh（取自 capex 同一份
     # 存量，不另算一份）；倒短池寿命长、干线池寿命短（年数由模型现算，不取静态常数），
@@ -191,7 +191,8 @@ def _swap_station_cost_line(
     """
     sb = config.get("swap_business") or {}
     horizon = float(config.get("finance", {}).get("model_horizon_years") or 0.0)
-    floor = float((config.get("tco_jpm") or {}).get("supercharge_cost_floor_rmb_kwh") or 0.0)
+    # 【2026-09-21 · 门①】对照价从作废的"超充成本地板"换成充电均衡价
+    floor = float((config.get("tco_jpm") or {}).get("charge_service_fee_rmb_kwh") or 0.0)
     floor_life = float((config.get("tco_jpm") or {}).get("supercharge_floor_life_years") or 0.0)
     out: dict[str, dict[str, float]] = {}
     for pk, ops in pool_ops.items():
@@ -253,7 +254,9 @@ def _scene_tco(
     # 合成关系（按构造成立）：swap_price − charge_price ＝ 服务费差 ＋ 电价差 ＋ 电池租金。
     swap_service_p = ops.service_revenue_yi / ops.annual_energy_yi_kwh
     swap_rent_p = ops.battery_rent_yi / ops.annual_energy_yi_kwh
-    swap_price = swap_service_p + swap_rent_p + valley + spread
+    # 【2026-09-21 · 门①】用户电价两边同取电网电价（见 build_heavy_economics 同一处注释）
+    swap_energy_p = float(tco.get("charge_power_price_rmb_kwh") or 0.0)
+    swap_price = swap_service_p + swap_rent_p + swap_energy_p
 
     annual_km = float(scene["daily_km"]) * days
     annual_kwh = annual_km * float(scene["energy_consumption_kwh_km"])
@@ -262,7 +265,8 @@ def _scene_tco(
     # 【2026-09-18f】充电服务费的**基准取成本地板**，不取现价。
     # TCO 是持有期决策，用的必须是持有期均价；而现价低于超充设备自身的度电摊销地板，
     # 一个低于成本的价格不可能是 8 年的均值。现价与价格战下沿降为压力档。
-    charge_service_p = float(tco.get("supercharge_cost_floor_rmb_kwh") or 0.0)
+    # 【2026-09-21 · 门①】基准取充电均衡价（新进场者赚回 WACC 的全成本），不再取作废的成本地板
+    charge_service_p = float(tco.get("charge_service_fee_rmb_kwh") or 0.0)
     charge_service_spot = float(tco.get("charge_service_fee_spot_rmb_kwh") or 0.0)
     charge_service_floor = float(tco.get("charge_service_fee_floor_rmb_kwh") or 0.0)
     charge_price = charge_power_p + charge_service_p
@@ -275,6 +279,9 @@ def _scene_tco(
     buy_swap = max(0.0, bare * tax - subsidy)
     buy_charge = max(0.0, (bare + kwh * p0) * tax - subsidy)
     fixed = float(tco["maintenance"]) + float(tco["payload_loss"])
+    # 【2026-09-21 · 门①】车队买断后自己接下的活：旧电池自己卖（回收率低于电池银行）、自己上保险与维护
+    resale = float(tco.get("fleet_pack_resale_ratio") or 0.0)
+    hold_year = kwh * float(tco.get("fleet_battery_hold_rmb_kwh_year") or 0.0)
 
     life = battery_life_years(config, (annual_kwh / days / kwh) if days and kwh else 0.0)
     n = float(holding)
@@ -284,7 +291,9 @@ def _scene_tco(
     for i in range(1, count + 1):
         start = i * life
         used = min(life, n - start) / life
-        cost = kwh * battery_price_rmb_kwh(config, ref + start) * used
+        new_price = battery_price_rmb_kwh(config, ref + start)
+        # 买新包（按剩余持有期折算）减去卖掉退役旧包的钱
+        cost = kwh * new_price * used - kwh * new_price * resale
         packs += cost
         pack_flows.append((start, cost))
 
@@ -310,7 +319,7 @@ def _scene_tco(
     swaps_day = (line.get("kwh_station_day", 0.0) / kwh) if kwh else 0.0
 
     swap_total = buy_swap + (annual_kwh * swap_price + fixed) * n
-    charge_total = buy_charge + (annual_kwh * charge_price + fixed) * n + packs
+    charge_total = buy_charge + (annual_kwh * charge_price + fixed + hold_year) * n + packs
     return SceneTco(
         name=scene["name"],
         pool=pk,
@@ -336,9 +345,11 @@ def _scene_tco(
         gap_service_year_wan=annual_kwh * (swap_service_p - charge_service_p) / 1e4,
         gap_service_spot_year_wan=annual_kwh * (swap_service_p - charge_service_spot) / 1e4,
         gap_service_floor_year_wan=annual_kwh * (swap_service_p - charge_service_floor) / 1e4,
-        gap_power_year_wan=annual_kwh * (valley + spread - charge_power_p) / 1e4,
+        gap_power_year_wan=annual_kwh * (swap_energy_p - charge_power_p) / 1e4,
         rent_year_wan=annual_kwh * swap_rent_p / 1e4,
         packs_total_wan=packs / 1e4,
+        # 换电对"超充＋租电池"：租金同价、都不付首付、都不自费换电池，只剩服务费差与兆瓦多停的时间
+        adv_lease=(tv_mw_year - annual_kwh * (swap_service_p - charge_service_p)) / 1e4,
         swap_station_cost_rmb_kwh=line.get("cost", 0.0),
         swap_station_equip_rmb_kwh=line.get("equip", 0.0),
         swap_station_fixed_rmb_kwh=line.get("fixed", 0.0),
@@ -347,7 +358,7 @@ def _scene_tco(
         swap_swaps_per_day_mature=swaps_day,
         **_hstar_set(
             tco, buy_swap, buy_charge, annual_kwh * swap_price + fixed,
-            annual_kwh * charge_price + fixed, pack_flows, n, days, stop_h, stop_h_mw,
+            annual_kwh * charge_price + fixed + hold_year, pack_flows, n, days, stop_h, stop_h_mw,
             tv_year, tv_mw_year, annual_kwh * (charge_service_p - charge_service_spot)),
     )
 

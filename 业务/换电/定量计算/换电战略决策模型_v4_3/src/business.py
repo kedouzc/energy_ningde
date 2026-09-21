@@ -526,7 +526,10 @@ def build_swap_business(config: dict, scale: ScaleResult, capex: CapexResult) ->
         station_external_gwh = station_gwh_by_pool[pk] * (1.0 - ownership)
         rent_gwh = vehicle_gwh_by_pool[pk] + station_external_gwh
         # 配置值是月租（元/kWh·月），年租 = 月租 × 12
-        battery_rent = rent_gwh * business["battery_rent_rmb_kwh_month"] * 12.0 / 100.0
+        # 【2026-09-21 · 门①】月租按车型分开：乘用车池用乘用车月租，重卡与城配用另一个
+        rent_month = (business.get("battery_rent_passenger_rmb_kwh_month", business["battery_rent_rmb_kwh_month"])
+                      if pk == "choco25_passenger" else business["battery_rent_rmb_kwh_month"])
+        battery_rent = rent_gwh * rent_month * 12.0 / 100.0
         arbitrage = (
             station_gwh_by_pool[pk] * days * business["grid_spread_rmb_kwh"]
             * business["rte"] / 100.0

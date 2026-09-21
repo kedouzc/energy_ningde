@@ -209,28 +209,41 @@ targets = [
 
 [drivers.fee_level]
 scenario_axis = true     # 经营族：与「换电这条路走没走通」同源，三档联动是对的
-cn      = "换电服务费"
+cn      = "补能服务费（换电跟平充电）"
 unit    = "元/kWh"
-desc    = "CATL 自主定价。谱系：焦作商车邦实测 0.2（价格战）／齐鲁晚报行业 0.3–0.4／开源短倒 0.4。中枢 0.30 居中偏稳健。"
-target  = "swap_business.service_fee_rmb_kwh"
-bounds  = [0.20, 0.40]
-step    = 0.1
-"悲观"   = 0.20
-"中性"   = 0.30      # 必须等于模型基线（apply_scenario 中性档断言校验）
-"乐观"   = 0.40
-
+desc    = "【2026-09-21 · 门①】充电服务费随充电站利用率走（27%/22%/18% → 0.087/0.104/0.123，新进场者赚回 WACC 的全成本）；换电服务费跟平。两个价与利用率三档一起动，价差恒为零——份额不因价差变，只因网络与车型。"
+targets = [
+  "swap_business.service_fee_rmb_kwh",
+  "tco_jpm.charge_service_fee_rmb_kwh",
+  "charging_station.utilization_heavy_observed",
+]
+"悲观" = { service_fee_rmb_kwh = 0.087, charge_service_fee_rmb_kwh = 0.087, utilization_heavy_observed = 0.27 }
+"中性" = { service_fee_rmb_kwh = 0.104, charge_service_fee_rmb_kwh = 0.104, utilization_heavy_observed = 0.22 }
+"乐观" = { service_fee_rmb_kwh = 0.123, charge_service_fee_rmb_kwh = 0.123, utilization_heavy_observed = 0.18 }
 [drivers.battery_rent]
 scenario_axis = true     # 经营族：与「换电这条路走没走通」同源，三档联动是对的
 cn      = "电池银行月租金"
 unit    = "元/kWh·月"
-desc    = "电池银行的月租金定价（配置值就是月租；年租 = 月租 × 12，换算在计算处）。"
-target  = "swap_business.battery_rent_rmb_kwh_month"
-bounds  = [8.0, 12.0]
-step    = 0.5
-"悲观"   = 8.0
-"中性"   = 10.0
-"乐观"   = 12.0
-
+desc    = "【2026-09-21 · 门①】按车型分开：重卡与城配 9.7／13.3／16；乘用车 8.8／9.0／9.7（依据见 [swap_business] 该字段注释）。月租的上限是车队自己养电池的成本，下限是电池银行保本价，见门① 一页纸附录 B、C。"
+targets = [
+  "swap_business.battery_rent_rmb_kwh_month",
+  "swap_business.battery_rent_passenger_rmb_kwh_month",
+]
+"悲观" = { battery_rent_rmb_kwh_month = 9.7, battery_rent_passenger_rmb_kwh_month = 8.8 }
+"中性" = { battery_rent_rmb_kwh_month = 13.3, battery_rent_passenger_rmb_kwh_month = 9.0 }
+"乐观" = { battery_rent_rmb_kwh_month = 16.0, battery_rent_passenger_rmb_kwh_month = 9.7 }
+[drivers.battery_life]
+scenario_axis = true     # 技术不确定性：我不知道电池在车上、在池里各能用多久
+cn      = "电池寿命（车上循环次数 × 池里多活几成）"
+unit    = "次／倍"
+desc    = "【2026-09-21 · 门①】悲观 2000 次、池里多活 10%；中性 3500 次、20%；乐观 5000 次、30%。依据见 [battery_life_model] 注释与门① 一页纸附录 D、H。"
+targets = [
+  "battery_life_model.critical_cycles",
+  "battery_life_model.pool_life_multiplier",
+]
+"悲观" = { critical_cycles = 2000.0, pool_life_multiplier = 1.1 }
+"中性" = { critical_cycles = 3500.0, pool_life_multiplier = 1.2 }
+"乐观" = { critical_cycles = 5000.0, pool_life_multiplier = 1.3 }
 [drivers.valley_power_price]
 scenario_axis = false
 off_axis_reason = "外生成本（电力市场），与「换电这条路走没走通」不同源；与经营族同向拨动＝把两种独立的不确定性当成一种"
@@ -653,12 +666,11 @@ megawatt_session_minutes = 18.0
 # JPM 电动列 0.85 元/kWh 是「电费 ＋ 充电服务费」的合计价。裸电价两条路线相同（都按补能当时的电网电价结算），
 # 真正构成路线差异的只有服务费——那是补能网络投资方收的钱。故把 0.85 拆成两段显式入参。
 #
-# 【基准取成本线，不取现价】TCO 是**持有期决策**：买车这天算的是往后若干年的平均补能价，
-# 不是采购当天的现货价。而充电服务费的现货价（0.20，下沿 0.08）**低于超充设备自身的度电摊销地板**——
-# 一个低于成本的价格不可能成为持有期的均值。所以主表基准直接取**成本地板**
-# （即下面的 supercharge_cost_floor_rmb_kwh），现价与下沿降为压力档。
-# 这不是给换电挑一个有利的价：它假定充电侧把利润全部竞争掉、只收回成本，
-# 而换电侧仍按本报告收入端假设的 0.30 收费（远高于换电自己的站层成本线）——有利条件全给对手。
+# 【基准取均衡价】（2026-09-21 · 门① 均衡终局，取代 09-18f 的"成本地板 0.34"——那个数查无出处，且"地板"本身不存在）
+# TCO 是持有期决策，用的是持有期均价。充电站可以自由进入：有钱赚就有人建，建到新进场的人刚好赚回资金成本为止，
+# 所以持有期均价＝**新进场者在预期利用率下的全成本**（见下面 charge_service_fee_rmb_kwh，
+# 由 [charging_station] 成本曲线在利用率 22%、门槛＝WACC 处推出；load_config 断言二者一致）。
+# 现价 0.20 与局部 0.08 是价格战的现货价：0.08 高于现金成本、低于全成本——存量站不会关门，但没人会新建。
 charge_power_price_rmb_kwh.v = 0.65
 charge_power_price_rmb_kwh.label = "重卡充电裸电价"
 charge_power_price_rmb_kwh.unit = "元/kWh"
@@ -674,51 +686,57 @@ charge_service_fee_floor_rmb_kwh.label = "重卡充电服务费·价格战下沿
 charge_service_fee_floor_rmb_kwh.unit = "元/kWh"
 charge_service_fee_floor_rmb_kwh.decimals = 2
 charge_service_fee_floor_rmb_kwh.note = "枣庄/吕梁/京津冀已到 0.08，矿区出现归零（src.swb_charge_fee_202609）；极端压力档"
-# 超充的度电成本地板，**同时就是本模型充电服务费的基准值**：
-# 全液冷超充按十年摊销的设备度电成本（src.huawei_charger_cost_2023）。
-# 它是"充电服务费能跌到哪里为止"的物理下限——服务费长期低于它，投资方收不回设备钱。
-# 当前重卡充电服务费（现价 0.20、下沿 0.08）**全部低于这条地板**：这说明现在的低价是产能过剩与
-# 价格战的结果，不是成本优势。全国公共桩平均利用率 6.2%、盈亏线 8.5%，头部运营商度电净利 0.04 元
-# （src.charge_margin_202609）；而 2026 年多地核心商圈服务费已从 0.2–0.3 回升到 0.4–0.6
-# （src.charge_price_rebound_202609）——均值回归已经开始。
-supercharge_cost_floor_rmb_kwh.v = 0.34
-supercharge_cost_floor_rmb_kwh.label = "超充的度电成本地板"
-supercharge_cost_floor_rmb_kwh.unit = "元/kWh"
-supercharge_cost_floor_rmb_kwh.decimals = 2
-supercharge_cost_floor_rmb_kwh.note = "设备十年摊销口径，不含电费、场地与增容；兆瓦级按 1kVA:1kW 配容后这条地板只会更高。本模型以它为充电服务费基准"
+charge_service_fee_rmb_kwh.v = 0.104
+charge_service_fee_rmb_kwh.label = "重卡充电服务费·均衡价"
+charge_service_fee_rmb_kwh.unit = "元/kWh"
+charge_service_fee_rmb_kwh.decimals = 3
+charge_service_fee_rmb_kwh.note = "新进场的充电站刚好赚回资金成本的价：参照站（黄骅港口径）在利用率 22%、门槛＝WACC 7.5% 下的全成本；**是推论不是拍值**，load_config 每次加载断言它等于 charging.equilibrium_service_fee 的结果。三档随利用率走：27%→0.087／22%→0.104／18%→0.123（见 [drivers.fee_level]）。门① 一页纸附录 A"
 supercharge_floor_life_years.v = 10.0
-supercharge_floor_life_years.label = "超充地板的设备摊销年限"
+supercharge_floor_life_years.label = "站层成本线的同尺摊销年限"
 supercharge_floor_life_years.unit = "年"
 supercharge_floor_life_years.decimals = 0
-supercharge_floor_life_years.note = "外部口径用十年；换电站的站体设备摊销折算到同一年限才可比（见 tco.py 站层成本线）"
+supercharge_floor_life_years.note = "换电站站体设备摊销折算到十年，与充电设备同尺可比（见 tco.py 站层成本线）；键名沿用，原先所指的成本地板已作废"
 # —— 车队资金成本三档（2026-09-18b 重订）：把时间价值与首付资金价值合到一张账上时的贴现率 ——
 # 三档一律是 **IRR（真实年化）口径**，不是行业报价常用的「平铺费率」——同一笔业务报 8% 平铺费率、三年期 IRR 是 14.5%，
 # 口径混用会把中档系统性调低。上一版（3/8/30）的高档源自一篇无法核实的转载（同一篇把金规〔2025〕25 号写成
 # 「金规〔2024〕127 号」），且其唯一案例是 3.5 万元小额业务、不是 30–50 万元的重卡，本轮弃用。
 # 低档 3%：大型车队与国企背景运输企业。1 年期 LPR 3.00%（src.lpr_202606）、AAA 三年期中票 1.83%
 #          （src.shclearing_curve_202603）都在其下，3% 已是这一档的上沿。
-# 中档 12%：一般车队走融资租赁的真实 IRR。江苏金租 2026Q1 生息资产收益率 6.10%（src.jsleasing_2026q1）是全行业均值、
-#          偏小微设备，重卡定价高于此；12% IRR 对应约 6.5% 的平铺费率，与市场报价吻合。
-# 高档 22%：个体司机与中小物流的综合成本上沿。融资租赁不适用民间借贷上限，但沪粤法院主流口径是
-#          「租息、违约金及其他费用合计不超过年利率 24%」（src.leasing_judicial_cap），22% 紧贴其下。
+# 【2026-09-21 · 门①】中、高两档按车队融资结构重订（src.fleet_finance_hy3，数字已抽查）：
+# 中档 9%：个体与小微走银行商用贷（不超过 LPR＋3 个点，约 6%）、厂家金融（3%–7%）、正规融资租赁
+#          （名义 5%–10%，计保证金与手续费后真实年化更高；src.jsleasing_2026q1）的综合成本。
+# 高档 18%：平台信贷（8%–18%）与高费用融资租赁（15% 以上，个案 23% 左右；src.leasing_judicial_cap）。
+# 低档 3% 另有央行口径佐证：二季度新发放企业贷款利率约 3%（src.corp_loan_rate_2026q2）。
 fleet_discount_rate_low.v = 0.03
 fleet_discount_rate_low.label = "车队资金成本·低档"
 fleet_discount_rate_low.unit = "%"
 fleet_discount_rate_low.decimals = 0
 fleet_discount_rate_low.scale = 100.0
 fleet_discount_rate_low.note = "大型车队/国企背景运输企业（IRR 口径）"
-fleet_discount_rate_mid.v = 0.12
+fleet_discount_rate_mid.v = 0.09
 fleet_discount_rate_mid.label = "车队资金成本·中档"
 fleet_discount_rate_mid.unit = "%"
 fleet_discount_rate_mid.decimals = 0
 fleet_discount_rate_mid.scale = 100.0
-fleet_discount_rate_mid.note = "一般车队融资租赁真实 IRR（非平铺费率）"
-fleet_discount_rate_high.v = 0.22
+fleet_discount_rate_mid.note = "个体与小微：银行商用贷、厂家金融、正规融资租赁的综合成本（IRR 口径）"
+fleet_discount_rate_high.v = 0.18
 fleet_discount_rate_high.label = "车队资金成本·高档"
 fleet_discount_rate_high.unit = "%"
 fleet_discount_rate_high.decimals = 0
 fleet_discount_rate_high.scale = 100.0
-fleet_discount_rate_high.note = "个体司机与中小物流，紧贴 24% 司法上限之下"
+fleet_discount_rate_high.note = "平台信贷与高费用融资租赁（IRR 口径）"
+# 【2026-09-21 · 门①】车队买断电池后自己接下的活：旧电池自己卖、自己上保险、自己维护
+fleet_pack_resale_ratio.v = 0.30
+fleet_pack_resale_ratio.label = "车队旧电池回收率"
+fleet_pack_resale_ratio.unit = "%"
+fleet_pack_resale_ratio.decimals = 0
+fleet_pack_resale_ratio.scale = 100.0
+fleet_pack_resale_ratio.note = "按新电池价的比例。电池银行是 44%（储能/动力价格比 0.917 × 退役剩余容量 80% × 二手折价 0.60）；车队再扣约三成：一次只卖几块、没有议价能力，且要经回收商转手。拍值，待二手电池成交价校准"
+fleet_battery_hold_rmb_kwh_year.v = 11.0
+fleet_battery_hold_rmb_kwh_year.label = "车队自持电池的保险与维护"
+fleet_battery_hold_rmb_kwh_year.unit = "元/kWh·年"
+fleet_battery_hold_rmb_kwh_year.decimals = 0
+fleet_battery_hold_rmb_kwh_year.note = "电池险 9 元/kWh·年（骐骥公开的低至价，src.qiji_75_life_202505）＋ 检测维护 2 元（推算）。租用时由电池银行承担"
 
 # ----------------------车辆层（MANIFEST §2）-----------------------------
 # 车辆运营年限法规：网约车 8 年退役/60 万公里报废（交通部暂行办法 39 条）、
@@ -1203,9 +1221,9 @@ secondary_market_discount.note = "期中回收与期末残值两个场景都适�
 #    改了上面任何一个基准价，就必须同步改这里——否则基准情景会被自己的反馈推走。
 #    每轮 changelog 的 watch 行核对七个读数，就是为了当场抓住这件事。
 [price_response]
-ref_swap_service_fee_rmb_kwh = 0.30       # ＝ swap_business.service_fee_rmb_kwh
-ref_battery_rent_rmb_kwh_month = 10.0     # ＝ swap_business.battery_rent_rmb_kwh_month
-ref_charge_service_fee_rmb_kwh = 0.34     # ＝ tco_jpm.supercharge_cost_floor_rmb_kwh
+ref_swap_service_fee_rmb_kwh = 0.104      # ＝ swap_business.service_fee_rmb_kwh
+ref_battery_rent_rmb_kwh_month = 13.3     # ＝ swap_business.battery_rent_rmb_kwh_month（重卡与城配）
+ref_charge_service_fee_rmb_kwh = 0.104    # ＝ tco_jpm.charge_service_fee_rmb_kwh
 # 份额乘数的下限：**不是为了让模型好看，是因为有一部分需求根本不按 TCO 重选。**
 # 港口、钢厂、矿山这类封闭短倒，补能方式由场景方在建厂时定死（场地、电力接入、车辆都是配套的），
 # 车队没有逐年按资金成本重新比价的自由度。这部分需求对补能定价不敏感，
@@ -1254,20 +1272,31 @@ operating_days.decimals = 0
 # 这 20% 是行驶安全的带电量冗余，不是效率损失。同一系数也用于可用续航：
 # 可用续航 = 背电量 × 0.8 ÷ 电耗，与换电频次分母同源
 usable_energy_factor = 0.80
-# 换电服务费中枢 0.30 元/kWh。谱系：焦作商车邦实测 0.2（启源主导市场已打价格战）
+# 【2026-09-21 · 门①】换电服务费跟平充电均衡价（0.104）：服务费天天比价，贵了司机就去隔壁；
+# 启源、骐骥不跟平（贵 0.1–0.2），份额 2024→2026-06 从 38.4% 掉到 24.6%。利润放在电池月租那条腿上。
+# 原中枢 0.30 的谱系（留档）：焦作商车邦实测 0.2（启源主导市场已打价格战）
 # → 齐鲁晚报行业 0.3–0.4 → 开源短倒 0.4。中枢 0.30 居中偏稳健。
 # 三档值不再写在这里（原 service_fee_scenarios_rmb_kwh 列表已删）——
 # 情景定义只有一个家：见 [drivers.fee_level]。
-service_fee_rmb_kwh.v = 0.30
+service_fee_rmb_kwh.v = 0.104
 service_fee_rmb_kwh.label = "度电服务费"
 service_fee_rmb_kwh.unit = "元/kWh"
-service_fee_rmb_kwh.decimals = 2
+service_fee_rmb_kwh.decimals = 3
 # 电池租金 10 元/kWh·月（全市场可比综合口径：小车 8.8–9.7/大车 13–17 元加权，
 # rlut 重卡月租 4500–6000 元佐证"小车便宜大车贵"）
-battery_rent_rmb_kwh_month.v = 10.0
-battery_rent_rmb_kwh_month.label = "电池月租"
+# 【2026-09-21 · 门①】月租按车型分开：重卡与城配一个价、乘用车一个价（此前全车型统一 10，是两类取了个中间值）。
+# 重卡与城配三档 9.7／13.3／16：9.7＝骐骥三块 75#（513 度）约 5,000 元/月（src.qiji_rent_202505）；
+#   13.3＝云南短倒（批次 5 推导链）；16＝行业测算 4,500–6,000 元/月的下沿（src.rlut_rent）。城配暂借重卡的数，无直接信源。
+# 乘用车三档 8.8／9.0／9.7：巧克力 369/42、499/56；蔚来 728/75（批次 5 推导链）。
+battery_rent_rmb_kwh_month.v = 13.3
+battery_rent_rmb_kwh_month.label = "电池月租·重卡与城配"
 battery_rent_rmb_kwh_month.unit = "元/kWh·月"
 battery_rent_rmb_kwh_month.decimals = 1
+# 乘用车月租 9.0（三档 8.8／9.0／9.7）：巧克力 369 元/42 度＝8.8、499 元/56 度＝8.9；蔚来 728 元/75 度＝9.7（台账批次 5 推导链）
+battery_rent_passenger_rmb_kwh_month.v = 9.0
+battery_rent_passenger_rmb_kwh_month.label = "电池月租·乘用车"
+battery_rent_passenger_rmb_kwh_month.unit = "元/kWh·月"
+battery_rent_passenger_rmb_kwh_month.decimals = 1
 # 峰谷套利价差
 grid_spread_rmb_kwh.v = 0.40
 grid_spread_rmb_kwh.label = "峰谷套利价差"
@@ -1384,8 +1413,15 @@ frequency_regulation_price_rmb_kwh = 0.37
 # ----------------------电池寿命模型（MANIFEST §5）-----------------------------
 
 [battery_life_model]
-# 循环临界 2000 次（SOH≈82–85% 用户体感临界点）：超换一体 §2.1 + GB/T 31484 双源
-critical_cycles = 2000.0
+# 【2026-09-21 · 门①】车上循环寿命三档 2000／3500／5000（见 [drivers.battery_life]）：
+#   悲观 2000＝一般企业都做得到的水平（原值，超换一体 §2.1 + GB/T 31484）；
+#   中性 3500＝略低于实验室 25℃·1C 的 3,760 次（src.lfp_cycle_lab_2024；真实路况有冷热与快充，不能高于实验室）；
+#   乐观 5000＝宁德 75# 官宣"12 年 6000 次"打折（src.qiji_75_life_202505，未注明工况）。
+critical_cycles = 3500.0
+# 池里多活几成：只乘在电池池（换电）的寿命上，不乘在充电车上。三档 1.1／1.2／1.3。
+# 物理依据：池子能控温、控充电倍率——实验室里温度对寿命的影响最大（0℃ 不到 25℃ 的六分之一），
+# 0.5C 比 1C 衰减慢约三成（src.lfp_cycle_lab_2024）。无一手运营数据，门② 继续找证据。
+pool_life_multiplier = 1.2
 # 日历寿命封顶 10 年（低频私家车取 min 后=10 年；营运车由循环主导不受此限）
 calendar_cap_years = 10.0
 # v3.2 遗留硬编码寿命：不参与基准测算，仅供新旧口径对比重跑（两套不自洽的诚实记录）

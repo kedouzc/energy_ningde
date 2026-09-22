@@ -8418,6 +8418,45 @@
   "note": "一手（国务院部门文件）｜用于 `[tco_jpm]` 车队买断的随车购置税系数（1.05＝重卡减半后 5%）；第 3 章（换电车 vs 充电车的政策差）〔门②：附录 H〕",
   "origin": "src"
  },
+ "src.yunnan_mine_rent": {
+  "label": "汽车之家车家号：云南矿山短倒纯租赁＋协议充电（600 kWh 电池，电池月租 8,000 元，折 13.33 元/kWh·月；月跑 12,000 km、月用电约 18,000 度）；经 `分析结论/换电框架memo.md` 转引，原文未复核",
+  "v": "https://chejiahao.autohome.com.cn/info/25960875?isfrom=m",
+  "text": "[汽车之家车家号：云南矿山短倒纯租赁＋协议充电（600 kWh 电池，电池月租 8,000 元，折 13.33 元/kWh·月；月跑 12,000 km、月用电约 18,000 度）；经 `分析结论/换电框架memo.md` 转引，原文未复核](https://chejiahao.autohome.com.cn/info/25960875?isfrom=m)（抓取于 2026-09-22·较低（自媒体，经内部汇编转引））",
+  "bare": "[汽车之家车家号：云南矿山短倒纯租赁＋协议充电（600 kWh 电池，电池月租 8,000 元，折 13.33 元/kWh·月；月跑 12,000 km、月用电约 18,000 度）；经 `分析结论/换电框架memo.md` 转引，原文未复核](https://chejiahao.autohome.com.cn/info/25960875?isfrom=m)（抓取于 2026-09-22·较低（自媒体，经内部汇编转引））",
+  "unit": "",
+  "kind": "src",
+  "watch": 1.0,
+  "from": "https://chejiahao.autohome.com.cn/info/25960875?isfrom=m",
+  "as_of": "2026-09-22",
+  "note": "较低（自媒体，经内部汇编转引）｜用于 〔门②：附录 B6 市场月租折每度〕；`[drivers.battery_rent]` 乐观档旁证",
+  "origin": "src"
+ },
+ "src.truck_mileage_blog_2025": {
+  "label": "新浪（博主\"不爱拍车的飞机\"，2025-04-29）：\"个人车一年10-15万公里是常规数据\"\"公司车一年15-20万公里也很常见\"\"一年能跑30万公里以上的车，都是少部分\"",
+  "v": "https://www.sina.cn/news/detail/5160682224879634.html",
+  "text": "[新浪（博主\"不爱拍车的飞机\"，2025-04-29）：\"个人车一年10-15万公里是常规数据\"\"公司车一年15-20万公里也很常见\"\"一年能跑30万公里以上的车，都是少部分\"](https://www.sina.cn/news/detail/5160682224879634.html)（抓取于 2026-09-22·较低（自媒体））",
+  "bare": "[新浪（博主\"不爱拍车的飞机\"，2025-04-29）：\"个人车一年10-15万公里是常规数据\"\"公司车一年15-20万公里也很常见\"\"一年能跑30万公里以上的车，都是少部分\"](https://www.sina.cn/news/detail/5160682224879634.html)（抓取于 2026-09-22·较低（自媒体））",
+  "unit": "",
+  "kind": "src",
+  "watch": 1.0,
+  "from": "https://www.sina.cn/news/detail/5160682224879634.html",
+  "as_of": "2026-09-22",
+  "note": "较低（自媒体）｜用于 `vehicles.heavy.scenes.*.daily_km` 查证〔门②：附录 A1〕",
+  "origin": "src"
+ },
+ "src.cvzone_port_truck_2024": {
+  "label": "商车邦《调研：集卡市场将成电动重卡新风口》（2024-10-21）：\"集卡年行驶里程在8万—10万公里\"\"车辆每公里电耗为1.2—1.4kWh\"",
+  "v": "https://cvzone.com.cn/article/detail/id/16063",
+  "text": "[商车邦《调研：集卡市场将成电动重卡新风口》（2024-10-21）：\"集卡年行驶里程在8万—10万公里\"\"车辆每公里电耗为1.2—1.4kWh\"](https://cvzone.com.cn/article/detail/id/16063)（抓取于 2026-09-22·二手（行业媒体））",
+  "bare": "[商车邦《调研：集卡市场将成电动重卡新风口》（2024-10-21）：\"集卡年行驶里程在8万—10万公里\"\"车辆每公里电耗为1.2—1.4kWh\"](https://cvzone.com.cn/article/detail/id/16063)（抓取于 2026-09-22·二手（行业媒体））",
+  "unit": "",
+  "kind": "src",
+  "watch": 1.0,
+  "from": "https://cvzone.com.cn/article/detail/id/16063",
+  "as_of": "2026-09-22",
+  "note": "二手（行业媒体）｜用于 短途 `daily_km`、`energy_consumption_kwh_km` 查证〔门②：附录 A1〕",
+  "origin": "src"
+ },
  "ext.mult_infra_low": {
   "label": "重资产基建运营族·区间下沿",
   "v": 6.7,

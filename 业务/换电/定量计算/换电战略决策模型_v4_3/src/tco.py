@@ -34,7 +34,8 @@ from __future__ import annotations
 
 import math
 
-from derived import battery_life_years, battery_price_rmb_kwh
+from derived import (battery_life_years, battery_price_rmb_kwh,
+                     rent_month_two_part, scene_monthly_use_per_kwh)
 from scale import POOL_STATION_GROUP
 from schemas import (
     CapexResult,
@@ -172,6 +173,25 @@ def build_heavy_economics(
     )
 
 
+def build_scene_economics(config: dict):
+    """【2026-09-22 · 门②】只算重卡三场景的用户账（不依赖规模与池运营量），供份额链在装配前使用。
+
+    返回带 .short/.mid/.long 的对象，字段与 HeavyEconomics 的同名场景一致。
+    """
+    from types import SimpleNamespace
+    tco = config.get("tco_jpm")
+    if not tco:
+        return None
+    heavy_cfg = config.get("vehicles", {}).get("heavy", {}) or {}
+    cycle = heavy_cfg.get("replacement_cycle_years")
+    battery_kwh = float(heavy_cfg.get("battery_kwh", 0.0) or 0.0)
+    out = {}
+    for sc in heavy_cfg.get("scenes", []) or []:
+        if sc.get("name") in _SCENE_FIELD:
+            out[_SCENE_FIELD[sc["name"]]] = _scene_tco(config, tco, sc, {}, cycle, battery_kwh, None)
+    return SimpleNamespace(**out)
+
+
 def _swap_station_cost_line(
     config: dict, capex: CapexResult, pool_ops: dict[str, PoolOperations]
 ) -> dict[str, dict[str, float]]:
@@ -241,8 +261,9 @@ def _scene_tco(
     - 维保、载重损失两边相同（同一辆车、同一块电池重量），照搬 JPM 电动列。
     """
     pk = scene.get("battery_pool")
-    ops = pool_ops.get(pk)
-    if ops is None or not ops.annual_energy_yi_kwh or not holding or holding <= 0:
+    # 【2026-09-22 · 门②】净优势只依赖配置（服务费、两段价租金、寿命），不再依赖池的运营量——
+    # 所以份额链可以在装配规模之前先算（model.py），不必跑探针。pool_ops 只用于站层成本线读数。
+    if not holding or holding <= 0:
         return None
     sb = config.get("swap_business") or {}
     days = float(sb.get("operating_days") or 0.0)
@@ -252,8 +273,14 @@ def _scene_tco(
     # 三件性质完全不同的事：服务费差是补能网络的定价竞争，电价差是充电时点的选择权，
     # 电池租金则根本不是能源费、而是车电分离的资本对价（它的镜像就是省下的首付）。
     # 合成关系（按构造成立）：swap_price − charge_price ＝ 服务费差 ＋ 电价差 ＋ 电池租金。
-    swap_service_p = ops.service_revenue_yi / ops.annual_energy_yi_kwh
-    swap_rent_p = ops.battery_rent_yi / ops.annual_energy_yi_kwh
+    # 服务费单价＝配置价（池的服务费收入本就是 电量 × 该价，二者恒等）
+    swap_service_p = float(sb.get("service_fee_rmb_kwh") or 0.0)
+    # 【2026-09-22 · 门②】租金按**本场景自己实付**的两段价算，不再用全池平均每度租金
+    # （旧算法让长途按中途的用电强度付钱，门① 附录 E2 长途只剩 3% 的原因之一）。
+    _use = scene_monthly_use_per_kwh(config, scene)
+    _kwh = float(scene["onboard_battery_kwh"])
+    _annual_kwh = float(scene["daily_km"]) * days * float(scene["energy_consumption_kwh_km"])
+    swap_rent_p = (rent_month_two_part(config, _use) * _kwh * 12.0 / _annual_kwh) if _annual_kwh else 0.0
     # 【2026-09-21 · 门①】用户电价两边同取电网电价（见 build_heavy_economics 同一处注释）
     swap_energy_p = float(tco.get("charge_power_price_rmb_kwh") or 0.0)
     swap_price = swap_service_p + swap_rent_p + swap_energy_p

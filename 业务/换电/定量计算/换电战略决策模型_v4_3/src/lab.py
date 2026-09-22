@@ -1267,6 +1267,7 @@ def param_bounds_dict(config: dict) -> dict[str, list[float]]:
             base = f"vehicles.{vkey}.scenes.{i}."
             out.setdefault(base + "weight", [0.0, 1.0])
             out.setdefault(base + "swap_penetration", [0.0, 1.0])
+            out.setdefault(base + "swap_share_ceiling", [0.0, 1.0])
             out.setdefault(base + "catl_swap_share", [0.0, 1.0])
     for path, spec in (config.get("param_bounds") or {}).items():
         if isinstance(spec, dict):

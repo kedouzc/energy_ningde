@@ -927,5 +927,69 @@
     "val.turnover_multiple": 11.419398296887929
    }
   }
+ },
+ {
+  "date": "2026-09-22",
+  "tiers": {
+   "悲观": {
+    "val.swap_increment": 1270.190336860168,
+    "val.incr_over_mktcap": 0.0715318092504459,
+    "swap.coverage": 0.972695456324191,
+    "swap.ebitda": 391.01600707217364,
+    "scale.stations_total": 8276.0,
+    "val.implied_multiple_perpetual": 6.567075857254493,
+    "val.turnover_multiple": 6.195086602886257
+   },
+   "中性": {
+    "val.swap_increment": 6230.572151982955,
+    "val.incr_over_mktcap": 0.3508797742852371,
+    "swap.coverage": 1.292522799662549,
+    "swap.ebitda": 899.7484859192322,
+    "scale.stations_total": 14779.0,
+    "val.implied_multiple_perpetual": 8.070258464145583,
+    "val.turnover_multiple": 9.215210428732403
+   },
+   "乐观": {
+    "val.swap_increment": 11108.994694955218,
+    "val.incr_over_mktcap": 0.6256121357749179,
+    "swap.coverage": 1.5343031996334275,
+    "swap.ebitda": 1230.6211082683496,
+    "scale.stations_total": 17519.0,
+    "val.implied_multiple_perpetual": 8.70926505884893,
+    "val.turnover_multiple": 10.268068802707862
+   }
+  }
+ },
+ {
+  "date": "2026-09-22b",
+  "tiers": {
+   "悲观": {
+    "val.swap_increment": 1292.172476570691,
+    "val.incr_over_mktcap": 0.07276975145411337,
+    "swap.coverage": 0.9749983084459739,
+    "swap.ebitda": 394.9710151927554,
+    "scale.stations_total": 8309.0,
+    "val.implied_multiple_perpetual": 6.584402231055043,
+    "val.turnover_multiple": 6.223415856914852
+   },
+   "中性": {
+    "val.swap_increment": 6230.572151982955,
+    "val.incr_over_mktcap": 0.3508797742852371,
+    "swap.coverage": 1.292522799662549,
+    "swap.ebitda": 899.7484859192322,
+    "scale.stations_total": 14779.0,
+    "val.implied_multiple_perpetual": 8.070258464145583,
+    "val.turnover_multiple": 9.215210428732403
+   },
+   "乐观": {
+    "val.swap_increment": 11827.490995928643,
+    "val.incr_over_mktcap": 0.6660748434943202,
+    "swap.coverage": 1.5653632381320186,
+    "swap.ebitda": 1341.665295729636,
+    "scale.stations_total": 18428.0,
+    "val.implied_multiple_perpetual": 8.716855407598317,
+    "val.turnover_multiple": 10.339977402926648
+   }
+  }
  }
 ]

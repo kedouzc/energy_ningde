@@ -169,6 +169,31 @@ LEGACY_V32_VEHICLE_LIFE_YEARS = {
 LEGACY_V32_STATION_LIFE_YEARS = {"heavy": 5.7, "choco": 3.8}
 
 
+def scene_monthly_use_per_kwh(config: dict, scene: dict) -> float:
+    """【2026-09-22 · 门②】某重卡场景每度电池容量每月用多少电（度）。
+
+    ＝ 日里程 × 单公里能耗 × 年运营天数 ÷ 12 ÷ 车上带电量。与 tco.py 年耗电同一口径。
+    """
+    days = float((config.get("swap_business") or {}).get("operating_days") or 0.0)
+    kwh = float(scene.get("onboard_battery_kwh") or 0.0)
+    if not kwh:
+        return 0.0
+    return float(scene["daily_km"]) * float(scene["energy_consumption_kwh_km"]) * days / 12.0 / kwh
+
+
+def rent_month_two_part(config: dict, use_per_kwh_month: float) -> float:
+    """【2026-09-22 · 门②】重卡与城配的电池租金两段价：每月每度容量付 max（保底，超出价 × 当月每度容量用电）。
+
+    超出价＝包内电量用足时的单价（保底 ÷ 超出价＝包含电量），与宁德银川中标规则同。
+    计量按电池管理系统记录的累计电量（不按换电次数）——见门② 一页纸附录 B。
+    未配置超出价时退回按块收（只收保底），不静默拍数。
+    """
+    sb = config.get("swap_business") or {}
+    floor = float(sb.get("battery_rent_rmb_kwh_month") or 0.0)
+    per_kwh = float(sb.get("battery_rent_per_kwh_rmb") or 0.0)
+    return max(floor, per_kwh * use_per_kwh_month)
+
+
 def battery_life_years(config: dict, frequency_per_day: float) -> float:
     """换电块寿命：以循环临界点为触发条件，叠加日历寿命封顶（超换一体.md §2.1）。
 

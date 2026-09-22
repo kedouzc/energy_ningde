@@ -373,6 +373,11 @@ class PoolOperations:
     catl_forward_distributable_yi: float
     catl_initial_equity_yi: float
     catl_lifecycle_equity_yi: float
+    # 【2026-09-22 · 门②】本池实付的电池月租均价（两段价按池内车辆加权；乘用车为月租本身）
+    rent_month_effective: float = 0.0
+    # 【2026-09-22 · 门②】分池经济门：EBITDA ÷ 本池门槛 EBITDA，及让它刚好等于 1 的全投资回报（税后、不加杠杆、稳态）
+    forward_to_required_ebitda: float = 0.0
+    full_return: float = 0.0
 
 
 @dataclass

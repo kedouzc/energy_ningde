@@ -280,12 +280,20 @@ def build_tree(c: Ctx) -> Node:
                           "swap_business.service_fee_rmb_kwh")]),
             N("ops.rev_rent", "电池租金收入", "亿元",
               lambda c: c.m("swap_business.battery_rent_yi"),
-              "(计费装机 − 乘用车池计费装机) × 重卡与城配月租 ＋ 乘用车池计费装机 × 乘用车月租",
-              # 【2026-09-21 · 门①】月租按车型分开，节点按两个价重算；配置值是月租，年租 = ×12
+              "(计费装机 − 乘用车池计费装机) × 重卡与城配实付月租均价 ＋ 乘用车池计费装机 × 乘用车月租",
+              # 【2026-09-21 · 门①】月租按车型分开；【2026-09-22 · 门②】重卡与城配改两段价，
+              # 这一支取各池实付均价（保底与超出价在叶节点说明里）；配置值是月租，年租 = ×12
               combine=lambda g, rate, gp, rp: ((g - gp) * rate + gp * rp) * 12.0 / 100.0,
               children=[rent_gwh,
-                        P("ops.rent_rate", "电池月租·重卡与城配", "元/kWh·月",
-                          "swap_business.battery_rent_rmb_kwh_month"),
+                        N("ops.rent_rate", "电池月租·重卡与城配·实付均价", "元/kWh·月",
+                          lambda c: (
+                              sum(c.m(f"swap_business.pool_operations.{pk}.rent_eligible_gwh")
+                                  * c.m(f"swap_business.pool_operations.{pk}.rent_month_effective")
+                                  for pk in ("qiji75_short", "qiji75_trunk", "choco35_city"))
+                              / sum(c.m(f"swap_business.pool_operations.{pk}.rent_eligible_gwh")
+                                    for pk in ("qiji75_short", "qiji75_trunk", "choco35_city"))),
+                          "各池 max（保底 swap_business.battery_rent_rmb_kwh_month，超出价 "
+                          "swap_business.battery_rent_per_kwh_rmb × 每度容量月用电），按计费装机加权"),
                         N("ops.rent_gwh_pass", "乘用车池计费装机", "GWh",
                           lambda c: c.m("swap_business.pool_operations.choco25_passenger.rent_eligible_gwh"),
                           "乘用车池车端装机 ＋ 站内周转装机中归外部权益的部分"),

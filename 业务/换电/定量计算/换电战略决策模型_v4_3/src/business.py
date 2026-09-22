@@ -34,7 +34,7 @@ consolidation.py／capital_cycle.py／tree.py 的上游。
 """
 from __future__ import annotations
 
-from derived import battery_price_rmb_kwh
+from derived import battery_price_rmb_kwh, rent_month_two_part
 from scale import BATTERY_POOLS
 from schemas import (
     BaselineResult,
@@ -518,6 +518,40 @@ def build_swap_business(config: dict, scale: ScaleResult, capex: CapexResult) ->
     debt_by_pool = capex.steady_state_debt_by_pool_yi
     capreq_by_pool = {pk: lifecycle_by_pool[pk] * crf for pk in BATTERY_POOLS}
 
+    # ---- ⑥b【2026-09-22 · 门②】各池实付的电池月租均价。
+    # 重卡与城配：两段价 max（保底，超出价 × 每度容量月用电），按池内各场景车辆 × 装车电量加权；
+    # 每度容量月用电 ＝ 日换电次数 × 每次补电比例 × 年运营天数 ÷ 12（与 tco.py 同一口径）。
+    # 乘用车：月租本身（巧克力、蔚来市场价，按块收）。
+    usable = float(business.get("usable_energy_factor") or 0.0)
+    rent_month_by_pool: dict[str, float] = {}
+    for pk in BATTERY_POOLS:
+        if pk == "choco25_passenger":
+            rent_month_by_pool[pk] = float(business.get(
+                "battery_rent_passenger_rmb_kwh_month", business["battery_rent_rmb_kwh_month"]))
+            continue
+        rows_pk = [r for r in scale.rows if r.battery_pool == pk]
+        wsum = sum(r.catl_swap_vehicles_wan * r.onboard_battery_kwh for r in rows_pk)
+        if wsum > 0:
+            rent_month_by_pool[pk] = sum(
+                r.catl_swap_vehicles_wan * r.onboard_battery_kwh
+                * rent_month_two_part(config, r.swap_frequency_per_day * usable * days / 12.0)
+                for r in rows_pk) / wsum
+        else:
+            rent_month_by_pool[pk] = rent_month_two_part(config, 0.0)
+
+    def _return_from_crf(target: float, n: int) -> float:
+        """资本回收因子的反函数：给定 CRF 反解要求回报（二分；与 gates.solve_required_return 同式）。"""
+        lo, hi = 1e-4, 0.60
+        for _ in range(120):
+            mid = (lo + hi) / 2.0
+            if mid / (1.0 - (1.0 + mid) ** -n) < target:
+                lo = mid
+            else:
+                hi = mid
+        return (lo + hi) / 2.0
+
+    horizon = int(finance.get("model_horizon_years") or 15)
+
     # ---- ⑦ 逐池推演经营链与现金回报。
     pool_ops: dict[str, PoolOperations] = {}
     for pk in BATTERY_POOLS:
@@ -527,8 +561,7 @@ def build_swap_business(config: dict, scale: ScaleResult, capex: CapexResult) ->
         rent_gwh = vehicle_gwh_by_pool[pk] + station_external_gwh
         # 配置值是月租（元/kWh·月），年租 = 月租 × 12
         # 【2026-09-21 · 门①】月租按车型分开：乘用车池用乘用车月租，重卡与城配用另一个
-        rent_month = (business.get("battery_rent_passenger_rmb_kwh_month", business["battery_rent_rmb_kwh_month"])
-                      if pk == "choco25_passenger" else business["battery_rent_rmb_kwh_month"])
+        rent_month = rent_month_by_pool[pk]   # 【2026-09-22 · 门②】两段价，见 ⑥b
         battery_rent = rent_gwh * rent_month * 12.0 / 100.0
         arbitrage = (
             station_gwh_by_pool[pk] * days * business["grid_spread_rmb_kwh"]
@@ -567,6 +600,8 @@ def build_swap_business(config: dict, scale: ScaleResult, capex: CapexResult) ->
         forward_fcff = ebitda * (1 - tax_rate) + depreciation * tax_rate
         minimum_distributable = max(0.0, capreq_by_pool[pk] - interest)
         forward_distributable = max(0.0, forward_fcff - interest)
+        required_ebitda_pk = max(0.0, (capreq_by_pool[pk] - depreciation * tax_rate) / (1 - tax_rate))
+        coverage_pk = ebitda / required_ebitda_pk if required_ebitda_pk else 0.0
         pool_ops[pk] = PoolOperations(
             annual_swaps_yi=scale.mature_daily_swaps[pk] * days / 1e8,
             annual_energy_yi_kwh=energy,
@@ -609,6 +644,9 @@ def build_swap_business(config: dict, scale: ScaleResult, capex: CapexResult) ->
             catl_lifecycle_equity_yi=(
                 lifecycle_by_pool[pk] * (1 - finance["debt_ratio"]) * ownership
             ),
+            rent_month_effective=rent_month,
+            forward_to_required_ebitda=coverage_pk,
+            full_return=_return_from_crf(coverage_pk * crf, horizon) if coverage_pk > 0 else 0.0,
         )
 
     # ---- ⑧ 汇总：总量=四池之和（线性项与原总量口径恒等；非线性下限项按池生效后求和）。

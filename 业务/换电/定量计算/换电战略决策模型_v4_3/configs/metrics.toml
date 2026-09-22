@@ -3121,7 +3121,7 @@ unit = "%"
 decimals = 0
 scale = 100.0
 group = "⑧重卡"
-note = "按成本线基准，净优势为正的那部分车队占比（车队资金成本分布见 [fleet_capital_mix] 声明段，经验假设）"
+note = "【2026-09-22 · 门②】算得过账的车队占比：按车队借钱成本三群，换电（两段价租金）比自己买电池＋兆瓦超充净优势为正的那部分（资金成本分布见 [fleet_capital_mix]，经验假设）；场景份额＝换电份额天花板 × 本占比"
 
 [[metric]]
 key = "ops.share_multiplier_spot_短途"
@@ -3131,7 +3131,7 @@ at = "swap_business.price_response.scenes.短途.multiplier_spot"
 unit = "倍"
 decimals = 2
 group = "⑧重卡"
-note = "若充电的价格战价撑满整个持有期，本场景的可服务份额相对基准剩多少倍；基准处按构造为 1.00"
+note = "若充电的价格战价撑满整个持有期，本场景算得过账的车队占比相对基准剩多少倍"
 
 [[metric]]
 key = "ops.addressable_中途"
@@ -3142,7 +3142,7 @@ unit = "%"
 decimals = 0
 scale = 100.0
 group = "⑧重卡"
-note = "按成本线基准，净优势为正的那部分车队占比（车队资金成本分布见 [fleet_capital_mix] 声明段，经验假设）"
+note = "【2026-09-22 · 门②】算得过账的车队占比：按车队借钱成本三群，换电（两段价租金）比自己买电池＋兆瓦超充净优势为正的那部分（资金成本分布见 [fleet_capital_mix]，经验假设）；场景份额＝换电份额天花板 × 本占比"
 
 [[metric]]
 key = "ops.share_multiplier_spot_中途"
@@ -3152,7 +3152,7 @@ at = "swap_business.price_response.scenes.中途.multiplier_spot"
 unit = "倍"
 decimals = 2
 group = "⑧重卡"
-note = "若充电的价格战价撑满整个持有期，本场景的可服务份额相对基准剩多少倍；基准处按构造为 1.00"
+note = "若充电的价格战价撑满整个持有期，本场景算得过账的车队占比相对基准剩多少倍"
 
 [[metric]]
 key = "ops.addressable_长途"
@@ -3163,7 +3163,7 @@ unit = "%"
 decimals = 0
 scale = 100.0
 group = "⑧重卡"
-note = "按成本线基准，净优势为正的那部分车队占比（车队资金成本分布见 [fleet_capital_mix] 声明段，经验假设）"
+note = "【2026-09-22 · 门②】算得过账的车队占比：按车队借钱成本三群，换电（两段价租金）比自己买电池＋兆瓦超充净优势为正的那部分（资金成本分布见 [fleet_capital_mix]，经验假设）；场景份额＝换电份额天花板 × 本占比"
 
 [[metric]]
 key = "ops.share_multiplier_spot_长途"
@@ -3173,7 +3173,7 @@ at = "swap_business.price_response.scenes.长途.multiplier_spot"
 unit = "倍"
 decimals = 2
 group = "⑧重卡"
-note = "若充电的价格战价撑满整个持有期，本场景的可服务份额相对基准剩多少倍；基准处按构造为 1.00"
+note = "若充电的价格战价撑满整个持有期，本场景算得过账的车队占比相对基准剩多少倍"
 
 [[metric]]
 key = "ops.weighted_swap_penetration"
@@ -3184,7 +3184,7 @@ unit = "%"
 decimals = 1
 scale = 100.0
 group = "⑧重卡"
-note = "三场景销量权重 × 各自换电渗透率。与实测占比对照，就能看出这个假设是多大幅度的反转预期"
+note = "【2026-09-22 · 门②】三场景销量权重 ×（换电份额天花板 × 算得过账的车队占比）。与实测占比对照，就能看出这个假设是多大幅度的反转预期"
 
 [[metric]]
 key = "ops.weighted_swap_penetration_spot"
@@ -3196,6 +3196,147 @@ decimals = 1
 scale = 100.0
 group = "⑧重卡"
 note = "同一加权口径下，若充电的价格战价撑满整个持有期，份额假设会落到哪里——价格战这一件事值多少份额"
+
+[[metric]]
+key = "ops.swap_ceiling_短途"
+source = "price_response"
+label = "重卡短途·换电份额天花板"
+at = "swap_business.price_response.scenes.短途.ceiling"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "⑧重卡"
+note = "【2026-09-22 · 门②】车队全都算得过账时，换电在本场景纯电重卡里最多能拿到的份额——由站网覆盖和车型适配决定，不由价格决定；三档见 [drivers.swap_share_ceiling]"
+
+[[metric]]
+key = "ops.swap_share_短途"
+source = "price_response"
+label = "重卡短途·换电份额"
+at = "swap_business.price_response.scenes.短途.penetration"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "⑧重卡"
+note = "【2026-09-22 · 门②】换电份额天花板 × 算得过账的车队占比；模型规模链实际使用的换电占纯电比例"
+
+[[metric]]
+key = "ops.swap_ceiling_中途"
+source = "price_response"
+label = "重卡中途·换电份额天花板"
+at = "swap_business.price_response.scenes.中途.ceiling"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "⑧重卡"
+note = "【2026-09-22 · 门②】车队全都算得过账时，换电在本场景纯电重卡里最多能拿到的份额——由站网覆盖和车型适配决定，不由价格决定；三档见 [drivers.swap_share_ceiling]"
+
+[[metric]]
+key = "ops.swap_share_中途"
+source = "price_response"
+label = "重卡中途·换电份额"
+at = "swap_business.price_response.scenes.中途.penetration"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "⑧重卡"
+note = "【2026-09-22 · 门②】换电份额天花板 × 算得过账的车队占比；模型规模链实际使用的换电占纯电比例"
+
+[[metric]]
+key = "ops.swap_ceiling_长途"
+source = "price_response"
+label = "重卡长途·换电份额天花板"
+at = "swap_business.price_response.scenes.长途.ceiling"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "⑧重卡"
+note = "【2026-09-22 · 门②】车队全都算得过账时，换电在本场景纯电重卡里最多能拿到的份额——由站网覆盖和车型适配决定，不由价格决定；三档见 [drivers.swap_share_ceiling]"
+
+[[metric]]
+key = "ops.swap_share_长途"
+source = "price_response"
+label = "重卡长途·换电份额"
+at = "swap_business.price_response.scenes.长途.penetration"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "⑧重卡"
+note = "【2026-09-22 · 门②】换电份额天花板 × 算得过账的车队占比；模型规模链实际使用的换电占纯电比例"
+
+[[metric]]
+key = "ops.weighted_swap_ceiling"
+source = "price_response"
+label = "兑现年换电份额天花板·模型加权"
+at = "swap_business.price_response.weighted_ceiling"
+unit = "%"
+decimals = 1
+scale = 100.0
+group = "⑧重卡"
+note = "【2026-09-22 · 门②】三场景销量权重 × 各自天花板；与「兑现年换电占纯电重卡·模型加权」之差，就是因价格算不过账而流失的份额"
+
+[[metric]]
+key = "ops.pool_return_qiji75_short"
+source = "business"
+label = "分池全投资回报·短途池"
+at = "swap_business.pool_operations.qiji75_short.full_return"
+unit = "%"
+decimals = 1
+scale = 100.0
+group = "⑧重卡"
+note = "【2026-09-22 · 门②】本池 EBITDA 刚好覆盖本池资本要求时的全投资要求回报（税后、不加杠杆、稳态）；与整盘口径同式"
+
+[[metric]]
+key = "ops.pool_return_qiji75_trunk"
+source = "business"
+label = "分池全投资回报·干线池"
+at = "swap_business.pool_operations.qiji75_trunk.full_return"
+unit = "%"
+decimals = 1
+scale = 100.0
+group = "⑧重卡"
+note = "【2026-09-22 · 门②】本池 EBITDA 刚好覆盖本池资本要求时的全投资要求回报（税后、不加杠杆、稳态）；与整盘口径同式"
+
+[[metric]]
+key = "ops.pool_return_choco35_city"
+source = "business"
+label = "分池全投资回报·城配池"
+at = "swap_business.pool_operations.choco35_city.full_return"
+unit = "%"
+decimals = 1
+scale = 100.0
+group = "⑧重卡"
+note = "【2026-09-22 · 门②】本池 EBITDA 刚好覆盖本池资本要求时的全投资要求回报（税后、不加杠杆、稳态）；与整盘口径同式"
+
+[[metric]]
+key = "ops.pool_return_choco25_passenger"
+source = "business"
+label = "分池全投资回报·乘用车池"
+at = "swap_business.pool_operations.choco25_passenger.full_return"
+unit = "%"
+decimals = 1
+scale = 100.0
+group = "⑧重卡"
+note = "【2026-09-22 · 门②】本池 EBITDA 刚好覆盖本池资本要求时的全投资要求回报（税后、不加杠杆、稳态）；与整盘口径同式"
+
+[[metric]]
+key = "ops.rent_month_eff_qiji75_short"
+source = "business"
+label = "电池月租实付均价·短途池"
+at = "swap_business.pool_operations.qiji75_short.rent_month_effective"
+unit = "元/kWh·月"
+decimals = 1
+group = "⑧重卡"
+note = "【2026-09-22 · 门②】两段价 max（保底，超出价 × 每度容量月用电）按池内车辆加权后的实付均价"
+
+[[metric]]
+key = "ops.rent_month_eff_qiji75_trunk"
+source = "business"
+label = "电池月租实付均价·干线池"
+at = "swap_business.pool_operations.qiji75_trunk.rent_month_effective"
+unit = "元/kWh·月"
+decimals = 1
+group = "⑧重卡"
+note = "【2026-09-22 · 门②】两段价 max（保底，超出价 × 每度容量月用电）按池内车辆加权后的实付均价"
 
 [[metric]]
 key = "swap.battery_asset_yi"

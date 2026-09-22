@@ -1,86 +1,27 @@
-"""价格 → 净优势 → 份额：把补能服务费的定价接回换电渗透率（2026-09-18g 立）。
+"""价格 → 净优势 → 份额：重卡换电份额 ＝ 换电份额天花板 × 算得过账的车队占比（2026-09-22 · 门② 重写）。
 
-【为什么必须有这条链】
-`vehicles.heavy.scenes.*.swap_penetration` 的声明段里写着，换电占纯电的份额由两件事决定：
-① 网络密度（能不能用上），② **服务定价**（用得起就用不起）。
-但在此之前，②这一半在程序里是断的——把换电服务费从 0.30 拉到 0.60，
-第 3 章的九宫格会全线翻负，而模型的渗透率纹丝不动。**一个自己不响应自己结论的模型，
-只能用来解释、不能用来推演。**本模块把②接上。
+【为什么重写】2026-09-18g 版的份额链"按基准价归一、基准处乘数恒为 1"：配置里的渗透率
+（短途 30%／中途 50%／长途 70%，加权 44.8%）在基准价上从来没被检验过——门① 逐群核对发现，
+月租 13.3 下长途只有约 3% 的车队算得过账，模型却假设 70%（门① 一页纸第 2 节第四条）。
 
-【链条】
-    服务费 / 电池租金 / 充电服务费
-      → 第 3 章的「换电净优势」（tco.py 的 adv_mw_*，按车队资金成本三档给出）
-      → 净优势为正的那部分车队占比（＝可服务份额 addressable）
-      → 相对基准价的可服务份额之比（＝份额乘数）
-      → 乘到该场景的 swap_penetration 上
+【现在的链条】
+    两段价租金（保底＋超出按度）／服务费／充电价 → 本场景用户账（tco.build_scene_economics）
+      → 按车队借钱成本三群（[fleet_capital_mix]），净优势为正的那部分车队占比（＝算得过账的占比）
+      → 场景份额 ＝ 换电份额天花板（vehicles.heavy.scenes.*.swap_share_ceiling）× 算得过账的占比
+      → 写进 swap_penetration，供规模链使用
 
-【三条口径，写在这里以防后人拆开各取一项】
-1. **乘数按基准价归一，基准处恒为 1.0。**参考价存在 `[price_response]`，与 base.toml 的
-   基准价逐项相等；所以不动滑块时乘数逐位是 1，**基线七个读数一格都不会动**。
-   ⚠️ 改 base.toml 里的基准价时**必须同步改 `[price_response]` 的参考价**，
-   否则基准情景会被自己的反馈推走——`changelog` 的 watch 行就是为了当场抓住这件事。
-2. **只按价格差算，不重跑全模型。**换电服务费单价按构造等于配置值；电池租金单价与月租成正比；
-   充电服务费是配置值。所以「换参考价之后净优势变多少」是一个解析量（每年每车的现金差额），
-   不需要第二次装配。这既省时间，也避免了"渗透率变→规模变→租金单价变→渗透率再变"的循环。
-3. **车队资金成本分布是经验假设，不是统计。**见 `[fleet_capital_mix]` 的声明段：
-   营运重卡买方的资金成本结构没有任何公开数据，这三个权重是判断，标注为低置信度。
-   它不影响基准（基准处乘数恒为 1），但它决定两件事：弹性的**陡峭程度**，
-   以及下面第 4 条那个**上界**——所以"这三个数怎么错都不要紧"是错的读法。
-4. **这条链对中途与长途只有下行弹性，没有上行弹性。**乘数的解析上界是 `1 / addressable_ref`；
-   而基准价下中途与长途的净优势三档全正、可服务份额已经满格（＝1.0），**上界因此就是 1.0**——
-   把换电服务费砍到零，这两个场景的渗透率一动不动。**降价换份额只在短途那一档里成立。**
-   这不是实现缺陷，是"可服务份额"这个口径的直接后果：已经全员划算了，再便宜也没有新的人可争取。
-   要表达"降价还能多拿份额"，需要的是另一条腿（网络密度／场景方接受度），而那条腿没有建模。
-5. **对照档取的是兆瓦超充（`adv_mw_*`），不是常规快充。**三个对照里最苛刻的一个
-   （同样的差额摊到更少的小时上），是有意的保守选择。
-6. **快照上的读数来自探针（反馈前），九宫格来自正式装配（反馈后）。**基准处两者同源、完全一致；
-   偏离基准时二者会差零点几个百分点（渗透率变动反过来微调了租金单价）。
-   量小且方向无系统性，但页面上"可服务份额"与"净优势九宫格"逐位对账会差一点点，是已知的。
+【三条口径】
+1. **天花板由站网与车型定，不由价格定。**车队全都算得过账时，换电最多能拿到的份额；三档见 [drivers.swap_share_ceiling]。
+2. **算得过账的占比只依赖配置**（服务费、两段价、寿命），不依赖规模——所以在装配规模之前一次算定，不用探针、不迭代。
+3. **下限 response_floor**：封闭短倒场景的补能方式由场景方定死，不随资金成本逐年重选，占比不低于它。
+车队资金成本分布是经验假设（[fleet_capital_mix] 声明段），低置信度。
 """
 from __future__ import annotations
 
 from copy import deepcopy
 
 _TIERS = ("low", "mid", "high")
-
-
-def _prices(config: dict) -> dict[str, float]:
-    """当前四个价格入参。改这里的任何一个，份额都应该有反应。"""
-    tco = config.get("tco_jpm") or {}
-    sb = config.get("swap_business") or {}
-    return {
-        "swap_service": float(sb.get("service_fee_rmb_kwh") or 0.0),
-        "swap_rent_month": float(sb.get("battery_rent_rmb_kwh_month") or 0.0),
-        "charge_service": float(tco.get("charge_service_fee_rmb_kwh") or 0.0),
-    }
-
-
-def _reference(config: dict) -> dict[str, float] | None:
-    ref = config.get("price_response")
-    if not ref:
-        return None
-    return {
-        "swap_service": float(ref.get("ref_swap_service_fee_rmb_kwh") or 0.0),
-        "swap_rent_month": float(ref.get("ref_battery_rent_rmb_kwh_month") or 0.0),
-        "charge_service": float(ref.get("ref_charge_service_fee_rmb_kwh") or 0.0),
-    }
-
-
-def penetration_pinned(config: dict) -> bool:
-    """份额是不是已经被人手工定过了。
-
-    见 `[price_response].ref_heavy_penetration` 的声明：情景三档与沙盘的渗透率滑块
-    都是对份额的**直接判断**，而且它们的理由（网络密度、场景方接受度）不在 TCO 模型里。
-    这时再乘一道只建了 TCO 腿的反馈，是拿局部覆盖全局。故此处让位，只记读数、不作用。
-    """
-    ref = (config.get("price_response") or {}).get("ref_heavy_penetration")
-    if not ref:
-        return False
-    scenes = config.get("vehicles", {}).get("heavy", {}).get("scenes", []) or []
-    cur = [float(s.get("swap_penetration") or 0.0) for s in scenes]
-    if len(cur) != len(ref):
-        return True
-    return any(abs(a - float(b)) > 1e-12 for a, b in zip(cur, ref))
+_FIELDS = (("short", "短途"), ("mid", "中途"), ("long", "长途"))
 
 
 def _break_even_rate(rates: list[float], adv: list[float]) -> float | None:
@@ -154,115 +95,71 @@ def _addressable(mix: list[tuple[float, float]], r_star: float | None) -> float:
 
 
 def compute_response(config: dict, heavy) -> dict | None:
-    """给出每个重卡场景的份额乘数。heavy 为 tco.build_heavy_economics 的结果。
+    """给出每个重卡场景的"算得过账的车队占比"与份额。heavy 为 tco.build_scene_economics 的结果。
 
-    返回 None 表示这条链没接上（缺配置），调用方按"不作用"处理，绝不静默拍一个数。
+    返回 None 表示这条链没接上（缺配置），调用方按天花板直接用、并在页面标出，绝不静默拍一个数。
     """
-    ref = _reference(config)
     mix_cfg = config.get("fleet_capital_mix")
     tco = config.get("tco_jpm") or {}
-    if heavy is None or not ref or not mix_cfg:
+    if heavy is None or not mix_cfg:
         return None
     rates = [float(tco.get(f"fleet_discount_rate_{t}") or 0.0) for t in _TIERS]
     mix = [(rates[i], float(mix_cfg.get(t) or 0.0)) for i, t in enumerate(_TIERS)]
-    now, base = _prices(config), ref
-    sb = config.get("swap_business") or {}
-    month_now = float(sb.get("battery_rent_rmb_kwh_month") or 0.0)
-    # 月租为零时租金单价无法等比折回参考月租，这条链的第三项就整段丢失。
-    # 与其抹掉它、照常给出一个看着正常的乘数（静默错值比崩溃更难发现），不如直接判定"没接上"。
-    if month_now <= 0:
-        return None
     floor = float((config.get("price_response") or {}).get("response_floor") or 0.0)
-    pinned = penetration_pinned(config)
-
-    consumption = {
-        s.get("name"): float(s.get("energy_consumption_kwh_km") or 0.0)
-        for s in config.get("vehicles", {}).get("heavy", {}).get("scenes", []) or []
-    }
-    scenes = {}
-    for field, name in (("short", "短途"), ("mid", "中途"), ("long", "长途")):
+    heavy_scenes = {s.get("name"): s for s in
+                    (config.get("vehicles", {}).get("heavy", {}).get("scenes", []) or [])}
+    scenes: dict = {}
+    pen = pen_spot = ceil_w = 0.0
+    for field, name in _FIELDS:
         sc = getattr(heavy, field, None)
-        if sc is None or not sc.annual_km:
+        cfg_sc = heavy_scenes.get(name)
+        if sc is None or cfg_sc is None:
             continue
-        # 单车年耗电 ＝ 年里程 × 单公里能耗（与 tco.py 同一口径）
-        annual_kwh = sc.annual_km * consumption.get(name, 0.0)
-        if annual_kwh <= 0:
-            continue
-        # 租金单价 ＝ 年租金 ÷ 年耗电；它与月租成正比，所以换参考月租只是等比缩放
-        rent_p_now = sc.rent_year_wan * 1e4 / annual_kwh  # noqa: E501  租金单价与月租成正比
-        rent_p_ref = rent_p_now * (base["swap_rent_month"] / month_now)
-        # 换到参考价后，换电每年的净差额少付多少（正数＝参考价下换电更便宜）
-        delta_year = annual_kwh * (
-            (now["swap_service"] - base["swap_service"])
-            + (rent_p_now - rent_p_ref)
-            - (now["charge_service"] - base["charge_service"])
-        ) / 1e4
         adv_now = [getattr(sc, f"adv_mw_{t}", 0.0) for t in _TIERS]
-        adv_ref = [a + delta_year for a in adv_now]
-        # 压力档：充电服务费不回到成本地板、而把当前现价撑满整个持有期（tco.py 已给出这组净优势）
+        # 压力档：充电服务费不在均衡价、而是价格战现价撑满整个持有期（tco.py 已给出这组净优势）
         adv_spot = [getattr(sc, f"adv_mw_spot_{t}", 0.0) for t in _TIERS]
-        a_now = _addressable(mix, _break_even_rate(rates, adv_now))
-        a_ref = _addressable(mix, _break_even_rate(rates, adv_ref))
-        a_spot = _addressable(mix, _break_even_rate(rates, adv_spot))
-        # 参考价上本场景本身就无人可服务时，"相对参考价的比值"没有意义——
-        # 此时静默给 0 会把乘数永久钉在下限上，而页面看不出为什么。判定为"没接上"，整条链让位。
-        if a_ref <= 0:
-            return None
-        raw = a_now / a_ref
-        raw_spot = a_spot / a_ref
+        a_now = max(floor, _addressable(mix, _break_even_rate(rates, adv_now)))
+        a_spot = max(floor, _addressable(mix, _break_even_rate(rates, adv_spot)))
+        ceiling = float(cfg_sc.get("swap_share_ceiling", cfg_sc.get("swap_penetration")) or 0.0)
+        w = float(cfg_sc.get("weight") or 0.0)
         scenes[name] = {
+            "ceiling": ceiling,
             "addressable": a_now,
-            "addressable_ref": a_ref,
+            "penetration": min(1.0, ceiling * a_now),
             "addressable_spot": a_spot,
-            # 下限见 [price_response].response_floor 的声明：封闭短倒场景的补能方式由场景方定死，
-            # 不随资金成本逐年重选，所以份额不会因为价格翻负而归零。
-            "multiplier": max(floor, raw),
-            "multiplier_raw": raw,
-            "multiplier_spot": max(floor, raw_spot),
+            # 现价压力档的占比相对基准剩几成（名字沿用旧读数"份额乘数"）
+            "multiplier": a_now,
+            "multiplier_spot": (a_spot / a_now) if a_now else 0.0,
         }
+        pen += w * scenes[name]["penetration"]
+        pen_spot += w * min(1.0, ceiling * a_spot)
+        ceil_w += w * ceiling
     if not scenes:
         return None
-    # 加权渗透率：三场景的销量权重 × 各自渗透率。
-    # 【必须用**作用后**的渗透率】这个读数的名字是"模型加权"，它就该等于模型真正在用的那个份额。
-    # 若取配置里的原值，拉动价格滑块时九宫格翻负、份额乘数掉下去，而这个总量读数纹丝不动——
-    # 那正是这条链要修的毛病在读数层原样复现。基准处乘数恒为 1，所以基准读数不变。
-    heavy_scenes = config.get("vehicles", {}).get("heavy", {}).get("scenes", []) or []
-    pen_now = pen_spot = 0.0
-    for s in heavy_scenes:
-        nm = s.get("name")
-        if nm not in scenes:
-            continue
-        w = float(s.get("weight") or 0.0)
-        p = float(s.get("swap_penetration") or 0.0)
-        # 份额已被手工定过时这条链让位，配置里的 p 就是最终值，不再乘
-        m = 1.0 if pinned else scenes[nm]["multiplier"]
-        pen_now += w * min(1.0, p * m)
-        pen_spot += w * min(1.0, p * scenes[nm]["multiplier_spot"])
     return {
-        "at_reference": now == base,
-        "pinned": pinned,
         "scenes": scenes,
-        "prices": now,
-        "reference": base,
-        "weighted_penetration": pen_now,
+        "weighted_penetration": pen,
         "weighted_penetration_spot": pen_spot,
+        "weighted_ceiling": ceil_w,
     }
 
 
 def applied_config(config: dict, response: dict | None) -> dict:
-    """把份额乘数乘到重卡三场景的 swap_penetration 上（上限 1.0）。
+    """把"天花板 × 算得过账的占比"写进重卡三场景的 swap_penetration（深拷贝，不改入参）。
 
-    乘数为 1.0 时原样返回同一个对象——基准情景因此连一次 deepcopy 都不做。
+    链没接上（response 为 None）时，份额直接取天花板——页面上"算得过账的占比"读数会缺，看得见。
     """
-    if not response or response.get("at_reference") or response.get("pinned"):
-        return config
-    scenes = response["scenes"]
-    if all(abs(v["multiplier"] - 1.0) < 1e-12 for v in scenes.values()):
-        return config
     out = deepcopy(config)
+    scenes = (response or {}).get("scenes", {})
     for sc in out.get("vehicles", {}).get("heavy", {}).get("scenes", []) or []:
-        m = scenes.get(sc.get("name"), {}).get("multiplier")
-        if m is None:
-            continue
-        sc["swap_penetration"] = min(1.0, float(sc.get("swap_penetration") or 0.0) * m)
+        ceiling = float(sc.get("swap_share_ceiling", sc.get("swap_penetration")) or 0.0)
+        info = scenes.get(sc.get("name"))
+        sc["swap_penetration"] = info["penetration"] if info else ceiling
     return out
+
+
+def effective_config(config: dict) -> tuple[dict, dict | None]:
+    """装配前的一站式入口：算用户账 → 算占比 → 写份额。model.py 与 tracker.py 共用，口径只有一个家。"""
+    from tco import build_scene_economics   # 局部引入，避免 tco ↔ price_response 循环
+    response = compute_response(config, build_scene_economics(config))
+    return applied_config(config, response), response

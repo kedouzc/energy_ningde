@@ -161,7 +161,7 @@ def parameter_audit_rows(config: dict, snapshot: ModelSnapshot) -> list[tuple[st
     add("需求", "重卡存量/更新周期", "900万 / 9年", f"{heavy['stock_wan']:g}万 / {heavy['replacement_cycle_years']:g}年", "一致", "存量更新法", "重卡EV基数")
     add("需求", "重卡NEV渗透率", "35%/43%/46%/48%/50%", _seq(heavy["nev_rates"], True), "一致", "逐年S曲线", "重卡EV基数")
     add("需求", "重卡场景权重", "38%/50%/12%", _seq([row["weight"] for row in heavy_scenes], True), "一致", "短/中/长途", "重卡车辆与频次加权")
-    add("需求", "重卡换电渗透率", "30%/50%/70%", _seq([row["swap_penetration"] for row in heavy_scenes], True), "一致", "逐场景相乘", "重卡CATL换电车辆")
+    add("需求", "重卡换电渗透率（2026-09-22 起为天花板）", "30%/50%/70%", _seq([row.get("swap_share_ceiling", row.get("swap_penetration")) for row in heavy_scenes], True), "一致", "逐场景相乘", "重卡CATL换电车辆")
     add("需求", "重卡CATL换电市占率", "30%/30%/70%", _seq([row["catl_swap_share"] for row in heavy_scenes], True), "一致", "基准不确认启源协同", "重卡CATL换电车辆")
     add("需求", "2025既有CATL换电重卡", "0.7万", f"{heavy['existing_catl_swap_stock_wan']:g}万", "已恢复", "作为2026累计底座，不是启源协同", "重卡车辆、装机、站数、CAPEX")
     add("需求", "重卡单车电量/寿命", "500kWh / 5.7年（旧硬编码）", f"{heavy['battery_kwh']:g}kWh / {lives['heavy']:g}年", "改为推算", "寿命=min(2000次÷年循环, 10年)，不再硬编码", "制造收入、电池CAPEX")

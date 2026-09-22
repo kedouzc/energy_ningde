@@ -530,7 +530,7 @@
         "name": "短途",
         "battery_pool": "qiji75_short",
         "weight": 0.38,
-        "swap_penetration": 0.3,
+        "swap_share_ceiling": 0.3,
         "catl_swap_share": 0.8,
         "daily_km": 130.0,
         "onboard_battery_kwh": 342.0,
@@ -540,7 +540,7 @@
         "name": "中途",
         "battery_pool": "qiji75_trunk",
         "weight": 0.5,
-        "swap_penetration": 0.5,
+        "swap_share_ceiling": 0.5,
         "catl_swap_share": 0.8,
         "daily_km": 400.0,
         "onboard_battery_kwh": 513.0,
@@ -550,7 +550,7 @@
         "name": "长途",
         "battery_pool": "qiji75_trunk",
         "weight": 0.12,
-        "swap_penetration": 0.7,
+        "swap_share_ceiling": 0.7,
         "catl_swap_share": 0.8,
         "daily_km": 650.0,
         "onboard_battery_kwh": 513.0,
@@ -1229,33 +1229,9 @@
     "type": "float"
   },
   {
-    "key": "price_response.ref_swap_service_fee_rmb_kwh",
-    "value": 0.104,
-    "type": "float"
-  },
-  {
-    "key": "price_response.ref_battery_rent_rmb_kwh_month",
-    "value": 13.3,
-    "type": "float"
-  },
-  {
-    "key": "price_response.ref_charge_service_fee_rmb_kwh",
-    "value": 0.104,
-    "type": "float"
-  },
-  {
     "key": "price_response.response_floor",
     "value": 0.1,
     "type": "float"
-  },
-  {
-    "key": "price_response.ref_heavy_penetration",
-    "value": [
-      0.3,
-      0.5,
-      0.7
-    ],
-    "type": "list"
   },
   {
     "key": "fleet_capital_mix.low",
@@ -1289,7 +1265,12 @@
   },
   {
     "key": "swap_business.battery_rent_rmb_kwh_month",
-    "value": 13.3,
+    "value": 9.7,
+    "type": "float"
+  },
+  {
+    "key": "swap_business.battery_rent_per_kwh_rmb",
+    "value": 0.2,
     "type": "float"
   },
   {
@@ -1414,12 +1395,12 @@
   },
   {
     "key": "battery_life_model.critical_cycles",
-    "value": 3500.0,
+    "value": 2100.0,
     "type": "float"
   },
   {
     "key": "battery_life_model.pool_life_multiplier",
-    "value": 1.2,
+    "value": 1.6666666666666667,
     "type": "float"
   },
   {
@@ -1879,7 +1860,7 @@
         "threshold": 0.12,
         "direction": "either",
         "period": "月度",
-        "why": "反转预期（兑现年加权 44.8%）的高频检验：单月比累计更早反映拐点。**判据仍是连续 4 期不回升则下修**（三条反驳见 vehicles.heavy.scenes 声明段）——单月卡负责当月提示，趋势确认以累计卡 hdt_swap_share 为准"
+        "why": "反转预期（兑现年加权＝换电份额天花板 × 算得过账的车队占比，2026-09-22 起中性约 44%）的高频检验：单月比累计更早反映拐点。**判据仍是连续 4 期不回升则下修**（三条反驳见 vehicles.heavy.scenes 声明段）——单月卡负责当月提示，趋势确认以累计卡 hdt_swap_share 为准"
       }
     ],
     "type": "list"

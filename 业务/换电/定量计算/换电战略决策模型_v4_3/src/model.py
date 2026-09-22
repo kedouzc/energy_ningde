@@ -31,29 +31,8 @@ from mna import get_sourcing_adjustment
 from scale import build_scale, build_yearly_stock, assert_yearly_stock_aligned
 from schemas import ModelSnapshot
 from charging import build_charging_economics
-from price_response import applied_config, compute_response
+from price_response import effective_config
 from tco import build_heavy_economics
-
-
-def _price_response(config: dict, sourcing, life_mode: str) -> dict | None:
-    """探针：按当前定价算一遍用户侧净优势，得到各场景相对基准价的份额乘数。
-
-    【为什么要一次探针】净优势要用到电池租金单价，而租金单价来自池的运营量，池的运营量来自规模——
-    所以"定价改了份额该动多少"这件事，必须先跑一遍规模链才能问。
-    但**只在价格偏离基准时才跑**：基准价上乘数按构造恒为 1.0，跑与不跑结果相同，
-    于是这里先比价，相等就直接返回"不作用"，基准情景一分钱成本不多付。
-    """
-    from price_response import _prices, _reference, penetration_pinned   # 局部引入
-    ref = _reference(config)
-    # 价格没离开基准，或份额已被人手工定过（情景三档／渗透率滑块）——两种情况都不出力，
-    # 探针也就不必跑。后者的理由见 base.toml [price_response].ref_heavy_penetration 的声明。
-    if ref is None or _prices(config) == ref or penetration_pinned(config):
-        return None
-    probe_scale = build_scale(config, sourcing, life_mode)
-    probe_capex = build_capex(config, probe_scale, sourcing)
-    probe_swap = build_swap_business(config, probe_scale, probe_capex)
-    heavy = build_heavy_economics(config, probe_scale, probe_capex, probe_swap.pool_operations)
-    return compute_response(config, heavy)
 
 
 def _build_core(
@@ -62,20 +41,16 @@ def _build_core(
     life_mode: str = "derived",
 ) -> ModelSnapshot:
     sourcing = get_sourcing_adjustment(config, scenario_name)
-    # 【2026-09-18g】价格 → 净优势 → 份额：先把补能定价对渗透率的反馈结算掉，再正式装配一遍。
-    # 基准价上乘数恒为 1.0、探针不跑、config 原样传下去——基准情景的读数分毫未动；
-    # 只有把价格滑块拉离基准，这条链才会出力。三条口径见 price_response.py。
-    response = _price_response(config, sourcing, life_mode)
-    config = applied_config(config, response)
+    # 【2026-09-22 · 门②】重卡换电份额 ＝ 天花板 × 算得过账的车队占比。占比只依赖配置（服务费、
+    # 两段价租金、寿命），在装配规模之前一次算定，写进 swap_penetration；口径见 price_response.py。
+    config, response = effective_config(config)
     scale = build_scale(config, sourcing, life_mode)
     capex = build_capex(config, scale, sourcing)
     baseline = build_2026_baseline(config)
     swap = build_swap_business(config, scale, capex)
     # TCO 已在 tco.py 独立（build_heavy_economics）；在装配层挂载到快照，business 不再依赖 tco。
     swap.heavy_economics = build_heavy_economics(config, scale, capex, swap.pool_operations)
-    # 记录这条链的读数。基准价上探针没跑（response 为 None），此时直接用正式装配的结果算一遍——
-    # 纯算术、无成本，而且**基准处乘数逐位是 1.0 这件事本身就是证据**，要能在页面上看见。
-    swap.price_response = response or compute_response(config, swap.heavy_economics)
+    swap.price_response = response
     # 对手方的成本曲线与两条路线的电网容量强度对比（charging.py）。
     # 与 TCO 一样是**用户/对手侧支链**：只挂快照供叙述层取数，不回灌规模与估值。
     swap.charging_economics = build_charging_economics(
@@ -343,6 +318,10 @@ def _build_sensitivity(config: dict, base: ModelSnapshot) -> list[dict]:
             cfg["swap_business"]["battery_rent_rmb_kwh_month"] = (
                 config["swap_business"]["battery_rent_rmb_kwh_month"] * value
             )
+            if "battery_rent_per_kwh_rmb" in config["swap_business"]:   # 【2026-09-22】两段价的超出价同比
+                cfg["swap_business"]["battery_rent_per_kwh_rmb"] = (
+                    config["swap_business"]["battery_rent_per_kwh_rmb"] * value
+                )
             if "battery_rent_passenger_rmb_kwh_month" in config["swap_business"]:
                 cfg["swap_business"]["battery_rent_passenger_rmb_kwh_month"] = (
                     config["swap_business"]["battery_rent_passenger_rmb_kwh_month"] * value

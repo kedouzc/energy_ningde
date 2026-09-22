@@ -379,6 +379,9 @@ def _get_path(obj, path: str):
 def _calc_heavy_swap_penetration_weighted(config: dict):
     """重卡「换电占纯电」的模型值＝按场景权重加权。**复合值必须有名字**，
     否则它就只能硬编码在比对逻辑里，卡片化就白做了。"""
+    # 【2026-09-22 · 门②】份额＝天花板 × 算得过账的车队占比，取装配时实际使用的那个值
+    from price_response import effective_config
+    config, _ = effective_config(config)
     scenes = config.get("vehicles", {}).get("heavy", {}).get("scenes", []) or []
     tot = sum(sc.get("weight", 0.0) for sc in scenes)
     if not tot:
@@ -471,6 +474,8 @@ def _calc_commercial_catl_share_model(config: dict):
     """商用车换电体系内 CATL 标准份额的模型值：重卡三场景＋城配两场景，
     按**当年换电车辆流量**（池 EV 流量×场景权重×场景换电渗透×CATL 份额）加权。
     实测对照是联盟「CATL 占全部商用车装车」份额——口径更宽，只作 plausibility 锚。"""
+    from price_response import effective_config   # 【2026-09-22 · 门②】重卡份额取装配时实际使用的值
+    config, _ = effective_config(config)
     yi = _current_year_index(config)
     heavy_f = _pool_annual_ev_wan(config, "heavy", yi)
     city_f = _pool_annual_ev_wan(config, "city", yi)

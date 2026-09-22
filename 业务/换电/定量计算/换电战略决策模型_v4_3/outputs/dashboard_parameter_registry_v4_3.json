@@ -532,7 +532,7 @@
         "weight": 0.38,
         "swap_share_ceiling": 0.3,
         "catl_swap_share": 0.8,
-        "daily_km": 130.0,
+        "daily_km": 260.0,
         "onboard_battery_kwh": 342.0,
         "energy_consumption_kwh_km": 1.5
       },

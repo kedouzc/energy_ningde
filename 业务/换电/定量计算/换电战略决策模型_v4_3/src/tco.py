@@ -315,14 +315,24 @@ def _scene_tco(
     count = max(0, math.ceil(n / life - 1e-9) - 1) if life > 0 else 0
     packs = 0.0
     pack_flows: list[tuple[float, float]] = []   # (发生时点·年, 金额·元)，供 IRR 用
+    last_start = 0.0
     for i in range(1, count + 1):
         start = i * life
-        used = min(life, n - start) / life
         new_price = battery_price_rmb_kwh(config, ref + start)
-        # 买新包（按剩余持有期折算）减去卖掉退役旧包的钱
-        cost = kwh * new_price * used - kwh * new_price * resale
+        # 【2026-09-22e · 门②】到寿换新：整块买新包，退役旧包按回收率卖掉。
+        # 此前按"剩余持有期"折算新包价、且持有期末不计残值：换新若发生在持有期末前不久，
+        # 新包只付几个百分点却照收旧包 30% 回收款，车队账出现一笔凭空的收益（少活 50% 时短途份额反常下降即此）。
+        cost = kwh * new_price - kwh * new_price * resale
         packs += cost
         pack_flows.append((start, cost))
+        last_start = start
+    # 持有期末还在车上的那块电池：按剩余寿命，从新电池价线性降到回收率，折价卖出
+    if n > 0 and life > 0:
+        remain = max(0.0, 1.0 - (n - last_start) / life)
+        end_price = battery_price_rmb_kwh(config, ref + n)
+        credit = -kwh * end_price * (resale + (1.0 - resale) * remain)
+        packs += credit
+        pack_flows.append((n, credit))
 
     # 【2026-09-17g】门槛换成「每少停一小时要值多少元」——读者能拿司机时薪、单车每小时毛利对照。
     # 常规快充：每天充电小时＝日耗电÷有效功率；每天补能次数＝日耗电÷(带电量×可用区间)；

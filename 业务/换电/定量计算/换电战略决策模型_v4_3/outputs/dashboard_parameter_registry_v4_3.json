@@ -318,6 +318,11 @@
     "type": "float"
   },
   {
+    "key": "tco_jpm.swap_battery_taxed",
+    "value": 0.0,
+    "type": "float"
+  },
+  {
     "key": "tco_jpm.purchase_subsidy",
     "value": 140000.0,
     "type": "float"

@@ -237,7 +237,7 @@ targets = [
 scenario_axis = true     # 经营族：与「换电这条路走没走通」同源，三档联动是对的
 cn      = "电池租金（重卡超出价·乘用车月租）"
 unit    = "元/kWh"
-desc    = "【2026-09-22 · 门②】重卡与城配改两段价：保底 9.7 元/kWh·月不动，拨超出部分的每度价 0.1／0.2／0.3（中性按原则推：长途银行保本 0.16 与借钱 9% 车队上限 0.25 之间；乐观参照银川中标 0.27–0.33；悲观＝超出不加钱，即骐骥现行按块收）。乘用车月租 8.8／9.0／9.7 不变。见门② 一页纸第 3 节、附录 B、I。"
+desc    = "【2026-09-22 · 门②】重卡与城配改两段价：保底 9.7 元/kWh·月不动，拨超出部分的每度价 0.1／0.2／0.3（中性＝均衡价：长途银行保本 0.16 与借钱 9% 车队上限 0.29 之间；乐观＝今天的市场价（银川 0.27–0.33、云南短倒折 0.44）；悲观＝超出不加钱，即骐骥现行按块收）。乘用车月租 8.8／9.0／9.7 不变。见门② 一页纸第 3 节、附录 B、I。"
 targets = [
   "swap_business.battery_rent_per_kwh_rmb",
   "swap_business.battery_rent_passenger_rmb_kwh_month",
@@ -245,6 +245,18 @@ targets = [
 "悲观" = { battery_rent_per_kwh_rmb = 0.1, battery_rent_passenger_rmb_kwh_month = 8.8 }
 "中性" = { battery_rent_per_kwh_rmb = 0.2, battery_rent_passenger_rmb_kwh_month = 9.0 }
 "乐观" = { battery_rent_per_kwh_rmb = 0.3, battery_rent_passenger_rmb_kwh_month = 9.7 }
+[drivers.purchase_tax]
+scenario_axis = true     # 政策不确定性：2028 年起新能源车购置税怎么收，决定"换电车型电池不交税"这块红利是归零、维持还是翻倍
+cn      = "2028 年起的购置税（充电车电池比换电车多交几个点）"
+unit    = "%"
+desc    = "【2026-09-22f · 门②】现行（财政部 2023 年第 10 号）：2026–2027 减半即 5%，换电车型车电分开开票时电池不计税；2028 年起未定（截至 2026-09 未见新公告）。悲观＝优惠到期且车电分开计税取消：两边都按 10% 交、电池也计，差 0；中性＝维持现行 5%、电池不计——也是两种取消结局的中点；乐观＝优惠到期但车电分开计税保留：充电车电池交 10%、换电车不交，差 10 个点。只影响车队「换电划不划算」，不进电池银行自己的账。见门② 一页纸附录 H。"
+targets = [
+  "tco_jpm.purchase_tax_rate",
+  "tco_jpm.swap_battery_taxed",
+]
+"悲观" = { purchase_tax_rate = 0.10, swap_battery_taxed = 1.0 }
+"中性" = { purchase_tax_rate = 0.05, swap_battery_taxed = 0.0 }
+"乐观" = { purchase_tax_rate = 0.10, swap_battery_taxed = 0.0 }
 [drivers.battery_life]
 scenario_axis = true     # 技术不确定性：我不知道电池在车上、在池里各能用多久
 cn      = "电池寿命（池里次数 ÷ 兆瓦超充车上次数）"
@@ -643,6 +655,8 @@ as_of = "2026-08"
 # —— 电动（充电）基准列：换电侧复用其购车/税/补贴/维保/载重损失，只替换能源单价 ——
 purchase_price = 700000.0          # 电动重卡购车价（Table 3）
 purchase_tax_rate = 0.05           # 电动购置税率（LNG/柴油 10%，此处用电动列）。【2026-09-22 · 门②】换电车型政策（src.mof_nev_tax_2023）：2026–2027 减半即 5%；换电模式车电分开开票时电池不计税——这是换电车型的红利，不是电池银行的本事；2028 年起未定
+# 【2026-09-22f · 门②】换电车型的电池要不要一起计购置税（0＝不计：车电分开开票、按不含电池的价计税；1＝计：车电分开计税取消，买换电车的车队也按含电池的价交税）
+swap_battery_taxed = 0.0
 purchase_subsidy = 140000.0        # 购车补贴
 maintenance = 15000.0              # 电动年维保
 payload_loss = 70000.0             # 电动年载重损失（电池比油箱重，最大的隐性成本项）

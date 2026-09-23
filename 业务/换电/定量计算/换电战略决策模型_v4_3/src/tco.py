@@ -105,9 +105,12 @@ def build_heavy_economics(
     battery_kwh = float(heavy_cfg.get("battery_kwh", 0.0) or 0.0)
     battery_price = battery_price_rmb_kwh(config, config["meta"]["reference_year"])
     cut = battery_kwh * battery_price
+    # 【2026-09-22f】车电分开计税取消时，换电车的电池价也计入购置税（swap_battery_taxed＝1）
+    _swap_bat_tax = cut * float(tco["purchase_tax_rate"]) * float(tco.get("swap_battery_taxed") or 0.0)
     purchase_swap = max(
         0.0,
         (float(tco["purchase_price"]) - cut) * (1.0 + float(tco["purchase_tax_rate"]))
+        + _swap_bat_tax
         - float(tco["purchase_subsidy"]),
     )
 
@@ -303,7 +306,9 @@ def _scene_tco(
     tax = 1.0 + float(tco["purchase_tax_rate"])
     subsidy = float(tco["purchase_subsidy"])
     bare = float(tco["purchase_price"]) - fleet_battery_kwh * p0
-    buy_swap = max(0.0, bare * tax - subsidy)
+    # 【2026-09-22f】车电分开计税取消时，买换电车的车队也要为（租来的）电池价交购置税
+    swap_bat_tax = kwh * p0 * float(tco["purchase_tax_rate"]) * float(tco.get("swap_battery_taxed") or 0.0)
+    buy_swap = max(0.0, bare * tax + swap_bat_tax - subsidy)
     buy_charge = max(0.0, (bare + kwh * p0) * tax - subsidy)
     fixed = float(tco["maintenance"]) + float(tco["payload_loss"])
     # 【2026-09-21 · 门①】车队买断后自己接下的活：旧电池自己卖（回收率低于电池银行）、自己上保险与维护

@@ -316,6 +316,13 @@ def _scene_tco(
     hold_year = kwh * float(tco.get("fleet_battery_hold_rmb_kwh_year") or 0.0)
 
     life = battery_life_years(config, (annual_kwh / days / kwh) if days and kwh else 0.0)
+    # 【2026-09-23 · 对齐页】按班制分对手：`charge_regime = "depot"`（单班、夜里停场站慢充）时，
+    # 充电车的电池不受快充损伤，寿命与池里相同（× pool_life_multiplier）；也没有多停的时间。
+    # 默认 "megawatt"：干线兆瓦超充。多班倒的封闭短倒没有充电这个选项，由 share_price_insensitive 表达。
+    regime = str(scene.get("charge_regime") or "megawatt")
+    if regime == "depot":
+        life = min(life * float(config["battery_life_model"].get("pool_life_multiplier") or 1.0),
+                   float(config["battery_life_model"].get("calendar_cap_years") or 1e9))
     n = float(holding)
     count = max(0, math.ceil(n / life - 1e-9) - 1) if life > 0 else 0
     packs = 0.0
@@ -350,6 +357,8 @@ def _scene_tco(
     sessions = daily_kwh / (kwh * window) if kwh and window else 0.0
     stop_h = max(0.0, (daily_kwh / power if power else 0.0) - sessions * swap_h)
     stop_h_mw = max(0.0, sessions * (mw_h - swap_h))
+    if regime == "depot":
+        stop_h = stop_h_mw = 0.0   # 夜里在场站充，不占运营时间
 
     # 参照时间价值：JPM 全行业平均的单车年增收，是"常规快充下省出的那些小时"值的钱；
     # 换成兆瓦超充，省出的小时数按 stop_h_mw/stop_h 等比缩小，同一时薪下年时间价值也同比缩小。

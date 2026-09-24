@@ -329,8 +329,11 @@ def _scene_tco(
     # 替代品是**车队自备两套电池、在场站慢充轮换**。此时车队的电池资本翻倍、每块电池的循环减半
     # （寿命按减半后的循环算，仍受日历封顶），也不耽误运营时间。轮换设施与人工另计（见
     # `depot_rotation_facility_rmb_truck_month`，缺现场数据时为 0，属对换电不利的方向）。
+    # 【2026-09-24d】乘数取不低于 1：pool_life_multiplier 现在是"池里 ÷ 对手超充车上"，悲观档可小于 1
+    # （对手最好的超充电池比我们悲观档的池里还长寿）。但同一块电池在场站慢充不会比兆瓦超充更短命，
+    # 所以场站慢充的车队电池寿命取 max(车上, 车上 × 乘数)。见 DECISIONS 2026-09-24d。
     if regime in ("depot", "depot_rotation"):
-        life = min(life * float(config["battery_life_model"].get("pool_life_multiplier") or 1.0),
+        life = min(life * max(1.0, float(config["battery_life_model"].get("pool_life_multiplier") or 1.0)),
                    float(config["battery_life_model"].get("calendar_cap_years") or 1e9))
     n = float(holding)
     count = max(0, math.ceil(n / life - 1e-9) - 1) if life > 0 else 0

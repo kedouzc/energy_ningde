@@ -36,7 +36,7 @@ answers = "买不买、**几年几倍**、仓位、当前共振状态、什么�
 owns = ["meta.target_year", "val.incr_over_mktcap"]
 uses = ["val.swap_increment", "val.mfg_increment", "swap.coverage", "capex.peak_call"]
 support = []
-topics = ["兑现年_为什么是2030", "赔率与跟踪_从世界A到世界B"]
+topics = ["兑现年_为什么是2030", "赔率与跟踪_从世界A到世界B", "护城河_生命周期控制权"]
 
 [[chapter]]
 no = 1
@@ -60,7 +60,7 @@ owns = []
 uses = []
 qual = "第七步性质判定——技术变革／场景拓展／标准确立；与第 1 章的相变判断交叉校验，不一致即有一边判错"
 support = ["ops.annual_energy"]
-topics = ["业务本质_第一性原理拆解"]
+topics = ["业务本质_第一性原理拆解", "护城河_生命周期控制权"]
 
 [[chapter]]
 no = 3
@@ -92,7 +92,7 @@ owns = []
 uses = ["ops.heavy_pen_pct"]
 qual = "立标准的三条证伪——用户心智是否记在宁德时代名下／没被找上门的第三方车企是否自发按换电规格设计（拉）／营运端换电车保有量是否持续增长（存量锁定）"
 support = ["ops.veh_ops", "ops.battery_total"]
-topics = ["非共识_类型判定与证据形态", "运营期限_换电是哪类资产"]
+topics = ["非共识_类型判定与证据形态", "运营期限_换电是哪类资产", "护城河_生命周期控制权"]
 
 [[chapter]]
 no = 5

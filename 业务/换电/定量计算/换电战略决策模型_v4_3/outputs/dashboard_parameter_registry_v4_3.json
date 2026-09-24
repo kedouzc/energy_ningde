@@ -1413,12 +1413,12 @@
   },
   {
     "key": "battery_life_model.critical_cycles",
-    "value": 2500.0,
+    "value": 2400.0,
     "type": "float"
   },
   {
     "key": "battery_life_model.pool_life_multiplier",
-    "value": 2.0,
+    "value": 2.0833333333333335,
     "type": "float"
   },
   {

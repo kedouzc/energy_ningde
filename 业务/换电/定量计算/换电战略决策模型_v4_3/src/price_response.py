@@ -120,10 +120,8 @@ def compute_response(config: dict, heavy) -> dict | None:
         adv_spot = [getattr(sc, f"adv_mw_spot_{t}", 0.0) for t in _TIERS]
         a_now = max(floor, _addressable(mix, _break_even_rate(rates, adv_now)))
         a_spot = max(floor, _addressable(mix, _break_even_rate(rates, adv_spot)))
-        # 【2026-09-23 · 对齐页】多班倒的封闭短倒（港口、钢厂、矿山"人停车不停"）没有充电这个选项，
-        # 天花板本身就是这类车的比例，份额不随价格重选：占比恒为 1。
-        if bool(cfg_sc.get("share_price_insensitive")):
-            a_now = a_spot = 1.0
+        # 【2026-09-24】删去 09-23 的 share_price_insensitive（份额恒为 1）：多班倒车的替代品是
+        # 自备两套电池场站轮换，由 tco.py 的 charge_regime="depot_rotation" 表达，份额照常算。
         ceiling = float(cfg_sc.get("swap_share_ceiling", cfg_sc.get("swap_penetration")) or 0.0)
         w = float(cfg_sc.get("weight") or 0.0)
         scenes[name] = {

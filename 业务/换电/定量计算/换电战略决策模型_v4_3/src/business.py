@@ -556,7 +556,9 @@ def build_swap_business(config: dict, scale: ScaleResult, capex: CapexResult) ->
     pool_ops: dict[str, PoolOperations] = {}
     for pk in BATTERY_POOLS:
         energy = scale.mature_annual_energy_yi_kwh[pk]
-        service = energy * business["service_fee_rmb_kwh"]
+        # 【2026-09-24 · 门① 订正】换电服务费 ＝ 跟平的充电均衡价 ＋ 溢价（基准 0，见 [drivers.swap_fee_premium]）
+        service = energy * (business["service_fee_rmb_kwh"]
+                            + float(business.get("swap_service_premium_rmb_kwh") or 0.0))
         station_external_gwh = station_gwh_by_pool[pk] * (1.0 - ownership)
         rent_gwh = vehicle_gwh_by_pool[pk] + station_external_gwh
         # 配置值是月租（元/kWh·月），年租 = 月租 × 12

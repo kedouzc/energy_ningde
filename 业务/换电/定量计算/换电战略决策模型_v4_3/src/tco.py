@@ -277,7 +277,8 @@ def _scene_tco(
     # 电池租金则根本不是能源费、而是车电分离的资本对价（它的镜像就是省下的首付）。
     # 合成关系（按构造成立）：swap_price − charge_price ＝ 服务费差 ＋ 电价差 ＋ 电池租金。
     # 服务费单价＝配置价（池的服务费收入本就是 电量 × 该价，二者恒等）
-    swap_service_p = float(sb.get("service_fee_rmb_kwh") or 0.0)
+    swap_service_p = (float(sb.get("service_fee_rmb_kwh") or 0.0)
+                      + float(sb.get("swap_service_premium_rmb_kwh") or 0.0))
     # 【2026-09-22 · 门②】租金按**本场景自己实付**的两段价算，不再用全池平均每度租金
     # （旧算法让长途按中途的用电强度付钱，门① 附录 E2 长途只剩 3% 的原因之一）。
     _use = scene_monthly_use_per_kwh(config, scene)
@@ -291,6 +292,8 @@ def _scene_tco(
     annual_km = float(scene["daily_km"]) * days
     annual_kwh = annual_km * float(scene["energy_consumption_kwh_km"])
     kwh = float(scene["onboard_battery_kwh"])
+    # 【2026-09-24】车队自备几套电池：场站轮换（多班倒）＝2 套，其余＝1 套
+    pack_mult = float(scene.get("charge_pack_multiplier") or 1.0)
     charge_power_p = float(tco.get("charge_power_price_rmb_kwh") or 0.0)
     # 【2026-09-18f】充电服务费的**基准取成本地板**，不取现价。
     # TCO 是持有期决策，用的必须是持有期均价；而现价低于超充设备自身的度电摊销地板，
@@ -309,18 +312,24 @@ def _scene_tco(
     # 【2026-09-22f】车电分开计税取消时，买换电车的车队也要为（租来的）电池价交购置税
     swap_bat_tax = kwh * p0 * float(tco["purchase_tax_rate"]) * float(tco.get("swap_battery_taxed") or 0.0)
     buy_swap = max(0.0, bare * tax + swap_bat_tax - subsidy)
-    buy_charge = max(0.0, (bare + kwh * p0) * tax - subsidy)
+    buy_charge = max(0.0, (bare + kwh * pack_mult * p0) * tax - subsidy)
     fixed = float(tco["maintenance"]) + float(tco["payload_loss"])
     # 【2026-09-21 · 门①】车队买断后自己接下的活：旧电池自己卖（回收率低于电池银行）、自己上保险与维护
     resale = float(tco.get("fleet_pack_resale_ratio") or 0.0)
-    hold_year = kwh * float(tco.get("fleet_battery_hold_rmb_kwh_year") or 0.0)
+    hold_year = (kwh * pack_mult * float(tco.get("fleet_battery_hold_rmb_kwh_year") or 0.0)
+                 + 12.0 * float(scene.get("depot_rotation_facility_rmb_truck_month") or 0.0))
 
-    life = battery_life_years(config, (annual_kwh / days / kwh) if days and kwh else 0.0)
+    life = battery_life_years(config, (annual_kwh / days / (kwh * pack_mult))
+                              if days and kwh else 0.0)
     # 【2026-09-23 · 对齐页】按班制分对手：`charge_regime = "depot"`（单班、夜里停场站慢充）时，
     # 充电车的电池不受快充损伤，寿命与池里相同（× pool_life_multiplier）；也没有多停的时间。
     # 默认 "megawatt"：干线兆瓦超充。多班倒的封闭短倒没有充电这个选项，由 share_price_insensitive 表达。
     regime = str(scene.get("charge_regime") or "megawatt")
-    if regime == "depot":
+    # 【2026-09-24 · 门②订正】场站轮换（depot_rotation）：多班倒的封闭短倒车不是"没有替代品"，
+    # 替代品是**车队自备两套电池、在场站慢充轮换**。此时车队的电池资本翻倍、每块电池的循环减半
+    # （寿命按减半后的循环算，仍受日历封顶），也不耽误运营时间。轮换设施与人工另计（见
+    # `depot_rotation_facility_rmb_truck_month`，缺现场数据时为 0，属对换电不利的方向）。
+    if regime in ("depot", "depot_rotation"):
         life = min(life * float(config["battery_life_model"].get("pool_life_multiplier") or 1.0),
                    float(config["battery_life_model"].get("calendar_cap_years") or 1e9))
     n = float(holding)
@@ -334,7 +343,7 @@ def _scene_tco(
         # 【2026-09-22e · 门②】到寿换新：整块买新包，退役旧包按回收率卖掉。
         # 此前按"剩余持有期"折算新包价、且持有期末不计残值：换新若发生在持有期末前不久，
         # 新包只付几个百分点却照收旧包 30% 回收款，车队账出现一笔凭空的收益（少活 50% 时短途份额反常下降即此）。
-        cost = kwh * new_price - kwh * new_price * resale
+        cost = kwh * pack_mult * new_price * (1.0 - resale)
         packs += cost
         pack_flows.append((start, cost))
         last_start = start
@@ -342,7 +351,7 @@ def _scene_tco(
     if n > 0 and life > 0:
         remain = max(0.0, 1.0 - (n - last_start) / life)
         end_price = battery_price_rmb_kwh(config, ref + n)
-        credit = -kwh * end_price * (resale + (1.0 - resale) * remain)
+        credit = -kwh * pack_mult * end_price * (resale + (1.0 - resale) * remain)
         packs += credit
         pack_flows.append((n, credit))
 
@@ -363,7 +372,13 @@ def _scene_tco(
     # 参照时间价值：JPM 全行业平均的单车年增收，是"常规快充下省出的那些小时"值的钱；
     # 换成兆瓦超充，省出的小时数按 stop_h_mw/stop_h 等比缩小，同一时薪下年时间价值也同比缩小。
     tv_year = float(tco.get("annual_gain_swap") or 0.0)
+    # 【2026-09-24 · 门①订正】兆瓦超充这一侧的时间价值要再乘一个"没被吸收掉的比例"：
+    # 连续驾驶 4 小时须停车休息 20 分钟（道交条例 62 条七项，src.road_safety_reg_62），
+    # 长途车一天约 2.9 次补能，其中 2 次可以塞进强制休息；剩下不到 1 次也不必用换电解决，
+    # 装卸、夜停时慢充即可。所以基准取 0——法规与装卸时间把这项优势吃掉了。
+    # 乐观档（散户赶时效、服务区排队、不按 4 小时排班）才给回 1.0。三档见 [drivers.time_value_mw]。
     tv_mw_year = tv_year * (stop_h_mw / stop_h) if stop_h > 0 else 0.0
+    tv_mw_year *= float(tco.get("megawatt_time_value_share", 1.0) or 0.0)
 
     # 换电侧自己的服务费成本线（本场景所在池），以及成熟期假设的单站日均服务车次
     line = (station_line or {}).get(pk, {})

@@ -318,6 +318,11 @@
     "type": "float"
   },
   {
+    "key": "tco_jpm.megawatt_time_value_share",
+    "value": 0.0,
+    "type": "float"
+  },
+  {
     "key": "tco_jpm.swap_battery_taxed",
     "value": 0.0,
     "type": "float"
@@ -536,6 +541,9 @@
         "battery_pool": "qiji75_short",
         "weight": 0.38,
         "swap_share_ceiling": 0.3,
+        "charge_regime": "depot_rotation",
+        "charge_pack_multiplier": 2.0,
+        "depot_rotation_facility_rmb_truck_month": 0.0,
         "catl_swap_share": 0.8,
         "daily_km": 260.0,
         "onboard_battery_kwh": 342.0,
@@ -1269,6 +1277,11 @@
     "type": "float"
   },
   {
+    "key": "swap_business.swap_service_premium_rmb_kwh",
+    "value": 0.0,
+    "type": "float"
+  },
+  {
     "key": "swap_business.battery_rent_rmb_kwh_month",
     "value": 9.7,
     "type": "float"
@@ -1400,12 +1413,12 @@
   },
   {
     "key": "battery_life_model.critical_cycles",
-    "value": 2100.0,
+    "value": 2000.0,
     "type": "float"
   },
   {
     "key": "battery_life_model.pool_life_multiplier",
-    "value": 1.6666666666666667,
+    "value": 2.5,
     "type": "float"
   },
   {

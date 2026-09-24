@@ -174,7 +174,8 @@ def build_charging_economics(config: dict, scale, capex, pool_ops: dict) -> dict
     days = float(sb.get("operating_days") or 0.0)
     rte = float(sb.get("rte") or 1.0)
     aux = float(sb.get("auxiliary_power_rate") or 0.0)
-    swap_fee = float(sb.get("service_fee_rmb_kwh") or 0.0)
+    swap_fee = (float(sb.get("service_fee_rmb_kwh") or 0.0)
+                + float(sb.get("swap_service_premium_rmb_kwh") or 0.0))
     best = None
     for pk in heavy:
         stations = float(capex.station_targets.get(pk, 0) or 0)

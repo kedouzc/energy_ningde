@@ -1055,5 +1055,101 @@
     "val.turnover_multiple": 10.391178864930001
    }
   }
+ },
+ {
+  "date": "2026-09-23",
+  "tiers": {
+   "悲观": {
+    "val.swap_increment": 1431.5172855474846,
+    "val.incr_over_mktcap": 0.08061706851086808,
+    "swap.coverage": 0.9447811852155926,
+    "swap.ebitda": 411.25699586161403,
+    "scale.stations_total": 8958.0,
+    "val.implied_multiple_perpetual": 6.359399954917227,
+    "val.turnover_multiple": 5.872910163547952
+   },
+   "中性": {
+    "val.swap_increment": 6331.049875200904,
+    "val.incr_over_mktcap": 0.3565382595709244,
+    "swap.coverage": 1.2949680909261272,
+    "swap.ebitda": 916.5322290684178,
+    "scale.stations_total": 15593.0,
+    "val.implied_multiple_perpetual": 8.031346960057357,
+    "val.turnover_multiple": 9.152665741311498
+   },
+   "乐观": {
+    "val.swap_increment": 12316.323081130457,
+    "val.incr_over_mktcap": 0.693603822781464,
+    "swap.coverage": 1.5864471784640117,
+    "swap.ebitda": 1418.4303715843748,
+    "scale.stations_total": 20179.0,
+    "val.implied_multiple_perpetual": 8.72850361066322,
+    "val.turnover_multiple": 10.391178864930001
+   }
+  }
+ },
+ {
+  "date": "2026-09-24",
+  "tiers": {
+   "悲观": {
+    "val.swap_increment": 1169.7093360738156,
+    "val.incr_over_mktcap": 0.0658731393858093,
+    "swap.coverage": 1.1851788476540586,
+    "swap.ebitda": 408.9160438777745,
+    "scale.stations_total": 8928.0,
+    "val.implied_multiple_perpetual": 7.880880354316908,
+    "val.turnover_multiple": 8.739266866072986
+   },
+   "中性": {
+    "val.swap_increment": 6331.049875200904,
+    "val.incr_over_mktcap": 0.3565382595709244,
+    "swap.coverage": 1.4025861980307046,
+    "swap.ebitda": 916.5322290684178,
+    "scale.stations_total": 15593.0,
+    "val.implied_multiple_perpetual": 8.490538983420429,
+    "val.turnover_multiple": 10.168009729896191
+   },
+   "乐观": {
+    "val.swap_increment": 12544.97183888289,
+    "val.incr_over_mktcap": 0.7064803648635969,
+    "swap.coverage": 1.68010711369889,
+    "swap.ebitda": 1443.6116140892987,
+    "scale.stations_total": 19645.0,
+    "val.implied_multiple_perpetual": 8.880970298785371,
+    "val.turnover_multiple": 10.714792609686016
+   }
+  }
+ },
+ {
+  "date": "2026-09-24b",
+  "tiers": {
+   "悲观": {
+    "val.swap_increment": 1169.7093360738156,
+    "val.incr_over_mktcap": 0.0658731393858093,
+    "swap.coverage": 1.1851788476540586,
+    "swap.ebitda": 408.9160438777745,
+    "scale.stations_total": 8928.0,
+    "val.implied_multiple_perpetual": 7.880880354316908,
+    "val.turnover_multiple": 8.739266866072986
+   },
+   "中性": {
+    "val.swap_increment": 6331.049875200904,
+    "val.incr_over_mktcap": 0.3565382595709244,
+    "swap.coverage": 1.4025861980307046,
+    "swap.ebitda": 916.5322290684178,
+    "scale.stations_total": 15593.0,
+    "val.implied_multiple_perpetual": 8.490538983420429,
+    "val.turnover_multiple": 10.168009729896191
+   },
+   "乐观": {
+    "val.swap_increment": 12544.97183888289,
+    "val.incr_over_mktcap": 0.7064803648635969,
+    "swap.coverage": 1.68010711369889,
+    "swap.ebitda": 1443.6116140892987,
+    "scale.stations_total": 19645.0,
+    "val.implied_multiple_perpetual": 8.880970298785371,
+    "val.turnover_multiple": 10.714792609686016
+   }
+  }
  }
 ]

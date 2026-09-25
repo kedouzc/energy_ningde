@@ -434,7 +434,7 @@
   },
   {
     "key": "tco_jpm.charge_service_fee_rmb_kwh",
-    "value": 0.104,
+    "value": 0.1537,
     "type": "float"
   },
   {
@@ -1229,7 +1229,7 @@
   },
   {
     "key": "construction.battery_price_curve.storage_to_power_price_ratio",
-    "value": 0.917,
+    "value": 0.85,
     "type": "float"
   },
   {
@@ -1284,7 +1284,7 @@
   },
   {
     "key": "swap_business.service_fee_rmb_kwh",
-    "value": 0.104,
+    "value": 0.1537,
     "type": "float"
   },
   {
@@ -1319,7 +1319,7 @@
   },
   {
     "key": "swap_business.battery_rent_per_kwh_rmb",
-    "value": 0.1689,
+    "value": 0.1748,
     "type": "float"
   },
   {
@@ -2067,6 +2067,16 @@
   {
     "key": "charging_station.capex_rmb_per_kw",
     "value": 600.0,
+    "type": "float"
+  },
+  {
+    "key": "charging_station.supercharge_equipment_share",
+    "value": 0.4,
+    "type": "float"
+  },
+  {
+    "key": "charging_station.supercharge_equipment_price_ratio",
+    "value": 3.0,
     "type": "float"
   },
   {

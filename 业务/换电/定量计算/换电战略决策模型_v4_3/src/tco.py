@@ -125,12 +125,13 @@ def build_heavy_economics(
 
     annual_km = float(tco["annual_km"])
     annual_kwh = annual_km * float(tco["kwh_per_km"])
-    # 换电年运营成本：能源（含电费） + 维保 + 载重损失 − 年增收（后两项 JPM 电动列原值）
+    # 换电年运营成本：能源（含电费） + 维保 + 载重损失（JPM 电动列原值）。
+    # 【2026-09-25e 更正】不再减 JPM"年增收 4 万"：那是换电相对**常规充电**省下的时间；这里比的是 LNG／柴油，
+    # 加注十几分钟、与换电 5 分钟同量级，没有这笔时间价值。4 万只在车队总账（换电对充电）里用。
     swap_opex = (
         annual_kwh * user_energy
         + float(tco["maintenance"])
         + float(tco["payload_loss"])
-        - float(tco["annual_gain_swap"])
     ) if user_energy is not None else None
     lng_opex = (
         float(tco["lng_energy_cost_year"])

@@ -72,7 +72,21 @@ def _station_economics(
     }
 
 
-def equilibrium_service_fee(config: dict, utilization: float | None = None) -> dict[str, float]:
+def supercharge_capex_per_kw(config: dict) -> float:
+    """【2026-09-25e】超充站每千瓦造价 ＝ 常规快充站造价 ×（1 ＋ 设备占比 ×（超充设备单价倍数 − 1））。
+
+    只放大设备那一块：电力接入按每 kVA 计价，功率相同则量级相同（没有配容比更高的定量来源，不放大）。
+    设备倍数取同一篇报道里的一对数（液冷超充对风冷快充，比例可搬），水平锚在常规站造价上（水平不可搬）。
+    """
+    cfg = config.get("charging_station") or {}
+    base = float(cfg.get("capex_rmb_per_kw") or 0.0)
+    share = float(cfg.get("supercharge_equipment_share") or 0.0)
+    ratio = float(cfg.get("supercharge_equipment_price_ratio") or 1.0)
+    return base * (1.0 + share * (ratio - 1.0))
+
+
+def equilibrium_service_fee(config: dict, utilization: float | None = None,
+                            kind: str = "supercharge") -> dict[str, float]:
     """【2026-09-21 · 门① 均衡终局】充电服务费会停在哪：新进场的人刚好赚回资金成本的那个价。
 
     与上面 `_station_economics` 的区别只有一处：那边回答"这门生意一年挣多少"，不放折现率；
@@ -94,7 +108,10 @@ def equilibrium_service_fee(config: dict, utilization: float | None = None) -> d
     loss_rate = float(cfg.get("loss_rate") or 0.0)
     platform = float(cfg.get("platform_commission_rate") or 0.0)
     station_kw = float(cfg.get("reference_station_kw") or 0.0)
-    capex_wan = float(cfg.get("capex_rmb_per_kw") or 0.0) * station_kw / 1e4
+    # 【2026-09-25e】换电的对手整包是超充：均衡价按超充站造价算；kind="conventional" 给常规快充对照
+    per_kw = (supercharge_capex_per_kw(config) if kind == "supercharge"
+              else float(cfg.get("capex_rmb_per_kw") or 0.0))
+    capex_wan = per_kw * station_kw / 1e4
     fixed_wan = capex_wan * opex_rate + float(cfg.get("site_rent_wan_year") or 0.0) \
         + float(cfg.get("labor_wan_year") or 0.0)
     power = float(sb.get("valley_power_price_rmb_kwh") or 0.0)
@@ -135,6 +152,7 @@ def build_charging_economics(config: dict, scale, capex, pool_ops: dict) -> dict
     _eq = equilibrium_service_fee(config)
     out["equilibrium_fee_rmb_kwh"] = _eq["equilibrium_fee"]
     out["cash_fee_rmb_kwh"] = _eq["cash_fee"]
+    out["equilibrium_fee_conventional_rmb_kwh"] = equilibrium_service_fee(config, kind="conventional")["equilibrium_fee"]
 
     # —— 超充站：按"一座参照站"算，规模可约掉，但写成一座站更好读 ——
     def _charge_at(u: float, rate: float = platform) -> dict[str, float]:

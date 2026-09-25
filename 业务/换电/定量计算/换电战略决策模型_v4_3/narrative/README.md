@@ -1,6 +1,6 @@
 # narrative/ —— 叙述层源文件
 
-这个目录放**人（或 LLM）写的正文**。`outputs/` 下的同名 `.md` 是生成物，改了会被覆盖。
+这个目录放**人（或 LLM）写的正文**。与 `.src.md` 同目录的同名 `.md` 是生成物，改了会被覆盖。
 
 ## 文件地图（2026-09-25d 重写：先按问题找，再按章找）
 
@@ -103,7 +103,7 @@ narrative/
 
 **这里的 `.src.md` 不允许出现任何字面数字。**
 
-数字只能写成占位符，由 `python src/build.py` 从 `outputs/facts.json` 注入：
+数字只能写成占位符，由 `python src/build.py` 从 `build/facts.json` 注入：
 
 | 写法 | 注入结果 | 用在哪 |
 |---|---|---|
@@ -132,7 +132,7 @@ narrative/
 
 ## 有哪些事实可以用
 
-`outputs/facts.json` 是完整清单（事实包），每条带 `label`（中文名）、`from`
+`build/facts.json` 是完整清单（事实包），每条带 `label`（中文名）、`from`
 （出处程序 `src/<source>.py` ＋ 快照取值路径）、`unit`、`note`（口径说明）。
 
 **写 MD 只写中文名**，没有第二种写法：`{{可归因换电增量价值}}` / `{{年换电交易电量}}`。
@@ -173,7 +173,7 @@ TCO 测算等），住在 `configs/base.toml` 末尾的 `[[external_quote]]`—�
 
 ## 待复核是什么意思
 
-每个段落记住它引用了哪些事实、当时是什么值（存在 `outputs/narrative_state.json`）。
+每个段落记住它引用了哪些事实、当时是什么值（存在 `build/narrative_state.json`）。
 重跑后某个事实的变动超过它的 `watch` 阈值，引用它的段落会被标成「待复核」：
 
 ```

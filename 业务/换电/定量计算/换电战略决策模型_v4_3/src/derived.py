@@ -265,10 +265,21 @@ def _sinking(r: float, n: float) -> float:
     return r / ((1.0 + r) ** n - 1.0) if r > 0 and n > 0 else (1.0 / n if n > 0 else 0.0)
 
 
+def sale_price_ratio(config: dict, years: float) -> float:
+    """卖出那年的新电池价 ÷ 买入那年的新电池价（按价格曲线）。
+
+    旧电池卖价比例（resale）的定义是"占**卖出那年**新电池价"；年金法里旧电池折回
+    乘的是**买入价**，所以要乘这个比把基数对齐——否则等于假设电池不降价，高估旧电池回款。"""
+    y0 = float(config["meta"]["reference_year"])
+    p0 = battery_price_rmb_kwh(config, y0)
+    return battery_price_rmb_kwh(config, y0 + years) / p0 if p0 else 1.0
+
+
 def battery_hold_month(kwh: float, price: float, tax: float, r: float, years: float,
-                       resale: float, hold_rmb_kwh_year: float) -> float:
-    """持有一块电池每月要多少钱才保本（元/月）：资金成本（还本付息 − 旧电池卖钱折回）＋ 保险维护。"""
-    cap = kwh * price * (1.0 + tax) * (_crf(r, years) - resale * _sinking(r, years))
+                       resale: float, hold_rmb_kwh_year: float, sale_ratio: float = 1.0) -> float:
+    """持有一块电池每月要多少钱才保本（元/月）：资金成本（还本付息 − 旧电池卖钱折回）＋ 保险维护。
+    sale_ratio ＝ 卖出那年新电池价 ÷ 买入价（sale_price_ratio），把旧电池卖价的基数对齐到买入价。"""
+    cap = kwh * price * (1.0 + tax) * (_crf(r, years) - resale * sale_ratio * _sinking(r, years))
     return (cap + kwh * hold_rmb_kwh_year) / 12.0
 
 
@@ -301,8 +312,9 @@ def rent_ceiling(config: dict) -> dict:
         if not kwh or not cpy:
             continue
         years = min(car_cycles / cpy, cap_years)
-        lessor = battery_hold_month(kwh, price, tax, r_lessor, years, bank_resale, pool_hold)
-        self_low = battery_hold_month(kwh, price, tax, r_low, years, fleet_resale, fleet_hold)
+        sr = sale_price_ratio(config, years)
+        lessor = battery_hold_month(kwh, price, tax, r_lessor, years, bank_resale, pool_hold, sr)
+        self_low = battery_hold_month(kwh, price, tax, r_low, years, fleet_resale, fleet_hold, sr)
         use_month = float(sc["daily_km"]) * float(sc["energy_consumption_kwh_km"]) * days / 12.0
         ceiling = min(lessor, self_low)
         out["scenes"][sc["name"]] = {

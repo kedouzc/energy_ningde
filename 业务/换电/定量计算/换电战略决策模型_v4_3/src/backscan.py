@@ -12,7 +12,7 @@ v4.3 报告三层分工：数据层（骨架表，机器生成）／必答问题
 用法
 ----
 python src/backscan.py [target_md]
-默认 target = ../MANIFEST.md；快照固定读 ../outputs/decision_snapshot_v4_3.json。
+默认 target = ../MANIFEST.md；快照固定读 ../build/decision_snapshot_v4_3.json。
 退出码：全部 PASS 为 0，存在 FAIL 为 1（可挂 CI 或运行前自检）。
 """
 from __future__ import annotations
@@ -22,7 +22,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-SNAPSHOT_PATH = ROOT.parent / "outputs" / "decision_snapshot_v4_3.json"
+from paths import SNAPSHOT_PATH  # noqa: E402
 DEFAULT_TARGET = ROOT.parent / "MANIFEST.md"
 
 

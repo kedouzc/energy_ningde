@@ -195,15 +195,20 @@ def network_limit(config: dict, scenes: dict, heavy_scenes: dict) -> dict | None
         demand += t * freq
         by[name] = {"cum_ev_wan": cum_ev, "swap_trucks_wan": t, "swaps_per_day": freq}
     n_years = years[-1] - int(sup.get("base_year", 2026))
-    stations = float(sup["stations_base_all"]) + float(sup["build_per_year"]) * n_years
+    base = float(sup["stations_base_all"])
+    plan = base + float(sup["qiji_plan_2030"]) - float(sup["qiji_stations_base"])   # 已公布规划下的兑现年站数
     cap_station = float(config["stations"]["qiji75_trunk"]["planning_daily_capacity"])
-    capacity = stations * cap_station / 1e4          # 万次/日
     demand_wan = demand                               # 万辆 × 次/日 ＝ 万次/日
-    factor = min(1.0, capacity / demand_wan) if demand_wan > 0 else 1.0
-    need = demand_wan * 1e4 / cap_station
-    return {"factor": factor, "stations_2030": stations, "stations_needed": need, "capacity_wan_day": capacity,
+    need = demand_wan * 1e4 / cap_station             # 按需求建要的站（全体运营商）
+    factor_plan = min(1.0, plan * cap_station / 1e4 / demand_wan) if demand_wan > 0 else 1.0
+    mode = sup.get("mode", "endogenous")
+    factor = factor_plan if mode == "plan" else 1.0   # 内生：过门槛就按需求建；闸门在 model 层核对（gate_check）
+    stations = plan if mode == "plan" else max(need, base)
+    return {"factor": factor, "factor_plan": factor_plan, "mode": mode, "stations_2030": stations,
+            "stations_plan_2030": plan, "stations_needed": need, "capacity_wan_day": stations * cap_station / 1e4,
             "demand_wan_day": demand_wan, "swap_trucks_demand_wan": trucks, "by_scene": by,
-            "build_needed_per_year": (need - float(sup["stations_base_all"])) / n_years if n_years else 0.0}
+            "build_needed_per_year": (need - base) / n_years if n_years else 0.0,
+            "build_plan_per_year": (plan - base) / n_years if n_years else 0.0}
 
 
 def applied_config(config: dict, response: dict | None) -> dict:

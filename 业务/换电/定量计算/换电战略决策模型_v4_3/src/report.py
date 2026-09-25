@@ -2656,8 +2656,7 @@ def write_outputs(
 ) -> dict[str, Path]:
     output_dir = ROOT.parent / "outputs"
     output_dir.mkdir(parents=True, exist_ok=True)
-    snapshot_path = output_dir / "decision_snapshot_v4_3.json"
-    registry_path = output_dir / "dashboard_parameter_registry_v4_3.json"
+    from paths import SNAPSHOT_PATH as snapshot_path, REGISTRY_PATH as registry_path
     snapshot_path.write_text(
         json.dumps(snapshot.to_dict(), ensure_ascii=False, indent=2),
         encoding="utf-8",

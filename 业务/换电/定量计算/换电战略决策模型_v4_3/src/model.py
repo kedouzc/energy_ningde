@@ -192,6 +192,37 @@ def build_scenarios(config: dict) -> dict[str, "ModelSnapshot"]:
     return out
 
 
+def _gated_core(config: dict, scenario_name: str | None, life_mode: str):
+    """闸门与主算合一：过门槛时探测那一遍就是结果，不重复算。"""
+    sup = config.get("supply_network") or {}
+    snap = _build_core(config, scenario_name, life_mode)
+    if sup.get("mode", "endogenous") != "endogenous" or \
+            float(snap.swap_business.forward_to_required_ebitda) >= float(sup.get("hurdle_coverage", 1.0)):
+        return config, snap
+    import copy as _copy
+    out = _copy.deepcopy(config)
+    out["supply_network"]["mode"] = "plan"
+    return out, _build_core(out, scenario_name, life_mode)
+
+
+def supply_gate(config: dict, scenario_name: str | None = None, life_mode: str = "derived", **_: object) -> dict:
+    """供给侧闸门：站数内生（按需求建）的前提是兑现年系统账过门槛。
+
+    覆盖倍数 ≥ [supply_network] hurdle_coverage → 原样返回（站按需求建）；
+    不过 → 返回 mode="plan" 的副本：站只按已公布规划建，份额 ＝ min(需求侧, 规划站网能服务的份额)。
+    口径：口径/车辆与站数_推算方法.src.md 第 3 节。"""
+    sup = config.get("supply_network") or {}
+    if sup.get("mode", "endogenous") != "endogenous":
+        return config
+    probe = _build_core(config, scenario_name, life_mode)
+    if float(probe.swap_business.forward_to_required_ebitda) >= float(sup.get("hurdle_coverage", 1.0)):
+        return config
+    import copy as _copy
+    out = _copy.deepcopy(config)
+    out["supply_network"]["mode"] = "plan"
+    return out
+
+
 def build_model(
     config: dict,
     scenario_name: str | None = None,
@@ -202,7 +233,7 @@ def build_model(
     私家车分档渗透率已由 [drivers.private_penetration] 按情景档写入场景活值，
     随 config 走，不再是独立关键字参数。
     """
-    snapshot = _build_core(config, scenario_name, life_mode)
+    config, snapshot = _gated_core(config, scenario_name, life_mode)
     reference = _build_core(
         config, config["mna"]["comparison_scenario_name"], life_mode
     )

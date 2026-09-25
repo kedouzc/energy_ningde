@@ -8,11 +8,11 @@
 流水线
 ------
     configs/base.toml
-        └─ run.py         → outputs/decision_snapshot_v4_3.json（唯一事实源）
+        └─ run.py         → build/decision_snapshot_v4_3.json（唯一事实源）
                              outputs/换电战略决策报告_v4.3.md（骨架，机器填数）
-        └─ facts.py       → outputs/facts.json（叙述层唯一可引用的数字）
+        └─ facts.py       → build/facts.json（叙述层唯一可引用的数字）
         └─ inject.py      → 检查 narrative/*.src.md 无裸数字
-                             注入 → outputs/*.md
+                             注入 → 源文件同目录的 *.md（narrative/chapters、narrative/topics、口径/）
                              对比上次的值 → 标出待复核段落
 """
 from __future__ import annotations
@@ -98,17 +98,10 @@ def main() -> None:
     except Exception as _e:
         print(f"⚠ 跟踪比对跳过：{_e}")
 
-    code = inject_mod.process()
-    # 【2026-09-25f】口径文档的数由程序填（口径/*.src.md → 口径/*.md），状态文件不许留过程痕迹
+    # 叙述与口径同一个注入器：口径多一份现算表（caliber_docs.values），生成稿写在源文件同目录
     import caliber_docs
     import state_lint
-    _miss = caliber_docs.render(config)
-    if _miss:
-        print("\n口径文档有未解析的占位符：")
-        for _m in _miss:
-            print("  ✗ " + _m)
-        code = code or 1
-    print("口径文档  已由模型现算刷新（口径/*.src.md → 口径/*.md）")
+    code = inject_mod.process(extra=caliber_docs.values(config))
     if state_lint.main():
         print("状态文件（口径、专题、章）里有过程痕迹：改动经过只写进 DECISIONS.md。")
         code = code or 1

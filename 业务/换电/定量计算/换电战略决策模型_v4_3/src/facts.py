@@ -45,7 +45,7 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 ROOT = Path(__file__).resolve().parent.parent
-FACTS_PATH = ROOT / "outputs" / "facts.json"
+from paths import FACTS_PATH  # noqa: E402
 
 
 # ─────────────────────────────────────────── 信源引用事实（src.*）

@@ -1,4 +1,4 @@
-"""口径文档的数由程序填：口径/*.src.md（源，人写，只放占位符） → 口径/*.md（产物，勿手改）。
+"""口径文档的现算值：口径/*.src.md 里的表与算式中间量由本模块算，注入由 src/inject.py 统一做（与叙述同一个注入器）。
 
 为什么：口径是「状态」文件，数字必须与模型当下的计算一致。手抄的数一改参数就过期，
 而过期没人发现（2026-09-25 车队总账的旧电池卖价就是这样）。所以口径里凡是"模型算出来的数"，
@@ -6,7 +6,7 @@
 
 占位符来源两处：
   1. 本模块的计算表 VALUES（车队总账要用的保本价、上沿、拆解、临界线等，与 derived／tco 同一套函数）；
-  2. outputs/facts.json 里的读数（按中文名）。
+  2. build/facts.json 里的读数（按中文名，由 inject 查）。
 找不到的占位符 → 构建失败。
 """
 from __future__ import annotations
@@ -19,7 +19,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "口径"
-FACTS = ROOT / "outputs" / "facts.json"
 PH = re.compile(r"\{\{([^{}]+)\}\}")
 
 
@@ -56,8 +55,9 @@ def _tier_cfg(config: dict, tier: str) -> dict:
 
 def ledger_values(config: dict) -> dict[str, str]:
     """车队总账要用的全部数（中性＝基线；三档＝只换寿命与随之联动的租金）。"""
-    from derived import (battery_hold_month, battery_price_rmb_kwh, fleet_resale_ratio,
-                         rent_ceiling, retirement_recovery_ratio, scene_cycles_per_year, _crf, _sinking)
+    from derived import (battery_hold_month as _bhm, battery_price_rmb_kwh, fleet_resale_ratio,
+                         rent_ceiling, retirement_recovery_ratio, scene_cycles_per_year, _crf, _sinking,
+                         sale_price_ratio)
     from charging import equilibrium_service_fee, supercharge_capex_per_kw
 
     V: dict[str, str] = {}
@@ -112,6 +112,9 @@ def ledger_values(config: dict) -> dict[str, str]:
         V[f"{n}周转比例"] = _pct(turn[n], 1)
         V[f"{n}每天换几次"] = f"{per_day:.2f}"
         V[f"{n}一站服务车数"] = _f(served)
+
+    def battery_hold_month(kwh, price, t, r, y, res, ins):   # 同名包一层：旧电池卖价基数对齐到买入价
+        return _bhm(kwh, price, t, r, y, res, ins, sale_price_ratio(config, y))
 
     # —— 保本价（年金法，与 derived.rent_ceiling 同一函数）——
     def bank(n: str) -> float:
@@ -169,16 +172,22 @@ def ledger_values(config: dict) -> dict[str, str]:
     y_car = min(car / cpy, cap); y_pool = min(pool_cycles / cpy, cap)
     V["中途车上年数"] = f"{y_car:.2f}"
     V["中途池里年数"] = f"{pool_cycles / cpy:.1f}"
+    V["中途车上卖出价比"] = f"{sale_price_ratio(config, y_car):.2f}"
+    V["中途池里卖出价比"] = f"{sale_price_ratio(config, y_pool):.2f}"
+    V["银行旧电池卖价·占买入价"] = _pct(bank_res * sale_price_ratio(config, y_car), 1)
+    _c1 = copy.deepcopy(config); _c1["tco_jpm"]["fleet_scatter_discount"] = 1.0
+    V["零散卖折扣取1时保底租金"] = f"{rent_ceiling(_c1)['floor']:.2f}"
+    V["车队旧电池卖价·占买入价"] = _pct(fleet_res * sale_price_ratio(config, y_car), 1)
     V["中途含税电池价"] = _f(kwh * price * (1 + tax))
-    a = _crf(r_les, y_car); b = bank_res * _sinking(r_les, y_car)
+    a = _crf(r_les, y_car); b = bank_res * sale_price_ratio(config, y_car) * _sinking(r_les, y_car)
     V["租赁商系数"] = f"{a:.4f}"; V["租赁商折回"] = f"{b:.4f}"
     V["租赁商资金年"] = _f(kwh * price * (1 + tax) * (a - b)); V["租赁商保险年"] = _f(kwh * pool_hold)
     V["中途租赁商保本"] = _f(lessor("中途", car))
-    r9 = rates[1]; a9 = _crf(r9, y_car); b9 = fleet_res * _sinking(r9, y_car)
+    r9 = rates[1]; a9 = _crf(r9, y_car); b9 = fleet_res * sale_price_ratio(config, y_car) * _sinking(r9, y_car)
     V["自买9系数"] = f"{a9:.4f}"; V["自买9折回"] = f"{b9:.4f}"
     V["自买9资金年"] = _f(kwh * price * (1 + tax) * (a9 - b9)); V["自买9保险年"] = _f(kwh * fleet_hold)
     V["中途自买9"] = _f(selfbuy("中途", car, r9))
-    hold = kwh * (1 + turn["中途"]); ab = _crf(r_bank, y_pool); bb = bank_res * _sinking(r_bank, y_pool)
+    hold = kwh * (1 + turn["中途"]); ab = _crf(r_bank, y_pool); bb = bank_res * sale_price_ratio(config, y_pool) * _sinking(r_bank, y_pool)
     V["中途持有度数"] = f"{hold:.1f}"; V["银行系数"] = f"{ab:.4f}"; V["银行折回"] = f"{bb:.4f}"
     V["银行资金年"] = _f(hold * price * (ab - bb)); V["银行保险年"] = _f(hold * pool_hold)
 
@@ -329,104 +338,110 @@ def model_values(config: dict) -> dict[str, str]:
 
 
 def supply_values(config: dict) -> dict[str, str]:
-    """供给侧：站网能服务多少车（全体运营商口径），三情景与分年路径。"""
+    """供给侧：站数内生（过门槛按需求建）；闸门、可行性（需求要的年新建 vs 已公布规划）、覆盖上界。"""
     from config_loader import apply_scenario
-    from price_response import compute_response
-    from tco import build_scene_economics
+    from lab import read_metrics
+    from model import build_model, supply_gate
     V: dict[str, str] = {}
     drv = {k: v for k, v in config["drivers"].items() if isinstance(v, dict) and v.get("scenario_axis", True)}
     years = [int(y) for y in config["construction"]["years"]]
     heavy = config["vehicles"]["heavy"]
+    sup = config["supply_network"]
     annual = float(heavy["stock_wan"]) / float(heavy["replacement_cycle_years"])
+    cap = float(config["stations"]["qiji75_trunk"]["planning_daily_capacity"])
+    body = float(config["stations"]["qiji75_trunk"]["station_body_capex_wan"])
+    hurdle = float(sup.get("hurdle_coverage", 1.0))
     V["重卡年销量"] = _f(annual)
     V["电动化路径"] = "／".join(_pct(r, 0) for r in heavy["nev_rates"])
-    V["单站规划能力"] = _f(float(config["stations"]["qiji75_trunk"]["planning_daily_capacity"]))
-    V["存量站数"] = _f(float(config["supply_network"]["stations_base_all"]))
-    tier_rows = ["| | 悲观 | 中性 | 乐观 |", "|---|---|---|---|"]
-    cols = {k: [] for k in ("build", "st", "need", "needb", "fac", "dem", "sh", "trucks")}
-    path_rows = None
+    V["单站规划能力"] = _f(cap)
+    V["存量站数"] = _f(float(sup["stations_base_all"]))
+    V["骐骥存量站数"] = _f(float(sup["qiji_stations_base"]))
+    V["骐骥2030规划站数"] = _f(float(sup["qiji_plan_2030"]))
+    V["干线运力覆盖目标"] = _pct(float(sup["trunk_coverage_target"]), 0)
+    V["闸门覆盖倍数"] = f"{hurdle:.1f}"
+    V["站体造价"] = _f(body)
+    cols: dict[str, list[str]] = {k: [] for k in ("cov", "gate", "dem", "need", "catl", "plan", "needb", "planb", "mult", "fplan", "sh", "capex", "trucks")}
     for t in ("悲观", "中性", "乐观"):
         c = copy.deepcopy(config)
-        apply_scenario(c, drv, t)
-        r = compute_response(c, build_scene_economics(c))
+        kw = apply_scenario(c, drv, t)
+        gated = supply_gate(c, **kw)
+        m = read_metrics(build_model(c, **kw), c, strict=False)
+        passed = gated["supply_network"]["mode"] == "endogenous"
+        from price_response import compute_response
+        from tco import build_scene_economics
+        r = compute_response(gated, build_scene_economics(gated))
         n = r["network"]
-        cols["build"].append(_f(float(c["supply_network"]["build_per_year"])))
-        cols["st"].append(_f(n["stations_2030"])); cols["need"].append(_f(n["stations_needed"]))
-        cols["needb"].append(_f(n["build_needed_per_year"])); cols["fac"].append(_pct(n["factor"], 0))
-        cols["dem"].append(_pct(r["weighted_penetration_demand"])); cols["sh"].append(_pct(r["weighted_penetration"]))
-        cols["trucks"].append(f"{n['swap_trucks_demand_wan'] * n['factor']:.1f}")
+        _cs = {sc["name"]: float(sc.get("catl_swap_share") or 0.0) for sc in gated["vehicles"]["heavy"]["scenes"]}
+        _w = {k: v["swap_trucks_wan"] * v["swaps_per_day"] for k, v in n["by_scene"].items()}
+        share_catl = sum(_w[k] * _cs[k] for k in _w) / sum(_w.values()) if sum(_w.values()) else 0.0
+        cols["cov"].append(f"{m['swap.coverage']:.2f}")
+        cols["gate"].append("通过" if passed else "**不过**")
+        cols["dem"].append(_pct(r["weighted_penetration_demand"]))
+        cols["need"].append(_f(n["stations_needed"]))
+        cols["catl"].append(_f(n["stations_needed"] * share_catl))
+        cols["plan"].append(_f(n["stations_plan_2030"]))
+        cols["needb"].append(_f(n["build_needed_per_year"]))
+        cols["planb"].append(_f(n["build_plan_per_year"]))
+        cols["mult"].append(f"{n['build_needed_per_year'] / n['build_plan_per_year']:.1f}" if n["build_plan_per_year"] else "—")
+        cols["fplan"].append(_pct(n["factor_plan"], 0))
+        cols["sh"].append(_pct(r["weighted_penetration"]))
+        cols["capex"].append(_f(n["stations_needed"] * body / 1e4))
+        cols["trucks"].append(f"{n['swap_trucks_demand_wan'] * n['factor']:.0f}")
         if t == "中性":
-            hs0 = {s["name"]: s for s in heavy["scenes"]}
-            days = float(c["swap_business"]["operating_days"])
-            e = sum(v["swap_trucks_wan"] * n["factor"] * float(hs0[k]["daily_km"]) * float(hs0[k]["energy_consumption_kwh_km"]) * days
-                    for k, v in n["by_scene"].items())          # 万辆 × 度/年 ＝ 万度
-            V["兑现年换电重卡·中性"] = f"{n['swap_trucks_demand_wan'] * n['factor']:.0f} 万辆"
-            V["兑现年重卡换电电量·中性"] = f"{e / 1e4:,.0f} 亿度"
-            per = [float(s["daily_km"]) * float(s["energy_consumption_kwh_km"]) * days / 1e4 for s in heavy["scenes"]]
-            V["每车年用电·场景区间"] = f"{min(per):.0f}–{max(per):.0f} 万度"
-            # 分年：天花板需求所需站数 vs 供给路径
-            hs = {s["name"]: s for s in heavy["scenes"]}
-            usable = float(c["swap_business"]["usable_energy_factor"]); cap = float(c["stations"]["qiji75_trunk"]["planning_daily_capacity"])
-            cum = 0.0; rows = ["| 年末 | 当年纯电重卡销量（万辆） | 按天花板累计换电重卡（万辆） | 需要的站（座） | 站网供给（座） | 供给 ÷ 需要 |", "|---|---|---|---|---|---|"]
-            swaps = 0.0; trucks_cum = 0.0
+            V["需求所需站数·中性"] = _f(n["stations_needed"])
+            V["需求要的年新建·中性"] = _f(n["build_needed_per_year"])
+            V["规划年新建"] = _f(n["build_plan_per_year"])
+            V["需求对规划的倍数·中性"] = f"{n['build_needed_per_year'] / n['build_plan_per_year']:.1f}"
+            V["规划站网能服务的比例·中性"] = _pct(n["factor_plan"], 0)
+            V["规划站数"] = _f(n["stations_plan_2030"])
+            V["宁德所需站数·中性"] = _f(n["stations_needed"] * share_catl)
+            V["站体投资·中性"] = _f(n["stations_needed"] * body / 1e4)
+            # 分年：按需求所需站数 vs 已公布规划（线性铺）
+            hs = {sc["name"]: sc for sc in heavy["scenes"]}
+            usable = float(c["swap_business"]["usable_energy_factor"])
+            rows = ["| 年末 | 当年纯电重卡销量（万辆） | 累计换电重卡（万辆） | 按需求要的站（座） | 已公布规划（座） | 规划 ÷ 需要 |", "|---|---|---|---|---|---|"]
+            swaps = trucks_cum = 0.0
+            base_y = int(sup["base_year"]); base = float(sup["stations_base_all"])
             for i, y in enumerate(years):
                 ev = annual * float(heavy["nev_rates"][i]) * float(heavy.get("pure_electric_share") or 1.0)
                 for name, info in r["scenes"].items():
-                    sc = hs[name]; w = float(sc["weight"])
+                    sc = hs[name]
                     f_ = float(sc["daily_km"]) * float(sc["energy_consumption_kwh_km"]) / (float(sc["onboard_battery_kwh"]) * usable)
-                    add = ev * w * info.get("penetration_demand", info["penetration"])
+                    add = ev * float(sc["weight"]) * info.get("penetration_demand", info["penetration"])
                     trucks_cum += add; swaps += add * f_
-                need = swaps * 1e4 / cap
-                supply = float(c["supply_network"]["stations_base_all"]) + float(c["supply_network"]["build_per_year"]) * (y - int(c["supply_network"]["base_year"]))
-                rows.append(f"| {y} | {ev:.1f} | {trucks_cum:.1f} | {_f(need)} | {_f(supply)} | {_pct(min(9.99, supply / need), 0)} |")
+                need_y = swaps * 1e4 / cap
+                plan_y = base + (n["stations_plan_2030"] - base) * (y - base_y) / (years[-1] - base_y)
+                rows.append(f"| {y} | {ev:.1f} | {trucks_cum:.1f} | {_f(need_y)} | {_f(plan_y)} | {_pct(min(9.99, plan_y / need_y), 0)} |")
             V["表:供给分年"] = "\n".join(rows)
-    tier_rows.append("| 2027–2030 年新建（座/年） | " + " | ".join(cols["build"]) + " |")
-    tier_rows.append("| 兑现年站数（全体运营商） | " + " | ".join(cols["st"]) + " |")
-    tier_rows.append("| 达到天花板需要的站数 | " + " | ".join(cols["need"]) + " |")
-    tier_rows.append("| 达到天花板需要的年新建 | " + " | ".join(cols["needb"]) + " |")
-    tier_rows.append("| 站网能力 ÷ 需求 | " + " | ".join(cols["fac"]) + " |")
-    tier_rows.append("| 换电占纯电重卡：不受站网约束 | " + " | ".join(cols["dem"]) + " |")
-    tier_rows.append("| **换电占纯电重卡：受站网约束（现行）** | " + " | ".join(cols["sh"]) + " |")
-    tier_rows.append("| 兑现年换电重卡（万辆，全体运营商） | " + " | ".join(cols["trucks"]) + " |")
-    V["表:供给三情景"] = "\n".join(tier_rows)
+            hs0 = hs; days = float(c["swap_business"]["operating_days"])
+            e = sum(v["swap_trucks_wan"] * n["factor"] * float(hs0[k]["daily_km"]) * float(hs0[k]["energy_consumption_kwh_km"]) * days
+                    for k, v in n["by_scene"].items())
+            V["兑现年换电重卡·中性"] = f"{n['swap_trucks_demand_wan'] * n['factor']:.0f} 万辆"
+            V["兑现年重卡换电电量·中性"] = f"{e / 1e4:,.0f} 亿度"
+            per = [float(x["daily_km"]) * float(x["energy_consumption_kwh_km"]) * days / 1e4 for x in heavy["scenes"]]
+            V["每车年用电·场景区间"] = f"{min(per):.0f}–{max(per):.0f} 万度"
+            # 覆盖上界：天花板 ÷ 干线运力覆盖目标 ＝ 覆盖区内要做到的换电占比
+            cov = float(sup["trunk_coverage_target"])
+            crow = ["| 场景 | 天花板 | ÷ 覆盖 " + _pct(cov, 0) + " ＝ 覆盖区内要做到的换电占比 |", "|---|---|---|"]
+            for sc in heavy["scenes"]:
+                ce = float(sc["swap_share_ceiling"])
+                crow.append(f"| {sc['name']} | {_pct(ce, 0)} | {_pct(ce / cov, 0)} |")
+            V["表:覆盖上界"] = "\n".join(crow)
+    rows = ["| | 悲观 | 中性 | 乐观 |", "|---|---|---|---|"]
+    for label, k in (("兑现年 EBITDA 覆盖倍数", "cov"), ("闸门（覆盖倍数 ≥ " + f"{hurdle:.1f}" + "）", "gate"),
+                     ("换电占纯电重卡·需求侧", "dem"), ("按需求要的站（全体运营商）", "need"), ("其中宁德（按各场景换电次数加权的宁德份额）", "catl"),
+                     ("已公布规划（全体运营商）", "plan"), ("按需求要的年新建（座/年）", "needb"), ("已公布规划的年新建（座/年）", "planb"),
+                     ("需求 ÷ 规划（倍）", "mult"), ("规划站网能服务需求的比例", "fplan"),
+                     ("**换电占纯电重卡（现行）**", "sh"), ("站体投资·全体运营商（亿，不含电池）", "capex"),
+                     ("兑现年换电重卡（万辆，全体运营商）", "trucks")):
+        rows.append(f"| {label} | " + " | ".join(cols[k]) + " |")
+    V["表:供给三情景"] = "\n".join(rows)
     return V
 
 
-def render(config: dict, with_model: bool = True) -> list[str]:
-    """渲染全部 口径/*.src.md → 口径/*.md。返回未解析的占位符清单（空＝通过）。"""
+def values(config: dict) -> dict[str, str]:
+    """口径文档可用的现算值（表与算式中间量）。注入由 src/inject.py 统一做（与叙述同一个注入器）。"""
     V = ledger_values(config)
     V.update(supply_values(config))
-    if with_model:
-        V.update(model_values(config))
-    facts = {}
-    if FACTS.exists():
-        raw = json.loads(FACTS.read_text(encoding="utf-8"))
-        for k, v in (raw.get("facts", raw) if isinstance(raw, dict) else {}).items():
-            if isinstance(v, dict) and "label" in v:
-                facts[v["label"]] = v.get("text", "")
-    missing: list[str] = []
-    for src in sorted(DOCS.glob("*.src.md")):
-        text = src.read_text(encoding="utf-8")
-
-        def sub(m: re.Match) -> str:
-            key = m.group(1).strip()
-            if key in V:
-                return V[key]
-            if key in facts:
-                return facts[key]
-            missing.append(f"{src.name}: {{{{{key}}}}}")
-            return m.group(0)
-        out = PH.sub(sub, text)
-        banner = (f"<!-- 本文件由 src/caliber_docs.py 从 {src.name} 生成，数字随模型刷新；**勿手改**，改源文件后跑 python src/build.py -->\n\n")
-        (DOCS / (src.name[:-len(".src.md")] + ".md")).write_text(banner + out, encoding="utf-8")
-    return missing
-
-
-if __name__ == "__main__":
-    import sys
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from config_loader import load_config
-    miss = render(load_config())
-    for m in miss:
-        print("  ✗ 未解析占位符 " + m)
-    sys.exit(1 if miss else 0)
+    V.update(model_values(config))
+    return V

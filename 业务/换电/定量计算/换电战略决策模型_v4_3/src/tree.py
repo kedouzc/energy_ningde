@@ -31,7 +31,7 @@ check，没挂的静默错下去。它的职责已全部并入本模块（存档
 运行
 ----
     python src/tree.py            # 跑全量校验，打印审计报告
-    python src/tree.py --json     # 额外写出 outputs/tree.json
+    python src/tree.py --json     # 额外写出 build/tree.json
     python src/tree.py --xlsx     # 额外写出 outputs/换电决策树_v4.3.xlsx（可折叠层级）
 """
 from __future__ import annotations
@@ -61,7 +61,7 @@ from lab import load_param_docs, METRICS  # noqa: E402
 from model import build_model  # noqa: E402
 from schemas import ModelSnapshot  # noqa: E402
 
-TREE_PATH = ROOT / "outputs" / "tree.json"
+from paths import TREE_JSON_PATH as TREE_PATH  # noqa: E402
 XLSX_PATH = ROOT / "outputs" / "换电决策树_v4.3.xlsx"
 
 # 三情景 = 把 [drivers] 声明的驱动因子同时拨档；中性档严格等于模型基线。
@@ -1049,7 +1049,7 @@ def export_xlsx(root: Node, c: Ctx, scen_ctx: dict[str, Ctx], path: Path) -> Non
 # ─────────────────────────────────────────── 主流程
 def main() -> None:
     parser = argparse.ArgumentParser(description="以终为始决策树 · 链路审计")
-    parser.add_argument("--json", action="store_true", help="额外写出 outputs/tree.json")
+    parser.add_argument("--json", action="store_true", help="额外写出 build/tree.json")
     parser.add_argument("--xlsx", action="store_true", help="额外写出可折叠的 Excel 层级表")
     args = parser.parse_args()
 

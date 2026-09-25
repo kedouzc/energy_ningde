@@ -28,8 +28,8 @@ def _files() -> list[Path]:
         for p in sorted(d.glob("*.md")):
             if p.name in SKIP_NAMES:
                 continue
-            # 口径里由 .src.md 生成的 .md 不重复查（查源文件）
-            if d.name == "口径" and not p.name.endswith(".src.md") and (d / (p.stem + ".src.md")).exists():
+            # 由 .src.md 生成的 .md 不重复查（查源文件）
+            if not p.name.endswith(".src.md") and (d / (p.stem + ".src.md")).exists():
                 continue
             out.append(p)
     return out

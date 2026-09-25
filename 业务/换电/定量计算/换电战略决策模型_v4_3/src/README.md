@@ -269,7 +269,7 @@ ModelSnapshot（schemas.py，16 个 dataclass 之总装）  ← 一切数字的�
    ├─ model.build_model 额外叠加：mna_comparison（四并购情景对照）
    │                              sensitivity（20+ 个内置敏感性 case）
    ▼
-report.write_outputs() ──▶ outputs/decision_snapshot_v4_3.json   唯一事实源
+report.write_outputs() ──▶ build/decision_snapshot_v4_3.json   唯一事实源
                            outputs/dashboard_parameter_registry_v4_3.json
                            outputs/换电战略决策报告_v4.3.md（骨架，机器填数）
 ```

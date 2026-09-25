@@ -667,3 +667,13 @@ why   = """研究者：状态文件只写现行值、文档要与模型对上；
 watch = """中性、乐观份额被站网压下；悲观不受约束；回报下降（车队少）。"""
 expect = "中性 回报 13.9%／份额 32.1%／宁德归属 1,750 亿／覆盖 1.43；悲观 10.8%／30.4%／774／1.21；乐观 18.2%／37.7%／3,810／1.75；build 与 tree 全绿。"
 
+[[round]]
+date  = "2026-09-25g"
+focus = "供给侧改为站数内生＋闸门；旧电池卖价基数对齐买入价、零散卖折扣 0.70；一个注入器、生成稿回源目录、build/"
+what  = """[supply_network] 改 mode／hurdle_coverage／qiji_stations_base／qiji_plan_2030／trunk_coverage_target，删 build_per_year 与 [drivers.network_build]；model.supply_gate；price_response.network_limit 报告规划与需求两套站数。
+derived.sale_price_ratio，battery_hold_month 加 sale_ratio；fleet_scatter_discount 0.68 → 0.70；租金三档重推 6.7852／0.1524、8.0684／0.1806、10.7652／0.241。
+inject.process 统一处理 narrative 与 口径，生成稿写回源目录；src/paths.py；快照、事实包等移到 build/。"""
+why   = """研究者：宁德已公布规划高于原年新建三档，过门槛就会按需求建站；0.68 用简单数；生成程序与目录要统一。"""
+watch = """份额回到需求侧；回报随租金上沿上调而上升；闸门三档都过。"""
+expect = "中性 回报 14.4%／份额 44.2%／宁德归属 2,231 亿／覆盖 1.47；悲观 11.1%／30.3%／803／1.24；乐观 19.1%／54.8%／5,113／1.82；build 与 tree 全绿。"
+

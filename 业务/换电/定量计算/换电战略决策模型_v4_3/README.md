@@ -49,7 +49,8 @@ python src/lab.py workbook    # ③ 参数血缘：生成 Excel 七表（假设�
 │   ├── chapters/          ← 报告八章。只写论证，数字一律占位符
 │   └── topics/            ← 可被多章引用的论证专题
 ├── audit/                 ← 台账：信源核验、链路审计
-├── outputs/               ← 全部生成物，不要手改
+├── outputs/               ← 组装好的最终产品（报告、沙盘、仪表盘、工作簿），不要手改
+├── build/                 ← 机器中间数据（决策快照、事实包、叙述状态、决策树 JSON），不要手改
 └── _archive/              ← 已被取代的（归档前须做覆盖检查）
 ```
 
@@ -77,20 +78,29 @@ python src/lab.py workbook    # ③ 参数血缘：生成 Excel 七表（假设�
 | **产出** | `run.py` 跑模型出快照与骨架报告<br>`report.py` 骨架报告的表格排版<br>`facts.py` 事实包（叙述层唯一可引用的数字）<br>`inject.py` 占位符检查／注入／待复核<br>`build.py` 一条命令串起全流程 | 把快照变成人能读的东西 |
 | **检查与探索** | `tree.py` 决策树＋链路审计<br>`lab.py` 参数追踪器与血缘 Excel<br>`app.py` Streamlit 实时沙盘<br>`tracker.py` 月度跟踪（12 张 watch 卡比对）<br>`monthly_update.py` agent 取数落 xlsx<br>`monthly_dashboard.py` 月度仪表盘<br>`backscan.py` MANIFEST 数字回扫<br>`v32_audit.py` v3.2 口径对照（冻结） | 验证链路、找影响面、试算、盯实测 |
 
-### outputs/ 里都是什么
+### outputs/、build/ 与生成稿里都是什么
+
+**outputs/（组装好的最终产品）**
 
 | 文件 | 谁生成 | 是什么 |
 |---|---|---|
-| `decision_snapshot_v4_3.json` | `run.py` | **一切数字的唯一来源。** 别的文档只能引用它 |
 | `换电战略决策报告_v4.3.md` | `run.py` | 骨架报告：必答问题层＋数据层明细表 |
-| `facts.json` | `build.py` | 事实包（纯装配，定义在 metrics.toml/base.toml/信源台账三处）：240 条＝118 模型输出＋20 配置信封＋16 外部引述＋86 信源；最新构成以 `交接.md` §4.3f 为准 |
-| `换电投资逻辑_叙述报告_v4.3.md` | `build.py` | 叙述层成稿（源文件在 `narrative/`，**改这里会被覆盖**） |
+| `换电沙盘_v4.3.html` | `sandbox.py`（`run.py` 调用） | 单文件交互报告：结论卡／一页纸／可拨动情景 |
+| `月度跟踪仪表盘.html` | `run.py`（`src/monthly_dashboard.py`） | **月度实测跟踪面**：单月看边际、累计看趋势；数据＝`audit/tracking_hdt.json` |
+| `换电决策树_v4.3.xlsx` | `tree.py --xlsx` | 决策树的 Excel 版，左侧可折叠展开 |
+| `换电模型_参数与血缘_v4.3.xlsx` | `lab.py workbook` | 假设／结果／敏感性矩阵／双向血缘／算法演示／试算对比 |
+
+**build/（机器中间数据）**
+
+| 文件 | 谁生成 | 是什么 |
+|---|---|---|
+| `decision_snapshot_v4_3.json` | `run.py` | **一切数字的唯一来源** |
+| `facts.json` | `build.py` | 事实包：占位符按中文名在这里查值 |
 | `narrative_state.json` | `build.py` | 上次落盘时各段引用的事实值，用于判"待复核" |
-| `tree.json` | `tree.py --json` | 递归决策树：每节点带值／三情景／公式／单位／信源／参数路径 |
-| `换电决策树_v4.3.xlsx` | `tree.py --xlsx` | 同一棵树的 Excel 版，左侧可折叠展开 |
-| `换电模型_参数与血缘_v4.3.xlsx` | `lab.py workbook` | 七表：假设／结果／敏感性矩阵／双向血缘／算法演示／试算对比 |
+| `tree.json` | `tree.py --json` | 递归决策树 |
 | `dashboard_parameter_registry_v4_3.json` | `run.py` | 前端交互用的参数注册表 |
-| `月度跟踪仪表盘.html` | `run.py`（`src/monthly_dashboard.py`） | **月度实测跟踪面**：8 KPI ＋ 5 张图（总量／重卡渗透／换电占纯电／物流车／装车与 CATL 份额）。**单月看边际（调仓信号）、累计看趋势锚（重标依据）**；数据＝`audit/tracking_hdt.json`，离线可开 |
+
+**生成稿（与源文件同目录）**：`narrative/chapters/X.md`、`narrative/topics/X.md`、`口径/X.md` 由 `src/inject.py` 从同目录 `X.src.md` 生成，文件头有"勿手改"标记。路径约定集中在 `src/paths.py`。
 
 ---
 
@@ -100,14 +110,14 @@ python src/lab.py workbook    # ③ 参数血缘：生成 Excel 七表（假设�
 configs/base.toml
       │  python src/run.py
       ▼
-outputs/decision_snapshot_v4_3.json  ← 唯一事实源
+build/decision_snapshot_v4_3.json  ← 唯一事实源
       │
       ├─ report.py ──▶ 骨架报告（机器填数）
       ├─ facts.py  ──▶ facts.json ──┐
       ├─ tree.py   ──▶ tree.json / Excel 树
       └─ lab.py    ──▶ 血缘 Excel     │
                                       │
-narrative/*.src.md（人写，只有占位符）─┴─ inject.py ──▶ outputs/*.md
+narrative/**/*.src.md、口径/*.src.md（人写，只有占位符）─┴─ inject.py ──▶ 同目录 *.md
 ```
 
 **三条纪律，都由程序强制，不靠自觉：**
@@ -125,12 +135,12 @@ narrative/*.src.md（人写，只有占位符）─┴─ inject.py ──▶ ou
 
 | 你要干什么 | 走哪条路 |
 |---|---|
-| 只想要结论 | `outputs/换电战略决策报告_v4.3.md` 与 `outputs/*.md` 专题（**每次 `build.py` 自动重生成，已是两本账口径**）。⚠️ `换电投资逻辑_叙述报告_v4.3.md` 是旧骨架的产物，源文件已归档，**不要读** |
+| 只想要结论 | `outputs/换电战略决策报告_v4.3.md` 与 `narrative/chapters/*.md`、`narrative/topics/*.md`（与源文件同目录的生成稿）（**每次 `build.py` 自动重生成，已是两本账口径**）。旧骨架产物 `换电投资逻辑_叙述报告_v4.3.md` 已移入 `_archive/outputs生成稿_20260925/` |
 | 想知道某个数的口径为什么这么定 | `口径/capex_debt_估值公式链.md`——通用方法在 §1，本案例公式在 §2 |
 | 想知道某个数怎么来的 | `python src/tree.py --xlsx` → 打开 Excel，从根往下展开，每层有公式、值、信源 |
 | 想改一个参数 | 先 `python src/lab.py impact <参数路径> <新值>` 看影响面，再改 base.toml，再 `build.py` |
 | 想知道谁最能撬动结论 | `python src/lab.py scan`（272 参数 × 37 指标的实测弹性，约 1 秒） |
-| 想改叙述正文 | 改 `narrative/*.src.md`（**不是 outputs/**），数字写占位符，可用的事实见 `outputs/facts.json` |
+| 想改叙述正文 | 改 `narrative/*.src.md`（**不是同目录的 .md 生成稿**），数字写占位符，可用的事实见 `build/facts.json` |
 | 想核某个参数的信源 | base.toml 该参数的注释；完整核验记录见 `audit/信源审计台账.md` |
 | **想跟踪月度实测、看调仓信号** | 打开 `outputs/月度跟踪仪表盘.html`（单月边际＋累计趋势双轨，缺月自动断线）；命令行跑 `python src/tracker.py`（读数＋12 张 watch 卡报警） |
 | 想更新一个月的外部数据 | **2026-07 起由 agent 自动取数**，不再手工维护：`python src/monthly_update.py status` 看待填月 → agent 按 xlsx 既有数据源联网取数写 payload → `python src/monthly_update.py fill <payload.json>`（自动重抽 JSON）。口径见 [`口径/README.md`](./口径/README.md) §四 |
@@ -194,7 +204,7 @@ narrative/*.src.md（人写，只有占位符）─┴─ inject.py ──▶ ou
   依据见 base.toml 注释与 v3.2 §1.2.2。
 - **`nev_rates` 是年更新流量口径，不是保有量口径。** 引用"电动化率"时必须说明是哪一种。
 - **月度跟踪必须双口径：单月看边际（调仓信号）、累计/年度看趋势锚（重标依据）。** "重卡季节性强所以不看单月"是错的——季节性强只推出"单月要配年化/累计一起读"，推不出"单月不用看"；边际拐点总是先出现在单月。详见 `DECISIONS.md` 2026-09-16b。
-- **outputs/ 下的 md 是生成物。** 想改叙述正文请改 `narrative/*.src.md`。
+- **与 .src.md 同目录的同名 .md 是生成物**（叙述与口径都一样）。想改正文请改 `.src.md`。
 - **改参数前先看影响面。** `lab.py scan` 实测的前几位是电池价格、站效率 RTE、项目债务比、
   电池价格平台期结束年、重卡保有与纯电占比——动这几个之前务必先 `lab.py impact`。
 

@@ -46,13 +46,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 ROOT = Path(__file__).resolve().parent.parent
 NARRATIVE_DIR = ROOT / "narrative"
 OUTPUT_DIR = ROOT / "outputs"
-FACTS_PATH = OUTPUT_DIR / "facts.json"
-STATE_PATH = OUTPUT_DIR / "narrative_state.json"
+from paths import FACTS_PATH, NARRATIVE_STATE_PATH as STATE_PATH  # noqa: E402
 
 # 占位符：既认内部 key（swap.coverage），也认**中文名**（年换电交易电量）。
 # 中文名里可能含空格与斜杠（如"站内装机GWh / 最新储能装机"），故用"非 {} 与冒号"的宽匹配。
 # 这一条是"语义寻址"的入口：写论述的人不必知道程序里那个数叫什么。
 TOKEN_RE = re.compile(r"\{\{\s*([^{}:]+?)\s*(?::\s*([a-z]+)\s*)?\}\}")
+ANY_TOKEN_RE = re.compile(r"\{\{([^{}]+)\}\}")
 FENCE_RE = re.compile(r"^\s*(```|~~~)")
 INLINE_CODE_RE = re.compile(r"`[^`]*`")
 LINK_TARGET_RE = re.compile(r"\]\([^)]*\)")   # 链接目标里的文件名／锚点不算正文数字
@@ -209,7 +209,7 @@ def _warn_ambiguous(facts: dict, name: str, keys: list[str], picked: str) -> Non
 
 
 # ─────────────────────────────────────────── 注入
-def inject(text: str, facts: dict) -> tuple[str, list[str]]:
+def inject(text: str, facts: dict, extra: dict | None = None) -> tuple[str, list[str]]:
     """替换占位符，返回 (结果文本, 未知key列表)。
 
     查找顺序：**facts 精确 → facts 的中文名 → 输出字典（中文名／key／容错）**。
@@ -221,6 +221,8 @@ def inject(text: str, facts: dict) -> tuple[str, list[str]]:
 
     def _sub(m: re.Match) -> str:
         key, mode = (m.group(1) or "").strip(), (m.group(2) or "")
+        if extra and key in extra:                 # 口径的现算表与算式中间量（caliber_docs.values）
+            return extra[key]
         fact = facts.get(key)
         if fact is None and key in index:
             picked = _pick(key, index[key], facts)
@@ -243,7 +245,13 @@ def inject(text: str, facts: dict) -> tuple[str, list[str]]:
             return m.group(0)
         return fact["bare"] if mode == "n" else fact["text"]
 
-    return TOKEN_RE.sub(_sub, text), unknown
+    if extra:   # 现算表的名字含冒号（{{表:三情景}}），TOKEN_RE 认不出，先按全名替换
+        text = ANY_TOKEN_RE.sub(lambda m: extra.get(m.group(1).strip(), m.group(0)), text)
+    out = TOKEN_RE.sub(_sub, text)
+    # 兜底：替换完还剩的 {{…}}（不在行内代码里）一律算未解析——认不出的写法不许静默漏过
+    for m in ANY_TOKEN_RE.finditer(INLINE_CODE_RE.sub("", out)):
+        unknown.append(m.group(1).strip())
+    return out, unknown
 
 
 def metric_unknown_detail(names: list[str]) -> list[str]:
@@ -561,16 +569,28 @@ def print_coverage(rows: list[dict]) -> None:
 
 
 # ─────────────────────────────────────────── 主流程
-def process(lint_only: bool = False) -> int:
-    """返回 0 = 全部通过；1 = 有裸数字或未知占位符（应中断构建）。"""
-    if not NARRATIVE_DIR.exists():
-        print(f"没有 {NARRATIVE_DIR.name}/ 目录，跳过叙述层")
-        return 0
-    # 【2026-09-06 清场】narrative/ 下增设 chapters/ 与 topics/ 两个子目录，
-    # 原来的 glob 只扫顶层，搬迁后会一个文件都找不到 → 改 rglob 递归扫。
-    sources = sorted(NARRATIVE_DIR.rglob("*.src.md"))
-    if not sources:
-        print(f"{NARRATIVE_DIR.name}/ 下（含子目录）没有 .src.md，跳过叙述层")
+CALIBER_DIR = ROOT / "口径"
+
+
+def _banner(src: Path) -> str:
+    rel = src.relative_to(ROOT).as_posix()
+    return (f"<!-- 本文件由 src/inject.py 从 {rel} 生成，数字随模型刷新；**勿手改**——"
+            f"改源文件后跑 python src/build.py -->\n\n")
+
+
+def process(lint_only: bool = False, extra: dict | None = None) -> int:
+    """返回 0 = 全部通过；1 = 有裸数字或未知占位符（应中断构建）。
+
+    两类源，同一个注入器：
+      · 叙述（narrative/**.src.md）：严格档——不许裸数字、收口检查、待复核；
+      · 口径（口径/*.src.md）：算式档——口径要把算式写出来，输入数可以是字面数字，所以不查裸数字、不查收口；
+        模型算出来的数照样只能写占位符，额外可用 `extra`（caliber_docs.values 现算的表与中间量）。
+    生成稿一律写在源文件同目录（X.src.md → X.md），outputs/ 只放组装好的最终产品。
+    """
+    sources = sorted(NARRATIVE_DIR.rglob("*.src.md")) if NARRATIVE_DIR.exists() else []
+    calibers = sorted(CALIBER_DIR.glob("*.src.md")) if CALIBER_DIR.exists() else []
+    if not sources and not calibers:
+        print("没有 .src.md，跳过叙述层与口径")
         return 0
 
     facts = json.loads(FACTS_PATH.read_text("utf-8"))
@@ -579,9 +599,10 @@ def process(lint_only: bool = False) -> int:
     failed = False
     review_total = 0
 
-    for src in sources:
+    for src in sources + calibers:
         name = src.name.removesuffix(".src.md")
-        problems = lint(src)
+        is_cal = src in calibers
+        problems = [] if is_cal else lint(src)
         if problems:
             failed = True
             print(f"\n✗ {src.name} 有 {len(problems)} 行裸数字（叙述层只能写占位符）：")
@@ -600,7 +621,7 @@ def process(lint_only: bool = False) -> int:
             continue
 
         text = src.read_text("utf-8")
-        rendered, unknown = inject(text, facts)
+        rendered, unknown = inject(text, facts, extra if is_cal else None)
         if unknown:
             failed = True
             print(f"\n✗ {src.name} 引用了 facts.json 里没有的事实：{', '.join(sorted(set(unknown)))}")
@@ -611,10 +632,10 @@ def process(lint_only: bool = False) -> int:
         review_total += len(flagged)
 
         if not lint_only:
-            target = OUTPUT_DIR / f"{name}.md"
-            target.write_text(rendered, encoding="utf-8")
-            print(f"✓ {src.name} → outputs/{target.name}"
-                  f"（{len(tokens_in(text))} 个事实，无裸数字）")
+            target = src.with_name(f"{name}.md")
+            target.write_text(_banner(src) + rendered, encoding="utf-8")
+            print(f"✓ {src.name} → {target.relative_to(ROOT).as_posix()}"
+                  f"（{len(tokens_in(text))} 个事实，{'算式档：数由占位符注入' if is_cal else '无裸数字'}）")
         else:
             print(f"✓ {src.name} 检查通过（{len(tokens_in(text))} 个事实，无裸数字）")
 

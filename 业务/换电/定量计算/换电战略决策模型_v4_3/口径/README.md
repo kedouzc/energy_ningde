@@ -18,6 +18,7 @@
 | `运营收入与成本_口径.md` | 5 阶段性业绩 | `swap.revenue`、`swap.ebitda` | `ops.annual_energy`、`swap.service_rev`、`swap.rent_rev`、`swap.ancillary` |
 | `兑现年处置_出表与轻资产化.md` | 4 可行性 · 6 冲击与重估 | `capex.peak_call`、`val.reit_multiple`、`val.op_ev_multiple` | `fund.peak_cash_to_cfo`、`fund.closing_liquidity` |
 | `电池银行与寿命_口径.md`（2026-09-24 由四道门移入） | 3 需求验证 · 5 产业格局 | `ops.weighted_swap_penetration`、`swap.coverage` | `swap.ebitda`、`tco.*`（车队账） |
+| `换电对最强对手_车队总账.md`（**Q1 第一稿，待研究者质疑**） | 3 需求验证 · 4 · 5 | `ops.weighted_swap_penetration`、`swap.coverage` | `swap.ebitda`、租金两段价 |
 | `无换电反事实_制造净利率路径.md`（**初稿，待研究者质疑**） | 6 公司能力 · 0 投资结论 | `val.mfg_increment`、`val.incr_over_mktcap` | `val.swap_increment` |
 
 > 收口读数（1–2 个／章）＝这章要**证明**的数；支撑读数（5–10 个／章）＝论证中**引用**的数。

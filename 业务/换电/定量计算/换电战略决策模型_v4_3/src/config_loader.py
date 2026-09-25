@@ -277,7 +277,43 @@ def load_drivers(config: dict[str, Any]) -> dict[str, dict[str, Any]]:
                         f"[drivers.{name}] 的「{tier}」档（{v}）落在 bounds（[{lo}, {hi}]）之外。\n"
                         f"档位必须落在区间内——请放宽 bounds 到能容纳三档，或把档位收回区间内。"
                     )
+        _check_pair_sources(name, spec)
     return drivers
+
+
+def _check_pair_sources(name: str, spec: dict[str, Any]) -> None:
+    """【2026-09-25b】成对参数必须同源。
+
+    一条 driver 的某一档若是「一对数的比」（例：超充车上寿命 ÷ 池里寿命），就必须在
+    pair_sources 里为每一档登记**一个**信源键——一对数出自同一家、同一场发布或同一项研究。
+    检查三件事：① 每档都登记了信源键，且该键在 audit/信源审计台账.md 里存在；
+    ② 声明了 pool_cycles_fixed 时，每档 critical_cycles × pool_life_multiplier 必须等于它（水平统一、只动比例）；
+    ③ 少活几成随 悲观→中性→乐观 单调变大（对换电越来越有利）。
+    """
+    pairs = spec.get("pair_sources")
+    if pairs is None:
+        return
+    ledger = Path(__file__).resolve().parents[1] / "audit" / "信源审计台账.md"
+    text = ledger.read_text(encoding="utf-8") if ledger.exists() else ""
+    for tier in SCENARIO_ORDER:
+        key = pairs.get(tier) if isinstance(pairs, dict) else None
+        if not key:
+            raise SystemExit(f"[drivers.{name}] pair_sources 缺「{tier}」档的同源信源键——成对参数必须同源")
+        if f"| {key} |" not in text:
+            raise SystemExit(f"[drivers.{name}] 「{tier}」档登记的信源 {key} 不在 audit/信源审计台账.md 里")
+    pool = spec.get("pool_cycles_fixed")
+    if pool is not None:
+        shortfalls = []
+        for tier in SCENARIO_ORDER:
+            v = spec[tier]
+            car, mult = float(v["critical_cycles"]), float(v["pool_life_multiplier"])
+            if abs(car * mult - float(pool)) > 1.0:
+                raise SystemExit(
+                    f"[drivers.{name}] 「{tier}」档 车上 {car:.0f} × 乘数 {mult:.4f} ＝ {car*mult:.0f}，"
+                    f"不等于 pool_cycles_fixed {float(pool):.0f}——池里水平三档统一，只许比例变")
+            shortfalls.append(1 - car / float(pool))
+        if not (shortfalls[0] <= shortfalls[1] <= shortfalls[2]):
+            raise SystemExit(f"[drivers.{name}] 少活几成三档不单调：{[round(x, 3) for x in shortfalls]}")
 
 
 def _walk(node: Any, key: str) -> Any:

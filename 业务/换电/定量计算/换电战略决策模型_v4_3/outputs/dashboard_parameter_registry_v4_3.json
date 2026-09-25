@@ -423,11 +423,6 @@
     "type": "float"
   },
   {
-    "key": "tco_jpm.charge_power_price_rmb_kwh",
-    "value": 0.65,
-    "type": "float"
-  },
-  {
     "key": "tco_jpm.charge_service_fee_spot_rmb_kwh",
     "value": 0.2,
     "type": "float"
@@ -470,6 +465,16 @@
   {
     "key": "tco_jpm.fleet_battery_hold_rmb_kwh_year",
     "value": 11.0,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.lessor_capital_rate",
+    "value": 0.075,
+    "type": "float"
+  },
+  {
+    "key": "tco_jpm.pool_hold_rmb_kwh_year",
+    "value": 2.87,
     "type": "float"
   },
   {
@@ -541,8 +546,9 @@
         "battery_pool": "qiji75_short",
         "weight": 0.38,
         "swap_share_ceiling": 0.3,
-        "charge_regime": "depot_rotation",
-        "charge_pack_multiplier": 2.0,
+        "charge_regime": "megawatt",
+        "charge_pack_multiplier": 1.0,
+        "mw_time_value_share": 1.0,
         "depot_rotation_facility_rmb_truck_month": 0.0,
         "catl_swap_share": 0.8,
         "daily_km": 260.0,
@@ -1242,6 +1248,11 @@
     "type": "float"
   },
   {
+    "key": "price_response.lessor_band_wan",
+    "value": 0.5,
+    "type": "float"
+  },
+  {
     "key": "price_response.response_floor",
     "value": 0.1,
     "type": "float"
@@ -1282,13 +1293,33 @@
     "type": "float"
   },
   {
-    "key": "swap_business.battery_rent_rmb_kwh_month",
+    "key": "swap_business.rent_ceiling_floor_scene",
+    "value": "中途",
+    "type": "str"
+  },
+  {
+    "key": "swap_business.rent_ceiling_overage_scene",
+    "value": "长途",
+    "type": "str"
+  },
+  {
+    "key": "swap_business.battery_rent_city_rmb_kwh_month",
     "value": 9.7,
     "type": "float"
   },
   {
-    "key": "swap_business.battery_rent_per_kwh_rmb",
+    "key": "swap_business.battery_rent_city_per_kwh_rmb",
     "value": 0.2,
+    "type": "float"
+  },
+  {
+    "key": "swap_business.battery_rent_rmb_kwh_month",
+    "value": 7.6125,
+    "type": "float"
+  },
+  {
+    "key": "swap_business.battery_rent_per_kwh_rmb",
+    "value": 0.1689,
     "type": "float"
   },
   {

@@ -534,10 +534,10 @@ def build_swap_business(config: dict, scale: ScaleResult, capex: CapexResult) ->
         if wsum > 0:
             rent_month_by_pool[pk] = sum(
                 r.catl_swap_vehicles_wan * r.onboard_battery_kwh
-                * rent_month_two_part(config, r.swap_frequency_per_day * usable * days / 12.0)
+                * rent_month_two_part(config, r.swap_frequency_per_day * usable * days / 12.0, pk)
                 for r in rows_pk) / wsum
         else:
-            rent_month_by_pool[pk] = rent_month_two_part(config, 0.0)
+            rent_month_by_pool[pk] = rent_month_two_part(config, 0.0, pk)
 
     def _return_from_crf(target: float, n: int) -> float:
         """资本回收因子的反函数：给定 CRF 反解要求回报（二分；与 gates.solve_required_return 同式）。"""

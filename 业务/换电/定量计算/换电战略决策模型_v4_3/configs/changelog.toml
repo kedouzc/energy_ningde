@@ -635,3 +635,15 @@ report_map 与一页纸由 mk.share_elec_latest 改用 mk.share_elec_2030；metr
 why   = """研究者指出：兑现年换电电量占全社会用电 2.1% 不是"很小"；查明分子是兑现年、分母是 2025 年，时点错配。"""
 watch = """数值读数不变；第 1 章出现"今天 ≤0.3% vs 兑现年 1.6%"两个量级。"""
 expect = "三情景读数不变（中性 13.3%／38.3%／1,849 亿）；四条命令全绿。"
+
+[[round]]
+date  = "2026-09-25d"
+focus = "定价落模型：重卡租金取终局上沿并随寿命档联动；份额加入对手②；短途按兆瓦超充；用户电价＝谷电＋价差"
+what  = """① 租金 9.7／0.2 → 7.6125／0.1689（derived.rent_ceiling 推论、加载断言）；三档 6.3651／0.1426、7.6125／0.1689、10.0361／0.2285 进 [drivers.battery_life]；[drivers.battery_rent] 只剩乘用车；城配 battery_rent_city_* 沿用 9.7／0.2。
+② tco.py：adv_lease 改义（对租赁商保本价）、新增 adv_lease_spot、lessor_month_rmb；price_response 加入对手②（lessor_band_wan = 0.5）。
+③ 短途 charge_regime depot_rotation → megawatt，mw_time_value_share = 1。
+④ 删 charge_power_price_rmb_kwh（0.65），tco.user_power_price ＝ 谷电 0.30 ＋ 价差 0.40 ＝ 0.70。
+⑤ 新参数 lessor_capital_rate 0.075、pool_hold_rmb_kwh_year 2.87。"""
+why   = """研究者 2026-09-25d 定：租金取上沿并与寿命联动；电价两边同取 0.70；干线对手服务费先查兆瓦站造价（查后维持 0.104）。"""
+watch = """中性回报应下降（租金降约两成）、份额升到天花板；悲观覆盖倍数接近 1；换电对充电的比较不因电价改动而变。"""
+expect = "中性 回报 11.2%／份额 44.8%／宁德归属现金流折现 1,685 亿／覆盖 1.24；悲观 8.3%／30.4%／575／1.05；乐观 15.4%／54.8%／3,957／1.54；四条命令全绿。"

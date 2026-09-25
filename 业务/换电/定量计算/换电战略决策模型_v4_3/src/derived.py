@@ -181,7 +181,7 @@ def scene_monthly_use_per_kwh(config: dict, scene: dict) -> float:
     return float(scene["daily_km"]) * float(scene["energy_consumption_kwh_km"]) * days / 12.0 / kwh
 
 
-def rent_month_two_part(config: dict, use_per_kwh_month: float) -> float:
+def rent_month_two_part(config: dict, use_per_kwh_month: float, pool: str | None = None) -> float:
     """【2026-09-22 · 门②】重卡与城配的电池租金两段价：每月每度容量付 max（保底，超出价 × 当月每度容量用电）。
 
     超出价＝包内电量用足时的单价（保底 ÷ 超出价＝包含电量），与宁德银川中标规则同。
@@ -191,6 +191,10 @@ def rent_month_two_part(config: dict, use_per_kwh_month: float) -> float:
     sb = config.get("swap_business") or {}
     floor = float(sb.get("battery_rent_rmb_kwh_month") or 0.0)
     per_kwh = float(sb.get("battery_rent_per_kwh_rmb") or 0.0)
+    # 【2026-09-25d】重卡租金改为对手保本价推出的上沿；城配还没推自己的均衡，单独沿用旧两段价
+    if pool == "choco35_city" and "battery_rent_city_rmb_kwh_month" in sb:
+        floor = float(sb.get("battery_rent_city_rmb_kwh_month") or 0.0)
+        per_kwh = float(sb.get("battery_rent_city_per_kwh_rmb") or per_kwh)
     return max(floor, per_kwh * use_per_kwh_month)
 
 
@@ -239,3 +243,74 @@ def station_capacity(config: dict, group: str) -> dict[str, float]:
         "planning_capacity": planning,
         "physical_headroom_ratio": physical / planning - 1.0,
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 【2026-09-25d】电池租金的终局上沿：车队"最便宜的非换电路"的保本月租
+# 口径住 `口径/车队总账_换电对充电.md` 第 3.3 节与第 4.1 节（年金法、固定基准年电池价）。
+# 上沿 ＝ min（租赁商保本, 借钱最便宜那群车队自己买）；保底由 rent_ceiling_floor_scene 定，超出价由 rent_ceiling_overage_scene 定。
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _crf(r: float, n: float) -> float:
+    return r / (1.0 - (1.0 + r) ** -n) if r > 0 and n > 0 else (1.0 / n if n > 0 else 0.0)
+
+
+def _sinking(r: float, n: float) -> float:
+    return r / ((1.0 + r) ** n - 1.0) if r > 0 and n > 0 else (1.0 / n if n > 0 else 0.0)
+
+
+def battery_hold_month(kwh: float, price: float, tax: float, r: float, years: float,
+                       resale: float, hold_rmb_kwh_year: float) -> float:
+    """持有一块电池每月要多少钱才保本（元/月）：资金成本（还本付息 − 旧电池卖钱折回）＋ 保险维护。"""
+    cap = kwh * price * (1.0 + tax) * (_crf(r, years) - resale * _sinking(r, years))
+    return (cap + kwh * hold_rmb_kwh_year) / 12.0
+
+
+def scene_cycles_per_year(config: dict, scene: dict) -> float:
+    days = float((config.get("swap_business") or {}).get("operating_days") or 0.0)
+    kwh = float(scene.get("onboard_battery_kwh") or 0.0)
+    return (float(scene["daily_km"]) * float(scene["energy_consumption_kwh_km"]) * days / kwh) if kwh else 0.0
+
+
+def rent_ceiling(config: dict) -> dict:
+    """各重卡场景：租赁商保本、低息车队自买、上沿（两者取小），以及由此定出的保底与超出价。"""
+    tco = config.get("tco_jpm") or {}
+    sb = config.get("swap_business") or {}
+    life = config["battery_life_model"]
+    cap_years = float(life.get("calendar_cap_years") or 10.0)
+    car_cycles = float(life["critical_cycles"])
+    price = battery_price_rmb_kwh(config, float(config["meta"]["reference_year"]))
+    tax = float(tco.get("purchase_tax_rate") or 0.0)
+    r_lessor = float(tco.get("lessor_capital_rate") or 0.0)
+    r_low = float(tco.get("fleet_discount_rate_low") or 0.0)
+    bank_resale = retirement_recovery_ratio(config)
+    fleet_resale = float(tco.get("fleet_pack_resale_ratio") or 0.0)
+    pool_hold = float(tco.get("pool_hold_rmb_kwh_year") or 0.0)
+    fleet_hold = float(tco.get("fleet_battery_hold_rmb_kwh_year") or 0.0)
+    days = float(sb.get("operating_days") or 0.0)
+    out: dict = {"scenes": {}}
+    for sc in (config.get("vehicles", {}).get("heavy", {}).get("scenes", []) or []):
+        kwh = float(sc.get("onboard_battery_kwh") or 0.0)
+        cpy = scene_cycles_per_year(config, sc)
+        if not kwh or not cpy:
+            continue
+        years = min(car_cycles / cpy, cap_years)
+        lessor = battery_hold_month(kwh, price, tax, r_lessor, years, bank_resale, pool_hold)
+        self_low = battery_hold_month(kwh, price, tax, r_low, years, fleet_resale, fleet_hold)
+        use_month = float(sc["daily_km"]) * float(sc["energy_consumption_kwh_km"]) * days / 12.0
+        ceiling = min(lessor, self_low)
+        out["scenes"][sc["name"]] = {
+            "lessor_month": lessor, "self_low_month": self_low, "ceiling_month": ceiling,
+            "kwh": kwh, "use_month": use_month, "car_years": years,
+        }
+    fs = out["scenes"].get(sb.get("rent_ceiling_floor_scene", "中途"))
+    os_ = out["scenes"].get(sb.get("rent_ceiling_overage_scene", "长途"))
+    out["floor"] = fs["ceiling_month"] / fs["kwh"] if fs else None
+    out["overage"] = os_["ceiling_month"] / os_["use_month"] if os_ else None
+    return out
+
+
+def lessor_month(config: dict, scene: dict) -> float:
+    """对手②"超充＋租赁"：租赁商按保本价收的电池月租（元/车·月）。"""
+    info = rent_ceiling(config)["scenes"].get(scene.get("name"))
+    return info["lessor_month"] if info else 0.0

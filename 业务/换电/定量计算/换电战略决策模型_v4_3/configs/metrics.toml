@@ -3703,17 +3703,17 @@ note = "只够付现金成本的价：价格战打到它之下，存量站才会
 [[metric]]
 key = "tco.short_adv_lease"
 source = "tco"
-label = "重卡短途·换电对超充租电池的净优势"
+label = "重卡短途·换电对超充＋租赁的净优势"
 at = "swap_business.heavy_economics.short.adv_lease"
 unit = "万元/年"
 decimals = 2
 group = "⑧重卡"
-note = "租金同价、都不付首付、都不自费换电池；只剩服务费差与兆瓦超充多停的时间。与资金成本无关"
+note = "【2026-09-25d 改义】对手②按租赁商保本价收电池月租（同规模、资金 7.5%、寿命按车上、交购置税）；与车队资金成本无关。终局上沿定价下约为零或略正（限价）"
 
 [[metric]]
 key = "tco.mid_adv_lease"
 source = "tco"
-label = "重卡中途·换电对超充租电池的净优势"
+label = "重卡中途·换电对超充＋租赁的净优势"
 at = "swap_business.heavy_economics.mid.adv_lease"
 unit = "万元/年"
 decimals = 2
@@ -3722,7 +3722,7 @@ group = "⑧重卡"
 [[metric]]
 key = "tco.long_adv_lease"
 source = "tco"
-label = "重卡长途·换电对超充租电池的净优势"
+label = "重卡长途·换电对超充＋租赁的净优势"
 at = "swap_business.heavy_economics.long.adv_lease"
 unit = "万元/年"
 decimals = 2

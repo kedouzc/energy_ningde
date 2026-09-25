@@ -35,7 +35,7 @@ from __future__ import annotations
 import math
 
 from derived import (battery_life_years, battery_price_rmb_kwh,
-                     rent_month_two_part, scene_monthly_use_per_kwh)
+                     lessor_month, rent_month_two_part, scene_monthly_use_per_kwh)
 from scale import POOL_STATION_GROUP
 from schemas import (
     CapexResult,
@@ -49,6 +49,15 @@ from schemas import (
 # 场景名 → HeavyEconomics 上的字段名（lab 的 at 路径不支持列表下标，故用具名字段）
 _SCENE_FIELD = {"短途": "short", "中途": "mid", "长途": "long"}
 
+
+
+def user_power_price(config: dict) -> float:
+    """【2026-09-25d】用户综合电价（换电、充电两边同取）＝ 谷电价 ＋ 峰谷价差。
+
+    研究者定：换电站给用户的综合电价就是充电时也要对齐的数，不再用外部城市商业电价 0.65。
+    """
+    sb = config.get("swap_business") or {}
+    return float(sb.get("valley_power_price_rmb_kwh") or 0.0) + float(sb.get("grid_spread_rmb_kwh") or 0.0)
 
 def _heavy_pool_keys() -> tuple[str, ...]:
     """重卡所属电池池（骐骥短途 + 干线）。从 POOL_STATION_GROUP 派生，不硬编码池名。"""
@@ -86,7 +95,7 @@ def build_heavy_economics(
     # （前者算站方利润、后者算用户总持有成本），不重复——不要因此把 spread 从主模型删掉。
     # 【2026-09-21 · 门①】用户电价两边同取电网电价：换电与充电都按补能当时的电网电价结算，
     # 峰谷价差是换电站的固有能力、归运营方（进经营账的套利收入），不再记到用户头上。
-    grid = float(tco.get("charge_power_price_rmb_kwh") or 0.0)
+    grid = user_power_price(config)
     user_energy = (price + grid) if price is not None else None
 
     # 持有期 N1：模型算出的重卡加权电池寿命。权重=各池机队 GWh（取自 capex 同一份
@@ -286,7 +295,7 @@ def _scene_tco(
     _annual_kwh = float(scene["daily_km"]) * days * float(scene["energy_consumption_kwh_km"])
     swap_rent_p = (rent_month_two_part(config, _use) * _kwh * 12.0 / _annual_kwh) if _annual_kwh else 0.0
     # 【2026-09-21 · 门①】用户电价两边同取电网电价（见 build_heavy_economics 同一处注释）
-    swap_energy_p = float(tco.get("charge_power_price_rmb_kwh") or 0.0)
+    swap_energy_p = user_power_price(config)
     swap_price = swap_service_p + swap_rent_p + swap_energy_p
 
     annual_km = float(scene["daily_km"]) * days
@@ -294,7 +303,7 @@ def _scene_tco(
     kwh = float(scene["onboard_battery_kwh"])
     # 【2026-09-24】车队自备几套电池：场站轮换（多班倒）＝2 套，其余＝1 套
     pack_mult = float(scene.get("charge_pack_multiplier") or 1.0)
-    charge_power_p = float(tco.get("charge_power_price_rmb_kwh") or 0.0)
+    charge_power_p = user_power_price(config)
     # 【2026-09-18f】充电服务费的**基准取成本地板**，不取现价。
     # TCO 是持有期决策，用的必须是持有期均价；而现价低于超充设备自身的度电摊销地板，
     # 一个低于成本的价格不可能是 8 年的均值。现价与价格战下沿降为压力档。
@@ -381,7 +390,9 @@ def _scene_tco(
     # 装卸、夜停时慢充即可。所以基准取 0——法规与装卸时间把这项优势吃掉了。
     # 乐观档（散户赶时效、服务区排队、不按 4 小时排班）才给回 1.0。三档见 [drivers.time_value_mw]。
     tv_mw_year = tv_year * (stop_h_mw / stop_h) if stop_h > 0 else 0.0
-    tv_mw_year *= float(tco.get("megawatt_time_value_share", 1.0) or 0.0)
+    # 【2026-09-25d】封闭场地的多班倒短途不受 4 小时强制休息约束，超充多停的时间照值钱：场景可覆盖这一比例
+    _share = scene.get("mw_time_value_share")
+    tv_mw_year *= float(tco.get("megawatt_time_value_share", 1.0) if _share is None else _share) or 0.0
 
     # 换电侧自己的服务费成本线（本场景所在池），以及成熟期假设的单站日均服务车次
     line = (station_line or {}).get(pk, {})
@@ -389,6 +400,12 @@ def _scene_tco(
 
     swap_total = buy_swap + (annual_kwh * swap_price + fixed) * n
     charge_total = buy_charge + (annual_kwh * charge_price + fixed + hold_year) * n + packs
+    # 【2026-09-25d】对手②"超充＋租赁"：车买不含电池的车，电池按租赁商保本价月租（已含购置税与车上寿命），
+    # 电费、服务费与充电车相同；租赁商承担换电池、旧电池处置与保险维护。口径见车队总账第 3.3 节。
+    les_month = lessor_month(config, scene)
+    buy_lease = max(0.0, bare * tax - subsidy)
+    net_lease = ((annual_kwh * swap_price + fixed) - (annual_kwh * charge_price + fixed + les_month * 12.0)
+                 + ((buy_swap - buy_lease) / n if n else 0.0))
     return SceneTco(
         name=scene["name"],
         pool=pk,
@@ -418,7 +435,9 @@ def _scene_tco(
         rent_year_wan=annual_kwh * swap_rent_p / 1e4,
         packs_total_wan=packs / 1e4,
         # 换电对"超充＋租电池"：租金同价、都不付首付、都不自费换电池，只剩服务费差与兆瓦多停的时间
-        adv_lease=(tv_mw_year - annual_kwh * (swap_service_p - charge_service_p)) / 1e4,
+        adv_lease=(tv_mw_year - net_lease) / 1e4,
+        adv_lease_spot=(tv_mw_year - net_lease - annual_kwh * (charge_service_p - charge_service_spot)) / 1e4,
+        lessor_month_rmb=les_month,
         swap_station_cost_rmb_kwh=line.get("cost", 0.0),
         swap_station_equip_rmb_kwh=line.get("equip", 0.0),
         swap_station_fixed_rmb_kwh=line.get("fixed", 0.0),

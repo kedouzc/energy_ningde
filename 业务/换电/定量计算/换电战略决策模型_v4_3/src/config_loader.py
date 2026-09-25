@@ -50,7 +50,42 @@ def load_config(path: Path | None = None) -> dict[str, Any]:
     replay_events(cfg)
     _assert_crf_is_derived(cfg)
     _assert_charge_fee_is_derived(cfg)
+    _assert_rent_is_ceiling(cfg)
     return cfg
+
+
+def _assert_rent_is_ceiling(cfg: dict[str, Any]) -> None:
+    """【2026-09-25d】重卡租金＝终局上沿（最便宜的非换电路的保本月租），是推论不是拍值。
+
+    基线与 [drivers.battery_life] 每一档都要满足：推论值 − 容差 ≤ 存值 ≤ 推论值
+    （存值向下取整，保证限价定价下"打平算换电赢"）。容差：保底 0.01 元/度·月，超出价 0.001 元/度。
+    想改它，改它的来源（寿命、租赁商资金成本、保险维护、旧电池折扣链、车队低档资金成本、电池价）。
+    """
+    sb = cfg.get("swap_business") or {}
+    if "rent_ceiling_floor_scene" not in sb:
+        return
+    from derived import rent_ceiling
+
+    def check(c: dict, tag: str, floor: float, over: float) -> None:
+        r = rent_ceiling(c)
+        for name, have, want, tol in (("保底 battery_rent_rmb_kwh_month", floor, r["floor"], 0.01),
+                                      ("超出价 battery_rent_per_kwh_rmb", over, r["overage"], 0.001)):
+            if want is None or not (want - tol <= have <= want + 1e-9):
+                raise SystemExit(
+                    f"{tag}：{name}={have} 与推出的终局上沿 {want} 不符（须在 [上沿−{tol}, 上沿] 内）。"
+                    f"**它是推论不是拍值**——改寿命、租赁商资金成本等来源，再按 derived.rent_ceiling 重填。")
+
+    check(cfg, "[swap_business] 基线", float(sb["battery_rent_rmb_kwh_month"]), float(sb["battery_rent_per_kwh_rmb"]))
+    life_axis = (cfg.get("drivers") or {}).get("battery_life") or {}
+    for tier in SCENARIO_ORDER:
+        v = life_axis.get(tier)
+        if not isinstance(v, dict) or "battery_rent_rmb_kwh_month" not in v:
+            continue
+        c = copy.deepcopy(cfg)
+        c["battery_life_model"]["critical_cycles"] = v["critical_cycles"]
+        c["battery_life_model"]["pool_life_multiplier"] = v["pool_life_multiplier"]
+        check(c, f"[drivers.battery_life]「{tier}」档", float(v["battery_rent_rmb_kwh_month"]),
+              float(v["battery_rent_per_kwh_rmb"]))
 
 
 def _assert_charge_fee_is_derived(cfg: dict[str, Any]) -> None:

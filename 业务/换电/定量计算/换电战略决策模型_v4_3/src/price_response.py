@@ -115,11 +115,19 @@ def compute_response(config: dict, heavy) -> dict | None:
         cfg_sc = heavy_scenes.get(name)
         if sc is None or cfg_sc is None:
             continue
+        # 【2026-09-25d】车队选"最便宜的非换电路"：自己买（①，随资金成本变）与超充＋租赁（②，与资金成本无关）取对换电更不利的那个
+        les = getattr(sc, "adv_lease", None)
+        les_spot = getattr(sc, "adv_lease_spot", None)
         adv_now = [getattr(sc, f"adv_mw_{t}", 0.0) for t in _TIERS]
         # 压力档：充电服务费不在均衡价、而是价格战现价撑满整个持有期（tco.py 已给出这组净优势）
         adv_spot = [getattr(sc, f"adv_mw_spot_{t}", 0.0) for t in _TIERS]
-        a_now = max(floor, _addressable(mix, _break_even_rate(rates, adv_now)))
-        a_spot = max(floor, _addressable(mix, _break_even_rate(rates, adv_spot)))
+        # 对手②与车队资金成本无关：对全体车队同时成立。换电打平或更便宜（≥0）时全部留下（限价定价：打平算换电赢）；
+        # 比租赁商贵时在一个宽 band 的区间里线性流失到零——band 是声明的平滑约定（与 _addressable 的尾巴同理），不是测算。
+        band = float((config.get("price_response") or {}).get("lessor_band_wan") or 0.5)
+        f_now = 1.0 if les is None else max(0.0, min(1.0, 1.0 + les / band))
+        f_spot = 1.0 if les_spot is None else max(0.0, min(1.0, 1.0 + les_spot / band))
+        a_now = max(floor, _addressable(mix, _break_even_rate(rates, adv_now)) * f_now)
+        a_spot = max(floor, _addressable(mix, _break_even_rate(rates, adv_spot)) * f_spot)
         # 【2026-09-24】删去 09-23 的 share_price_insensitive（份额恒为 1）：多班倒车的替代品是
         # 自备两套电池场站轮换，由 tco.py 的 charge_regime="depot_rotation" 表达，份额照常算。
         ceiling = float(cfg_sc.get("swap_share_ceiling", cfg_sc.get("swap_penetration")) or 0.0)
@@ -132,6 +140,7 @@ def compute_response(config: dict, heavy) -> dict | None:
             # 现价压力档的占比相对基准剩几成（名字沿用旧读数"份额乘数"）
             "multiplier": a_now,
             "multiplier_spot": (a_spot / a_now) if a_now else 0.0,
+            "lessor_factor": f_now,
         }
         pen += w * scenes[name]["penetration"]
         pen_spot += w * min(1.0, ceiling * a_spot)

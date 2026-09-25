@@ -35,7 +35,8 @@ from __future__ import annotations
 import math
 
 from derived import (battery_life_years, battery_price_rmb_kwh,
-                     lessor_month, rent_month_two_part, scene_monthly_use_per_kwh)
+                     fleet_resale_ratio, lessor_month, rent_month_two_part,
+                     scene_monthly_use_per_kwh)
 from scale import POOL_STATION_GROUP
 from schemas import (
     CapexResult,
@@ -325,7 +326,7 @@ def _scene_tco(
     buy_charge = max(0.0, (bare + kwh * pack_mult * p0) * tax - subsidy)
     fixed = float(tco["maintenance"]) + float(tco["payload_loss"])
     # 【2026-09-21 · 门①】车队买断后自己接下的活：旧电池自己卖（回收率低于电池银行）、自己上保险与维护
-    resale = float(tco.get("fleet_pack_resale_ratio") or 0.0)
+    resale = fleet_resale_ratio(config)
     hold_year = (kwh * pack_mult * float(tco.get("fleet_battery_hold_rmb_kwh_year") or 0.0)
                  + 12.0 * float(scene.get("depot_rotation_facility_rmb_truck_month") or 0.0))
 

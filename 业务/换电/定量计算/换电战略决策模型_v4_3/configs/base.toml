@@ -292,9 +292,21 @@ targets = [
 # 同源配对登记（程序检查读它：每档的一对数必须来自同一个信源键）
 pair_sources = { "悲观" = "src.sunwoda_hdt_superfast_2025", "中性" = "src.fastcharge_life_ouyang_2025", "乐观" = "src.catl_tianxing_hdt_2024" }
 pool_cycles_fixed = 5000.0
-"悲观" = { critical_cycles = 3850.0, pool_life_multiplier = 1.2987012987012987, battery_rent_rmb_kwh_month = 6.3651, battery_rent_per_kwh_rmb = 0.1451 }    # 5,000 ÷ 3,850；少活 23%
-"中性" = { critical_cycles = 3000.0, pool_life_multiplier = 1.6666666666666667, battery_rent_rmb_kwh_month = 7.6125, battery_rent_per_kwh_rmb = 0.1748 }    # 5,000 ÷ 3,000；少活 40%
+"悲观" = { critical_cycles = 3850.0, pool_life_multiplier = 1.2987012987012987, battery_rent_rmb_kwh_month = 6.4908, battery_rent_per_kwh_rmb = 0.1471 }    # 5,000 ÷ 3,850；少活 23%
+"中性" = { critical_cycles = 3000.0, pool_life_multiplier = 1.6666666666666667, battery_rent_rmb_kwh_month = 7.7784, battery_rent_per_kwh_rmb = 0.1748 }    # 5,000 ÷ 3,000；少活 40%
 "乐观" = { critical_cycles = 2000.0, pool_life_multiplier = 2.5, battery_rent_rmb_kwh_month = 10.3765, battery_rent_per_kwh_rmb = 0.2379 }                   # 5,000 ÷ 2,000；少活 60%
+[drivers.network_build]
+scenario_axis = true     # 经营族：站网铺多快是"换电这条路走没走通"的核心不确定性
+cn      = "重卡换电站网铺设速度（全体运营商，座/年）"
+unit    = "座/年"
+desc    = "2027–2030 每年新建重卡换电站（全体运营商）：悲观 800（约为 2026 年骐骥＋启源合计节奏）／中性 1,200（1.5 倍）／乐观 1,800（2.2 倍，接近兑现年天花板所需节奏）。见 口径/车辆与站数_推算方法 供给侧一节。"
+target  = "supply_network.build_per_year"
+bounds  = [400.0, 2600.0]
+step    = 100.0
+"悲观"   = 800.0
+"中性"   = 1200.0
+"乐观"   = 1800.0
+
 [drivers.valley_power_price]
 scenario_axis = false
 off_axis_reason = "外生成本（电力市场），与「换电这条路走没走通」不同源；与经营族同向拨动＝把两种独立的不确定性当成一种"
@@ -779,12 +791,15 @@ fleet_discount_rate_high.decimals = 0
 fleet_discount_rate_high.scale = 100.0
 fleet_discount_rate_high.note = "平台信贷与高费用融资租赁（IRR 口径）"
 # 【2026-09-21 · 门①】车队买断电池后自己接下的活：旧电池自己卖、自己上保险、自己维护
-fleet_pack_resale_ratio.v = 0.30
-fleet_pack_resale_ratio.label = "车队旧电池回收率"
-fleet_pack_resale_ratio.unit = "%"
-fleet_pack_resale_ratio.decimals = 0
-fleet_pack_resale_ratio.scale = 100.0
-fleet_pack_resale_ratio.note = "按新电池价的比例。＝ 储能/动力价格比 0.917 × 退役剩余容量 80% × 二手折价 0.60 × 零散卖折扣 0.68 ≈ 0.30；前三项与电池银行的 44% 相同（同一块电池、健康度第三方能测），最后一项是车队独有的规模与渠道折扣：一次只卖几块、凑不成储能批量、要经回收商转手（门① 附录 B3）。【2026-09-22b】曾改 0.44，研究者指出车队量少价低、市场行情约三成，已撤回；零散卖折扣属拍值，待二手成交价校准"
+# 车队自己买的旧电池卖价 ＝ 电池银行那条折扣链（retirement_recovery_ratio：储能/动力价格比 × 退役剩余容量 × 二手流动性折价）
+#   × 零散卖折扣 fleet_scatter_discount。前三项两边相同；零散卖折扣只属车队（一次只卖几块、要经回收商转手）。
+#   由 derived.fleet_resale_ratio 现算，不单设卖价参数——两边一条链，链上改一项两边一起动。口径：车队总账附录 A4。
+fleet_scatter_discount.v = 0.68
+fleet_scatter_discount.label = "车队零散卖旧电池折扣"
+fleet_scatter_discount.unit = "%"
+fleet_scatter_discount.decimals = 0
+fleet_scatter_discount.scale = 100.0
+fleet_scatter_discount.note = "估计值（规模＋中间商两条折扣），待按同期同市场的梯次利用成交价、按卖方规模分组校准"
 fleet_battery_hold_rmb_kwh_year.v = 11.0
 fleet_battery_hold_rmb_kwh_year.label = "车队自持电池的保险与维护"
 fleet_battery_hold_rmb_kwh_year.unit = "元/kWh·年"
@@ -1187,6 +1202,18 @@ planning_daily_capacity = 300.0
 
 # ----------------------建设排期（MANIFEST §3）-----------------------------
 
+[supply_network]
+# 【供给侧】兑现年重卡换电站网能服务多少车（全体运营商口径）。换电有网络效应：站没铺到，车再划算也换不了——
+# 所以兑现年份额 ＝ min（天花板 × 算得过账占比, 站网能力能服务的份额）。程序：price_response.network_limit。
+# 口径：口径/车辆与站数_推算方法.src.md「供给侧：站网能服务多少车」。
+base_year = 2026
+# 2026 年底全体运营商重卡换电站存量：骐骥 2026 年目标 900 座（src.catl_swap_plan_9516，CATL 官网）
+# ＋ 启源换电站超 1,200 座（src.hdt_route_202609，2026-09）＋ 其他运营商约 200 座（推算，未找到统计）。
+stations_base_all = 2300.0
+# 2027–2030 每年新建（全体运营商）；中性 1,200 座/年，三档见 [drivers.network_build]。
+# 历史节奏：骐骥 2025 年底 305 座 → 2026 年目标 900 座（一年约 +600）；启源 2020 年成立至 2026 年约 1,200 座（年均约 +200）。
+build_per_year = 1200.0
+
 [construction]
 years = [2026, 2027, 2028, 2029, 2030]
 # 站网建成目标年：规划拍值（经验假设）。就地信封化（2026-09-14）——
@@ -1377,7 +1404,7 @@ rent_ceiling_floor_scene = "中途"
 rent_ceiling_overage_scene = "长途"
 battery_rent_city_rmb_kwh_month = 9.7
 battery_rent_city_per_kwh_rmb = 0.2
-battery_rent_rmb_kwh_month.v = 7.6125
+battery_rent_rmb_kwh_month.v = 7.7784
 battery_rent_rmb_kwh_month.label = "电池月租保底·重卡（终局上沿）"
 battery_rent_rmb_kwh_month.unit = "元/kWh·月"
 battery_rent_rmb_kwh_month.decimals = 2

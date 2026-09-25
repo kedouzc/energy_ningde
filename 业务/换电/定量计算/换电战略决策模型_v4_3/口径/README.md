@@ -14,7 +14,7 @@
 |---|---|---|---|
 | `capex_debt_估值公式链.md`（2026-09-25c 并入原 `兑现年处置_出表与轻资产化.md` 并重排：值多少 → 18 倍能否被验证 → 怎么兑现） | 7 估值与回报 · 4 · 0 | `val.op_ev_multiple`、`val.ev_dcf_perpetual`、`val.catl_dcf_perpetual`、`val.reit_multiple`、`swap.coverage`、`capex.peak_call` | `capex.valuation_capital_pv`、`val.dcf_debt`、`swap.forward_fcff`、`swap.dcf_implied_multiple` |
 | `动力路线_电动对柴油LNG甲醇.md`（2026-09-25d 由 `TCO口径_JPM整套引用.md` 改名；只管能源路线：电动对柴油／LNG／甲醇） | 3 需求验证 · 5 | `tco.swap_wan`、`tco.lng_wan`、`tco.diesel_wan` | `ops.veh_ops`、`vehicles.heavy.stock_wan`、`ops.heavy_pen_pct` |
-| `车辆与站数_推算方法.md` | 3 目标市场 · 4 可行性 | `ops.veh_ops`、`ops.veh_heavy`、`scale.stations_total` | `ops.market_total`、`ops.share_of_market`、`ops.veh_city`、`ops.veh_passenger_ops` |
+| `车辆与站数_推算方法.md`（由 .src.md 生成；含供给侧） | 3 目标市场 · 4 可行性 | `ops.veh_ops`、`ops.veh_heavy`、`scale.stations_total`、`net.factor`、`net.stations_needed` | `ops.market_total`、`ops.share_of_market`、`ops.veh_city`、`ops.veh_passenger_ops` |
 | `运营收入与成本_口径.md` | 5 阶段性业绩 | `swap.revenue`、`swap.ebitda` | `ops.annual_energy`、`swap.service_rev`、`swap.rent_rev`、`swap.ancillary` |
 | `车队总账_换电对充电.md`（2026-09-25 合并三份；25c 补回门①② 推导，并迁入"充电价停在哪"——现为终局定价与车队总账） | 3 需求验证 · 4 · 5 · 0 | `ops.weighted_swap_penetration`、`swap.coverage` | `swap.ebitda`、`tco.*`（分场景）、三个价（充电服务费、换电服务费、电池租金） |
 | `充电站与换电站_成本对比口径.md`（解释 `src/charging.py` 的站层账；不论证定价） | 4 · 5 | —（程序口径说明） | 站层回报、单站吞吐 |

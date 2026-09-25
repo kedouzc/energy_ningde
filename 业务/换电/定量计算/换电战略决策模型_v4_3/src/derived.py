@@ -55,6 +55,12 @@ def annual_battery_price_path(config: dict) -> dict[int, float]:
     }
 
 
+def fleet_resale_ratio(config: dict) -> float:
+    """车队自己买的旧电池卖价（占同年新电池价）＝ 电池银行折扣链 × 零散卖折扣。"""
+    tco = config.get("tco_jpm") or {}
+    return retirement_recovery_ratio(config) * float(tco.get("fleet_scatter_discount") or 0.0)
+
+
 def retirement_recovery_ratio(config: dict) -> float:
     """退役时卖旧电池的回收额/同年新电池价格。"""
     curve = config["construction"]["battery_price_curve"]
@@ -284,7 +290,7 @@ def rent_ceiling(config: dict) -> dict:
     r_lessor = float(tco.get("lessor_capital_rate") or 0.0)
     r_low = float(tco.get("fleet_discount_rate_low") or 0.0)
     bank_resale = retirement_recovery_ratio(config)
-    fleet_resale = float(tco.get("fleet_pack_resale_ratio") or 0.0)
+    fleet_resale = fleet_resale_ratio(config)
     pool_hold = float(tco.get("pool_hold_rmb_kwh_year") or 0.0)
     fleet_hold = float(tco.get("fleet_battery_hold_rmb_kwh_year") or 0.0)
     days = float(sb.get("operating_days") or 0.0)

@@ -99,6 +99,19 @@ def main() -> None:
         print(f"⚠ 跟踪比对跳过：{_e}")
 
     code = inject_mod.process()
+    # 【2026-09-25f】口径文档的数由程序填（口径/*.src.md → 口径/*.md），状态文件不许留过程痕迹
+    import caliber_docs
+    import state_lint
+    _miss = caliber_docs.render(config)
+    if _miss:
+        print("\n口径文档有未解析的占位符：")
+        for _m in _miss:
+            print("  ✗ " + _m)
+        code = code or 1
+    print("口径文档  已由模型现算刷新（口径/*.src.md → 口径/*.md）")
+    if state_lint.main():
+        print("状态文件（口径、专题、章）里有过程痕迹：改动经过只写进 DECISIONS.md。")
+        code = code or 1
     if code:
         print("\n构建中断：叙述层没通过检查。上面每一行都要么改成占位符，"
               "要么确认它属于白名单（年份／章节号／版本号）。")

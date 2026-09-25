@@ -26,7 +26,7 @@
 | 护城河是什么、宽多少 | 第 2、4 章 · 护城河 | 车队总账_换电对充电 第一节（寿命、归零线） | `[battery_life_model]`、`[drivers.battery_life]` |
 | 重卡该不该电动化（对柴油、LNG、甲醇） | 第 3 章 · 目标用户 ⇢ | **动力路线_电动对柴油LNG甲醇** | `[tco_jpm]`、甲醇 `[[watch]]` |
 | 电动车里换电还是充电、三个价停在哪、算得过账的车队占比 | 第 3、4 章 · 换电对超充_一张账 ⇢ | **车队总账_换电对充电** | `[tco_jpm]`、`[swap_business]`、`[charging_station]`、`[price_response]` |
-| 换电份额天花板、站网能服务多少车 | 第 3、4 章 | 车辆与站数_推算方法 | `[vehicles.heavy.scenes]`、`[stations]` |
+| 换电份额天花板、站网能服务多少车（供给侧：份额取需求侧与站网能力之小） | 第 3、4 章 | 车辆与站数_推算方法 第 3 节 | `[vehicles.heavy.scenes]`、`[stations]`、`[supply_network]` |
 | 对手是谁（租赁商、别家换电、二线电池厂） | 第 5 章 · 竞争格局 ⇢ | 车队总账 第二节；`../audit/竞争格局_信源与矛盾清单.md` | — |
 | 换电站一年的站层账 | 第 4、5 章 | 充电站与换电站_成本对比口径（解释 `src/charging.py`） | `[charging_station]` |
 | 运营收入、成本、EBITDA | 第 4、7 章 | 运营收入与成本_口径 | `[swap_business]` |

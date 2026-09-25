@@ -147,12 +147,63 @@ def compute_response(config: dict, heavy) -> dict | None:
         ceil_w += w * ceiling
     if not scenes:
         return None
+    # 【2026-09-25f · 供给侧】站网能服务多少车：兑现年换电重卡（全体运营商）的日换电需求不能超过站网能力。
+    # 站网能力 ＝ 兑现年全体运营商重卡换电站数 × 单站规划能力（次/日）；站数 ＝ 2026 年底存量 ＋ 年新建 × 年数。
+    # 需求超过能力时，各场景份额按同一比例压下（天花板仍是上限）。口径：口径/车辆与站数_推算方法 供给侧一节。
+    pen_demand = pen
+    net = network_limit(config, scenes, heavy_scenes)
+    if net is not None:
+        f = net["factor"]
+        pen = pen_spot = 0.0
+        for name, info in scenes.items():
+            w = float(heavy_scenes[name].get("weight") or 0.0)
+            info["penetration_demand"] = info["penetration"]
+            info["penetration"] = info["penetration"] * f
+            pen += w * info["penetration"]
+            pen_spot += w * min(1.0, info["ceiling"] * info["addressable_spot"]) * f
     return {
         "scenes": scenes,
         "weighted_penetration": pen,
         "weighted_penetration_spot": pen_spot,
         "weighted_ceiling": ceil_w,
+        "network": net,
+        "weighted_penetration_demand": pen_demand,
     }
+
+
+def network_limit(config: dict, scenes: dict, heavy_scenes: dict) -> dict | None:
+    """兑现年站网能力对换电重卡份额的约束（全体运营商口径）。"""
+    sup = config.get("supply_network")
+    if not sup:
+        return None
+    heavy = config.get("vehicles", {}).get("heavy", {}) or {}
+    years = [int(y) for y in (config.get("construction") or {}).get("years", [])]
+    nev = list(heavy.get("nev_rates") or [])
+    if not years or len(nev) != len(years):
+        return None
+    annual = float(heavy.get("stock_wan") or 0.0) / float(heavy.get("replacement_cycle_years") or 1.0)
+    bev = float(heavy.get("pure_electric_share") or 1.0)
+    usable = float((config.get("swap_business") or {}).get("usable_energy_factor") or 0.8)
+    demand = trucks = 0.0
+    by = {}
+    for name, info in scenes.items():
+        sc = heavy_scenes[name]
+        cum_ev = sum(annual * r * bev for r in nev) * float(sc.get("weight") or 0.0)
+        freq = float(sc["daily_km"]) * float(sc["energy_consumption_kwh_km"]) / (float(sc["onboard_battery_kwh"]) * usable)
+        t = cum_ev * info["penetration"]
+        trucks += t
+        demand += t * freq
+        by[name] = {"cum_ev_wan": cum_ev, "swap_trucks_wan": t, "swaps_per_day": freq}
+    n_years = years[-1] - int(sup.get("base_year", 2026))
+    stations = float(sup["stations_base_all"]) + float(sup["build_per_year"]) * n_years
+    cap_station = float(config["stations"]["qiji75_trunk"]["planning_daily_capacity"])
+    capacity = stations * cap_station / 1e4          # 万次/日
+    demand_wan = demand                               # 万辆 × 次/日 ＝ 万次/日
+    factor = min(1.0, capacity / demand_wan) if demand_wan > 0 else 1.0
+    need = demand_wan * 1e4 / cap_station
+    return {"factor": factor, "stations_2030": stations, "stations_needed": need, "capacity_wan_day": capacity,
+            "demand_wan_day": demand_wan, "swap_trucks_demand_wan": trucks, "by_scene": by,
+            "build_needed_per_year": (need - float(sup["stations_base_all"])) / n_years if n_years else 0.0}
 
 
 def applied_config(config: dict, response: dict | None) -> dict:

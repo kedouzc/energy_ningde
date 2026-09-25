@@ -3727,3 +3727,53 @@ at = "swap_business.heavy_economics.long.adv_lease"
 unit = "万元/年"
 decimals = 2
 group = "⑧重卡"
+
+[[metric]]
+key = "net.factor"
+source = "price_response"
+label = "站网能力对需求的覆盖比（兑现年）"
+at = "swap_business.price_response.network.factor"
+unit = "%"
+decimals = 0
+group = "⑧重卡"
+scale = 100.0
+note = "兑现年全体运营商重卡换电站能力 ÷ 按天花板与算得过账占比算出的换电需求；低于 100% 时份额按此比例压下"
+
+[[metric]]
+key = "net.stations_2030"
+source = "price_response"
+label = "兑现年重卡换电站数·全体运营商（供给侧）"
+at = "swap_business.price_response.network.stations_2030"
+unit = "座"
+decimals = 0
+group = "⑧重卡"
+note = "2026 年底存量 ＋ 年新建 × 年数"
+
+[[metric]]
+key = "net.stations_needed"
+source = "price_response"
+label = "兑现年重卡换电站数·天花板所需（全体运营商）"
+at = "swap_business.price_response.network.stations_needed"
+unit = "座"
+decimals = 0
+group = "⑧重卡"
+note = "按天花板 × 算得过账占比的需求 ÷ 单站规划能力"
+
+[[metric]]
+key = "net.build_needed"
+source = "price_response"
+label = "达到天花板所需的年新建站数（2027–2030）"
+at = "swap_business.price_response.network.build_needed_per_year"
+unit = "座/年"
+decimals = 0
+group = "⑧重卡"
+
+[[metric]]
+key = "net.demand_share"
+source = "price_response"
+label = "兑现年换电占纯电重卡·不受站网约束时"
+at = "swap_business.price_response.weighted_penetration_demand"
+unit = "%"
+decimals = 1
+group = "⑧重卡"
+scale = 100.0

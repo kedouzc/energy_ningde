@@ -656,3 +656,14 @@ storage_to_power_price_ratio 0.917 → 0.85；租金三档重推 6.3651／0.1451
 why   = """研究者：比超充设备贵多少、增容多多少；0.917 口径；LNG 加注与换电同量级。"""
 watch = """回报与 EBITDA 上升（服务费收入增加）；换电对充电不变（两边同价）；换电对 LNG 优势收窄但仍为正。"""
 expect = "中性 回报 13.9%／份额 44.7%／宁德归属 2,163 亿／覆盖 1.43；悲观 10.7%／31.0%／778／1.21；乐观 18.7%／54.8%／4,999／1.79；四条命令全绿。"
+
+[[round]]
+date  = "2026-09-25f"
+focus = "口径文档改为模型生成＋构建闸门；车队散卖旧电池同源 27.7%；供给侧站网约束"
+what  = """新增 src/caliber_docs.py、src/state_lint.py，build.py 串入；口径 4 份转 .src.md。
+derived.fleet_resale_ratio ＝ retirement_recovery_ratio × tco.fleet_scatter_discount（0.68），删 fleet_pack_resale_ratio；租金三档重推 6.4908／0.1471、7.7784／0.1748、10.3765／0.2379。
+新增 [supply_network]（base_year 2026、stations_base_all 2300、build_per_year 1200）、[drivers.network_build] 800／1200／1800；price_response.network_limit；metrics net.*。"""
+why   = """研究者：状态文件只写现行值、文档要与模型对上；执行供给侧。"""
+watch = """中性、乐观份额被站网压下；悲观不受约束；回报下降（车队少）。"""
+expect = "中性 回报 13.9%／份额 32.1%／宁德归属 1,750 亿／覆盖 1.43；悲观 10.8%／30.4%／774／1.21；乐观 18.2%／37.7%／3,810／1.75；build 与 tree 全绿。"
+

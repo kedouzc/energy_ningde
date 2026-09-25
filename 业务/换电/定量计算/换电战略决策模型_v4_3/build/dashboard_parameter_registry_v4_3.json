@@ -303,6 +303,11 @@
     "type": "float"
   },
   {
+    "key": "tco_jpm.onboard_battery_price_ratio",
+    "value": 1.0,
+    "type": "float"
+  },
+  {
     "key": "tco_jpm.as_of",
     "value": "2026-08",
     "type": "str"
@@ -559,7 +564,7 @@
         "name": "中途",
         "battery_pool": "qiji75_trunk",
         "weight": 0.5,
-        "swap_share_ceiling": 0.5,
+        "swap_share_ceiling": 0.8,
         "catl_swap_share": 0.8,
         "daily_km": 400.0,
         "onboard_battery_kwh": 513.0,
@@ -569,7 +574,7 @@
         "name": "长途",
         "battery_pool": "qiji75_trunk",
         "weight": 0.12,
-        "swap_share_ceiling": 0.7,
+        "swap_share_ceiling": 0.8,
         "catl_swap_share": 0.8,
         "daily_km": 650.0,
         "onboard_battery_kwh": 513.0,
@@ -1013,7 +1018,7 @@
   },
   {
     "key": "stations.qiji75_short.planning_daily_capacity",
-    "value": 192.0,
+    "value": 154.0,
     "type": "float"
   },
   {
@@ -1053,7 +1058,7 @@
   },
   {
     "key": "stations.qiji75_trunk.planning_daily_capacity",
-    "value": 192.0,
+    "value": 154.0,
     "type": "float"
   },
   {
@@ -1293,6 +1298,16 @@
     "type": "float"
   },
   {
+    "key": "share_model.km_spread",
+    "value": 0.4,
+    "type": "float"
+  },
+  {
+    "key": "share_model.km_points",
+    "value": 5,
+    "type": "int"
+  },
+  {
     "key": "fleet_capital_mix.low",
     "value": 0.25,
     "type": "float"
@@ -1349,12 +1364,12 @@
   },
   {
     "key": "swap_business.battery_rent_rmb_kwh_month",
-    "value": 8.0684,
+    "value": 7.566,
     "type": "float"
   },
   {
     "key": "swap_business.battery_rent_per_kwh_rmb",
-    "value": 0.1806,
+    "value": 0.1711,
     "type": "float"
   },
   {

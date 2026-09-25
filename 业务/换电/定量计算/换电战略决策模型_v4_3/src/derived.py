@@ -265,12 +265,27 @@ def _sinking(r: float, n: float) -> float:
     return r / ((1.0 + r) ** n - 1.0) if r > 0 and n > 0 else (1.0 / n if n > 0 else 0.0)
 
 
+def terminal_year(config: dict) -> float:
+    """兑现年（终局定价用的买入年）＝ 建设期最后一年。"""
+    return float(config["construction"]["years"][-1])
+
+
+def terminal_battery_price(config: dict) -> float:
+    """终局定价用的电池价：兑现年的曲线价（租金上沿是兑现年的均衡价，电池按那年买入）。"""
+    return battery_price_rmb_kwh(config, terminal_year(config))
+
+
+def onboard_price_ratio(config: dict) -> float:
+    """车上电池（超充工况设计）单价 ÷ 换电块单价。查无信源，基准 1.0（同价）；见车队总账附录。"""
+    return float((config.get("tco_jpm") or {}).get("onboard_battery_price_ratio") or 1.0)
+
+
 def sale_price_ratio(config: dict, years: float) -> float:
     """卖出那年的新电池价 ÷ 买入那年的新电池价（按价格曲线）。
 
     旧电池卖价比例（resale）的定义是"占**卖出那年**新电池价"；年金法里旧电池折回
     乘的是**买入价**，所以要乘这个比把基数对齐——否则等于假设电池不降价，高估旧电池回款。"""
-    y0 = float(config["meta"]["reference_year"])
+    y0 = terminal_year(config)
     p0 = battery_price_rmb_kwh(config, y0)
     return battery_price_rmb_kwh(config, y0 + years) / p0 if p0 else 1.0
 
@@ -281,6 +296,20 @@ def battery_hold_month(kwh: float, price: float, tax: float, r: float, years: fl
     sale_ratio ＝ 卖出那年新电池价 ÷ 买入价（sale_price_ratio），把旧电池卖价的基数对齐到买入价。"""
     cap = kwh * price * (1.0 + tax) * (_crf(r, years) - resale * sale_ratio * _sinking(r, years))
     return (cap + kwh * hold_rmb_kwh_year) / 12.0
+
+
+def turnover_ratio(config: dict, scene: dict, daily_km: float | None = None) -> float:
+    """这类车要电池银行多备几成周转电池：站内周转电量 ÷（一站服务的车数 × 车上电量）。
+
+    一站服务的车数 ＝ 单站规划能力 ÷ 每车每天换几次；每车每天换几次 ＝ 日用电 ÷（车上电量 × 可用比例）。
+    里程越低，每天换得越少，一站服务的车越多，每辆车分摊的周转电池越少。"""
+    st = config["stations"]["qiji75_trunk"]
+    usable = float((config.get("swap_business") or {}).get("usable_energy_factor") or 0.8)
+    kwh = float(scene["onboard_battery_kwh"])
+    km = float(scene["daily_km"]) if daily_km is None else float(daily_km)
+    per_day = km * float(scene["energy_consumption_kwh_km"]) / (kwh * usable) if kwh else 0.0
+    served = float(st["planning_daily_capacity"]) / per_day if per_day else 0.0
+    return (float(st["inventory_blocks"]) * float(st["block_kwh"])) / (served * kwh) if served and kwh else 0.0
 
 
 def scene_cycles_per_year(config: dict, scene: dict) -> float:
@@ -296,7 +325,7 @@ def rent_ceiling(config: dict) -> dict:
     life = config["battery_life_model"]
     cap_years = float(life.get("calendar_cap_years") or 10.0)
     car_cycles = float(life["critical_cycles"])
-    price = battery_price_rmb_kwh(config, float(config["meta"]["reference_year"]))
+    price = terminal_battery_price(config) * onboard_price_ratio(config)   # 对手的电池是车上超充工况设计
     tax = float(tco.get("purchase_tax_rate") or 0.0)
     r_lessor = float(tco.get("lessor_capital_rate") or 0.0)
     r_low = float(tco.get("fleet_discount_rate_low") or 0.0)

@@ -57,7 +57,8 @@ def ledger_values(config: dict) -> dict[str, str]:
     """车队总账要用的全部数（中性＝基线；三档＝只换寿命与随之联动的租金）。"""
     from derived import (battery_hold_month as _bhm, battery_price_rmb_kwh, fleet_resale_ratio,
                          rent_ceiling, retirement_recovery_ratio, scene_cycles_per_year, _crf, _sinking,
-                         sale_price_ratio)
+                         sale_price_ratio, terminal_battery_price, onboard_price_ratio, terminal_year,
+                         turnover_ratio)
     from charging import equilibrium_service_fee, supercharge_capex_per_kw
 
     V: dict[str, str] = {}
@@ -66,7 +67,8 @@ def ledger_values(config: dict) -> dict[str, str]:
     life = config["battery_life_model"]
     curve = config["construction"]["battery_price_curve"]
     scenes = {s["name"]: s for s in config["vehicles"]["heavy"]["scenes"]}
-    price = battery_price_rmb_kwh(config, float(config["meta"]["reference_year"]))
+    price = terminal_battery_price(config)          # 换电块（电池银行）按兑现年买入价
+    onb = onboard_price_ratio(config)               # 车上超充电池 ÷ 换电块
     tax = float(tco["purchase_tax_rate"])
     r_bank = float(config["finance"]["wacc"])
     r_les = float(tco["lessor_capital_rate"])
@@ -81,6 +83,8 @@ def ledger_values(config: dict) -> dict[str, str]:
 
     # —— 输入 ——
     V["电池价"] = _f(price)
+    V["电池买入年"] = f"{terminal_year(config):.0f}"
+    V["车上电池价比"] = f"{onb:.2f}"
     V["购置税"] = _pct(tax, 0)
     V["银行资金成本"] = _pct(r_bank, 1)
     V["租赁商资金成本"] = _pct(r_les, 1)
@@ -103,9 +107,9 @@ def ledger_values(config: dict) -> dict[str, str]:
     for n, s in scenes.items():
         kwh = float(s["onboard_battery_kwh"])
         daily = float(s["daily_km"]) * float(s["energy_consumption_kwh_km"])
-        per_day = daily / (kwh * 0.8)
-        served = 192.0 / per_day
-        turn[n] = 4104.0 / (served * kwh)
+        per_day = daily / (kwh * float(sb["usable_energy_factor"]))
+        served = float(config["stations"]["qiji75_trunk"]["planning_daily_capacity"]) / per_day
+        turn[n] = turnover_ratio(config, s)
         V[f"{n}每天用电"] = _f(daily)
         V[f"{n}每年循环"] = _f(scene_cycles_per_year(config, s))
         V[f"{n}当月用电"] = _f(daily * days / 12)
@@ -126,12 +130,12 @@ def ledger_values(config: dict) -> dict[str, str]:
     def lessor(n: str, car: float, t: float = tax, r: float = r_les) -> float:
         s = scenes[n]
         yrs = min(car / scene_cycles_per_year(config, s), cap)
-        return battery_hold_month(float(s["onboard_battery_kwh"]), price, t, r, yrs, bank_res, pool_hold)
+        return battery_hold_month(float(s["onboard_battery_kwh"]), price * onb, t, r, yrs, bank_res, pool_hold)
 
     def selfbuy(n: str, car: float, r: float) -> float:
         s = scenes[n]
         yrs = min(car / scene_cycles_per_year(config, s), cap)
-        return battery_hold_month(float(s["onboard_battery_kwh"]), price, tax, r, yrs, fleet_res, fleet_hold)
+        return battery_hold_month(float(s["onboard_battery_kwh"]), price * onb, tax, r, yrs, fleet_res, fleet_hold)
 
     tiers = ("悲观", "中性", "乐观")
     cars = {t: float(config["drivers"]["battery_life"][t]["critical_cycles"]) for t in tiers}
@@ -393,6 +397,7 @@ def supply_values(config: dict) -> dict[str, str]:
             V["规划年新建"] = _f(n["build_plan_per_year"])
             V["需求对规划的倍数·中性"] = f"{n['build_needed_per_year'] / n['build_plan_per_year']:.1f}"
             V["规划站网能服务的比例·中性"] = _pct(n["factor_plan"], 0)
+            V["规划隐含份额·中性"] = _pct(n["factor_plan"] * r["weighted_penetration_demand"])
             V["规划站数"] = _f(n["stations_plan_2030"])
             V["宁德所需站数·中性"] = _f(n["stations_needed"] * share_catl)
             V["站体投资·中性"] = _f(n["stations_needed"] * body / 1e4)
@@ -420,13 +425,6 @@ def supply_values(config: dict) -> dict[str, str]:
             V["兑现年重卡换电电量·中性"] = f"{e / 1e4:,.0f} 亿度"
             per = [float(x["daily_km"]) * float(x["energy_consumption_kwh_km"]) * days / 1e4 for x in heavy["scenes"]]
             V["每车年用电·场景区间"] = f"{min(per):.0f}–{max(per):.0f} 万度"
-            # 覆盖上界：天花板 ÷ 干线运力覆盖目标 ＝ 覆盖区内要做到的换电占比
-            cov = float(sup["trunk_coverage_target"])
-            crow = ["| 场景 | 天花板 | ÷ 覆盖 " + _pct(cov, 0) + " ＝ 覆盖区内要做到的换电占比 |", "|---|---|---|"]
-            for sc in heavy["scenes"]:
-                ce = float(sc["swap_share_ceiling"])
-                crow.append(f"| {sc['name']} | {_pct(ce, 0)} | {_pct(ce / cov, 0)} |")
-            V["表:覆盖上界"] = "\n".join(crow)
     rows = ["| | 悲观 | 中性 | 乐观 |", "|---|---|---|---|"]
     for label, k in (("兑现年 EBITDA 覆盖倍数", "cov"), ("闸门（覆盖倍数 ≥ " + f"{hurdle:.1f}" + "）", "gate"),
                      ("换电占纯电重卡·需求侧", "dem"), ("按需求要的站（全体运营商）", "need"), ("其中宁德（按各场景换电次数加权的宁德份额）", "catl"),
@@ -439,9 +437,47 @@ def supply_values(config: dict) -> dict[str, str]:
     return V
 
 
+def share_values(config: dict) -> dict[str, str]:
+    """份额：可及比例 × 系统成本低于替代的车占比。逐车读数与敏感性。"""
+    from price_response import compute_response
+    from tco import build_scene_economics
+    V: dict[str, str] = {}
+
+    def run(c):
+        return compute_response(c, build_scene_economics(c))
+    r = run(config)
+    sm = config["share_model"]
+    V["里程分布半宽"] = _pct(float(sm["km_spread"]), 0)
+    V["里程分布点数"] = f"{int(sm['km_points'])}"
+    rows = ["| 场景 | 日里程（公里） | 电池银行保本（含周转） | 租赁商 | 车队自买 借 " + "／".join(_pct(float(config["tco_jpm"][f"fleet_discount_rate_{t}"]), 0) for t in ("low", "mid", "high"))
+            + " | 兆瓦多停的时间价值 | 选换电的占比 |", "|---|---|---|---|---|---|---|"]
+    for n, info in r["scenes"].items():
+        for p in info["system_points"]:
+            rows.append(f"| {n} | {_f(p['km'])} | {p['bank_wan']:.2f} | {p['lessor_wan']:.2f} | "
+                        + "／".join(f"{x:.2f}" for x in p["own_wan"]) + f" | {p['tv_wan']:.2f} | {_pct(p['fraction'], 0)} |")
+    V["表:逐车系统成本"] = "\n".join(rows)
+    srow = ["| 场景 | 可及比例 | 系统成本低于替代的车占比 | 份额 |", "|---|---|---|---|"]
+    for n, info in r["scenes"].items():
+        srow.append(f"| {n} | {_pct(info['ceiling'], 0)} | {_pct(info['addressable'], 0)} | {_pct(info['penetration'])} |")
+    srow.append(f"| **加权** | | | **{_pct(r['weighted_penetration_demand'])}** |")
+    V["表:份额拆解"] = "\n".join(srow)
+    sens = ["| 改动（其余中性） | 换电占纯电重卡 |", "|---|---|", f"| 现行 | {_pct(r['weighted_penetration_demand'])} |"]
+    for label, fn in (("里程分布半宽 20%", lambda c: c["share_model"].__setitem__("km_spread", 0.2)),
+                      ("里程分布半宽 80%", lambda c: c["share_model"].__setitem__("km_spread", 0.8)),
+                      ("车上电池比换电块便宜 10%（价比 0.90）", lambda c: c["tco_jpm"].__setitem__("onboard_battery_price_ratio", 0.90)),
+                      ("车上电池比换电块便宜 15%（价比 0.85）", lambda c: c["tco_jpm"].__setitem__("onboard_battery_price_ratio", 0.85)),
+                      ("车上电池比换电块贵 10%（价比 1.10）", lambda c: c["tco_jpm"].__setitem__("onboard_battery_price_ratio", 1.10)),
+                      ("去掉延寿（池里＝车上）", lambda c: c["battery_life_model"].__setitem__("pool_life_multiplier", 1.0))):
+        c = copy.deepcopy(config); fn(c)
+        sens.append(f"| {label} | {_pct(run(c)['weighted_penetration_demand'])} |")
+    V["表:份额敏感"] = "\n".join(sens)
+    return V
+
+
 def values(config: dict) -> dict[str, str]:
     """口径文档可用的现算值（表与算式中间量）。注入由 src/inject.py 统一做（与叙述同一个注入器）。"""
     V = ledger_values(config)
     V.update(supply_values(config))
+    V.update(share_values(config))
     V.update(model_values(config))
     return V

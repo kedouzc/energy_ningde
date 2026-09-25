@@ -94,6 +94,82 @@ def _addressable(mix: list[tuple[float, float]], r_star: float | None) -> float:
     return 0.0
 
 
+def _km_grid(config: dict) -> list[tuple[float, float]]:
+    """场景内日里程的分布：以场景代表里程为中心、左右各 spread 的均匀分布，取 points 个等权点。
+    声明的平滑约定（没有分场景的里程分布统计），敏感性见 口径/车队总账 第五节。"""
+    sm = config.get("share_model") or {}
+    spread = float(sm.get("km_spread", 0.4))
+    n = int(sm.get("km_points", 5))
+    if n <= 1 or spread <= 0:
+        return [(1.0, 1.0)]
+    return [(1.0 - spread + 2.0 * spread * i / (n - 1), 1.0 / n) for i in range(n)]
+
+
+def system_fraction(config: dict, cfg_sc: dict, tv_mw_year_wan: float, spot_relief_wan: float = 0.0) -> dict:
+    """这个场景里，系统（电池银行）能以低于车队最便宜替代的成本服务的车占比。
+
+    定价按车型套餐限价：每类车付它自己的最便宜替代，所以**谁会选换电只取决于系统成本能不能低于它的替代**，
+    与代表车的两段价无关。逐车比较（日里程分布 × 车队资金成本三群）：
+        换电的系统成本 ＝ 电池银行保本（车上电量 ×（1＋这类车分摊的周转比例），池里寿命，银行资金成本，免购置税）
+        替代 ＝ min（车队自买：借 r、交购置税、车上寿命、自己卖旧电池；租赁商：7.5%、交购置税、车上寿命）
+        净优势 ＝ 替代 − 换电系统成本 ＋ 兆瓦超充多停的时间价值（按里程等比）
+    服务费两边跟平、电价两边相同，互相抵掉。"""
+    from derived import (battery_hold_month, fleet_resale_ratio, retirement_recovery_ratio, sale_price_ratio,
+                         terminal_battery_price, onboard_price_ratio, turnover_ratio)
+    tco = config.get("tco_jpm") or {}
+    life = config["battery_life_model"]
+    sb = config.get("swap_business") or {}
+    days = float(sb.get("operating_days") or 0.0)
+    cap_y = float(life.get("calendar_cap_years") or 10.0)
+    car_cycles = float(life["critical_cycles"])
+    pool_cycles = car_cycles * float(life.get("pool_life_multiplier") or 1.0)
+    price = terminal_battery_price(config)
+    onb = onboard_price_ratio(config)
+    tax = float(tco.get("purchase_tax_rate") or 0.0)
+    r_bank = float(config["finance"]["wacc"])
+    r_les = float(tco.get("lessor_capital_rate") or 0.0)
+    rates = [float(tco.get(f"fleet_discount_rate_{t}") or 0.0) for t in _TIERS]
+    mix_cfg = config.get("fleet_capital_mix") or {}
+    mix = [(rates[i], float(mix_cfg.get(t) or 0.0)) for i, t in enumerate(_TIERS)]
+    bank_res, fleet_res = retirement_recovery_ratio(config), fleet_resale_ratio(config)
+    pool_hold = float(tco.get("pool_hold_rmb_kwh_year") or 0.0)
+    fleet_hold = float(tco.get("fleet_battery_hold_rmb_kwh_year") or 0.0)
+    band = float((config.get("price_response") or {}).get("lessor_band_wan") or 0.5)
+    floor = float((config.get("price_response") or {}).get("response_floor") or 0.0)
+    kwh = float(cfg_sc["onboard_battery_kwh"])
+    regime = str(cfg_sc.get("charge_regime") or "megawatt")
+    frac = frac_spot = 0.0
+    pts = []
+    for m, w in _km_grid(config):
+        km = float(cfg_sc["daily_km"]) * m
+        cpy = km * float(cfg_sc["energy_consumption_kwh_km"]) * days / kwh if kwh else 0.0
+        if cpy <= 0:
+            continue
+        y_pool = min(pool_cycles / cpy, cap_y)
+        y_car = min(car_cycles / cpy, cap_y)
+        if regime in ("depot", "depot_rotation"):
+            y_car = y_pool                 # 场站慢充不伤电池
+        turn = turnover_ratio(config, cfg_sc, km)
+        bank = 12.0 * battery_hold_month(kwh * (1.0 + turn), price, 0.0, r_bank, y_pool, bank_res, pool_hold,
+                                         sale_price_ratio(config, y_pool)) / 1e4
+        les = 12.0 * battery_hold_month(kwh, price * onb, tax, r_les, y_car, bank_res, pool_hold,
+                                        sale_price_ratio(config, y_car)) / 1e4
+        own = [12.0 * battery_hold_month(kwh, price * onb, tax, r, y_car, fleet_res, fleet_hold,
+                                         sale_price_ratio(config, y_car)) / 1e4 for r in rates]
+        tv = tv_mw_year_wan * m
+        adv = [o + tv - bank for o in own]
+        adv_les = les + tv - bank
+        f_les = max(0.0, min(1.0, 1.0 + adv_les / band))
+        a = max(floor, _addressable(mix, _break_even_rate(rates, adv)) * f_les)
+        frac += w * a
+        # 压力档：充电服务费停在价格战现价（充电每年少付 spot_relief，按里程等比），替代更便宜
+        rel = spot_relief_wan * m
+        f_les_s = max(0.0, min(1.0, 1.0 + (adv_les - rel) / band))
+        frac_spot += w * max(floor, _addressable(mix, _break_even_rate(rates, [x - rel for x in adv])) * f_les_s)
+        pts.append({"km": km, "bank_wan": bank, "lessor_wan": les, "own_wan": own, "tv_wan": tv, "fraction": a})
+    return {"fraction": frac, "fraction_spot": frac_spot, "points": pts}
+
+
 def compute_response(config: dict, heavy) -> dict | None:
     """给出每个重卡场景的"算得过账的车队占比"与份额。heavy 为 tco.build_scene_economics 的结果。
 
@@ -132,14 +208,22 @@ def compute_response(config: dict, heavy) -> dict | None:
         # 自备两套电池场站轮换，由 tco.py 的 charge_regime="depot_rotation" 表达，份额照常算。
         ceiling = float(cfg_sc.get("swap_share_ceiling", cfg_sc.get("swap_penetration")) or 0.0)
         w = float(cfg_sc.get("weight") or 0.0)
+        # 【2026-09-26】份额 ＝ 可及比例（天花板字段，现义：短途＝多班倒封闭场景占比，中长途＝干线运力覆盖）
+        #   × 系统能以低于替代的成本服务的车占比（逐车：里程分布 × 资金成本三群）。代表车在现行两段价下的账（a_now）只作读数。
+        _relief = float(getattr(sc, "gap_service_spot_year_wan", 0.0) or 0.0) - float(getattr(sc, "gap_service_year_wan", 0.0) or 0.0)
+        sysf = system_fraction(config, cfg_sc, float(getattr(sc, "tv_mw_year_wan", 0.0) or 0.0), _relief)
+        a_sys = sysf["fraction"]
+        a_spot = sysf["fraction_spot"]
         scenes[name] = {
             "ceiling": ceiling,
-            "addressable": a_now,
-            "penetration": min(1.0, ceiling * a_now),
+            "addressable": a_sys,
+            "addressable_tariff": a_now,
+            "system_points": sysf["points"],
+            "penetration": min(1.0, ceiling * a_sys),
             "addressable_spot": a_spot,
             # 现价压力档的占比相对基准剩几成（名字沿用旧读数"份额乘数"）
-            "multiplier": a_now,
-            "multiplier_spot": (a_spot / a_now) if a_now else 0.0,
+            "multiplier": a_sys,
+            "multiplier_spot": (a_spot / a_sys) if a_sys else 0.0,
             "lessor_factor": f_now,
         }
         pen += w * scenes[name]["penetration"]

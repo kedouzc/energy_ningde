@@ -3121,7 +3121,7 @@ unit = "%"
 decimals = 0
 scale = 100.0
 group = "⑧重卡"
-note = "【2026-09-22 · 门②】算得过账的车队占比：按车队借钱成本三群，换电（两段价租金）比自己买电池＋兆瓦超充净优势为正的那部分（资金成本分布见 [fleet_capital_mix]，经验假设）；场景份额＝换电份额天花板 × 本占比"
+note = "系统成本低于替代的车占比：逐车比较（场景内日里程分布 × 车队资金成本三群），电池银行保本（含这类车分摊的周转电池、池里寿命）对比车队自买与租赁商的最便宜者，加兆瓦多停的时间价值（price_response.system_fraction）"
 
 [[metric]]
 key = "ops.share_multiplier_spot_短途"
@@ -3142,7 +3142,7 @@ unit = "%"
 decimals = 0
 scale = 100.0
 group = "⑧重卡"
-note = "【2026-09-22 · 门②】算得过账的车队占比：按车队借钱成本三群，换电（两段价租金）比自己买电池＋兆瓦超充净优势为正的那部分（资金成本分布见 [fleet_capital_mix]，经验假设）；场景份额＝换电份额天花板 × 本占比"
+note = "系统成本低于替代的车占比：逐车比较（场景内日里程分布 × 车队资金成本三群），电池银行保本（含这类车分摊的周转电池、池里寿命）对比车队自买与租赁商的最便宜者，加兆瓦多停的时间价值（price_response.system_fraction）"
 
 [[metric]]
 key = "ops.share_multiplier_spot_中途"
@@ -3163,7 +3163,7 @@ unit = "%"
 decimals = 0
 scale = 100.0
 group = "⑧重卡"
-note = "【2026-09-22 · 门②】算得过账的车队占比：按车队借钱成本三群，换电（两段价租金）比自己买电池＋兆瓦超充净优势为正的那部分（资金成本分布见 [fleet_capital_mix]，经验假设）；场景份额＝换电份额天花板 × 本占比"
+note = "系统成本低于替代的车占比：逐车比较（场景内日里程分布 × 车队资金成本三群），电池银行保本（含这类车分摊的周转电池、池里寿命）对比车队自买与租赁商的最便宜者，加兆瓦多停的时间价值（price_response.system_fraction）"
 
 [[metric]]
 key = "ops.share_multiplier_spot_长途"
@@ -3200,13 +3200,13 @@ note = "同一加权口径下，若充电的价格战价撑满整个持有期，
 [[metric]]
 key = "ops.swap_ceiling_短途"
 source = "price_response"
-label = "重卡短途·换电份额天花板"
+label = "重卡短途·换电可及比例"
 at = "swap_business.price_response.scenes.短途.ceiling"
 unit = "%"
 decimals = 0
 scale = 100.0
 group = "⑧重卡"
-note = "【2026-09-22 · 门②】车队全都算得过账时，换电在本场景纯电重卡里最多能拿到的份额——由站网覆盖和车型适配决定，不由价格决定；三档见 [drivers.swap_share_ceiling]"
+note = "换电在物理上够得着的那部分车：短途＝多班倒封闭场景占比，中长途＝干线运力覆盖；不由价格决定；三档见 [drivers.swap_share_ceiling]"
 
 [[metric]]
 key = "ops.swap_share_短途"
@@ -3217,18 +3217,18 @@ unit = "%"
 decimals = 0
 scale = 100.0
 group = "⑧重卡"
-note = "【2026-09-22 · 门②】换电份额天花板 × 算得过账的车队占比；模型规模链实际使用的换电占纯电比例"
+note = "可及比例 × 系统成本低于替代的车占比（逐车：里程分布 × 资金成本三群）；模型规模链实际使用的换电占纯电比例"
 
 [[metric]]
 key = "ops.swap_ceiling_中途"
 source = "price_response"
-label = "重卡中途·换电份额天花板"
+label = "重卡中途·换电可及比例"
 at = "swap_business.price_response.scenes.中途.ceiling"
 unit = "%"
 decimals = 0
 scale = 100.0
 group = "⑧重卡"
-note = "【2026-09-22 · 门②】车队全都算得过账时，换电在本场景纯电重卡里最多能拿到的份额——由站网覆盖和车型适配决定，不由价格决定；三档见 [drivers.swap_share_ceiling]"
+note = "换电在物理上够得着的那部分车：短途＝多班倒封闭场景占比，中长途＝干线运力覆盖；不由价格决定；三档见 [drivers.swap_share_ceiling]"
 
 [[metric]]
 key = "ops.swap_share_中途"
@@ -3239,18 +3239,18 @@ unit = "%"
 decimals = 0
 scale = 100.0
 group = "⑧重卡"
-note = "【2026-09-22 · 门②】换电份额天花板 × 算得过账的车队占比；模型规模链实际使用的换电占纯电比例"
+note = "可及比例 × 系统成本低于替代的车占比（逐车：里程分布 × 资金成本三群）；模型规模链实际使用的换电占纯电比例"
 
 [[metric]]
 key = "ops.swap_ceiling_长途"
 source = "price_response"
-label = "重卡长途·换电份额天花板"
+label = "重卡长途·换电可及比例"
 at = "swap_business.price_response.scenes.长途.ceiling"
 unit = "%"
 decimals = 0
 scale = 100.0
 group = "⑧重卡"
-note = "【2026-09-22 · 门②】车队全都算得过账时，换电在本场景纯电重卡里最多能拿到的份额——由站网覆盖和车型适配决定，不由价格决定；三档见 [drivers.swap_share_ceiling]"
+note = "换电在物理上够得着的那部分车：短途＝多班倒封闭场景占比，中长途＝干线运力覆盖；不由价格决定；三档见 [drivers.swap_share_ceiling]"
 
 [[metric]]
 key = "ops.swap_share_长途"
@@ -3261,18 +3261,18 @@ unit = "%"
 decimals = 0
 scale = 100.0
 group = "⑧重卡"
-note = "【2026-09-22 · 门②】换电份额天花板 × 算得过账的车队占比；模型规模链实际使用的换电占纯电比例"
+note = "可及比例 × 系统成本低于替代的车占比（逐车：里程分布 × 资金成本三群）；模型规模链实际使用的换电占纯电比例"
 
 [[metric]]
 key = "ops.weighted_swap_ceiling"
 source = "price_response"
-label = "兑现年换电份额天花板·模型加权"
+label = "兑现年换电可及比例·模型加权"
 at = "swap_business.price_response.weighted_ceiling"
 unit = "%"
 decimals = 1
 scale = 100.0
 group = "⑧重卡"
-note = "【2026-09-22 · 门②】三场景销量权重 × 各自天花板；与「兑现年换电占纯电重卡·模型加权」之差，就是因价格算不过账而流失的份额"
+note = "三场景销量权重 × 各自可及比例；与「兑现年换电占纯电重卡·模型加权」之差，就是系统成本高于替代而流失的份额"
 
 [[metric]]
 key = "ops.pool_return_qiji75_short"

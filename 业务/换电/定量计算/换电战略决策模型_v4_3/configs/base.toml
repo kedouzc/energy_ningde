@@ -131,17 +131,17 @@ targets = [
 
 [drivers.swap_share_ceiling]
 scenario_axis = true     # 需求族：站网铺多密、车型适配多少
-cn      = "换电份额天花板（重卡）"
+cn      = "换电可及比例（重卡）"
 unit    = "换电/纯电"
-desc    = "【2026-09-22 · 门②】车队全都算得过账时，换电在该场景纯电重卡里最多能拿到的份额——由站网覆盖和车型适配决定，不由价格决定。实际份额＝天花板 × 算得过账的车队占比。短途 30% 为 2025 实测基线（可能含买换电车改装充电口的套利车），中长途为设定。"
+desc    = "可及比例：换电在物理上够得着的那部分车。短途＝多班倒封闭场景占比（代理值 2025 实测 30%）；中长途＝干线运力覆盖（宁德 2030 目标 80%）。三档按 ±15% 人为摆幅（本文件约定）。实际份额＝可及比例 × 系统成本低于替代的车占比（price_response.system_fraction）。"
 targets = [
   "vehicles.heavy.scenes.0.swap_share_ceiling",
   "vehicles.heavy.scenes.1.swap_share_ceiling",
   "vehicles.heavy.scenes.2.swap_share_ceiling",
 ]
-"悲观" = { "短途" = 0.30, "中途" = 0.30, "长途" = 0.40 }
-"中性" = { "短途" = 0.30, "中途" = 0.50, "长途" = 0.70 }
-"乐观" = { "短途" = 0.40, "中途" = 0.60, "长途" = 0.80 }
+"悲观" = { "短途" = 0.255, "中途" = 0.68, "长途" = 0.68 }
+"中性" = { "短途" = 0.30, "中途" = 0.80, "长途" = 0.80 }
+"乐观" = { "短途" = 0.345, "中途" = 0.92, "长途" = 0.92 }
 
 # 【±15% 是人为设定的摆幅，不需要出处（2026-09-15 定，A2③ 关闭）】
 # 情景是对未来的预测，预测本来就没有出处。这条轴回答的不是"未来会怎样"，
@@ -292,9 +292,9 @@ targets = [
 # 同源配对登记（程序检查读它：每档的一对数必须来自同一个信源键）
 pair_sources = { "悲观" = "src.sunwoda_hdt_superfast_2025", "中性" = "src.fastcharge_life_ouyang_2025", "乐观" = "src.catl_tianxing_hdt_2024" }
 pool_cycles_fixed = 5000.0
-"悲观" = { critical_cycles = 3850.0, pool_life_multiplier = 1.2987012987012987, battery_rent_rmb_kwh_month = 6.7852, battery_rent_per_kwh_rmb = 0.1524 }    # 5,000 ÷ 3,850；少活 23%
-"中性" = { critical_cycles = 3000.0, pool_life_multiplier = 1.6666666666666667, battery_rent_rmb_kwh_month = 8.0684, battery_rent_per_kwh_rmb = 0.1806 }    # 5,000 ÷ 3,000；少活 40%
-"乐观" = { critical_cycles = 2000.0, pool_life_multiplier = 2.5, battery_rent_rmb_kwh_month = 10.7652, battery_rent_per_kwh_rmb = 0.241 }                   # 5,000 ÷ 2,000；少活 60%
+"悲观" = { critical_cycles = 3850.0, pool_life_multiplier = 1.2987012987012987, battery_rent_rmb_kwh_month = 6.3591, battery_rent_per_kwh_rmb = 0.1435 }    # 5,000 ÷ 3,850；少活 23%
+"中性" = { critical_cycles = 3000.0, pool_life_multiplier = 1.6666666666666667, battery_rent_rmb_kwh_month = 7.566, battery_rent_per_kwh_rmb = 0.1711 }    # 5,000 ÷ 3,000；少活 40%
+"乐观" = { critical_cycles = 2000.0, pool_life_multiplier = 2.5, battery_rent_rmb_kwh_month = 10.1668, battery_rent_per_kwh_rmb = 0.2308 }                   # 5,000 ÷ 2,000；少活 60%
 [drivers.valley_power_price]
 scenario_axis = false
 off_axis_reason = "外生成本（电力市场），与「换电这条路走没走通」不同源；与经营族同向拨动＝把两种独立的不确定性当成一种"
@@ -676,6 +676,9 @@ society_electricity_yi_kwh_2030.note = "国网能源院口径（二手转引）�
 # 注意：这里**不登记 0.85 元/kWh 电价**——换电侧的能源单价由模型自己算
 #   （服务费 + 电池租金 ÷ 换电量，见 business.build_heavy_economics），故电价不入参。
 [tco_jpm]
+# 车上电池（超充工况设计）单价 ÷ 换电块单价：查无同源成对的价格（快充电芯溢价、换电块结构溢价都没找到公开数），
+# 基准取同价 1.0；敏感性见 口径/车队总账 第五节。找到同一信源的两种设计报价后替换。
+onboard_battery_price_ratio = 1.0
 as_of = "2026-08"
 # —— 电动（充电）基准列：换电侧复用其购车/税/补贴/维保/载重损失，只替换能源单价 ——
 purchase_price = 700000.0          # 电动重卡购车价（Table 3）
@@ -906,7 +909,7 @@ name = "短途"
 battery_pool = "qiji75_short"
 # 短途销量占比 38%：JPM 续航分布表（4M26 口径 37/50/12 取整）
 weight = 0.38
-# 【2026-09-22 · 门②】换电份额天花板 30% = 2025 实测自然基线（钢厂/港口/矿山场景）；政策刺激峰曾达 50%+（2021-22 唐山/包头）。
+# 可及比例（字段名沿用 swap_share_ceiling）：短途＝多班倒封闭场景（港口/钢厂/矿山）占短途的比例，代理值取 2025 实测换电占比 30%（自然基线）；单班车夜里场站慢充，不在可及范围。
 # 实际份额 swap_penetration ＝ 天花板 × 算得过账的车队占比，由 model.py 装配时按价格现算写入，本文件不再存
 swap_share_ceiling = 0.30
 # 【2026-09-23／24】短途按班制分，不按公里分：天花板 30% ≈ 多班倒、"人停车不停"的封闭短倒（港口/钢厂/矿山）；
@@ -935,8 +938,8 @@ name = "中途"
 # 电池归属：中途/长途干线 → qiji75_trunk 池（骐骥75# 171kWh）
 battery_pool = "qiji75_trunk"
 weight = 0.50
-# 中途换电份额天花板 50%：介于短途 30%/长途 70% 之间，效率敏感梯度（快递调拨/固定线路偏好换电）；设定
-swap_share_ceiling = 0.50
+# 可及比例：中长途＝换电网覆盖到的干线运力占比，取宁德 2030 目标「覆盖全国 80% 干线运力」（src.catl_qiji_launch_202505）
+swap_share_ceiling = 0.80
 catl_swap_share = 0.30 # **并购前初值**；同上，重放后 0.80
 daily_km = 400.0
 # 513kWh = 171×3 三包满配：骐骥官网 + JPM + 零一汽车港牵专车选配佐证
@@ -947,8 +950,8 @@ energy_consumption_kwh_km = 1.70
 name = "长途"
 battery_pool = "qiji75_trunk"
 weight = 0.12
-# 长途换电份额天花板 70%（60–80% 中位）：干线实测<1%，设定
-swap_share_ceiling = 0.70
+# 可及比例：同中途，干线运力覆盖 80%
+swap_share_ceiling = 0.80
 # 宁德 70%/启源 30%：长途属宁德底盘式主阵地（极兔 5000 台验证）
 catl_swap_share = 0.70 # **并购前初值**；同上，重放后 0.80
 daily_km = 650.0
@@ -1127,13 +1130,13 @@ charging_power_kw = 4500.0   # 孝感立项公示（4500kVA 箱变）
 operating_hours_day = 16.0
 # 换电 5 分钟/车：盐田港官网一手（"5 分钟换电"）
 swap_duration_seconds = 300.0
-# 规划能力 192 次/日（拍值·决策输入）：按官方运营口径推算——16h 运营 × 5 分钟/次 = 192，
-# 与 JPM 实测口径"日 168 次"互洽（实际负荷略低于设计排产，取设计值）。
+# 规划能力 154 次/日＝物理上限 192（16h × 3600s ÷ 300s）× 利用率 0.8：车辆随机到达（M/D/1 排队，ρ≈0.8），
+# 方法同超换一体站财务模型（定性分析/宁德时代_超换一体站_财务模型_修正版.md §三）；JPM 实测口径「日 168 次」在其上。
 # 物理上限不在本文件登记，由代码 station_capacity() 每次运行时从上方基础参数现算：
 # 约束A（工位手速）16h×3600s÷300s=192 次、约束B（充电能量）4500kW×16h×RTE÷净补≈484 次，
 # 取 min=192，并硬断言 192 ≤ 192（手速为绑定约束）——验证是每次运行的强制关卡，
 # 不因拍值落档而消失（推导全文见 MANIFEST §3.2）
-planning_daily_capacity = 192.0
+planning_daily_capacity = 154.0
 
 [stations.qiji75_trunk]
 label = "骐骥干线站"
@@ -1145,7 +1148,7 @@ block_kwh = 171.0
 charging_power_kw = 4500.0
 operating_hours_day = 16.0
 swap_duration_seconds = 300.0
-planning_daily_capacity = 192.0
+planning_daily_capacity = 154.0
 
 [stations.choco25_passenger]
 label = "巧克力乘用站"
@@ -1345,6 +1348,12 @@ response_floor = 0.10
 # **它只影响弹性的陡峭程度，不影响基准**：基准处乘数按构造恒为 1.0，所以这三个数错了，
 # 污染不到基线七个读数，只会让沙盘里的价格弹性偏陡或偏缓。要改就整组一起改并跑敏感性。
 # **什么会让我改它**：出现新能源重卡买方结构（大型车队／一般车队／个体）的抽样调查。
+[share_model]
+# 场景内日里程分布：代表里程 × [1 − spread, 1 ＋ spread] 均匀，取 points 个等权点。声明的平滑约定——
+# 没有分场景的里程分布统计（新能源汽车国家监测平台 2022：换电牵引车日均 208.9 公里、320 公里以上占 23.9%，是全体而非分场景）。
+km_spread = 0.4
+km_points = 5
+
 [fleet_capital_mix]
 low = 0.25      # 资金成本低档（大型车队、国企背景运输企业、场景方自购）
 mid = 0.45      # 中档（一般车队，融资租赁为主）
@@ -1399,11 +1408,11 @@ rent_ceiling_floor_scene = "中途"
 rent_ceiling_overage_scene = "长途"
 battery_rent_city_rmb_kwh_month = 9.7
 battery_rent_city_per_kwh_rmb = 0.2
-battery_rent_rmb_kwh_month.v = 8.0684
+battery_rent_rmb_kwh_month.v = 7.566
 battery_rent_rmb_kwh_month.label = "电池月租保底·重卡（终局上沿）"
 battery_rent_rmb_kwh_month.unit = "元/kWh·月"
 battery_rent_rmb_kwh_month.decimals = 2
-battery_rent_per_kwh_rmb.v = 0.1806
+battery_rent_per_kwh_rmb.v = 0.1711
 battery_rent_per_kwh_rmb.label = "电池租金超出价·重卡（终局上沿）"
 battery_rent_per_kwh_rmb.unit = "元/kWh"
 battery_rent_per_kwh_rmb.decimals = 3

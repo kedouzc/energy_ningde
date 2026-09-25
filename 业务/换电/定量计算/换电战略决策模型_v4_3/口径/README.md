@@ -12,11 +12,12 @@
 
 | 文档 | 服务哪一章 | 服务哪几个**收口**读数 | 涉及哪些**支撑**读数 |
 |---|---|---|---|
-| `capex_debt_估值公式链.md`（2026-09-25 并入原 `兑现年处置_出表与轻资产化.md`，为第 5 节） | 4 可行性 · 6 冲击与重估 · 7 估值 | `swap.coverage`、`capex.peak_call`、`val.op_ev_multiple`、`val.ev_dcf_perpetual`、`val.reit_multiple` | `capex.initial_capex`、`capex.project_debt`、`capex.lifecycle_base` |
-| `TCO口径_JPM整套引用.md` | 3 目标市场（只管电动对柴油／LNG；换电对充电见 `车队总账_换电对充电.md`） | `tco.swap_wan`（含 模型寿命/更新周期 两个持有期共 12 个）、`ops.veh_ops` | `tco.lng_wan`、`tco.diesel_wan`、`vehicles.heavy.stock_wan`、`ops.heavy_pen_pct` |
+| `capex_debt_估值公式链.md`（2026-09-25c 并入原 `兑现年处置_出表与轻资产化.md` 并重排：值多少 → 18 倍能否被验证 → 怎么兑现） | 7 估值与回报 · 4 · 0 | `val.op_ev_multiple`、`val.ev_dcf_perpetual`、`val.catl_dcf_perpetual`、`val.reit_multiple`、`swap.coverage`、`capex.peak_call` | `capex.valuation_capital_pv`、`val.dcf_debt`、`swap.forward_fcff`、`swap.dcf_implied_multiple` |
+| `TCO口径_JPM整套引用.md`（只管电动对柴油／LNG） | 3 需求验证 | `tco.swap_wan`、`tco.lng_wan`、`tco.diesel_wan` | `ops.veh_ops`、`vehicles.heavy.stock_wan`、`ops.heavy_pen_pct` |
 | `车辆与站数_推算方法.md` | 3 目标市场 · 4 可行性 | `ops.veh_ops`、`ops.veh_heavy`、`scale.stations_total` | `ops.market_total`、`ops.share_of_market`、`ops.veh_city`、`ops.veh_passenger_ops` |
 | `运营收入与成本_口径.md` | 5 阶段性业绩 | `swap.revenue`、`swap.ebitda` | `ops.annual_energy`、`swap.service_rev`、`swap.rent_rev`、`swap.ancillary` |
-| `车队总账_换电对充电.md`（2026-09-25 由 `电池银行与寿命_口径.md`、`换电对最强对手_车队总账.md`、TCO 口径「换电对充电」一节合并） | 3 需求验证 · 4 · 5 | `ops.weighted_swap_penetration`、`swap.coverage` | `swap.ebitda`、`tco.*`（分场景车队账）、租金两段价 |
+| `车队总账_换电对充电.md`（2026-09-25 合并三份；25c 补回门①② 推导，并迁入"充电价停在哪"——现为终局定价与车队总账） | 3 需求验证 · 4 · 5 · 0 | `ops.weighted_swap_penetration`、`swap.coverage` | `swap.ebitda`、`tco.*`（分场景）、三个价（充电服务费、换电服务费、电池租金） |
+| `充电站与换电站_成本对比口径.md`（解释 `src/charging.py` 的站层账；不论证定价） | 4 · 5 | —（程序口径说明） | 站层回报、单站吞吐 |
 | `无换电反事实_制造净利率路径.md`（**初稿，待研究者质疑**） | 6 公司能力 · 0 投资结论 | `val.mfg_increment`、`val.incr_over_mktcap` | `val.swap_increment` |
 
 > 收口读数（1–2 个／章）＝这章要**证明**的数；支撑读数（5–10 个／章）＝论证中**引用**的数。
@@ -34,6 +35,15 @@ v3.2 §211–816 那条完整链路（车辆数五层漏斗 → 单站能力 →
 
 **这条分界的直接用途**：一页纸只放终端读数，不补完整计算链路（补了就失去"能对账"的
 价值）；想看链路的人点下钻，想看"凭什么这么算"的人读正文与口径文档。
+
+## 二·补、合并与拆分的原则（2026-09-25c 重订）
+
+1. **一份口径文档＝报告要回答的一个问题，从输入到收口读数的完整推理链。**按问题组织，不按来源、不按时间、也不按"对应哪个程序文件"。
+2. **该合**：两份文档回答同一个问题，或一份是另一份推理链里缺了就不完整的一环（例：出表文里的 cap rate 是 18 倍的外部检验，并入估值链）。
+3. **该分**：回答不同的问题，即使服务同一章（例：`TCO口径_JPM整套引用.md` 管电动对燃料车，`车队总账_换电对充电.md` 管换电对充电，都服务第 3 章，但分开）。
+4. **解释程序的文档不论证判断**：`充电站与换电站_成本对比口径.md` 解释 `src/charging.py` 的站层账；定价是判断，住车队总账。
+5. **合并不是搬运**：合并后按新问题的推理顺序重排；删掉重复与过期；原文里"为什么独立成篇"之类的元话语要重新判断并写明结论；**文中的待办逐条核查**（关闭的写依据，仍开的写下一步去哪查）。
+6. **合并后必须独立可读**：原件归档后，读者不翻归档也能核每个数——推导、参数取值理由、信源都要带过来。
 
 ## 三、写新口径文档前先答三句
 

@@ -47,7 +47,7 @@ answers = "行业大场基线；线性内耗是否真实；相变假说与序参
 owns = []
 uses = ["val.incr_over_mktcap"]
 qual = "序参量＝动力电池里以服务方式交付、由运营方持有的电量占比；对照组（卖电芯的储能、AIDC 供电、固态电池）判为商业模式未变"
-support = ["ops.market_total", "ops.share_of_market", "mk.share_elec_latest"]
+support = ["ops.market_total", "ops.share_of_market", "mk.share_elec_2030"]
 topics = ["非共识_类型判定与证据形态", "必要性_三条路为什么是换电"]
 
 [[chapter]]
@@ -223,7 +223,7 @@ closing = ["val.swap_increment", "val.incr_over_mktcap"]
 [[card]]
 title = "卡位"
 chapter = 5
-closing = ["mk.share_storage_2025", "mk.share_elec_latest"]
+closing = ["mk.share_storage_2025", "mk.share_elec_2030"]
 
 [[card]]
 title = "ROI"

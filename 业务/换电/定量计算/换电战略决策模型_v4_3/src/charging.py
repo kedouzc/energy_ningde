@@ -288,10 +288,11 @@ def build_charging_economics(config: dict, scale, capex, pool_ops: dict) -> dict
         out["swap_throughput_premium"] = (annual / ref_kwh - 1.0) if ref_kwh else None
 
         # 把吞吐压回物理可行的上限，再算一遍——这才是可辩护的那个数
-        if window_kwh and daily_out > window_kwh:
+        # 吞吐不超上限时，"压回上限"就是原值——读数照常给出，不留空
+        if window_kwh:
             r2 = _station_economics(
                 capex_wan=body_wan + bat_wan,
-                annual_kwh=window_kwh * days, service_fee=swap_fee,
+                annual_kwh=min(daily_out, window_kwh) * days, service_fee=swap_fee,
                 life_years=float(config.get("finance", {}).get("model_horizon_years") or life),
                 salvage_rate=salvage,
                 opex_rate=float(sb.get("equipment_insurance_rate") or 0.0),

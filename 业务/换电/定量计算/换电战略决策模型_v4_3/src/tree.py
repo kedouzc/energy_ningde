@@ -242,26 +242,12 @@ def build_tree(c: Ctx) -> Node:
     rent_gwh = N(
         "ops.rent_gwh", "计费装机（可收租）", "GWh",
         lambda c: c.m("swap_business.rent_eligible_gwh"),
-        "车端装机 ＋ 站内周转装机中归外部权益的部分",
-        combine=lambda veh, ext: veh + ext,
+        "车端装机（站内周转电池的租金是换电站与电池银行之间的内部结算，不进系统收入；见 src/entities.py）",
+        combine=lambda veh: veh,
         children=[
             N("ops.veh_gwh", "车端装机", "GWh",
               lambda c: c.m("swap_business.rent_vehicle_gwh"),
               "Σ_池( 池内换电车辆 × 池内加权装车电量 )"),
-            N("ops.ext_gwh", "站内周转装机·外部权益部分", "GWh",
-              lambda c: c.m("swap_business.rent_station_external_gwh"),
-              "站内周转装机 × (1 − CATL建站持股比例)",
-              combine=lambda st, own: st * (1.0 - own),
-              children=[
-                  N("ops.station_gwh", "站内周转装机", "GWh",
-                    lambda c: sum(
-                        c.m("capex.station_targets")[pk]
-                        * c.p(f"stations.{pk}.inventory_blocks")
-                        * c.p(f"stations.{pk}.block_kwh") / 1e6
-                        for pk in POOLS),
-                    "Σ_池( 站数 × 站内周转电池块数 × 单块电量 )"),
-                  P("fin.ownership", "CATL建站持股比例", "", "finance.construction_ownership"),
-              ]),
         ],
     )
 

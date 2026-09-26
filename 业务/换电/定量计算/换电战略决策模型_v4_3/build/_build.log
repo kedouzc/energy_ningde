@@ -4,14 +4,11 @@
 骨架报告  换电战略决策报告_v4.3.md
 决策快照  decision_snapshot_v4_3.json
 最终判断  支持重注
-⚠ 2 个输出字典条目本次没有值（渲染成 nan／—）：
-    charge.swap_capped_return  换电站·全投资回报率（吞吐压回可行上限）（at=swap_business.charging_economics.swap_capped_cash_return）
-    charge.swap_capped_payback 换电站·静态回收期（吞吐压回可行上限）（at=swap_business.charging_economics.swap_capped_payback_years）
-读数留痕  baseline_history.json（40 条，最新 2026-09-26）
+读数留痕  baseline_history.json（40 条，最新 2026-09-26b）
 
 [2/3] 生成事实包
 ────────────────────────────────────────────────────
-事实包    facts.json（831 条）
+事实包    facts.json（834 条）
 
 [3/3] 叙述层：检查裸数字 → 注入 → 待复核
 ────────────────────────────────────────────────────
@@ -44,7 +41,7 @@
 ✓ 换电对超充_一张账.src.md → narrative/topics/换电对超充_一张账.md（38 个事实，无裸数字）
 ✓ 用人信号_战略定力与执行跟踪.src.md → narrative/topics/用人信号_战略定力与执行跟踪.md（0 个事实，无裸数字）
 ✓ 目标用户_谁的痛点.src.md → narrative/topics/目标用户_谁的痛点.md（7 个事实，无裸数字）
-✓ 竞争格局_三足鼎立与赛道内玩家.src.md → narrative/topics/竞争格局_三足鼎立与赛道内玩家.md（59 个事实，无裸数字）
+✓ 竞争格局_三足鼎立与赛道内玩家.src.md → narrative/topics/竞争格局_三足鼎立与赛道内玩家.md（58 个事实，无裸数字）
 ✓ 能力门_一号位与组织文化.src.md → narrative/topics/能力门_一号位与组织文化.md（0 个事实，无裸数字）
 ✓ 资本闭环_REITs与轻资产化.src.md → narrative/topics/资本闭环_REITs与轻资产化.md（0 个事实，无裸数字）
 ✓ 赔率与跟踪_从世界A到世界B.src.md → narrative/topics/赔率与跟踪_从世界A到世界B.md（0 个事实，无裸数字）
@@ -53,7 +50,7 @@
 ✓ 充电站与换电站_成本对比口径.src.md → 口径/充电站与换电站_成本对比口径.md（40 个事实，算式档：数由占位符注入）
 ✓ 车辆与站数_推算方法.src.md → 口径/车辆与站数_推算方法.md（43 个事实，算式档：数由占位符注入）
 ✓ 车队总账_换电对充电.src.md → 口径/车队总账_换电对充电.md（99 个事实，算式档：数由占位符注入）
-✓ 运营收入与成本_口径.src.md → 口径/运营收入与成本_口径.md（34 个事实，算式档：数由占位符注入）
+✓ 运营收入与成本_口径.src.md → 口径/运营收入与成本_口径.md（39 个事实，算式档：数由占位符注入）
 
 收口覆盖率（每份叙述必须声明自己论证哪个读数）：
   文件                                 收口   态   支撑   主张的读数（定性章另见「定性收口」）

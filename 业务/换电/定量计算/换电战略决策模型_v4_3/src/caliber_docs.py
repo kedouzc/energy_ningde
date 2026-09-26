@@ -300,11 +300,40 @@ def model_values(config: dict) -> dict[str, str]:
     drv = {k: v for k, v in config["drivers"].items() if isinstance(v, dict) and v.get("scenario_axis", True)}
     rows = ["| | 悲观 | 中性 | 乐观 |", "|---|---|---|---|"]
     res = {}
+    ent = {}
+    import entities
     for t in ("悲观", "中性", "乐观"):
         c = copy.deepcopy(config)
         kw = apply_scenario(c, drv, t)
-        v = read_metrics(build_model(c, **kw), c, strict=False)
+        snap = build_model(c, **kw)
+        v = read_metrics(snap, c, strict=False)
         res[t] = v
+        ent[t] = entities.split(c, snap)
+    e = ent["中性"]
+    V["周转电池租金"] = f"{e['turnover_rent_rmb_kwh_month']:.2f}"
+    V["换电站门槛"] = _pct(e["station_hurdle"], 0)
+    V["电池银行门槛"] = _pct(e["bank_hurdle"], 1)
+    V["站层最低服务费"] = f"{e['station_fee_floor_rmb_kwh']:.3f}"
+    V["现行服务费"] = f"{e['service_fee_rmb_kwh']:.3f}"
+    er = ["| 亿元/年（中性） | 换电站 | 电池银行 | 合计＝系统 |", "|---|---|---|---|",
+          f"| 对外收入 | 服务费 {_f(e['station_revenue_yi'])} | 电池租金＋峰谷套利＋辅助服务 {_f(e['bank_revenue_yi'] - e['station_settlement_yi'])} | {_f(e['station_revenue_yi'] + e['bank_revenue_yi'] - e['station_settlement_yi'])} |",
+          f"| 内部结算（站 → 银行：周转电池租金＋技术服务费） | −{_f(e['station_settlement_yi'])} | ＋{_f(e['station_settlement_yi'])} | 0 |",
+          f"| 运营成本 | 电损、场租、人工 {_f(e['station_opex_yi'])} | 软件、保险、池化维护、仓储物流 {_f(e['bank_opex_yi'])} | {_f(e['station_opex_yi'] + e['bank_opex_yi'])} |",
+          f"| EBITDA | {_f(e['station_ebitda_yi'])} | {_f(e['bank_ebitda_yi'])} | {_f(e['system_ebitda_yi'])} |",
+          f"| 投入资本 | 站体 {_f(e['station_capital_yi'])} | 全部电池（车上＋周转，按全周期资本要求） | — |"]
+    V["表:分拆账"] = "\n".join(er)
+    tr = ["| | 悲观 | 中性 | 乐观 |", "|---|---|---|---|",
+          "| 换电站回报（门槛 " + _pct(e["station_hurdle"], 0) + "） | " + " | ".join(_pct(ent[t]["station_irr"]) for t in ent) + " |",
+          "| 电池银行回报（门槛 " + _pct(e["bank_hurdle"], 1) + "） | " + " | ".join(_pct(ent[t]["bank_irr"]) for t in ent) + " |",
+          "| 电池银行覆盖倍数 | " + " | ".join(f"{ent[t]['bank_coverage']:.2f}" for t in ent) + " |",
+          "| 站层能承受的最低服务费（元/度） | " + " | ".join(f"{ent[t]['station_fee_floor_rmb_kwh']:.3f}" for t in ent) + " |",
+          "| 两个主体都过门槛 | " + " | ".join("是" if ent[t]["station_pass"] and ent[t]["bank_pass"] else "**否**" for t in ent) + " |"]
+    V["表:分拆三情景"] = "\n".join(tr)
+    pr = ["| 池 | 换电站回报 | 电池银行覆盖倍数 |", "|---|---|---|"]
+    names = {"qiji75_short": "骐骥短途", "qiji75_trunk": "骐骥干线", "choco25_passenger": "巧克力乘用", "choco35_city": "巧克力城配"}
+    for pk, p_ in e["pools"].items():
+        pr.append(f"| {names.get(pk, pk)} | {_pct(p_['station_irr'])} | {p_['bank_coverage']:.2f} |")
+    V["表:分拆分池"] = "\n".join(pr)
     rows.append("| 全投资回报 | " + " | ".join(_pct(_irr_from_cov(res[t]["swap.coverage"])) for t in res) + " |")
     rows.append("| EBITDA 覆盖倍数 | " + " | ".join(f"{res[t]['swap.coverage']:.2f}" for t in res) + " |")
     rows.append("| 换电占纯电重卡份额 | " + " | ".join(f"{res[t]['ops.weighted_swap_penetration']:.1f}%" for t in res) + " |")
@@ -319,7 +348,8 @@ def model_values(config: dict) -> dict[str, str]:
     base_short = 1 - config["battery_life_model"]["critical_cycles"] / (
         config["battery_life_model"]["critical_cycles"] * config["battery_life_model"]["pool_life_multiplier"])
     srows = ["| 池里水平 | 车上 | 租金上沿（保底／超出价） | 全投资回报 | 份额 | 宁德归属现金流折现（亿） |", "|---|---|---|---|---|---|"]
-    for pool, tag in ((4000.0, "4,000"), (None, "现行"), (6000.0, "6,000"), ("noext", "去掉延寿（池里＝车上）")):
+    _pool_now = config["battery_life_model"]["critical_cycles"] * config["battery_life_model"]["pool_life_multiplier"]
+    for pool, tag in ((4000.0, "4,000"), (None, f"{_pool_now:,.0f}（现行）"), (6000.0, "6,000"), ("noext", "去掉延寿（池里＝车上）")):
         c = copy.deepcopy(config)
         lm = c["battery_life_model"]
         if pool == "noext":

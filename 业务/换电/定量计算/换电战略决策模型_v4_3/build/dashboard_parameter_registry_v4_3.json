@@ -1142,6 +1142,11 @@
     "type": "float"
   },
   {
+    "key": "entities.station_hurdle",
+    "value": 0.12,
+    "type": "float"
+  },
+  {
     "key": "supply_network.mode",
     "value": "endogenous",
     "type": "str"

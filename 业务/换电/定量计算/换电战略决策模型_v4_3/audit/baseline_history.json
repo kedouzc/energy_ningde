@@ -1,37 +1,5 @@
 [
  {
-  "date": "2026-09-15f",
-  "tiers": {
-   "悲观": {
-    "val.swap_increment": 2106.0754181870966,
-    "val.incr_over_mktcap": 0.10530377090935483,
-    "swap.coverage": 1.1566337496677987,
-    "swap.ebitda": 505.148358623631,
-    "scale.stations_total": 8688.0,
-    "val.implied_multiple_perpetual": 7.045626522619804,
-    "val.turnover_multiple": 7.1713140295738365
-   },
-   "中性": {
-    "val.swap_increment": 10118.558771971335,
-    "val.incr_over_mktcap": 0.5059279385985668,
-    "swap.coverage": 1.6347205402289045,
-    "swap.ebitda": 1371.1149035281765,
-    "scale.stations_total": 14798.0,
-    "val.implied_multiple_perpetual": 7.950684151077765,
-    "val.turnover_multiple": 9.614992272374597
-   },
-   "乐观": {
-    "val.swap_increment": 24067.977067516247,
-    "val.incr_over_mktcap": 1.2033988533758124,
-    "swap.coverage": 2.0853671752774443,
-    "swap.ebitda": 2957.5801649655186,
-    "scale.stations_total": 22722.0,
-    "val.implied_multiple_perpetual": 8.403120170608396,
-    "val.turnover_multiple": 10.388153397136223
-   }
-  }
- },
- {
   "date": "2026-09-16",
   "tiers": {
    "悲观": {
@@ -1251,31 +1219,63 @@
   "date": "2026-09-26",
   "tiers": {
    "悲观": {
-    "val.swap_increment": 2298.5616467157543,
-    "val.incr_over_mktcap": 0.1294453819178777,
-    "swap.coverage": 1.1844587466803276,
-    "swap.ebitda": 597.0130323186207,
+    "val.swap_increment": 2156.107393116379,
+    "val.incr_over_mktcap": 0.12142295394021395,
+    "swap.coverage": 1.1452051864229558,
+    "swap.ebitda": 577.2277193187075,
     "scale.stations_total": 13380.0,
-    "val.implied_multiple_perpetual": 8.122678881334796,
-    "val.turnover_multiple": 9.285676207642172
+    "val.implied_multiple_perpetual": 8.05833099108105,
+    "val.turnover_multiple": 9.026311868478922
    },
    "中性": {
-    "val.swap_increment": 8042.909633014513,
-    "val.incr_over_mktcap": 0.45294304403978786,
-    "swap.coverage": 1.3993893082229916,
-    "swap.ebitda": 1192.8439433834642,
+    "val.swap_increment": 7775.050380786679,
+    "val.incr_over_mktcap": 0.43785833084342396,
+    "swap.coverage": 1.355744852960864,
+    "swap.ebitda": 1155.6412694629316,
     "scale.stations_total": 21161.0,
-    "val.implied_multiple_perpetual": 8.41915741552528,
-    "val.turnover_multiple": 10.104164387006781
+    "val.implied_multiple_perpetual": 8.368266561465319,
+    "val.turnover_multiple": 9.926173107730035
    },
    "乐观": {
-    "val.swap_increment": 18300.28499067829,
-    "val.incr_over_mktcap": 1.0305955392621664,
-    "swap.coverage": 1.7562720271492787,
-    "swap.ebitda": 2336.3602085998264,
+    "val.swap_increment": 17768.147575038718,
+    "val.incr_over_mktcap": 1.0006277848194356,
+    "swap.coverage": 1.7007144519370585,
+    "swap.ebitda": 2262.4522342054415,
     "scale.stations_total": 31252.0,
-    "val.implied_multiple_perpetual": 8.744474217668271,
-    "val.turnover_multiple": 10.706687476242045
+    "val.implied_multiple_perpetual": 8.703459708734497,
+    "val.turnover_multiple": 10.58532600838338
+   }
+  }
+ },
+ {
+  "date": "2026-09-26b",
+  "tiers": {
+   "悲观": {
+    "val.swap_increment": 2156.107393116379,
+    "val.incr_over_mktcap": 0.12142295394021395,
+    "swap.coverage": 1.1452051864229558,
+    "swap.ebitda": 577.2277193187075,
+    "scale.stations_total": 13380.0,
+    "val.implied_multiple_perpetual": 8.05833099108105,
+    "val.turnover_multiple": 9.026311868478922
+   },
+   "中性": {
+    "val.swap_increment": 7775.050380786679,
+    "val.incr_over_mktcap": 0.43785833084342396,
+    "swap.coverage": 1.355744852960864,
+    "swap.ebitda": 1155.6412694629316,
+    "scale.stations_total": 21161.0,
+    "val.implied_multiple_perpetual": 8.368266561465319,
+    "val.turnover_multiple": 9.926173107730035
+   },
+   "乐观": {
+    "val.swap_increment": 17768.147575038718,
+    "val.incr_over_mktcap": 1.0006277848194356,
+    "swap.coverage": 1.7007144519370585,
+    "swap.ebitda": 2262.4522342054415,
+    "scale.stations_total": 31252.0,
+    "val.implied_multiple_perpetual": 8.703459708734497,
+    "val.turnover_multiple": 10.58532600838338
    }
   }
  }

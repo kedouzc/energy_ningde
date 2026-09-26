@@ -52,8 +52,21 @@ def check() -> list[str]:
     return bad
 
 
+def check_sources() -> list[str]:
+    """引用的信源必须在台账里：base.toml、口径与叙述源文件里出现的 src.xxx，逐个核对 audit/信源审计台账.md。"""
+    led = (ROOT / "audit" / "信源审计台账.md").read_text(encoding="utf-8")
+    keys = set(re.findall(r"^\|\s*(src\.[A-Za-z0-9_]+)\s*\|", led, re.M))
+    files = [ROOT / "configs" / "base.toml"] + sorted((ROOT / "口径").glob("*.src.md")) + sorted((ROOT / "narrative").rglob("*.src.md"))
+    bad: list[str] = []
+    for f in files:
+        for k in sorted(set(re.findall(r"(?<![\w.])src\.[a-z][A-Za-z0-9]*_[A-Za-z0-9_]+", f.read_text(encoding="utf-8")))):
+            if k not in keys:
+                bad.append(f"{f.relative_to(ROOT)}: {k} 不在信源台账")
+    return bad
+
+
 def main() -> int:
-    bad = check()
+    bad = check() + check_sources()
     for b in bad:
         print("  ✗ " + b)
     print(f"状态文件纪律：{'通过' if not bad else f'{len(bad)} 处过程痕迹'}")

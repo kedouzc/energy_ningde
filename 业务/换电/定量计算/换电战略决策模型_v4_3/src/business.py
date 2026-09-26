@@ -559,7 +559,10 @@ def build_swap_business(config: dict, scale: ScaleResult, capex: CapexResult) ->
         # 【2026-09-24 · 门① 订正】换电服务费 ＝ 跟平的充电均衡价 ＋ 溢价（基准 0，见 [drivers.swap_fee_premium]）
         service = energy * (business["service_fee_rmb_kwh"]
                             + float(business.get("swap_service_premium_rmb_kwh") or 0.0))
-        station_external_gwh = station_gwh_by_pool[pk] * (1.0 - ownership)
+        # 【2026-09-26】站内周转电池不再按外部股东比例向系统收租金：站与电池银行同在系统内，
+        # 周转电池租金是两个主体之间的内部结算（src/entities.py），系统合计里互相抵掉；
+        # 外部股东的回报走股权分红，不是另一笔收入。此前那一笔是重复计入。
+        station_external_gwh = 0.0
         rent_gwh = vehicle_gwh_by_pool[pk] + station_external_gwh
         # 配置值是月租（元/kWh·月），年租 = 月租 × 12
         # 【2026-09-21 · 门①】月租按车型分开：乘用车池用乘用车月租，重卡与城配用另一个

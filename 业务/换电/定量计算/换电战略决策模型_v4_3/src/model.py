@@ -192,12 +192,21 @@ def build_scenarios(config: dict) -> dict[str, "ModelSnapshot"]:
     return out
 
 
+def gate_passes(config: dict, snap) -> bool:
+    """供给侧闸门：系统覆盖倍数过门槛，且结算之后换电站与电池银行各自过自己的门槛（src/entities.py）。"""
+    sup = config.get("supply_network") or {}
+    if float(snap.swap_business.forward_to_required_ebitda) < float(sup.get("hurdle_coverage", 1.0)):
+        return False
+    import entities
+    e = entities.split(config, snap)
+    return bool(e["station_pass"] and e["bank_pass"])
+
+
 def _gated_core(config: dict, scenario_name: str | None, life_mode: str):
     """闸门与主算合一：过门槛时探测那一遍就是结果，不重复算。"""
     sup = config.get("supply_network") or {}
     snap = _build_core(config, scenario_name, life_mode)
-    if sup.get("mode", "endogenous") != "endogenous" or \
-            float(snap.swap_business.forward_to_required_ebitda) >= float(sup.get("hurdle_coverage", 1.0)):
+    if sup.get("mode", "endogenous") != "endogenous" or gate_passes(config, snap):
         return config, snap
     import copy as _copy
     out = _copy.deepcopy(config)
@@ -215,7 +224,7 @@ def supply_gate(config: dict, scenario_name: str | None = None, life_mode: str =
     if sup.get("mode", "endogenous") != "endogenous":
         return config
     probe = _build_core(config, scenario_name, life_mode)
-    if float(probe.swap_business.forward_to_required_ebitda) >= float(sup.get("hurdle_coverage", 1.0)):
+    if gate_passes(config, probe):
         return config
     import copy as _copy
     out = _copy.deepcopy(config)

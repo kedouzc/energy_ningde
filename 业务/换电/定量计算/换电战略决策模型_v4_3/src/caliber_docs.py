@@ -344,7 +344,7 @@ def model_values(config: dict) -> dict[str, str]:
     V["表:车上电池单价比"] = "\n".join(orow)
     e = ent["中性"]
     V["周转电池保本价"] = f"{e['turnover_rent_ref_rmb_kwh_month']:.2f}"
-    V["换电站门槛"] = _pct(e["station_hurdle"], 0)
+    V["换电站门槛"] = _pct(e["station_hurdle"], 1)
     V["电池银行门槛"] = _pct(e["bank_hurdle"], 1)
     V["站层最低服务费"] = f"{e['station_fee_floor_rmb_kwh']:.3f}"
     V["现行服务费"] = f"{e['service_fee_rmb_kwh']:.3f}"
@@ -359,7 +359,7 @@ def model_values(config: dict) -> dict[str, str]:
           f"| 投入资本 | 站体 {_f(e['station_capital_yi'])} | 全部电池（车上＋周转，按全周期资本要求） | — |"]
     V["表:分拆账"] = "\n".join(er)
     tr = ["| | 悲观 | 中性 | 乐观 |", "|---|---|---|---|",
-          "| 换电站回报（门槛 " + _pct(e["station_hurdle"], 0) + "） | " + " | ".join(_pct(ent[t]["station_irr"]) for t in ent) + " |",
+          "| 换电站回报（门槛＝资源方投超充的回报 " + _pct(e["station_hurdle"], 1) + "） | " + " | ".join(_pct(ent[t]["station_irr"]) for t in ent) + " |",
           "| 电池银行回报（门槛 " + _pct(e["bank_hurdle"], 1) + "） | " + " | ".join(_pct(ent[t]["bank_irr"]) for t in ent) + " |",
           "| 电池银行覆盖倍数 | " + " | ".join(f"{ent[t]['bank_coverage']:.2f}" for t in ent) + " |",
           "| 站层能承受的最低服务费（元/度） | " + " | ".join(f"{ent[t]['station_fee_floor_rmb_kwh']:.3f}" for t in ent) + " |",

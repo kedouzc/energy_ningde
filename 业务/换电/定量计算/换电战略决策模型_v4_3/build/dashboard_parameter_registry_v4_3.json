@@ -1143,7 +1143,7 @@
   },
   {
     "key": "entities.station_hurdle",
-    "value": 0.12,
+    "value": 0.075,
     "type": "float"
   },
   {

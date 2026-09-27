@@ -77,20 +77,3 @@ what  = """[entities] turnover_rent_charged 0；entities.split 缺口/富余/fea
 why   = """研究者：周转电池不应向站收租；利用率定义要先对齐；分析要写进文档并说明落点。"""
 watch = """系统读数不应动（只在主体间搬钱）；悲观档不应因结算口径掉档。"""
 expect = "中性 回报 12.9%／份额 60.3%／宁德归属 2,551 亿／覆盖 1.36；悲观 9.8%／51.2%／1,081／1.15；乐观 17.6%／70.2%／5,823／1.70；三条命令全绿。"
-
-[[round]]
-date  = "2026-09-27"
-focus = "利用率按建设成本＋用户等待最优（146 次）；技术服务费作分配旋钮；车上电池单价比证据；文件清点闸门"
-what  = """derived.swap_station_hour_cost／optimal_swap_utilization；planning_daily_capacity 154 → 146；caliber_docs.queue_values；[entities] tech_fee_wan_station_year 8；entities.split 技术服务费区间；state_lint.check_inventory。"""
-why   = """研究者：利用率应是运筹优化；超充按 M/M/1 同口径比；技术服务费调分配并照顾资源方；changelog 丢失要防再犯。"""
-watch = """站数略增、回报与折现小降约 1%；份额基本不动；两个主体三档都过门槛。"""
-expect = "中性 回报 12.7%／份额 60.1%／宁德归属 2,533 亿／覆盖 1.35；悲观 9.6%／51.2%／1,071／1.14；乐观 17.4%／70.2%／5,803／1.69；三条命令全绿。"
-
-[[round]]
-date  = "2026-09-27b"
-focus = "判断澄清：跟平不是让利；超充利用率是头号外部变量；计算链五步成文"
-what  = """模型不改。车队总账 3.1 节与第五节、口径/README 计算链、base.toml 注释。"""
-why   = """研究者：超充多桩是否反转定价格局；资源方比较；计算链看不懂。"""
-watch = """全部读数不应动。"""
-expect = "读数与 2026-09-27 相同。"
-

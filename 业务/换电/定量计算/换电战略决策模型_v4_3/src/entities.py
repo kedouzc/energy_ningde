@@ -11,7 +11,8 @@
 3. 周转电池由电池银行持有，**不向换电站收租**：它是电池银行提供"随用随换"租赁服务必须备的库存
    （跨站流通，站买断等于替别人养电池），成本已含在用户电池租金里——租金上沿与电池银行保本价都按
    "车上电量 ×（1＋周转比例）"算。换电站只做换电服务、收服务费，不承担周转电池。
-4. 平台软件（找站、调度、监控）由电池银行提供，换电站按成本付技术服务费。
+4. 平台软件（找站、调度、监控、数据）由电池银行提供，换电站按站付技术服务费（[entities] tech_fee_wan_station_year）；
+   这是调节两边收益分配的旋钮，可行区间随读数给出。
 内部结算只是在两个主体之间搬钱，系统合计不变——程序断言这一点。
 
 【门槛】换电站：轻资产运营、独立融资，取 12%（超换一体站模型"换电站目标 IRR 12–15%"的下沿）；
@@ -79,7 +80,11 @@ def split(config: dict, snapshot) -> dict:
     # 保留保本价的读数，供对照（若周转电池改由站持有，站要多背多少）。
     rate_ref = turnover_rent_rmb_kwh_month(config)
     rate = float(ent.get("turnover_rent_charged", 0.0)) * rate_ref
+    # 技术服务费（换电站 → 电池银行，万元/站·年）：APP 平台、电池监控调度、运营技术支持、数据服务打包价。
+    # 它是两个主体之间调收益分配的旋钮——调它，让两边都过门槛（见返回值里的可行区间）。
+    fee_wan = float(ent.get("tech_fee_wan_station_year", 3.5))
     pools: dict = {}
+    n_total = 0.0
     tot = {k: 0.0 for k in ("st_rev", "st_opex", "st_settle", "st_ebitda", "st_capital",
                             "bk_rev", "bk_opex", "bk_ebitda", "bk_capreq", "bk_dep", "sys_ebitda")}
     for pk, p in sb.pool_operations.items():
@@ -87,7 +92,9 @@ def split(config: dict, snapshot) -> dict:
         turnover = float(p.station_battery_gwh) * rate * 12.0 / 100.0          # GWh × 元/kWh·月 × 12 ÷ 100 ＝ 亿元/年
         st_rev = float(p.service_revenue_yi)
         st_opex = float(p.energy_cost_yi) + float(p.station_rent_yi) + float(p.labor_yi)
-        st_settle = turnover + float(p.software_opex_yi)
+        n_st = float(cx.station_targets.get(pk, 0.0))
+        tech_fee = n_st * fee_wan / 1e4                                          # 万元/站·年 × 站数 ÷ 1e4 ＝ 亿元/年
+        st_settle = turnover + tech_fee
         st_ebitda = st_rev - st_opex - st_settle
         bk_rev = float(p.battery_rent_yi) + float(p.arbitrage_yi) + float(p.ancillary_yi) + st_settle
         bk_opex = (float(p.software_opex_yi) + float(p.insurance_yi) + float(p.pooling_maintenance_yi)
@@ -100,9 +107,10 @@ def split(config: dict, snapshot) -> dict:
         bk_capreq = float(p.required_fcff_yi) - body * _crf(wacc, n)
         bk_dep = float(p.depreciation_yi) - body / n
         bk_need = (bk_capreq - bk_dep * tax) / (1.0 - tax)
+        n_total += n_st
         pools[pk] = {
             "station_revenue_yi": st_rev, "station_opex_yi": st_opex, "turnover_rent_yi": turnover,
-            "tech_fee_yi": float(p.software_opex_yi), "station_ebitda_yi": st_ebitda, "station_capital_yi": body,
+            "tech_fee_yi": tech_fee, "stations": n_st, "station_ebitda_yi": st_ebitda, "station_capital_yi": body,
             "station_irr": _irr(st_ebitda, body, n, tax),
             "bank_revenue_yi": bk_rev, "bank_opex_yi": bk_opex, "bank_ebitda_yi": bk_ebitda,
             "bank_coverage": bk_ebitda / bk_need if bk_need > 0 else float("inf"),
@@ -124,6 +132,9 @@ def split(config: dict, snapshot) -> dict:
     bank_short = max(0.0, bk_need - tot["bk_ebitda"])
     station_surplus = tot["st_ebitda"] - need_st
     fee_now = float((config.get("swap_business") or {}).get("service_fee_rmb_kwh") or 0.0)
+    # 技术服务费的可行区间（万元/站·年）：下限让电池银行刚过门槛，上限让换电站刚过门槛
+    fee_min = fee_wan + (bk_need - tot["bk_ebitda"]) * 1e4 / n_total if n_total else float("nan")
+    fee_max = fee_wan + station_surplus * 1e4 / n_total if n_total else float("nan")
     fee_floor = fee_now - (tot["st_ebitda"] - need_st) / energy if energy else float("nan")
     return {
         "turnover_rent_rmb_kwh_month": rate, "turnover_rent_ref_rmb_kwh_month": rate_ref,
@@ -138,6 +149,7 @@ def split(config: dict, snapshot) -> dict:
         "service_fee_rmb_kwh": fee_now, "station_fee_floor_rmb_kwh": fee_floor,
         "bank_shortfall_yi": bank_short, "station_surplus_yi": station_surplus,
         "feasible": station_surplus >= bank_short,
+        "tech_fee_wan": fee_wan, "tech_fee_min_wan": fee_min, "tech_fee_max_wan": fee_max, "stations": n_total,
         "pools": pools,
     }
 

@@ -1018,7 +1018,7 @@
   },
   {
     "key": "stations.qiji75_short.planning_daily_capacity",
-    "value": 154.0,
+    "value": 146.0,
     "type": "float"
   },
   {
@@ -1058,7 +1058,7 @@
   },
   {
     "key": "stations.qiji75_trunk.planning_daily_capacity",
-    "value": 154.0,
+    "value": 146.0,
     "type": "float"
   },
   {
@@ -1149,6 +1149,11 @@
   {
     "key": "entities.turnover_rent_charged",
     "value": 0.0,
+    "type": "float"
+  },
+  {
+    "key": "entities.tech_fee_wan_station_year",
+    "value": 8.0,
     "type": "float"
   },
   {

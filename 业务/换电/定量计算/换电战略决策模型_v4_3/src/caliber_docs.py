@@ -287,6 +287,10 @@ def ledger_values(config: dict) -> dict[str, str]:
         e2 = equilibrium_service_fee(config, u)
         fee.append(f"| {_pct(u, 0)} | {e1:.3f} | {e2['equilibrium_fee']:.3f} | {e2['cash_fee']:.3f} |")
     V["表:服务费"] = "\n".join(fee)
+    # 超充利用率更高时（市场出清、站变少变忙），均衡价降到哪
+    urow = ["| 超充站能量利用率 | 22%（中性） | 27%（悲观） | 35% | 50% |", "|---|---|---|---|---|",
+            "| 超充均衡服务费（元/度） | " + " | ".join(f"{equilibrium_service_fee(config, u)['equilibrium_fee']:.3f}" for u in (0.22, 0.27, 0.35, 0.50)) + " |"]
+    V["表:超充利用率与均衡价"] = "\n".join(urow)
     V["充电服务费"] = f"{float(tco['charge_service_fee_rmb_kwh']):.4f}"
     V["换电服务费"] = f"{float(sb['service_fee_rmb_kwh']):.4f}"
     c2 = copy.deepcopy(config); c2["charging_station"]["capex_rmb_per_kw"] = 1500.0 / (1 + float(cs["supercharge_equipment_share"]) * (float(cs["supercharge_equipment_price_ratio"]) - 1))
@@ -326,12 +330,27 @@ def model_values(config: dict) -> dict[str, str]:
     _c0["swap_business"]["battery_rent_per_kwh_rmb"] = _rc["overage"]
     _v0 = read_metrics(build_model(_c0), _c0, strict=False)
     V["基准年电池价时现金流折现高出"] = _pct(_v0["val.catl_dcf_perpetual"] / res["中性"]["val.catl_dcf_perpetual"] - 1.0, 0)
+    # 车上超充电池 ÷ 换电块单价比：租金上沿、份额、宁德归属现金流折现（中性，其余不变）
+    orow = ["| 车上电池 ÷ 换电块 单价比 | 租金保底（元/度·月） | 换电占纯电重卡 | 宁德归属现金流折现（亿） |", "|---|---|---|---|"]
+    for ratio in (0.90, 1.00, 1.05, 1.10):
+        _c = copy.deepcopy(config)
+        _c["tco_jpm"]["onboard_battery_price_ratio"] = ratio
+        _r = _d.rent_ceiling(_c)
+        _c["swap_business"]["battery_rent_rmb_kwh_month"] = _r["floor"]
+        _c["swap_business"]["battery_rent_per_kwh_rmb"] = _r["overage"]
+        _v = read_metrics(build_model(_c), _c, strict=False)
+        tag = f"**{ratio:.2f}（现行）**" if abs(ratio - float(config["tco_jpm"].get("onboard_battery_price_ratio", 1.0))) < 1e-9 else f"{ratio:.2f}"
+        orow.append(f"| {tag} | {_r['floor']:.2f} | {_v['ops.weighted_swap_penetration']:.1f}% | {_f(_v['val.catl_dcf_perpetual'])} |")
+    V["表:车上电池单价比"] = "\n".join(orow)
     e = ent["中性"]
     V["周转电池保本价"] = f"{e['turnover_rent_ref_rmb_kwh_month']:.2f}"
     V["换电站门槛"] = _pct(e["station_hurdle"], 0)
     V["电池银行门槛"] = _pct(e["bank_hurdle"], 1)
     V["站层最低服务费"] = f"{e['station_fee_floor_rmb_kwh']:.3f}"
     V["现行服务费"] = f"{e['service_fee_rmb_kwh']:.3f}"
+    V["技术服务费"] = f"{e['tech_fee_wan']:.1f}"
+    V["悲观技术服务费下限"] = f"{max(0.0, ent['悲观']['tech_fee_min_wan']):.1f}"
+    V["悲观技术服务费上限"] = f"{ent['悲观']['tech_fee_max_wan']:.0f}"
     er = ["| 亿元/年（中性） | 换电站 | 电池银行 | 合计＝系统 |", "|---|---|---|---|",
           f"| 对外收入 | 服务费 {_f(e['station_revenue_yi'])} | 电池租金＋峰谷套利＋辅助服务 {_f(e['bank_revenue_yi'] - e['station_settlement_yi'])} | {_f(e['station_revenue_yi'] + e['bank_revenue_yi'] - e['station_settlement_yi'])} |",
           f"| 内部结算（站 → 银行：技术服务费） | −{_f(e['station_settlement_yi'])} | ＋{_f(e['station_settlement_yi'])} | 0 |",
@@ -347,6 +366,7 @@ def model_values(config: dict) -> dict[str, str]:
           "| 按现行结算两个主体都过门槛 | " + " | ".join("是" if ent[t]["station_pass"] and ent[t]["bank_pass"] else "**否**" for t in ent) + " |",
           "| 电池银行离门槛的缺口（亿元/年） | " + " | ".join(_f(ent[t]["bank_shortfall_yi"]) for t in ent) + " |",
           "| 换电站超出门槛的富余（亿元/年） | " + " | ".join(_f(ent[t]["station_surplus_yi"]) for t in ent) + " |",
+          "| 技术服务费可行区间（万元/站·年；下限＝电池银行刚过门槛，上限＝换电站刚过门槛） | " + " | ".join(f"{max(0.0, ent[t]['tech_fee_min_wan']):.1f}～{ent[t]['tech_fee_max_wan']:.0f}" for t in ent) + " |",
           "| 存在让两边都过的结算（闸门） | " + " | ".join("是" if ent[t]["feasible"] else "**否**" for t in ent) + " |"]
     V["表:分拆三情景"] = "\n".join(tr)
     pr = ["| 池 | 换电站回报 | 电池银行覆盖倍数 |", "|---|---|---|"]
@@ -524,10 +544,75 @@ def share_values(config: dict) -> dict[str, str]:
     return V
 
 
+def _erlang_c_wait(c: int, rho: float, service_min: float) -> float:
+    """M/M/c 平均排队（分钟）：c 个桩共用一条队，每桩利用率 rho，单次服务 service_min 分钟。"""
+    a = c * rho
+    s_ = sum(a ** k / math.factorial(k) for k in range(c))
+    top = a ** c / math.factorial(c) / (1 - rho)
+    pw = top / (s_ + top)
+    return pw * service_min / (c * (1 - rho))
+
+
+def queue_values(config: dict) -> dict[str, str]:
+    """换电工位的最优利用率（排队论）与超充的同口径对照。"""
+    from derived import swap_station_hour_cost, optimal_swap_utilization
+    from tco import build_scene_economics
+    V: dict[str, str] = {}
+    st = config["stations"]["qiji75_trunk"]
+    sb = config["swap_business"]
+    tco = config["tco_jpm"]
+    days = float(sb["operating_days"])
+    usable = float(sb["usable_energy_factor"])
+    swap_min = float(st["swap_duration_seconds"]) / 60.0
+    mu = 60.0 / swap_min
+    lane_max = float(st["operating_hours_day"]) * mu
+    h = build_scene_economics(config)
+    num = den = 0.0
+    for f, sc in zip(("short", "mid", "long"), config["vehicles"]["heavy"]["scenes"]):
+        stop = getattr(h, f).extra_stop_hours_day
+        freq = float(sc["daily_km"]) * float(sc["energy_consumption_kwh_km"]) / (float(sc["onboard_battery_kwh"]) * usable)
+        wgt = float(sc["weight"]) * freq
+        num += wgt * float(tco["annual_gain_swap"]) / (stop * days)
+        den += wgt
+    w = num / den
+    C = swap_station_hour_cost(config)
+    rho = optimal_swap_utilization(C["per_hour"], w)
+    cap = float(st["planning_daily_capacity"])
+    if abs(cap - math.floor(lane_max * rho)) > 1.0:
+        raise SystemExit(f"单站规划能力 {cap} 与最优利用率推出的 {lane_max * rho:.1f} 不一致：改 stations.*.planning_daily_capacity")
+    V["工位上限"] = _f(lane_max)
+    V["工位每小时全成本"] = _f(C["per_hour"])
+    V["工位年成本明细"] = "站体资本回收 {:.0f}、设备保险 {:.1f}、场租 {:.0f}、人工 {:.1f}、站内周转电池持有 {:.0f}（万元/年）".format(
+        C["capital"] / 1e4, C["insurance"] / 1e4, C["site"] / 1e4, C["labor"] / 1e4, C["turnover"] / 1e4)
+    V["年运营小时"] = _f(C["hours_year"])
+    V["每车小时时间成本"] = _f(w)
+    V["最优利用率"] = f"{rho:.2f}"
+    V["最优利用率下日换电次数"] = _f(lane_max * rho)
+    rows = ["| 利用率 ρ | 日换电次数 | 平均排队车辆 | 平均排队（分钟） | 排队＋换电（分钟） | 每次换电：工位成本＋排队时间成本（元） |", "|---|---|---|---|---|---|"]
+    for r in (0.6, 0.7, rho, 0.8, 0.9):
+        lq = r * r / (2 * (1 - r))
+        wq = r / (2 * mu * (1 - r)) * 60
+        cost = C["per_hour"] / (mu * r) + w * wq / 60
+        tag = f"**{r:.2f}（最优）**" if r == rho else f"{r:.2f}"
+        rows.append(f"| {tag} | {lane_max * r:.0f} | {lq:.1f} | {wq:.0f} | {wq + swap_min:.0f} | {cost:.0f} |")
+    V["表:利用率与成本"] = "\n".join(rows)
+    mw = float(tco["megawatt_session_minutes"])
+    piles = 26
+    qrows = ["| 利用率 | 换电一条工位（M/D/1，5 分钟） | 超充单桩（M/M/1，" + f"{mw:.0f}" + " 分钟） | 超充站 " + str(piles) + " 桩共用一条队（M/M/c） |", "|---|---|---|---|"]
+    for r in (0.7, 0.8, 0.9):
+        qrows.append(f"| {r:.1f} | 排队 {r / (2 * mu * (1 - r)) * 60:.0f} 分钟，合计 {r / (2 * mu * (1 - r)) * 60 + swap_min:.0f} 分钟 | "
+                     f"排队 {r / (1 - r) * mw:.0f} 分钟，合计 {r / (1 - r) * mw + mw:.0f} 分钟 | "
+                     f"排队 {_erlang_c_wait(piles, r, mw):.1f} 分钟，合计 {_erlang_c_wait(piles, r, mw) + mw:.0f} 分钟 |")
+    V["表:排队对照"] = "\n".join(qrows)
+    V["超充参照桩数"] = str(piles)
+    return V
+
+
 def values(config: dict) -> dict[str, str]:
     """口径文档可用的现算值（表与算式中间量）。注入由 src/inject.py 统一做（与叙述同一个注入器）。"""
     V = ledger_values(config)
     V.update(supply_values(config))
     V.update(share_values(config))
+    V.update(queue_values(config))
     V.update(model_values(config))
     return V

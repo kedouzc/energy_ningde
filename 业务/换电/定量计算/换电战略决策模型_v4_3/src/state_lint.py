@@ -65,11 +65,44 @@ def check_sources() -> list[str]:
     return bad
 
 
+INVENTORY = ROOT / "build" / "_inventory.json"
+REMOVED = ROOT / "build" / "_inventory_removed.txt"
+WATCH = ["configs", "src", "口径", "narrative", "audit", "约定", "templates"]
+
+
+def check_inventory() -> list[str]:
+    """文件不许悄悄消失：上次构建时在的源文件，这次不在了 → 构建失败。
+
+    有意删除的，把相对路径写进 build/_inventory_removed.txt（一行一个，写明理由），再跑一次。
+    由来：2026-09-26 configs/changelog.toml 在两轮之间消失，没有任何检查发现。"""
+    import json
+    now = set()
+    for d in WATCH:
+        base = ROOT / d
+        if base.exists():
+            for p in base.rglob("*"):
+                if p.is_file() and "__pycache__" not in p.parts:
+                    now.add(p.relative_to(ROOT).as_posix())
+    for p in ROOT.glob("*.md"):
+        now.add(p.name)
+    bad: list[str] = []
+    if INVENTORY.exists():
+        before = set(json.loads(INVENTORY.read_text(encoding="utf-8")))
+        allowed = set()
+        if REMOVED.exists():
+            allowed = {l.split("#")[0].strip() for l in REMOVED.read_text(encoding="utf-8").splitlines() if l.strip()}
+        for f in sorted(before - now - allowed):
+            bad.append(f"{f} 上次构建时还在、这次不见了（有意删除请登记到 build/_inventory_removed.txt）")
+    if not bad:
+        INVENTORY.write_text(json.dumps(sorted(now), ensure_ascii=False, indent=0), encoding="utf-8")
+    return bad
+
+
 def main() -> int:
-    bad = check() + check_sources()
+    bad = check() + check_sources() + check_inventory()
     for b in bad:
         print("  ✗ " + b)
-    print(f"状态文件纪律：{'通过' if not bad else f'{len(bad)} 处过程痕迹'}")
+    print(f"状态文件纪律／信源台账／文件清点：{'通过' if not bad else f'{len(bad)} 处问题'}")
     return 1 if bad else 0
 
 

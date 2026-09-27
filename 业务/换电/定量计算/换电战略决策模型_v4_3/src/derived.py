@@ -361,3 +361,35 @@ def lessor_month(config: dict, scene: dict) -> float:
     """对手②"超充＋租赁"：租赁商按保本价收的电池月租（元/车·月）。"""
     info = rent_ceiling(config)["scenes"].get(scene.get("name"))
     return info["lessor_month"] if info else 0.0
+
+
+def swap_station_hour_cost(config: dict) -> dict:
+    """一座重卡换电站每个运营小时的全成本（元/时）：站体资本回收＋设备保险＋场租＋人工＋站内周转电池的持有成本。
+    这些是"开一条换电工位"的成本，与换了多少次无关（电损等随次数变的不算）。"""
+    st = config["stations"]["qiji75_trunk"]
+    sb = config["swap_business"]
+    fin = config["finance"]
+    body = float(st["station_body_capex_wan"]) * 1e4
+    n = float(fin.get("model_horizon_years") or 15)
+    capital = body * _crf(float(fin["wacc"]), n)
+    insurance = body * float(sb.get("equipment_insurance_rate") or 0.0)
+    site = float(sb["site_rent_wan_year"]) * 1e4
+    labor = float(sb["heavy_station_labor_wan_year"]) * 1e4
+    import entities   # 周转电池按电池银行保本价计持有成本（元/度·月）
+    turnover = float(st["inventory_blocks"]) * float(st["block_kwh"]) * entities.turnover_rent_rmb_kwh_month(config) * 12.0
+    hours = float(st["operating_hours_day"]) * float(sb["operating_days"])
+    total = capital + insurance + site + labor + turnover
+    return {"capital": capital, "insurance": insurance, "site": site, "labor": labor, "turnover": turnover,
+            "total_year": total, "hours_year": hours, "per_hour": total / hours if hours else 0.0}
+
+
+def optimal_swap_utilization(station_cost_per_hour: float, wait_cost_per_hour: float) -> float:
+    """换电工位的最优利用率（M/D/1）：使"每次换电的工位成本 ＋ 司机平均排队的时间成本"最小。
+
+    每次换电的成本 ＝ C ÷ (μρ) ＋ w × Wq，Wq ＝ ρ ÷ (2μ(1−ρ))（到达随机、换电时长固定）；
+    对 ρ 求导令其为 0：C ÷ ρ² ＝ (w ÷ 2) ÷ (1−ρ)²  →  ρ* ＝ 1 ÷ (1 ＋ √(w ÷ 2C))。
+    与换电时长无关；C 越贵越该把工位用满，时间越值钱越该留空闲。"""
+    if station_cost_per_hour <= 0:
+        return 1.0
+    return 1.0 / (1.0 + math.sqrt(max(0.0, wait_cost_per_hour) / (2.0 * station_cost_per_hour)))
+

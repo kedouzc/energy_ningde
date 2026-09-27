@@ -1147,6 +1147,11 @@
     "type": "float"
   },
   {
+    "key": "entities.turnover_rent_charged",
+    "value": 0.0,
+    "type": "float"
+  },
+  {
     "key": "supply_network.mode",
     "value": "endogenous",
     "type": "str"

@@ -1,0 +1,79 @@
+# 变更台账（说法人工写，读数程序记：audit/baseline_history.json）。沙盘「◈ 复核区」并排显示。
+# 【2026-09-26 重建】本文件在 2026-09-26 被发现从 configs/ 消失（原因未查明，仓库无 git）。
+# 以下条目由 Claude 按会话记录重建，只覆盖 2026-09-25c 起的轮次；更早的轮次说明已丢失，
+# 各轮读数仍在 audit/baseline_history.json。若研究者手上有备份，以备份为准覆盖本文件。
+
+[[round]]
+date  = "2026-09-25c"
+focus = "第 1 章序参量改同年口径；新增三条外部对照；mk.share_elec_latest 停用"
+what  = """新增 [[external_quote]] ext.swap_hdt_cum_2024_202607、ext.charge_total_202512、ext.swap_share_elec_today；
+report_map 与一页纸由 mk.share_elec_latest 改用 mk.share_elec_2030；metrics.toml 注明停用理由。模型参数未改。"""
+why   = """研究者指出：兑现年换电电量占全社会用电 2.1% 不是"很小"；查明分子是兑现年、分母是 2025 年，时点错配。"""
+watch = """数值读数不变；第 1 章出现"今天 ≤0.3% vs 兑现年 1.6%"两个量级。"""
+expect = "三情景读数不变（中性 13.3%／38.3%／1,849 亿）；四条命令全绿。"
+
+[[round]]
+date  = "2026-09-25d"
+focus = "定价落模型：重卡租金取终局上沿并随寿命档联动；份额加入对手②；短途按兆瓦超充；用户电价＝谷电＋价差"
+what  = """① 租金 9.7／0.2 → 7.6125／0.1689（derived.rent_ceiling 推论、加载断言）；三档 6.3651／0.1426、7.6125／0.1689、10.0361／0.2285 进 [drivers.battery_life]；[drivers.battery_rent] 只剩乘用车；城配 battery_rent_city_* 沿用 9.7／0.2。
+② tco.py：adv_lease 改义（对租赁商保本价）、新增 adv_lease_spot、lessor_month_rmb；price_response 加入对手②（lessor_band_wan = 0.5）。
+③ 短途 charge_regime depot_rotation → megawatt，mw_time_value_share = 1。
+④ 删 charge_power_price_rmb_kwh（0.65），tco.user_power_price ＝ 谷电 0.30 ＋ 价差 0.40 ＝ 0.70。
+⑤ 新参数 lessor_capital_rate 0.075、pool_hold_rmb_kwh_year 2.87。"""
+why   = """研究者 2026-09-25d 定：租金取上沿并与寿命联动；电价两边同取 0.70；干线对手服务费先查兆瓦站造价（查后维持 0.104）。"""
+watch = """中性回报应下降（租金降约两成）、份额升到天花板；悲观覆盖倍数接近 1；换电对充电的比较不因电价改动而变。"""
+expect = "中性 回报 11.2%／份额 44.8%／宁德归属现金流折现 1,685 亿／覆盖 1.24；悲观 8.3%／30.4%／575／1.05；乐观 15.4%／54.8%／3,957／1.54；四条命令全绿。"
+
+[[round]]
+date  = "2026-09-25e"
+focus = "对手服务费按超充站均衡价 0.1537；储能对动力价格比 0.85；电动对 LNG 不计时间价值"
+what  = """[charging_station] supercharge_equipment_share 0.40、supercharge_equipment_price_ratio 3.0；charge_service_fee 与 service_fee 0.104 → 0.1537，[drivers.fee_level] 0.128／0.1537／0.1846；
+storage_to_power_price_ratio 0.917 → 0.85；租金三档重推 6.3651／0.1451、7.6125／0.1748、10.3765／0.2379；tco.build_heavy_economics 换电列不再减 annual_gain_swap。"""
+why   = """研究者：比超充设备贵多少、增容多多少；0.917 口径；LNG 加注与换电同量级。"""
+watch = """回报与 EBITDA 上升（服务费收入增加）；换电对充电不变（两边同价）；换电对 LNG 优势收窄但仍为正。"""
+expect = "中性 回报 13.9%／份额 44.7%／宁德归属 2,163 亿／覆盖 1.43；悲观 10.7%／31.0%／778／1.21；乐观 18.7%／54.8%／4,999／1.79；四条命令全绿。"
+
+[[round]]
+date  = "2026-09-25f"
+focus = "口径文档改为模型生成＋构建闸门；车队散卖旧电池同源 27.7%；供给侧站网约束"
+what  = """新增 src/caliber_docs.py、src/state_lint.py，build.py 串入；口径 4 份转 .src.md。
+derived.fleet_resale_ratio ＝ retirement_recovery_ratio × tco.fleet_scatter_discount（0.68），删 fleet_pack_resale_ratio；租金三档重推 6.4908／0.1471、7.7784／0.1748、10.3765／0.2379。
+新增 [supply_network]、[drivers.network_build]；price_response.network_limit；metrics net.*。"""
+why   = """研究者：状态文件只写现行值、文档要与模型对上；执行供给侧。"""
+watch = """中性、乐观份额被站网压下；悲观不受约束；回报下降（车队少）。"""
+expect = "中性 回报 13.9%／份额 32.1%／宁德归属 1,750 亿／覆盖 1.43；悲观 10.8%／30.4%／774／1.21；乐观 18.2%／37.7%／3,810／1.75；build 与 tree 全绿。"
+
+[[round]]
+date  = "2026-09-25g"
+focus = "供给侧改为站数内生＋闸门；旧电池卖价基数对齐买入价、零散卖折扣 0.70；一个注入器、生成稿回源目录、build/"
+what  = """[supply_network] 改 mode／hurdle_coverage／qiji_stations_base／qiji_plan_2030／trunk_coverage_target，删 build_per_year 与 [drivers.network_build]；model.supply_gate；
+derived.sale_price_ratio，battery_hold_month 加 sale_ratio；fleet_scatter_discount 0.68 → 0.70；租金三档重推 6.7852／0.1524、8.0684／0.1806、10.7652／0.241；
+inject.process 统一处理 narrative 与 口径，生成稿写回源目录；src/paths.py；快照、事实包等移到 build/。"""
+why   = """研究者：宁德已公布规划高于原年新建三档，过门槛就会按需求建站；0.68 用简单数；生成程序与目录要统一。"""
+watch = """份额回到需求侧；回报随租金上沿上调而上升；闸门三档都过。"""
+expect = "中性 回报 14.4%／份额 44.2%／宁德归属 2,231 亿／覆盖 1.47；悲观 11.1%／30.3%／803／1.24；乐观 19.1%／54.8%／5,113／1.82；build 与 tree 全绿。"
+
+[[round]]
+date  = "2026-09-26"
+focus = "份额重构：可及比例 × 系统成本低于替代的车占比；车上电池分价；单站 154 次；租金上沿按兑现年电池价"
+what  = """price_response.system_fraction（逐车：里程 ±40% × 资金成本三群）；swap_share_ceiling 改义为可及比例 30%／80%／80%，三档 ±15%；[share_model]；tco_jpm.onboard_battery_price_ratio 1.0；
+stations.qiji75_* planning_daily_capacity 192 → 154；derived.terminal_battery_price／turnover_ratio；租金三档 6.3591／0.1435、7.566／0.1711、10.1668／0.2308；metrics 天花板改名可及比例。"""
+why   = """研究者：天花板无依据且决定总量；两本账换电更省时份额应接近全部；寿命比较没比价格。"""
+watch = """份额上升到可及比例附近；回报小降（租金按兑现年价、站多）；站数与年新建大增。"""
+expect = "中性 回报 13.5%／份额 60.3%／宁德归属 2,700 亿／覆盖 1.40；悲观 10.4%／51.2%／1,160／1.18；乐观 18.3%／70.2%／6,119／1.76；build 与 tree 全绿。"
+
+[[round]]
+date  = "2026-09-26b"
+focus = "站与电池银行分拆＋双主体闸门；删除周转电池外部股东租金；信源台账闸门"
+what  = """src/entities.py；[entities] station_hurdle 0.12；model.gate_passes；business.py station_external_gwh ＝ 0；charging.py 压回上限读数恒给出；state_lint.check_sources；口径三份更新。"""
+why   = """研究者：站与电池银行是两个投资主体、要内部结算；新信源未入台账；154 与电池价年份的依据。"""
+watch = """系统 EBITDA 下降约 3%（删重复计入）；两个主体都过门槛。"""
+expect = "中性 回报 12.9%／份额 60.3%／宁德归属 2,551 亿／覆盖 1.36；悲观 9.8%／51.2%／1,081／1.15；乐观 17.6%／70.2%／5,823／1.70；build 与 tree 全绿。"
+
+[[round]]
+date  = "2026-09-26c"
+focus = "周转电池不向站收租；闸门查可行结算；利用率定义、电池价年份写进口径；约定重构"
+what  = """[entities] turnover_rent_charged 0；entities.split 缺口/富余/feasible；model.gate_passes 看 feasible；口径三份与第 0 章、估值专题更新；研究项目约定重构为一页＋约定/；changelog.toml 重建。"""
+why   = """研究者：周转电池不应向站收租；利用率定义要先对齐；分析要写进文档并说明落点。"""
+watch = """系统读数不应动（只在主体间搬钱）；悲观档不应因结算口径掉档。"""
+expect = "中性 回报 12.9%／份额 60.3%／宁德归属 2,551 亿／覆盖 1.36；悲观 9.8%／51.2%／1,081／1.15；乐观 17.6%／70.2%／5,823／1.70；三条命令全绿。"

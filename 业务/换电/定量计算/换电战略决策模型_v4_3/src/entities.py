@@ -8,8 +8,9 @@
 【分拆与结算原则】（沿用 定性分析/宁德时代_超换一体站_财务模型_修正版.md 第三部分）
 1. 收入按服务提供者归属：换电服务费全归换电站；用户电池租金、峰谷套利、辅助服务（来自电池资产）归电池银行。
 2. 成本按资产使用者承担：站体折旧、人工、场租、电损归换电站；全部电池（车上 ＋ 站内周转）归电池银行。
-3. 周转电池由电池银行持有、租给换电站（跨站流通，站买断等于为他人做嫁衣）；
-   周转电池租金 ＝ 电池银行持有这批电池的保本价（成本加成，电池银行在这批电池上只赚资金成本）。
+3. 周转电池由电池银行持有，**不向换电站收租**：它是电池银行提供"随用随换"租赁服务必须备的库存
+   （跨站流通，站买断等于替别人养电池），成本已含在用户电池租金里——租金上沿与电池银行保本价都按
+   "车上电量 ×（1＋周转比例）"算。换电站只做换电服务、收服务费，不承担周转电池。
 4. 平台软件（找站、调度、监控）由电池银行提供，换电站按成本付技术服务费。
 内部结算只是在两个主体之间搬钱，系统合计不变——程序断言这一点。
 
@@ -73,7 +74,11 @@ def split(config: dict, snapshot) -> dict:
     n = float(fin.get("model_horizon_years") or 15)
     wacc = float(fin["wacc"])
     r_station = float(ent.get("station_hurdle", 0.12))
-    rate = turnover_rent_rmb_kwh_month(config)
+    # 周转电池不向换电站收租：它是电池银行为提供"随用随换"的租赁服务必须备的库存，成本已含在用户电池租金里
+    # （租金上沿与电池银行保本价都按"车上电量 ×（1＋周转比例）"算）。再向站收一次，等于电池银行向两头各收一遍。
+    # 保留保本价的读数，供对照（若周转电池改由站持有，站要多背多少）。
+    rate_ref = turnover_rent_rmb_kwh_month(config)
+    rate = float(ent.get("turnover_rent_charged", 0.0)) * rate_ref
     pools: dict = {}
     tot = {k: 0.0 for k in ("st_rev", "st_opex", "st_settle", "st_ebitda", "st_capital",
                             "bk_rev", "bk_opex", "bk_ebitda", "bk_capreq", "bk_dep", "sys_ebitda")}
@@ -114,10 +119,14 @@ def split(config: dict, snapshot) -> dict:
     # 站层能承受的最低服务费：刚好让换电站回报等于它的门槛（其余不变）
     energy = sum(float(p.annual_energy_yi_kwh) for p in sb.pool_operations.values())
     need_st = (tot["st_capital"] * _crf(r_station, n) - tot["st_capital"] / n * tax) / (1.0 - tax)
+    # 可行结算：结算是两个主体谈出来的，不是物理约束。只要站层超出自己门槛的那部分，够补电池银行离门槛的缺口，
+    # 就存在一个让两边都过门槛的结算（例如站分担一部分周转电池或站址改建的钱）。闸门看的是这个。
+    bank_short = max(0.0, bk_need - tot["bk_ebitda"])
+    station_surplus = tot["st_ebitda"] - need_st
     fee_now = float((config.get("swap_business") or {}).get("service_fee_rmb_kwh") or 0.0)
     fee_floor = fee_now - (tot["st_ebitda"] - need_st) / energy if energy else float("nan")
     return {
-        "turnover_rent_rmb_kwh_month": rate,
+        "turnover_rent_rmb_kwh_month": rate, "turnover_rent_ref_rmb_kwh_month": rate_ref,
         "station_hurdle": r_station, "bank_hurdle": wacc,
         "station_ebitda_yi": tot["st_ebitda"], "station_revenue_yi": tot["st_rev"],
         "station_opex_yi": tot["st_opex"], "station_settlement_yi": tot["st_settle"],
@@ -127,6 +136,8 @@ def split(config: dict, snapshot) -> dict:
         "bank_coverage": bank_cov, "bank_irr": bank_irr, "bank_pass": bank_cov >= 1.0,
         "system_ebitda_yi": tot["sys_ebitda"],
         "service_fee_rmb_kwh": fee_now, "station_fee_floor_rmb_kwh": fee_floor,
+        "bank_shortfall_yi": bank_short, "station_surplus_yi": station_surplus,
+        "feasible": station_surplus >= bank_short,
         "pools": pools,
     }
 

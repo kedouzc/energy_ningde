@@ -193,13 +193,13 @@ def build_scenarios(config: dict) -> dict[str, "ModelSnapshot"]:
 
 
 def gate_passes(config: dict, snap) -> bool:
-    """供给侧闸门：系统覆盖倍数过门槛，且结算之后换电站与电池银行各自过自己的门槛（src/entities.py）。"""
+    """供给侧闸门：系统覆盖倍数过门槛，且存在一个让换电站与电池银行各自过门槛的内部结算（src/entities.py）。"""
     sup = config.get("supply_network") or {}
     if float(snap.swap_business.forward_to_required_ebitda) < float(sup.get("hurdle_coverage", 1.0)):
         return False
     import entities
     e = entities.split(config, snap)
-    return bool(e["station_pass"] and e["bank_pass"])
+    return bool(e["feasible"])   # 存在让两个主体都过门槛的结算（站层富余 ≥ 电池银行缺口）
 
 
 def _gated_core(config: dict, scenario_name: str | None, life_mode: str):

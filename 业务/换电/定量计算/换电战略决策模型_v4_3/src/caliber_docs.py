@@ -83,6 +83,10 @@ def ledger_values(config: dict) -> dict[str, str]:
 
     # —— 输入 ——
     V["电池价"] = _f(price)
+    _p0 = battery_price_rmb_kwh(config, float(config["meta"]["reference_year"]))
+    V["基准年电池价"] = _f(_p0)
+    V["基准年"] = f"{float(config['meta']['reference_year']):.0f}"
+    V["不含电池的车价"] = f"{(float(tco['purchase_price']) - 500.0 * _p0) / 1e4:.1f}"
     V["电池买入年"] = f"{terminal_year(config):.0f}"
     V["车上电池价比"] = f"{onb:.2f}"
     V["购置税"] = _pct(tax, 0)
@@ -309,15 +313,28 @@ def model_values(config: dict) -> dict[str, str]:
         v = read_metrics(snap, c, strict=False)
         res[t] = v
         ent[t] = entities.split(c, snap)
+    # 租金上沿若改用基准年电池价，中性宁德归属现金流折现高多少（对照，不进基准）
+    import derived as _d
+    _orig = _d.terminal_year
+    try:
+        _d.terminal_year = lambda c_, y=float(config["meta"]["reference_year"]): y
+        _rc = _d.rent_ceiling(config)
+    finally:
+        _d.terminal_year = _orig
+    _c0 = copy.deepcopy(config)
+    _c0["swap_business"]["battery_rent_rmb_kwh_month"] = _rc["floor"]
+    _c0["swap_business"]["battery_rent_per_kwh_rmb"] = _rc["overage"]
+    _v0 = read_metrics(build_model(_c0), _c0, strict=False)
+    V["基准年电池价时现金流折现高出"] = _pct(_v0["val.catl_dcf_perpetual"] / res["中性"]["val.catl_dcf_perpetual"] - 1.0, 0)
     e = ent["中性"]
-    V["周转电池租金"] = f"{e['turnover_rent_rmb_kwh_month']:.2f}"
+    V["周转电池保本价"] = f"{e['turnover_rent_ref_rmb_kwh_month']:.2f}"
     V["换电站门槛"] = _pct(e["station_hurdle"], 0)
     V["电池银行门槛"] = _pct(e["bank_hurdle"], 1)
     V["站层最低服务费"] = f"{e['station_fee_floor_rmb_kwh']:.3f}"
     V["现行服务费"] = f"{e['service_fee_rmb_kwh']:.3f}"
     er = ["| 亿元/年（中性） | 换电站 | 电池银行 | 合计＝系统 |", "|---|---|---|---|",
           f"| 对外收入 | 服务费 {_f(e['station_revenue_yi'])} | 电池租金＋峰谷套利＋辅助服务 {_f(e['bank_revenue_yi'] - e['station_settlement_yi'])} | {_f(e['station_revenue_yi'] + e['bank_revenue_yi'] - e['station_settlement_yi'])} |",
-          f"| 内部结算（站 → 银行：周转电池租金＋技术服务费） | −{_f(e['station_settlement_yi'])} | ＋{_f(e['station_settlement_yi'])} | 0 |",
+          f"| 内部结算（站 → 银行：技术服务费） | −{_f(e['station_settlement_yi'])} | ＋{_f(e['station_settlement_yi'])} | 0 |",
           f"| 运营成本 | 电损、场租、人工 {_f(e['station_opex_yi'])} | 软件、保险、池化维护、仓储物流 {_f(e['bank_opex_yi'])} | {_f(e['station_opex_yi'] + e['bank_opex_yi'])} |",
           f"| EBITDA | {_f(e['station_ebitda_yi'])} | {_f(e['bank_ebitda_yi'])} | {_f(e['system_ebitda_yi'])} |",
           f"| 投入资本 | 站体 {_f(e['station_capital_yi'])} | 全部电池（车上＋周转，按全周期资本要求） | — |"]
@@ -327,7 +344,10 @@ def model_values(config: dict) -> dict[str, str]:
           "| 电池银行回报（门槛 " + _pct(e["bank_hurdle"], 1) + "） | " + " | ".join(_pct(ent[t]["bank_irr"]) for t in ent) + " |",
           "| 电池银行覆盖倍数 | " + " | ".join(f"{ent[t]['bank_coverage']:.2f}" for t in ent) + " |",
           "| 站层能承受的最低服务费（元/度） | " + " | ".join(f"{ent[t]['station_fee_floor_rmb_kwh']:.3f}" for t in ent) + " |",
-          "| 两个主体都过门槛 | " + " | ".join("是" if ent[t]["station_pass"] and ent[t]["bank_pass"] else "**否**" for t in ent) + " |"]
+          "| 按现行结算两个主体都过门槛 | " + " | ".join("是" if ent[t]["station_pass"] and ent[t]["bank_pass"] else "**否**" for t in ent) + " |",
+          "| 电池银行离门槛的缺口（亿元/年） | " + " | ".join(_f(ent[t]["bank_shortfall_yi"]) for t in ent) + " |",
+          "| 换电站超出门槛的富余（亿元/年） | " + " | ".join(_f(ent[t]["station_surplus_yi"]) for t in ent) + " |",
+          "| 存在让两边都过的结算（闸门） | " + " | ".join("是" if ent[t]["feasible"] else "**否**" for t in ent) + " |"]
     V["表:分拆三情景"] = "\n".join(tr)
     pr = ["| 池 | 换电站回报 | 电池银行覆盖倍数 |", "|---|---|---|"]
     names = {"qiji75_short": "骐骥短途", "qiji75_trunk": "骐骥干线", "choco25_passenger": "巧克力乘用", "choco35_city": "巧克力城配"}

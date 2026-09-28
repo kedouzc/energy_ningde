@@ -126,3 +126,11 @@ what  = """[supply_routes] 占地几何、人工单价与人当量、兆瓦中�
 why   = """研究者：占地与人员两边差距大，要核实；兆瓦规格定 2／4／6。"""
 watch = """主链读数不应动（供给层未接入）。"""
 expect = "主链读数不变（覆盖 1.14／1.35／1.69）；build、tree、run 全绿。"
+
+[[round]]
+date  = "2026-09-28i"
+focus = "A4 需求层：补运力成本、每次补能时间与休息重合、四条路线的车队资源账与敏感性"
+what  = """新增 [demand_routes] 与 src/demand_routes.py；caliber_docs.demand_route_values；车队总账新增第〇之二节。"""
+why   = """全景计划 A4。"""
+watch = """主链读数不应动（需求层未接入）。"""
+expect = "主链读数不变（覆盖 1.14／1.35／1.69）；build、tree、run 全绿。"

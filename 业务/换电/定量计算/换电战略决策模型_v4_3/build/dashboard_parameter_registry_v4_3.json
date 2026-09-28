@@ -2588,5 +2588,105 @@
     "key": "supply_routes.swap.blocks_per_swap",
     "value": 3,
     "type": "int"
+  },
+  {
+    "key": "demand_routes.driver_wage_trunk_rmb_month",
+    "value": 7500.0,
+    "type": "float"
+  },
+  {
+    "key": "demand_routes.driver_wage_short_rmb_month",
+    "value": 15000.0,
+    "type": "float"
+  },
+  {
+    "key": "demand_routes.employer_social_factor",
+    "value": 1.26,
+    "type": "float"
+  },
+  {
+    "key": "demand_routes.driver_hours_day",
+    "value": 11.0,
+    "type": "float"
+  },
+  {
+    "key": "demand_routes.driver_days_year",
+    "value": 312.0,
+    "type": "float"
+  },
+  {
+    "key": "demand_routes.truck_price_wan",
+    "value": 45.0,
+    "type": "float"
+  },
+  {
+    "key": "demand_routes.truck_life_years",
+    "value": 8.0,
+    "type": "float"
+  },
+  {
+    "key": "demand_routes.truck_insurance_wan_year",
+    "value": 3.75,
+    "type": "float"
+  },
+  {
+    "key": "demand_routes.short_truck_hours_year",
+    "value": 7000.0,
+    "type": "float"
+  },
+  {
+    "key": "demand_routes.highway_speed_kmh",
+    "value": 70.0,
+    "type": "float"
+  },
+  {
+    "key": "demand_routes.rest_every_hours",
+    "value": 4.0,
+    "type": "float"
+  },
+  {
+    "key": "demand_routes.rest_minutes",
+    "value": 20.0,
+    "type": "float"
+  },
+  {
+    "key": "demand_routes.rest_absorb_share",
+    "value": 0.5,
+    "type": "float"
+  },
+  {
+    "key": "demand_routes.session_overhead_minutes",
+    "value": 5.0,
+    "type": "float"
+  },
+  {
+    "key": "demand_routes.charge_soc_window",
+    "value": 0.75,
+    "type": "float"
+  },
+  {
+    "key": "demand_routes.mw_battery_premium",
+    "value": 0.1,
+    "type": "float"
+  },
+  {
+    "key": "demand_routes.swap_chassis_premium_wan",
+    "value": 0.0,
+    "type": "float"
+  },
+  {
+    "key": "demand_routes.depot_station_wan",
+    "value": 140.0,
+    "type": "float"
+  },
+  {
+    "key": "demand_routes.depot_trucks_served",
+    "value": 20.0,
+    "type": "float"
+  },
+  {
+    "key": "demand_routes.depot_spare_sets",
+    "value": 1.0,
+    "type": "float"
   }
 ]

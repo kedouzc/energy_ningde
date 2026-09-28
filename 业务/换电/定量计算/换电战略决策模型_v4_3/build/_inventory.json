@@ -91,6 +91,7 @@
 "src/config_loader.py",
 "src/consolidation.py",
 "src/decision.py",
+"src/demand_routes.py",
 "src/derived.py",
 "src/entities.py",
 "src/events.py",

@@ -3753,3 +3753,34 @@ fte = 3.0                            # 16 小时两班、每班 1 人值守：2 
 om_rate = 0.05                       # 机械结构维护，设备的 5%（src.chd_research_swap_2023，低）
 blocks_per_swap = 3                  # 干线车一次换 3 块 75# 块
 # 站内电池块数、块容量、换电时长、运营时长取 [stations.qiji75_trunk]；电池持有成本按电池银行保本价（entities.turnover_rent_rmb_kwh_month）
+
+# ======================================================================
+# 【2026-09-28i · A4】需求层：每类车走四条路线的全年资源账（系统口径，不管谁出钱）
+# 口径：口径/车队总账_换电对充电.md 第〇节；框架：口径/补能路线比较_总框架.md 第三、五节。
+# 本节只驱动口径文档读数，不进主链（A5 接入）。
+# ======================================================================
+[demand_routes]
+# 补运力成本（时间价值）：卡住的是什么就补什么，取最便宜的办法
+driver_wage_trunk_rmb_month = 7500.0     # 干线受雇司机月收入中位约 7–8 千（src.cflp_survey_2023）
+driver_wage_short_rmb_month = 15000.0    # 砂石短倒、集卡 1.2–2 万取中（src.che360_wage_2021）
+employer_social_factor = 1.26            # 雇主社保约 26%（src.sh_hrss_si）
+driver_hours_day = 11.0                  # 受雇司机每天开 10 小时以上占 43%（src.cflp_survey_2023）；取 11 小时
+driver_days_year = 312.0                 # 每月约 26 天（src.ruc_life_2025 月均休息 3.54 天）
+truck_price_wan = 45.0                   # 电动牵引车不含电池 42–46 万（src.eeo_swap_2026）
+truck_life_years = 8.0                   # 经济寿命（声明值；强制报废 15 年，src.scrap_rule_2012）
+truck_insurance_wan_year = 3.75          # 电动重卡保险 3.5–4 万（src.jj21_insurance_2026）
+short_truck_hours_year = 7000.0          # 封闭多班倒：每天约 20 小时 × 350 天（声明值）
+# 行驶与休息
+highway_speed_kmh = 70.0                 # 干线平均车速（推算，示范线 69–78 km/h，src.sfccn_mw_2026）
+rest_every_hours = 4.0                   # 连续驾驶 4 小时须停 20 分钟（src.rtsl_impl62_bj）
+rest_minutes = 20.0
+rest_absorb_share = 0.5                  # 补能停车能与强制休息重合的比例（声明值；站点位置能否对上、坐车上等算不算休息 src.gat2372_fj_2026）；悲观 1.0、乐观 0
+session_overhead_minutes = 5.0           # 每次补能的进出、扫码、插拔（四条路线同，声明值）
+charge_soc_window = 0.75                 # 充电一次补 20%→95%（沿用 tco_jpm.charge_soc_window）
+# 车端成本
+mw_battery_premium = 0.10                # 高倍率电池溢价：乘用车口径"贵不到 10%"（src.peoplecen_ultrafast_2024）；悲观 0、乐观 0.20
+swap_chassis_premium_wan = 0.0           # 换电底盘相对充电底盘的溢价：查无信源（缺口），基准 0；悲观 3 万
+# 车队自备轮换（只用于短途封闭）：三一迷你站作代理
+depot_station_wan = 140.0                # 迷你站不含电池 100 万以内＋ 800 kVA 接入约 40 万（src.sany_mini_2023；推算）
+depot_trucks_served = 20.0               # 服务 10–30 车取中（src.sany_mini_2023）
+depot_spare_sets = 1.0                   # 每车多备一套电池

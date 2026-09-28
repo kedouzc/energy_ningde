@@ -98,11 +98,44 @@ def check_inventory() -> list[str]:
     return bad
 
 
+# 口径里凡有程序现算表（{{表:…}}）的一节，必须同时写出"算式"与"算例"——研究者不读程序，只能从文档复核（2026-09-28j）。
+# 下列旧节在写入这条规矩之前就存在，列为待补账（逐轮补齐后从这里删掉）；新写的节不许进这张表。
+CALC_DEBT = {
+    ("车辆与站数_推算方法.src.md", "## 2. 站点层"),
+    ("车辆与站数_推算方法.src.md", "## 3. 供给侧"),
+    ("车队总账_换电对充电.src.md", "## 一、电池寿命"),
+    ("车队总账_换电对充电.src.md", "## 三、终局时三个价"),
+    ("车队总账_换电对充电.src.md", "## 四、车队总账"),
+    ("车队总账_换电对充电.src.md", "## 五、份额怎么算"),
+    ("运营收入与成本_口径.src.md", "## 4. 分拆"),
+}
+
+
+def check_calc_explained() -> tuple[list[str], list[str]]:
+    """返回（违规，待补账提示）。"""
+    bad, debt = [], []
+    for f in sorted((ROOT / "口径").glob("*.src.md")):
+        for sec in re.split(r"\n(?=## )", f.read_text(encoding="utf-8")):
+            if "{{表:" not in sec:
+                continue
+            head = sec.split("\n", 1)[0]
+            if all(k in sec for k in ("算式", "算例")):
+                continue
+            if any(f.name == fn_ and head.startswith(pre) for fn_, pre in CALC_DEBT):
+                debt.append(f"{f.name} {head[:30]}")
+            else:
+                bad.append(f"{f.relative_to(ROOT)} 「{head[:30]}」有程序现算表，但没写「算式」与「算例」（研究者无法复核）")
+    return bad, debt
+
+
 def main() -> int:
-    bad = check() + check_sources() + check_inventory()
+    calc_bad, calc_debt = check_calc_explained()
+    bad = check() + check_sources() + check_inventory() + calc_bad
+    if calc_debt:
+        print(f"  ◇ 算式与算例待补（旧节，{len(calc_debt)} 处）：" + "；".join(calc_debt))
     for b in bad:
         print("  ✗ " + b)
-    print(f"状态文件纪律／信源台账／文件清点：{'通过' if not bad else f'{len(bad)} 处问题'}")
+    print(f"状态文件纪律／信源台账／文件清点／算式算例：{'通过' if not bad else f'{len(bad)} 处问题'}")
     return 1 if bad else 0
 
 

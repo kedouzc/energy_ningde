@@ -150,3 +150,11 @@ what  = """[demand_routes] charge_soc_window 0.80、新增 swap_pack_premium；d
 why   = """研究者：换电不足 20 分钟也得歇满；43% 怎么来、0.75 与 0.8 口径不一；兆瓦溢价单加不公平；第 8、9 步没有算式。"""
 watch = """主链读数不应动。"""
 expect = "主链读数不变（覆盖 1.14／1.35／1.69）；中途领先约 0.3 万；build、tree、run 全绿。"
+
+[[round]]
+date  = "2026-09-28m"
+focus = "A5 均衡层（第一步）：逐车比较谁赢、换电整包价区间与利润厚度；三档进情景轴；对手成本两种读法（可竞争／分散自由进入）"
+what  = """[drivers] 新增 mw_station_scale、swap_station_ops、route_vehicle_premium；src/equilibrium.py；caliber_docs.equilibrium_values；新建 口径/补能三路线_均衡定价；车队总账第〇之二节补三档与第 3 步说明。"""
+why   = """全景计划 A5；研究者问程序能否处理悲观乐观两档。"""
+watch = """主链读数不应动（新参数主链不读）。"""
+expect = "主链读数不变（覆盖 1.14／1.35／1.69）；build、tree、run 全绿。"

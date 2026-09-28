@@ -23,19 +23,27 @@ def _crf(r: float, n: float) -> float:
     return r / (1.0 - (1.0 + r) ** -n) if r > 0 else 1.0 / n
 
 
+def truck_life(config: dict, scene_idx: int) -> float:
+    """车辆寿命 ＝ min（强制报废年限，引导报废里程 ÷ 年里程）。"""
+    D = config["demand_routes"]
+    sc = config["vehicles"]["heavy"]["scenes"][scene_idx]
+    km_year = float(sc["daily_km"]) * float(config["swap_business"]["operating_days"])
+    return min(float(D["truck_scrap_years"]), float(D["truck_scrap_km"]) / km_year)
+
+
 def time_value(config: dict, scene_idx: int) -> dict:
-    """补运力成本（元/时）。"""
+    """补运力成本（元/时）。司机工资各场景相同（同一个劳动力市场）。"""
     D = config["demand_routes"]
     soc = float(D["employer_social_factor"])
     r = float(config["finance"]["wacc"])
     hours_driver = float(D["driver_hours_day"]) * float(D["driver_days_year"])
+    drv = float(D["driver_wage_rmb_month"]) * 12 * soc / hours_driver
     if scene_idx == 0:
-        drv = float(D["driver_wage_short_rmb_month"]) * 12 * soc / hours_driver
-        truck_year = float(D["truck_price_wan"]) * 1e4 * _crf(r, float(D["truck_life_years"])) + float(D["truck_insurance_wan_year"]) * 1e4
+        life = truck_life(config, 0)
+        truck_year = float(D["truck_price_wan"]) * 1e4 * _crf(r, life) + float(D["truck_insurance_wan_year"]) * 1e4
         trk = truck_year / float(D["short_truck_hours_year"])
-        return {"driver": drv, "truck": trk, "w": drv + trk, "basis": "车是瓶颈：补车＋补人"}
-    drv = float(D["driver_wage_trunk_rmb_month"]) * 12 * soc / hours_driver
-    return {"driver": drv, "truck": 0.0, "w": drv, "basis": "司机工时是瓶颈：多雇司机"}
+        return {"driver": drv, "truck": trk, "w": drv + trk, "life": life, "basis": "车是瓶颈：补车＋补人"}
+    return {"driver": drv, "truck": 0.0, "w": drv, "life": truck_life(config, scene_idx), "basis": "司机工时是瓶颈：多雇司机"}
 
 
 def _battery_year(config: dict, kwh: float, life_cycles: float, cycles_year: float, premium: float = 0.0) -> tuple[float, float]:
@@ -70,7 +78,7 @@ def scene_route(config: dict, scene_idx: int, route: str, supply: dict | None = 
         queue_h = o["wait_min"] / 60.0
         station_cost = o["station_cost"]
         bat, life = _battery_year(config, onboard, crit * pool_mult, cycles_year)
-        extra = float(D["swap_chassis_premium_wan"]) * 1e4 * _crf(float(config["finance"]["wacc"]), float(D["truck_life_years"]))
+        extra = float(D["swap_chassis_premium_wan"]) * 1e4 * _crf(float(config["finance"]["wacc"]), truck_life(config, scene_idx))
     elif route == "depot":
         per_session = onboard * usable
         dur_h, queue_h = 5.0 / 60.0, 0.0
@@ -93,21 +101,41 @@ def scene_route(config: dict, scene_idx: int, route: str, supply: dict | None = 
         else:
             bat, life = _battery_year(config, onboard, crit * pool_mult, cycles_year)
         extra = 0.0
-    sessions_day = daily_kwh / per_session
-    session_h = overhead_h + queue_h + dur_h
+    # 夜间补满：干线单班车出车前满电，途中只补差额；封闭多班倒没有空档，全部在途中补
+    overnight = scene_idx > 0
+    start = (onboard * usable) if route in ("swap", "depot") else per_session
+    enroute_kwh = max(0.0, daily_kwh - start) if overnight else daily_kwh
+    stops = math.ceil(enroute_kwh / per_session - 1e-9) if enroute_kwh > 0 else 0
+    if not overnight:
+        stops_f = daily_kwh / per_session          # 连续运转：按平均次数计
+    else:
+        stops_f = float(stops)
+    e_stop = enroute_kwh / stops_f if stops_f else 0.0
+    if route in ("swap", "depot"):
+        dur_stop = dur_h
+    else:
+        dur_stop = e_stop / p_avg
+    session_h = overhead_h + queue_h + dur_stop
     absorbed_h = 0.0
-    if scene_idx > 0:
+    if overnight and stops:
         drive_h = float(sc["daily_km"]) / float(D["highway_speed_kmh"])
         rests = math.floor(drive_h / float(D["rest_every_hours"]))
-        n_abs = min(rests, math.ceil(sessions_day - 1e-9))
-        absorbed_h = float(D["rest_absorb_share"]) * n_abs * min(session_h, float(D["rest_minutes"]) / 60.0) \
-            * (sessions_day / math.ceil(sessions_day - 1e-9) if sessions_day < 1 else 1.0)
-    stop_h_day = max(0.0, sessions_day * session_h - absorbed_h)
+        absorbed_h = min(rests, stops) * min(session_h, float(D["rest_minutes"]) / 60.0)
+    stop_h_day = max(0.0, stops_f * session_h - absorbed_h)
+    sessions_day = stops_f
+    # 兆瓦车只有途中那部分电是大电流快充，夜里在场站慢充：按两种充法各自的循环寿命加权
+    if route == "megawatt":
+        f_fast = enroute_kwh / daily_kwh if daily_kwh else 1.0
+        eff = 1.0 / (f_fast / crit + (1.0 - f_fast) / (crit * pool_mult))
+        bat, life = _battery_year(config, onboard, eff, cycles_year, float(D["mw_battery_premium"]))
+    # 夜间那部分电走的设施：充电车在场站慢充（常规快充的站成本），换电车收车前换满（换电站成本）
+    if overnight and route in ("conventional", "megawatt"):
+        station_cost = (enroute_kwh * station_cost + (daily_kwh - enroute_kwh) * supply["optimum"]["conventional"]["station_cost"]) / daily_kwh
     tv = time_value(config, scene_idx)
     time_cost = stop_h_day * days * tv["w"]
     facility = station_cost * kwh_year
     total = facility + bat + time_cost + extra
-    return {"scene": sc["name"], "route": route, "daily_kwh": daily_kwh, "sessions_day": sessions_day,
+    return {"scene": sc["name"], "route": route, "daily_kwh": daily_kwh, "sessions_day": sessions_day, "enroute_kwh": enroute_kwh,
             "session_min": session_h * 60.0, "absorbed_min": absorbed_h * 60.0, "stop_h_day": stop_h_day,
             "battery_life": life, "facility_wan": facility / 1e4, "battery_wan": bat / 1e4, "time_wan": time_cost / 1e4,
             "extra_wan": extra / 1e4, "total_wan": total / 1e4, "w": tv["w"]}

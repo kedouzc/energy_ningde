@@ -3761,20 +3761,22 @@ blocks_per_swap = 3                  # 干线车一次换 3 块 75# 块
 # ======================================================================
 [demand_routes]
 # 补运力成本（时间价值）：卡住的是什么就补什么，取最便宜的办法
-driver_wage_trunk_rmb_month = 7500.0     # 干线受雇司机月收入中位约 7–8 千（src.cflp_survey_2023）
-driver_wage_short_rmb_month = 15000.0    # 砂石短倒、集卡 1.2–2 万取中（src.che360_wage_2021）
+driver_wage_rmb_month = 7500.0           # 受雇货车司机月收入中位约 7–8 千（src.cflp_survey_2023）；短途与干线同一个劳动力市场，取同一工资
 employer_social_factor = 1.26            # 雇主社保约 26%（src.sh_hrss_si）
 driver_hours_day = 11.0                  # 受雇司机每天开 10 小时以上占 43%（src.cflp_survey_2023）；取 11 小时
 driver_days_year = 312.0                 # 每月约 26 天（src.ruc_life_2025 月均休息 3.54 天）
 truck_price_wan = 45.0                   # 电动牵引车不含电池 42–46 万（src.eeo_swap_2026）
-truck_life_years = 8.0                   # 经济寿命（声明值；强制报废 15 年，src.scrap_rule_2012）
+truck_scrap_years = 15.0                 # 重中型货车、半挂牵引车强制报废 15 年（src.scrap_rule_2012）
+truck_scrap_km = 700000.0                # 引导报废 70 万公里（同上）；车辆寿命 ＝ min（15 年，70 万公里 ÷ 年里程）
 truck_insurance_wan_year = 3.75          # 电动重卡保险 3.5–4 万（src.jj21_insurance_2026）
 short_truck_hours_year = 7000.0          # 封闭多班倒：每天约 20 小时 × 350 天（声明值）
 # 行驶与休息
 highway_speed_kmh = 70.0                 # 干线平均车速（推算，示范线 69–78 km/h，src.sfccn_mw_2026）
 rest_every_hours = 4.0                   # 连续驾驶 4 小时须停 20 分钟（src.rtsl_impl62_bj）
 rest_minutes = 20.0
-rest_absorb_share = 0.5                  # 补能停车能与强制休息重合的比例（声明值；站点位置能否对上、坐车上等算不算休息 src.gat2372_fj_2026）；悲观 1.0、乐观 0
+# 与休息重合不是输入：途中补能安排在强制休息时，重合时间 ＝ min（途中补能次数，休息次数）× min（每次停多久，20 分钟）
+# 夜间与班间：干线单班车夜里停着，出车前补满不占时间（充电车在场站慢充，按常规快充的站成本计；换电车收车前换满）；
+# 封闭多班倒车连续运转，没有空档，每次补能都占时间。
 session_overhead_minutes = 5.0           # 每次补能的进出、扫码、插拔（四条路线同，声明值）
 charge_soc_window = 0.75                 # 充电一次补 20%→95%（沿用 tco_jpm.charge_soc_window）
 # 车端成本

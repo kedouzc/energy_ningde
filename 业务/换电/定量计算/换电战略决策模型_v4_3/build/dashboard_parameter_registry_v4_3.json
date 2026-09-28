@@ -2590,13 +2590,8 @@
     "type": "int"
   },
   {
-    "key": "demand_routes.driver_wage_trunk_rmb_month",
+    "key": "demand_routes.driver_wage_rmb_month",
     "value": 7500.0,
-    "type": "float"
-  },
-  {
-    "key": "demand_routes.driver_wage_short_rmb_month",
-    "value": 15000.0,
     "type": "float"
   },
   {
@@ -2620,8 +2615,13 @@
     "type": "float"
   },
   {
-    "key": "demand_routes.truck_life_years",
-    "value": 8.0,
+    "key": "demand_routes.truck_scrap_years",
+    "value": 15.0,
+    "type": "float"
+  },
+  {
+    "key": "demand_routes.truck_scrap_km",
+    "value": 700000.0,
     "type": "float"
   },
   {
@@ -2647,11 +2647,6 @@
   {
     "key": "demand_routes.rest_minutes",
     "value": 20.0,
-    "type": "float"
-  },
-  {
-    "key": "demand_routes.rest_absorb_share",
-    "value": 0.5,
     "type": "float"
   },
   {

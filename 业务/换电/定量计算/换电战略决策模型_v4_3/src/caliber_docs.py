@@ -707,7 +707,7 @@ def demand_route_values(config: dict) -> dict[str, str]:
         nm = config["vehicles"]["heavy"]["scenes"][DR.SCENE_KEYS.index(k)]["name"]
         t.append(f"| {nm} | {tv['basis']} | {tv['driver']:.0f} | {tv['truck']:.0f} | **{tv['w']:.0f}** |")
     V["表:需求_时间价值"] = "\n".join(t)
-    r = ["| 场景 | 路线 | 每天补能（次） | 每次（分钟） | 与休息重合（分钟/天） | 每天多停（小时） | 电池寿命（年） | 补能设施 | 电池 | 时间 | 车端 | 合计（万元/车·年） |",
+    r = ["| 场景 | 路线 | 途中补能（次/天） | 每次（分钟） | 与休息重合（分钟/天） | 每天多停（小时） | 电池寿命（年） | 补能设施 | 电池 | 时间 | 车端 | 合计（万元/车·年） |",
          "|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for k in DR.SCENE_KEYS:
         for rt, d in sm[k]["rows"].items():
@@ -726,20 +726,20 @@ def demand_route_values(config: dict) -> dict[str, str]:
             f(cc)
         return gap(cc)
 
-    def rest1(x): x["demand_routes"]["rest_absorb_share"] = 1.0
+    def wage_up(x): x["demand_routes"]["driver_wage_rmb_month"] = float(x["demand_routes"]["driver_wage_rmb_month"]) * 1.5
     def prem0(x): x["demand_routes"]["mw_battery_premium"] = 0.0
-    def life_same(x):
-        x["battery_life_model"]["critical_cycles"] = float(x["battery_life_model"]["critical_cycles"]) * max(1.0, float(x["battery_life_model"]["pool_life_multiplier"]))
-        x["battery_life_model"]["pool_life_multiplier"] = 1.0
+    def life_pess(x):
+        t = x["drivers"]["battery_life"]["悲观"]
+        x["battery_life_model"]["critical_cycles"] = float(t["critical_cycles"]); x["battery_life_model"]["pool_life_multiplier"] = float(t["pool_life_multiplier"])
     def mw6(x):
         m = x["supply_routes"]["megawatt"]; m["piles"], m["equipment_wan"], m["kva"], m["transformer_units"] = 6, 720.0, 7500.0, 3
     def swap_bad(x):
         x["supply_routes"]["swap"]["fte"] = 4.0; x["supply_routes"]["swap"]["equipment_wan"] = 300.0
         x["demand_routes"]["swap_chassis_premium_wan"] = 3.0
-    rows = [("基准", gap(config)), ("补能停车全部与休息重合", mod(rest1)), ("高倍率电池不溢价", mod(prem0)),
-            ("兆瓦车的电池与换电池里一样长寿", mod(life_same)), ("兆瓦站做到 6 × 1 MW", mod(mw6)),
+    rows = [("基准", gap(config)), ("司机工资高 50%（时间更值钱，对换电有利）", mod(wage_up)), ("高倍率电池不溢价", mod(prem0)),
+            ("电池寿命取悲观档（快充只少活 23%，欣旺达同场一对数）", mod(life_pess)), ("兆瓦站做到 6 × 1 MW", mod(mw6)),
             ("换电站 4 人、设备 300 万、换电底盘贵 3 万", mod(swap_bad)),
-            ("以上全部对换电不利", mod(rest1, prem0, life_same, mw6, swap_bad))]
+            ("以上四项对换电不利的同时成立（不含第二行）", mod(prem0, life_pess, mw6, swap_bad))]
     g = ["| 情形 | 短途 | 中途 | 长途 |", "|---|---|---|---|"]
     for nm, v in rows:
         g.append(f"| {nm} | " + " | ".join(f"{x:+.2f}" for x in v) + " |")
@@ -748,7 +748,7 @@ def demand_route_values(config: dict) -> dict[str, str]:
 
 
 def demand_example_values(config: dict) -> dict[str, str]:
-    """A4 算例：中途车，兆瓦超充 对 换电，逐步可按计算器复核的中间数。"""
+    """A4 算例：中途车，兆瓦超充 对 换电，逐步可按计算器复核（中间数取自 demand_routes 的同一套计算）。"""
     import math
     import demand_routes as DR
     import supply_routes as SR
@@ -758,66 +758,44 @@ def demand_example_values(config: dict) -> dict[str, str]:
     sc = config["vehicles"]["heavy"]["scenes"][1]
     sup = SR.summary(config)
     days = float(config["swap_business"]["operating_days"])
-    r = float(config["finance"]["wacc"])
     km, epk, kwh = float(sc["daily_km"]), float(sc["energy_consumption_kwh_km"]), float(sc["onboard_battery_kwh"])
     daily = km * epk
     usable = float(config["swap_business"]["usable_energy_factor"])
     soc = float(D["charge_soc_window"])
-    pf = float(config["supply_routes"]["charge_power_factor"])
-    pkw = float(config["supply_routes"]["megawatt"]["pile_kw"])
-    ovh = float(D["session_overhead_minutes"])
-    mw_q, sw_q = sup["optimum"]["megawatt"]["wait_min"], sup["optimum"]["swap"]["wait_min"]
-    mw_e, sw_e = kwh * soc, kwh * usable
-    mw_n, sw_n = daily / mw_e, daily / sw_e
-    mw_dur = mw_e / (pkw * pf) * 60
-    sw_dur = float(config["stations"]["qiji75_trunk"]["swap_duration_seconds"]) / 60
-    mw_s, sw_s = ovh + mw_q + mw_dur, ovh + sw_q + sw_dur
+    mw = DR.scene_route(config, 1, "megawatt", sup)
+    sw = DR.scene_route(config, 1, "swap", sup)
+    w = DR.time_value(config, 1)["w"]
     drive_h = km / float(D["highway_speed_kmh"])
     rests = math.floor(drive_h / float(D["rest_every_hours"]))
-    share = float(D["rest_absorb_share"])
-    mw_abs = share * min(rests, math.ceil(mw_n)) * min(mw_s, float(D["rest_minutes"]))
-    sw_abs = share * min(rests, math.ceil(sw_n)) * min(sw_s, float(D["rest_minutes"]))
-    mw_stop, sw_stop = mw_n * mw_s - mw_abs, sw_n * sw_s - sw_abs
-    w = DR.time_value(config, 1)["w"]
-    cyc = daily * days / kwh
     crit = float(config["battery_life_model"]["critical_cycles"])
     mult = max(1.0, float(config["battery_life_model"]["pool_life_multiplier"]))
-    cap = float(config["battery_life_model"]["calendar_cap_years"])
-    mw_life, sw_life = min(crit / cyc, cap), min(crit * mult / cyc, cap)
+    cyc = daily * days / kwh
+    f = mw["enroute_kwh"] / daily
     p0 = terminal_battery_price(config)
-    prem = float(D["mw_battery_premium"])
-    rec = retirement_recovery_ratio(config)
-    def crf(n): return r / (1 - (1 + r) ** -n)
-    def bat(price, life):
-        c0 = price * kwh
-        salv = c0 * rec / (1 + r) ** life
-        return c0, salv, (c0 - salv) * crf(life), crf(life)
-    mc, ms, my, mcrf = bat(p0 * (1 + prem), mw_life)
-    scap, ss, sy, scrf = bat(p0, sw_life)
-    mw_fac = sup["optimum"]["megawatt"]["station_cost"] * daily * days
-    sw_fac = sup["optimum"]["swap"]["station_cost"] * daily * days
     lines = [
-        f"第 1 步　每天用多少电：{km:.0f} 公里 × {epk:.1f} 度/公里 ＝ {daily:.0f} 度；一年按 {days:.0f} 天 ＝ {daily*days/1e4:.1f} 万度",
-        f"第 2 步　每天补几次：兆瓦一次补 {kwh:.0f} × {soc:.2f} ＝ {mw_e:.0f} 度 → {daily:.0f} ÷ {mw_e:.0f} ＝ {mw_n:.2f} 次；换电一次换满 {kwh:.0f} × {usable:.2f} ＝ {sw_e:.0f} 度 → {sw_n:.2f} 次",
-        f"第 3 步　每次停多久：兆瓦 ＝ 进出 {ovh:.0f} ＋ 排队 {mw_q:.1f} ＋ 充电 {mw_e:.0f} ÷ ({pkw:.0f} × {pf:.2f}) × 60 ＝ {mw_dur:.1f} → {mw_s:.1f} 分钟；换电 ＝ {ovh:.0f} ＋ {sw_q:.1f} ＋ {sw_dur:.0f} ＝ {sw_s:.1f} 分钟",
-        f"第 4 步　和强制休息重合多少：开 {km:.0f} ÷ {float(D['highway_speed_kmh']):.0f} ＝ {drive_h:.1f} 小时，要休息 {rests} 次，每次 20 分钟；能重合的比例 {share:.0%} → 兆瓦抵 {mw_abs:.1f} 分钟、换电抵 {sw_abs:.1f} 分钟",
-        f"第 5 步　每天多停：兆瓦 {mw_n:.2f} × {mw_s:.1f} − {mw_abs:.1f} ＝ {mw_stop:.1f} 分钟（{mw_stop/60:.2f} 小时）；换电 {sw_n:.2f} × {sw_s:.1f} − {sw_abs:.1f} ＝ {sw_stop:.1f} 分钟（{sw_stop/60:.2f} 小时）",
-        f"第 6 步　时间一年值多少：每天多停 × {days:.0f} 天 × {w:.1f} 元/时 → 兆瓦 {mw_stop/60*days*w/1e4:.2f} 万、换电 {sw_stop/60*days*w/1e4:.2f} 万",
-        f"第 7 步　电池能用几年：一年循环 {daily:.0f} × {days:.0f} ÷ {kwh:.0f} ＝ {cyc:.0f} 次；兆瓦快充寿命 {crit:.0f} 次 → {crit/cyc:.1f} 年；换电池里慢充 {crit*mult:.0f} 次 → {crit*mult/cyc:.1f} 年，封顶 {cap:.0f} 年 → {sw_life:.1f} 年",
-        f"第 8 步　电池一年摊多少：2030 年电池价 {p0:.0f} 元/度（兆瓦加溢价 {prem:.0%} → {p0*(1+prem):.0f}）；"
-        f"兆瓦 ({mc/1e4:.1f} 万 − 残值现值 {ms/1e4:.1f} 万) × 年金系数 {mcrf:.3f} ＝ {my/1e4:.2f} 万；换电 ({scap/1e4:.1f} − {ss/1e4:.1f}) × {scrf:.3f} ＝ {sy/1e4:.2f} 万（残值 ＝ 买价 × {rec:.3f}，折回今天）",
-        f"第 9 步　补能设施一年摊多少：每度电站成本 × 年用电 → 兆瓦 {sup['optimum']['megawatt']['station_cost']:.3f} × {daily*days/1e4:.1f} 万度 ＝ {mw_fac/1e4:.2f} 万；换电 {sup['optimum']['swap']['station_cost']:.3f} × {daily*days/1e4:.1f} 万度 ＝ {sw_fac/1e4:.2f} 万",
-        f"合计　　兆瓦 {mw_fac/1e4:.2f} ＋ {my/1e4:.2f} ＋ {mw_stop/60*days*w/1e4:.2f} ＝ {(mw_fac+my+mw_stop/60*days*w)/1e4:.2f} 万；换电 {sw_fac/1e4:.2f} ＋ {sy/1e4:.2f} ＋ {sw_stop/60*days*w/1e4:.2f} ＝ {(sw_fac+sy+sw_stop/60*days*w)/1e4:.2f} 万",
+        f"第 1 步　每天用多少电：{km:.0f} 公里 × {epk:.1f} 度/公里 ＝ {daily:.0f} 度；一年 {days:.0f} 天 ＝ {daily*days/1e4:.1f} 万度",
+        f"第 2 步　夜里补满、途中补差额：干线单班车夜里停着，出车前补满不占时间。兆瓦车出车带 {kwh:.0f} × {soc:.2f} ＝ {kwh*soc:.0f} 度，途中要补 {daily:.0f} − {kwh*soc:.0f} ＝ {mw['enroute_kwh']:.0f} 度，停 {mw['sessions_day']:.0f} 次；"
+        f"换电车出车带 {kwh:.0f} × {usable:.2f} ＝ {kwh*usable:.0f} 度，途中要补 {sw['enroute_kwh']:.0f} 度，换 {sw['sessions_day']:.0f} 次",
+        f"第 3 步　途中每次停多久：兆瓦 ＝ 进出 {float(D['session_overhead_minutes']):.0f} ＋ 排队 {sup['optimum']['megawatt']['wait_min']:.1f} ＋ 充 {mw['enroute_kwh']/mw['sessions_day']:.0f} 度 ÷ 850 kW ＝ {mw['session_min']:.1f} 分钟；换电 ＝ {float(D['session_overhead_minutes']):.0f} ＋ {sup['optimum']['swap']['wait_min']:.1f} ＋ 5 ＝ {sw['session_min']:.1f} 分钟",
+        f"第 4 步　和强制休息重合（算出来的，不是输入）：一天开 {km:.0f} ÷ {float(D['highway_speed_kmh']):.0f} ＝ {drive_h:.1f} 小时 → 休息 {rests} 次、每次 20 分钟；途中补能安排在休息时，重合 ＝ min（停 {mw['sessions_day']:.0f} 次，休息 {rests} 次）× min（每次停多久，20）→ 兆瓦 {mw['absorbed_min']:.1f}、换电 {sw['absorbed_min']:.1f} 分钟",
+        f"第 5 步　每天多停：兆瓦 {mw['session_min']:.1f} − {mw['absorbed_min']:.1f} ＝ {mw['stop_h_day']*60:.1f} 分钟；换电 {sw['session_min']:.1f} − {sw['absorbed_min']:.1f} ＝ {sw['stop_h_day']*60:.1f} 分钟",
+        f"第 6 步　时间一年值多少：每天多停 × {days:.0f} 天 × {w:.1f} 元/时 → 兆瓦 {mw['time_wan']:.2f} 万、换电 {sw['time_wan']:.2f} 万",
+        f"第 7 步　电池能用几年：一年循环 {daily:.0f} × {days:.0f} ÷ {kwh:.0f} ＝ {cyc:.0f} 次。兆瓦车只有途中那 {f:.0%} 的电是大电流快充（寿命 {crit:.0f} 次），其余夜里慢充（{crit*mult:.0f} 次）→ 折合 {1/(f/crit+(1-f)/(crit*mult)):.0f} 次 → {mw['battery_life']:.1f} 年；换电电池全在站里慢充 → {crit*mult/cyc:.1f} 年，封顶 10 年",
+        f"第 8 步　电池一年摊多少：2030 年电池价 {p0:.0f} 元/度（兆瓦加溢价 {float(D['mw_battery_premium']):.0%}），按寿命做资本回收（扣残值）→ 兆瓦 {mw['battery_wan']:.2f} 万、换电 {sw['battery_wan']:.2f} 万",
+        f"第 9 步　补能设施一年摊多少：兆瓦车途中的电按兆瓦站成本、夜里的电按常规站成本 → {mw['facility_wan']:.2f} 万；换电 → {sw['facility_wan']:.2f} 万",
+        f"合计　　兆瓦 {mw['facility_wan']:.2f} ＋ {mw['battery_wan']:.2f} ＋ {mw['time_wan']:.2f} ＝ {mw['total_wan']:.2f} 万；换电 {sw['facility_wan']:.2f} ＋ {sw['battery_wan']:.2f} ＋ {sw['time_wan']:.2f} ＝ {sw['total_wan']:.2f} 万",
     ]
     V["算例:需求_中途"] = "\n".join(lines)
     tv0, tv1 = DR.time_value(config, 0), DR.time_value(config, 1)
+    r = float(config["finance"]["wacc"])
+    sc0 = config["vehicles"]["heavy"]["scenes"][0]
     V["算例:补运力"] = "\n".join([
-        f"干线司机每小时 ＝ 月薪 {float(D['driver_wage_trunk_rmb_month']):,.0f} × 12 × 社保系数 {float(D['employer_social_factor']):.2f} ÷（每天 {float(D['driver_hours_day']):.0f} 小时 × 每年 {float(D['driver_days_year']):.0f} 天）＝ {tv1['driver']:.1f} 元/时",
-        f"短途司机每小时 ＝ 月薪 {float(D['driver_wage_short_rmb_month']):,.0f} × 12 × {float(D['employer_social_factor']):.2f} ÷（{float(D['driver_hours_day']):.0f} × {float(D['driver_days_year']):.0f}）＝ {tv0['driver']:.1f} 元/时",
-        f"短途车每小时 ＝（车价 {float(D['truck_price_wan']):.0f} 万 × 年金系数 {r/(1-(1+r)**-float(D['truck_life_years'])):.4f}（{r:.1%}、{float(D['truck_life_years']):.0f} 年）＋ 保险 {float(D['truck_insurance_wan_year']):.2f} 万）÷ 每年 {float(D['short_truck_hours_year']):,.0f} 小时 ＝ {tv0['truck']:.1f} 元/时",
+        f"司机每小时（各场景同）＝ 月薪 {float(D['driver_wage_rmb_month']):,.0f} × 12 × 社保系数 {float(D['employer_social_factor']):.2f} ÷（每天 {float(D['driver_hours_day']):.0f} 小时 × 每年 {float(D['driver_days_year']):.0f} 天）＝ {tv1['driver']:.1f} 元/时",
+        f"短途车寿命 ＝ min（强制报废 {float(D['truck_scrap_years']):.0f} 年，引导报废 {float(D['truck_scrap_km'])/1e4:.0f} 万公里 ÷ 年里程 {float(sc0['daily_km'])*days/1e4:.1f} 万公里）＝ {tv0['life']:.1f} 年",
+        f"短途车每小时 ＝（车价 {float(D['truck_price_wan']):.0f} 万 × 年金系数 {r/(1-(1+r)**-tv0['life']):.4f}（{r:.1%}、{tv0['life']:.1f} 年）＋ 保险 {float(D['truck_insurance_wan_year']):.2f} 万）÷ 每年 {float(D['short_truck_hours_year']):,.0f} 小时 ＝ {tv0['truck']:.1f} 元/时",
+        f"短途补运力 ＝ 司机 {tv0['driver']:.1f} ＋ 车 {tv0['truck']:.1f} ＝ {tv0['w']:.1f} 元/时；干线 ＝ 司机 {tv1['w']:.1f} 元/时",
     ])
     return V
-
 
 def supply_example_values(config: dict) -> dict[str, str]:
     """A3 算例：换电标准站与兆瓦站（中性 4 × 1 MW）在规划最优利用率下的每度电站成本，逐步可复核。"""

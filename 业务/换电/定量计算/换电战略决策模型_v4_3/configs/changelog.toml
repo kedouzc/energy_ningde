@@ -134,3 +134,11 @@ what  = """新增 [demand_routes] 与 src/demand_routes.py；caliber_docs.demand
 why   = """全景计划 A4。"""
 watch = """主链读数不应动（需求层未接入）。"""
 expect = "主链读数不变（覆盖 1.14／1.35／1.69）；build、tree、run 全绿。"
+
+[[round]]
+date  = "2026-09-28k"
+focus = "A4 需求层更正：司机同一工资；车辆寿命按报废标准推算；夜里补满、途中补差额；与休息重合改为算出；兆瓦电池按快慢充电量比例折合寿命"
+what  = """[demand_routes] 改键（driver_wage_rmb_month、truck_scrap_years／km，删 rest_absorb_share）；demand_routes.py 途中补能与重合算法；caliber_docs 算例与敏感性；车队总账第〇之二节第 1、2、3、6、7 小节。"""
+why   = """研究者五条质疑：工资差一倍不合常识；车辆年数依据；重合比例应是算出的、1.77 次含义；电池寿命信源是重卡的；兆瓦为何没有任何优势。"""
+watch = """主链读数不应动。"""
+expect = "主链读数不变（覆盖 1.14／1.35／1.69）；中途换电领先明显收窄；build、tree、run 全绿。"

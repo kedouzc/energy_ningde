@@ -2298,5 +2298,265 @@
     "key": "capacity_investment.half_utilization",
     "value": 0.5,
     "type": "float"
+  },
+  {
+    "key": "supply_routes.transformer_rmb_per_kva",
+    "value": 200.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.cabinet_wan_per_unit",
+    "value": 10.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.external_line_wan",
+    "value": 100.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.cable_rmb_per_kw",
+    "value": 100.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.civil_rmb_per_m2",
+    "value": 100.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.land_rent_rmb_m2_month",
+    "value": 15.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.queue_m2_per_truck",
+    "value": 100.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.queue_service_level",
+    "value": 0.95,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.insurance_rate",
+    "value": 0.002,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.equipment_life_years",
+    "value": 8.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.infra_life_years",
+    "value": 20.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.charge_power_factor",
+    "value": 0.85,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.charge_service_cv",
+    "value": 0.5,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.charge_operating_hours",
+    "value": 24.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.conventional.label",
+    "value": "常规快充",
+    "type": "str"
+  },
+  {
+    "key": "supply_routes.conventional.pile_kw",
+    "value": 320.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.conventional.piles",
+    "value": 8,
+    "type": "int"
+  },
+  {
+    "key": "supply_routes.conventional.equipment_wan",
+    "value": 52.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.conventional.kva",
+    "value": 2500.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.conventional.transformer_units",
+    "value": 1,
+    "type": "int"
+  },
+  {
+    "key": "supply_routes.conventional.m2_per_bay",
+    "value": 110.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.conventional.staff_wan_year",
+    "value": 11.3,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.conventional.om_rate",
+    "value": 0.035,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.conventional.session_minutes",
+    "value": 75.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.highpower.label",
+    "value": "大功率充电",
+    "type": "str"
+  },
+  {
+    "key": "supply_routes.highpower.pile_kw",
+    "value": 720.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.highpower.piles",
+    "value": 3,
+    "type": "int"
+  },
+  {
+    "key": "supply_routes.highpower.equipment_wan",
+    "value": 150.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.highpower.kva",
+    "value": 2500.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.highpower.transformer_units",
+    "value": 1,
+    "type": "int"
+  },
+  {
+    "key": "supply_routes.highpower.m2_per_bay",
+    "value": 300.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.highpower.staff_wan_year",
+    "value": 11.3,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.highpower.om_rate",
+    "value": 0.035,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.highpower.session_minutes",
+    "value": 45.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.megawatt.label",
+    "value": "兆瓦超充",
+    "type": "str"
+  },
+  {
+    "key": "supply_routes.megawatt.pile_kw",
+    "value": 1000.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.megawatt.piles",
+    "value": 2,
+    "type": "int"
+  },
+  {
+    "key": "supply_routes.megawatt.equipment_wan",
+    "value": 240.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.megawatt.kva",
+    "value": 2500.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.megawatt.transformer_units",
+    "value": 1,
+    "type": "int"
+  },
+  {
+    "key": "supply_routes.megawatt.m2_per_bay",
+    "value": 490.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.megawatt.staff_wan_year",
+    "value": 11.3,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.megawatt.om_rate",
+    "value": 0.035,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.megawatt.session_minutes",
+    "value": 17.5,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.swap.label",
+    "value": "换电（底盘式标准站）",
+    "type": "str"
+  },
+  {
+    "key": "supply_routes.swap.kva",
+    "value": 4500.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.swap.transformer_units",
+    "value": 2,
+    "type": "int"
+  },
+  {
+    "key": "supply_routes.swap.equipment_wan",
+    "value": 250.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.swap.equipment_m2",
+    "value": 412.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.swap.staff_wan_year",
+    "value": 40.2,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.swap.om_rate",
+    "value": 0.05,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.swap.blocks_per_swap",
+    "value": 3,
+    "type": "int"
   }
 ]

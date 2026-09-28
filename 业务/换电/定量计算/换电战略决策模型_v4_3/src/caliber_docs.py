@@ -626,6 +626,73 @@ def queue_values(config: dict) -> dict[str, str]:
     return V
 
 
+def supply_route_values(config: dict) -> dict[str, str]:
+    """A3：补能四条路线的供给成本表（src/supply_routes.py）。"""
+    import copy
+    import supply_routes as SR
+    V: dict[str, str] = {}
+    sm = SR.summary(config)
+    st, op = sm["stations"], sm["optimum"]
+    ks = SR.ROUTES
+    head = "| 项（万元） | " + " | ".join(st[k]["label"] for k in ks) + " |"
+    rows = [head, "|---" * (len(ks) + 1) + "|"]
+    def row(name, fn):
+        rows.append(f"| {name} | " + " | ".join(fn(st[k]) for k in ks) + " |")
+    row("接入容量（kVA）", lambda d: _f(d["kva"]))
+    row("功率（kW；换电取接入容量）", lambda d: _f(d["power_kw"]))
+    row("① 设备", lambda d: _f(d["equipment_wan"]))
+    row("② 站内电池（价值，归电池银行）", lambda d: _f(d["battery_value_wan"]) if d["battery_value_wan"] else "无")
+    row("③ 箱变与柜", lambda d: _f(d["transformer_wan"]))
+    row("④ 外线接入", lambda d: _f(d["external_wan"]))
+    row("⑤ 站内电缆", lambda d: _f(d["cable_wan"]))
+    row("⑥ 土建与硬化（不含排队区）", lambda d: _f(d["civil_wan"], 1))
+    row("站投资合计（不含电池）", lambda d: "**" + _f(d["capex_wan"]) + "**")
+    row("每千瓦投资（元/kW）", lambda d: _f(d["capex_per_kw"]))
+    row("⑦ 占地（㎡，不含排队区）", lambda d: _f(d["area_m2"]))
+    row("年：资本回收", lambda d: _f(d["capital_wan"], 1))
+    row("年：⑧ 场地租金", lambda d: _f(d["rent_wan"], 1))
+    row("年：⑨ 人员", lambda d: _f(d["staff_wan"], 1))
+    row("年：⑩ 运维与保险", lambda d: _f(d["om_wan"] + d["insurance_wan"], 1))
+    row("年：站内电池持有（电池银行保本价）", lambda d: _f(d["battery_hold_wan"], 1) if d["battery_hold_wan"] else "无")
+    row("年固定成本合计", lambda d: "**" + _f(d["fixed_wan"], 1) + "**")
+    V["表:供给_单站"] = "\n".join(rows)
+    orow = ["| 路线 | 规划最优利用率（时间） | 日服务车次 | 电量利用率 | 平均排队（分钟） | 95% 排队车数 | 每度电站成本（元） | 每度电排队时间成本（元） | 合计（元/度） |",
+            "|---|---|---|---|---|---|---|---|---|"]
+    for k in ks:
+        o = op[k]
+        orow.append(f"| {st[k]['label']} | {o['rho']:.2f} | {o['sessions_day']:.0f} | {_pct(o['energy_util'], 0)} | {o['wait_min']:.0f} | {o['queue_trucks']} | "
+                    f"{o['station_cost']:.3f} | {o['wait_cost']:.3f} | **{o['total']:.3f}** |")
+    V["表:供给_规划最优"] = "\n".join(orow)
+    crow = ["| 时间利用率 | " + " | ".join(st[k]["label"] for k in ks) + " |", "|---" * (len(ks) + 1) + "|"]
+    for u in (0.1, 0.2, 0.3, 0.5, 0.7):
+        cells = []
+        for k in ks:
+            r_ = SR.cost_at(config, k, u, sm["w"])
+            cells.append(f"{r_['station_cost']:.3f}（电量 {_pct(r_['energy_util'], 0)}）" if r_["feasible"] else "超出电量上限")
+        crow.append(f"| {u:.0%} | " + " | ".join(cells) + " |")
+    V["表:供给_成本曲线"] = "\n".join(crow)
+    c = sm["swap_constraints"]
+    V["换电工位上限"] = _f(c["lane"])
+    V["换电电量上限"] = _f(c["energy"])
+    V["换电电量上限24h"] = _f(c["energy_24h"])
+    V["换电每次净补电量"] = _f(c["e_swap"])
+    V["换电绑定约束"] = c["binding"]
+    V["换电规划最优车次"] = _f(op["swap"]["sessions_day"])
+    V["临时时间价值"] = _f(sm["w"])
+    # 兆瓦站规模敏感：同样的终端单价、每车位占地与人员，站越大、每站固定项摊得越薄
+    mrow = ["| 兆瓦站规模 | 接入（kVA） | 站投资（万元） | 每千瓦投资（元/kW） | 时间利用率 20% 时每度电站成本（元） | 规划最优时每度电站成本（元） |", "|---|---|---|---|---|---|"]
+    for piles, kva, units in ((2, 2500, 1), (4, 5000, 2), (6, 7500, 3)):
+        cc = copy.deepcopy(config)
+        m = cc["supply_routes"]["megawatt"]
+        m["equipment_wan"] = float(m["equipment_wan"]) / int(m["piles"]) * piles
+        m["piles"], m["kva"], m["transformer_units"] = piles, float(kva), units
+        s_ = SR.station(cc, "megawatt")
+        o_ = SR.planner_optimum(cc, "megawatt", sm["w"])
+        mrow.append(f"| {piles} × 1 MW | {kva:,} | {s_['capex_wan']:.0f} | {s_['capex_per_kw']:,.0f} | {SR.cost_at(cc, 'megawatt', 0.2, sm['w'])['station_cost']:.3f} | {o_['station_cost']:.3f} |")
+    V["表:供给_兆瓦规模"] = "\n".join(mrow)
+    return V
+
+
 def values(config: dict) -> dict[str, str]:
     """口径文档可用的现算值（表与算式中间量）。注入由 src/inject.py 统一做（与叙述同一个注入器）。"""
     V = ledger_values(config)
@@ -633,4 +700,5 @@ def values(config: dict) -> dict[str, str]:
     V.update(share_values(config))
     V.update(queue_values(config))
     V.update(model_values(config))
+    V.update(supply_route_values(config))
     return V

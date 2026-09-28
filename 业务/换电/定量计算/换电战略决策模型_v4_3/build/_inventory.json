@@ -114,6 +114,7 @@
 "src/scale.py",
 "src/schemas.py",
 "src/state_lint.py",
+"src/supply_routes.py",
 "src/tco.py",
 "src/tracker.py",
 "src/tree.py",

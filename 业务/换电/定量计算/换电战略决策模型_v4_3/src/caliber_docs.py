@@ -720,30 +720,48 @@ def demand_route_values(config: dict) -> dict[str, str]:
         s_ = DR.summary(cc)
         return [s_[k]["rows"]["megawatt"]["total_wan"] - s_[k]["rows"]["swap"]["total_wan"] for k in DR.SCENE_KEYS]
 
-    def mod(*fs):
+    import equilibrium as E
+    scen = E.scenario_configs(config)
+
+    def one(paths, tier):
         cc = copy.deepcopy(config)
-        for f in fs:
-            f(cc)
+        for path in paths:
+            parts = path.split(".")
+            src, dst = scen[tier], cc
+            for p_ in parts[:-1]:
+                src, dst = src[p_], dst[p_]
+            dst[parts[-1]] = src[parts[-1]]
         return gap(cc)
 
-    def wage_up(x): x["demand_routes"]["driver_wage_rmb_month"] = float(x["demand_routes"]["driver_wage_rmb_month"]) * 1.5
-    def prem0(x):
-        x["demand_routes"]["mw_battery_premium"] = 0.0; x["demand_routes"]["swap_pack_premium"] = 0.0
-    def life_pess(x):
-        t = x["drivers"]["battery_life"]["悲观"]
-        x["battery_life_model"]["critical_cycles"] = float(t["critical_cycles"]); x["battery_life_model"]["pool_life_multiplier"] = float(t["pool_life_multiplier"])
-    def mw6(x):
-        m = x["supply_routes"]["megawatt"]; m["piles"], m["equipment_wan"], m["kva"], m["transformer_units"] = 6, 720.0, 7500.0, 3
-    def swap_bad(x):
-        x["supply_routes"]["swap"]["fte"] = 4.0; x["supply_routes"]["swap"]["equipment_wan"] = 300.0
-        x["demand_routes"]["swap_chassis_premium_wan"] = 3.0
-    rows = [("基准", gap(config)), ("司机工资高 50%（时间更值钱，对换电有利）", mod(wage_up)), ("电池一律同价（高倍率、换电专用都不加溢价）", mod(prem0)),
-            ("电池寿命取悲观档（快充只少活 23%，欣旺达同场一对数）", mod(life_pess)), ("兆瓦站做到 6 × 1 MW", mod(mw6)),
-            ("换电站 4 人、设备 300 万、换电底盘贵 3 万", mod(swap_bad)),
-            ("以上四项对换电不利的同时成立（不含第二行）", mod(prem0, life_pess, mw6, swap_bad))]
-    g = ["| 情形 | 短途 | 中途 | 长途 |", "|---|---|---|---|"]
-    for nm, v in rows:
-        g.append(f"| {nm} | " + " | ".join(f"{x:+.2f}" for x in v) + " |")
+    def pool(level):
+        cc = copy.deepcopy(config)
+        m = cc["battery_life_model"]
+        m["critical_cycles"] = level * float(m["critical_cycles"]) / (float(m["critical_cycles"]) * float(m["pool_life_multiplier"]))
+        return gap(cc)
+
+    def wage(f):
+        cc = copy.deepcopy(config)
+        cc["demand_routes"]["driver_wage_rmb_month"] = float(cc["demand_routes"]["driver_wage_rmb_month"]) * f
+        return gap(cc)
+
+    base = gap(config)
+    factors = [
+        ("电池寿命：快充比慢充少活几成（悲观 23%／乐观 60%；中性 40%）", ["battery_life_model.critical_cycles", "battery_life_model.pool_life_multiplier"]),
+        ("兆瓦站规格（悲观 6 × 1 MW／乐观 2 × 1 MW；中性 4）", ["supply_routes.megawatt.piles", "supply_routes.megawatt.equipment_wan", "supply_routes.megawatt.kva", "supply_routes.megawatt.transformer_units"]),
+        ("换电站设备与人员（悲观 300 万、4 人／乐观 200 万、1 人）", ["supply_routes.swap.equipment_wan", "supply_routes.swap.fte"]),
+        ("车端溢价（悲观：高倍率不溢价、换电底盘贵 3 万／乐观：高倍率贵 20%）", ["demand_routes.mw_battery_premium", "demand_routes.swap_chassis_premium_wan"]),
+    ]
+    g = ["| 改了什么（其余保持中性） | 短途 | 中途 | 长途 |", "|---|---|---|---|",
+         "| **基准（中性）** | " + " | ".join(f"**{x:+.2f}**" for x in base) + " |",
+         "| 三档整体：悲观（下面各项同时取悲观） | " + " | ".join(f"{x:+.2f}" for x in gap(scen["悲观"])) + " |",
+         "| 三档整体：乐观 | " + " | ".join(f"{x:+.2f}" for x in gap(scen["乐观"])) + " |"]
+    for nm, paths in factors:
+        lo, hi = one(paths, "悲观"), one(paths, "乐观")
+        g.append(f"| {nm} | " + " | ".join(f"{a_:+.2f} ～ {b_:+.2f}" for a_, b_ in zip(lo, hi)) + " |")
+    p4, p6 = pool(4000.0), pool(6000.0)
+    g.append("| 慢充（换电池里）寿命水平 4,000 ～ 6,000 次（快充按同一比例跟着变；中性 5,000；**不在情景轴上**） | " + " | ".join(f"{a_:+.2f} ～ {b_:+.2f}" for a_, b_ in zip(p4, p6)) + " |")
+    w1, w2 = wage(0.8), wage(1.5)
+    g.append("| 司机工资 0.8 ～ 1.5 倍（不在情景轴上） | " + " | ".join(f"{a_:+.2f} ～ {b_:+.2f}" for a_, b_ in zip(w1, w2)) + " |")
     V["表:需求_敏感"] = "\n".join(g)
     return V
 
@@ -786,7 +804,7 @@ def demand_example_values(config: dict) -> dict[str, str]:
     ]
     lines += [
         f"第 7 步　电池能用几年：一年循环 {daily:.0f} × {days:.0f} ÷ {kwh:.0f} ＝ {cyc:.0f} 次。兆瓦车快充电量占比 ＝ 途中 {mw['enroute_kwh']:.0f} ÷ 全天 {daily:.0f} ＝ {f:.0%}，其余夜里慢充；"
-        f"折合寿命 ＝ 1 ÷（{f:.2f} ÷ {crit:.0f} ＋ {1-f:.2f} ÷ {crit*mult:.0f}）＝ {1/(f/crit+(1-f)/(crit*mult)):.0f} 次 → {1/(f/crit+(1-f)/(crit*mult)):.0f} ÷ {cyc:.0f} ＝ {mw['battery_life']:.1f} 年；换电电池全在站里慢充 {crit*mult:.0f} ÷ {cyc:.0f} ＝ {crit*mult/cyc:.1f} 年，封顶 10 年",
+        f"折合寿命 ＝ 1 ÷（{f:.2f} ÷ {crit:.0f} ＋ {1-f:.2f} ÷ {crit*mult:.0f}）＝ {1/(f/crit+(1-f)/(crit*mult)):.0f} 次 → {1/(f/crit+(1-f)/(crit*mult)):.0f} ÷ {cyc:.0f} ＝ {mw['battery_life']:.1f} 年；换电电池全在站里慢充 {crit*mult:.0f} ÷ {cyc:.0f} ＝ {crit*mult/cyc:.1f} 年，日历上限 {float(config['battery_life_model'].get('heavy_calendar_cap_years') or 10):.0f} 年 → {sw['battery_life']:.1f} 年",
     ]
     for tag, d, kind in (("兆瓦", mw, "megawatt"), ("换电", sw, "swap")):
         price = DR.pack_price(config, kind)
@@ -841,14 +859,16 @@ def supply_example_values(config: dict) -> dict[str, str]:
 
 
 def equilibrium_values(config: dict) -> dict[str, str]:
-    """A5：均衡层读数（src/equilibrium.py），三档 × 两种市场结构读法。"""
+    """A5：均衡层读数（src/equilibrium.py）；A4 三档表；最优利用率的求解过程表。"""
+    import math
     import demand_routes as DR
     import equilibrium as E
+    import supply_routes as SR
     V: dict[str, str] = {}
     names = {"conventional": "常规快充", "megawatt": "兆瓦超充", "swap": "换电", "depot": "车队自备轮换"}
     scen = E.scenario_configs(config)
-    # A4 三档：资源账（各自规划最优）下兆瓦比换电多花多少
-    t = ["| 情景 | 电池寿命（快充／慢充，次） | 兆瓦站规格 | 换电站设备与人员 | 短途 | 中途 | 长途 |", "|---|---|---|---|---|---|---|"]
+    # A4 三档
+    t = ["| 情景 | 电池寿命（快充／慢充，次） | 兆瓦站规格 | 换电站设备与人员 | 短途 | 干线 400 公里 | 干线 650 公里 |", "|---|---|---|---|---|---|---|"]
     for tier, cc in scen.items():
         sm = DR.summary(cc)
         g = [sm[k]["rows"]["megawatt"]["total_wan"] - sm[k]["rows"]["swap"]["total_wan"] for k in DR.SCENE_KEYS]
@@ -857,34 +877,52 @@ def equilibrium_values(config: dict) -> dict[str, str]:
                  f"{int(cc['supply_routes']['megawatt']['piles'])} × 1 MW | {float(cc['supply_routes']['swap']['equipment_wan']):.0f} 万、{float(cc['supply_routes']['swap']['fte']):.0f} 人 | "
                  + " | ".join(f"{x:+.2f}" for x in g) + " |")
     V["表:需求_三档"] = "\n".join(t)
-    r = ["| 情景 | 对手成本的读法 | 充电实测利用率 | 短途：换电赢的比例／利润（万元/车·年）／每度电 | 中途 | 长途 |", "|---|---|---|---|---|---|"]
+    base = DR.summary(config)
+    for k, nm in zip(DR.SCENE_KEYS, ("短", "中", "长")):
+        V[f"A4差额_{nm}"] = f"{base[k]['rows']['megawatt']['total_wan'] - base[k]['rows']['swap']['total_wan']:.1f}"
+    # 均衡结果
+    r = ["| 情景 | 口径 | 封闭短途：换电赢的比例／利润（万元/车·年）／每度电 | 干线：换电赢的比例／利润／每度电 |", "|---|---|---|---|"]
     for tier, cc in scen.items():
         for b in E.BASES:
-            res = [E.scene_equilibrium(cc, i, b) for i in range(3)]
-            u = f"{float(cc['charging_station']['utilization_heavy_observed']):.0%}" if b == "fragmented" else "—（按最优）"
+            res = [E.class_equilibrium(cc, k, b) for k in ("short", "trunk")]
             cells = [f"{x['share']:.0%}／{x['margin_wan']:.2f}／{x['margin_kwh']:.3f} 元" for x in res]
-            r.append(f"| {tier} | {E.BASIS_CN[b]} | {u} | " + " | ".join(cells) + " |")
+            r.append(f"| {tier} | {E.BASIS_CN[b]} | " + " | ".join(cells) + " |")
     V["表:均衡_结果"] = "\n".join(r)
-    ex = ["| 读法 | 日里程（公里） | 换电（万元/年） | 最省的对手 | 对手（万元/年） | 换电利润（万元/年） | 每度电（元） |", "|---|---|---|---|---|---|---|"]
-    for b in E.BASES:
-        res = E.scene_equilibrium(config, 1, b)
-        for p_ in res["points"]:
-            opp = p_["second"] if p_["winner"] == "swap" else p_["winner"]
-            opp_total = p_["second_total"] if p_["winner"] == "swap" else p_["rows"][p_["winner"]]["total_wan"]
-            ex.append(f"| {E.BASIS_CN[b]} | {p_['km']:.0f} | {p_['swap']:.2f} | {names[opp]} | {opp_total:.2f} | "
-                      f"{p_['margin_wan']:.2f} | {p_['margin_kwh']:.3f} |" if p_["winner"] == "swap" else
-                      f"| {E.BASIS_CN[b]} | {p_['km']:.0f} | {p_['swap']:.2f} | {names[opp]}（它更省） | {opp_total:.2f} | 不赢 | — |")
-    V["算例:均衡_中途"] = "\n".join(ex)
-    u = float(config["charging_station"]["utilization_heavy_observed"]); pf = float(config["supply_routes"]["charge_power_factor"])
-    import supply_routes as SR
+    tr = E.class_equilibrium(config, "trunk")
+    sh = E.class_equilibrium(config, "short")
+    V["均衡_干线份额"] = f"{tr['share']:.0%}"
+    V["均衡_干线每度电"] = f"{tr['margin_kwh']:.3f}"
+    V["均衡_短途份额"] = f"{sh['share']:.0%}"
+    V["均衡_短途每度电"] = f"{sh['margin_kwh']:.3f}"
+    ex = ["| 日里程（公里） | 代表的车占干线比例 | 最省的路线 | 它的全年资源账（万元） | 第二名 | 第二名（万元） | 换电利润（万元/年） | 每度电（元） |", "|---|---|---|---|---|---|---|---|"]
+    for p_ in tr["points"]:
+        win = p_["winner"] == "swap"
+        ex.append(f"| {p_['km']:.0f} | {p_['weight']:.1%} | {'**换电**' if win else names[p_['winner']]} | {p_['best_total']:.2f} | {names[p_['second']]} | {p_['second_total']:.2f} | "
+                  + (f"{p_['margin_wan']:.2f} | {p_['margin_kwh']:.3f} |" if win else f"不赢（换电 {p_['swap']:.2f}） | — |"))
+    V["算例:均衡_干线"] = "\n".join(ex)
+    # 最优利用率的求解过程
+    w = SR.provisional_wait_cost(config)
+    V["排队时间价值"] = f"{w:.1f}"
+    opt = ["| 路线 | 时间利用率 | 每度电站成本（元） | 每度电排队成本（元） | 合计（元） | 95% 排队车数 |", "|---|---|---|---|---|---|"]
     sm = SR.summary(config)
-    fr = E.supply_for(config, "fragmented")
-    V["算例:均衡_站成本"] = "\n".join([
-        f"可竞争：各路线按规划最优利用率 → 每度电站成本 常规 {sm['optimum']['conventional']['station_cost']:.3f}、兆瓦 {sm['optimum']['megawatt']['station_cost']:.3f}、换电 {sm['optimum']['swap']['station_cost']:.3f} 元",
-        f"分散自由进入：充电站电量利用率取实测 {u:.0%} → 时间利用率 ＝ {u:.2f} ÷ {pf:.2f} ＝ {u/pf:.2f} → 每度电站成本 常规 {fr['optimum']['conventional']['station_cost']:.3f}、兆瓦 {fr['optimum']['megawatt']['station_cost']:.3f} 元（排队近乎为零）；换电不变 {fr['optimum']['swap']['station_cost']:.3f} 元",
-    ])
+    for k in ("conventional", "megawatt", "swap"):
+        best = sm["optimum"][k]["rho"]
+        for rr in sorted(set([0.5, 0.6, 0.7, 0.8, 0.9, best])):
+            x = SR.cost_at(config, k, rr, w)
+            if not x["feasible"]:
+                opt.append(f"| {SR.station(config, k)['label']} | {rr:.2f} | 超出电量上限 | — | — | — |")
+                continue
+            tag = "**" if rr == best else ""
+            opt.append(f"| {SR.station(config, k)['label']} | {tag}{rr:.2f}{'（最优）' if rr == best else ''}{tag} | {x['station_cost']:.4f} | {x['wait_cost']:.4f} | {tag}{x['total']:.4f}{tag} | {x['queue_trucks']} |")
+    V["表:最优利用率_扫描"] = "\n".join(opt)
+    st = SR.station(config, "swap"); c_ = SR.swap_constraints(config)
+    C = st["fixed_wan"] * 1e4 / (c_["hours"] * float(config["swap_business"]["operating_days"]))
+    rho_cf = 1 / (1 + math.sqrt(w / (2 * C)))
+    V["算例:换电闭式解"] = (f"工位每小时全成本 C ＝ 年固定成本 {st['fixed_wan']:.1f} 万 ÷（{c_['hours']:.0f} 小时 × {float(config['swap_business']['operating_days']):.0f} 天）＝ {C:.0f} 元/时；"
+                         f"排队时间价值 w ＝ {w:.1f} 元/时\n"
+                         f"ρ* ＝ 1 ÷（1 ＋ √(w ÷ 2C)）＝ 1 ÷（1 ＋ √({w:.1f} ÷ {2*C:.0f})）＝ {rho_cf:.3f}\n"
+                         f"逐点扫描（含排队区租金与电损）得 {sm['optimum']['swap']['rho']:.2f}；两者差在排队区按整车位加租金，使曲线在少数点上有台阶")
     return V
-
 
 def values(config: dict) -> dict[str, str]:
     """口径文档可用的现算值（表与算式中间量）。注入由 src/inject.py 统一做（与叙述同一个注入器）。"""

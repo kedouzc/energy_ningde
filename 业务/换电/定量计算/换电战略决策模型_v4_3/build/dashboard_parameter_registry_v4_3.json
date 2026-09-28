@@ -1523,6 +1523,11 @@
     "type": "float"
   },
   {
+    "key": "battery_life_model.heavy_calendar_cap_years",
+    "value": 12.0,
+    "type": "float"
+  },
+  {
     "key": "battery_life_model.legacy_v32_vehicle_life_years.heavy",
     "value": 5.7,
     "type": "float"

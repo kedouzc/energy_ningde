@@ -158,3 +158,11 @@ what  = """[drivers] 新增 mw_station_scale、swap_station_ops、route_vehicle_
 why   = """全景计划 A5；研究者问程序能否处理悲观乐观两档。"""
 watch = """主链读数不应动（新参数主链不读）。"""
 expect = "主链读数不变（覆盖 1.14／1.35／1.69）；build、tree、run 全绿。"
+
+[[round]]
+date  = "2026-09-28p"
+focus = "研究者确认三项：重卡日历上限 12 年；终局各路线按最优利用率；中途与长途合并为干线。最优利用率求解过程写清；排队时间价值改用补运力成本加权"
+what  = """battery_life_model.heavy_calendar_cap_years 12（只 demand_routes 读）；supply_routes.provisional_wait_cost 改为各类车补运力成本按电量加权；equilibrium 改终局口径、干线合并；caliber_docs 最优利用率扫描表与换电闭式解；供给成本第六节、均衡定价全文、车队总账第〇之二节更新。"""
+why   = """研究者确认 28o 三项；问最优利用率怎么算（M/D/1 求导、M/M/c 多点）。"""
+watch = """主链读数不应动（主链仍读 calendar_cap_years 10，接入时一起切换）。"""
+expect = "主链读数不变（覆盖 1.14／1.35／1.69）；中性终局干线换电赢约七成、每度电约 0.03 元；build、tree、run 全绿。"

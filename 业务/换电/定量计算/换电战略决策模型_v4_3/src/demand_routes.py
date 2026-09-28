@@ -57,7 +57,9 @@ def pack_price(config: dict, kind: str) -> float:
 
 def _battery_year(config: dict, kwh: float, life_cycles: float, cycles_year: float, price: float) -> tuple[float, float]:
     from derived import retirement_recovery_ratio
-    life = min(life_cycles / cycles_year if cycles_year else 99.0, float(config["battery_life_model"]["calendar_cap_years"]))
+    blm = config["battery_life_model"]
+    cap = float(blm.get("heavy_calendar_cap_years") or blm["calendar_cap_years"])
+    life = min(life_cycles / cycles_year if cycles_year else 99.0, cap)
     r = float(config["finance"]["wacc"])
     cap = kwh * price
     salvage = cap * retirement_recovery_ratio(config) / (1.0 + r) ** life

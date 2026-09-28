@@ -1566,6 +1566,9 @@ critical_cycles = 3000.0
 pool_life_multiplier = 1.6666666666666667
 # 日历寿命封顶 10 年（低频私家车取 min 后=10 年；营运车由循环主导不受此限）
 calendar_cap_years = 10.0
+# 【2026-09-28p】重卡电池（车上与换电池里）日历上限：宁德官方 75# 换电块"12 年 6,000 次"（src.fujian_fuqing_2025）；
+# 上面 10 年来自家用 LFP 口径（内部底稿《超换一体》§2.1），只适用私家车。目前只有补能路线比较（demand_routes）读本值，主链接入时一起切换。
+heavy_calendar_cap_years = 12.0
 # v3.2 遗留硬编码寿命：不参与基准测算，仅供新旧口径对比重跑（两套不自洽的诚实记录）
 legacy_v32_vehicle_life_years = { heavy = 5.7, city = 3.8, taxi = 3.8, ridehail = 3.8, robotaxi = 3.8, private = 10.0 }
 legacy_v32_station_life_years = { heavy = 5.7, choco = 3.8 }

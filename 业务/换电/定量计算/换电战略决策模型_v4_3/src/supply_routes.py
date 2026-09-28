@@ -59,18 +59,14 @@ def md1_queue_at_level(rho: float, level: float, n_max: int = 60) -> int:
 
 
 def provisional_wait_cost(config: dict) -> float:
-    """现行模型的"每车小时时间成本"（元/时），与 caliber_docs.queue_values 同算法；A4 用补运力成本替换。"""
-    from tco import build_scene_economics
-    sb, tco = config["swap_business"], config["tco_jpm"]
-    days, usable = float(sb["operating_days"]), float(sb["usable_energy_factor"])
-    h = build_scene_economics(config)
+    """排队时间价值（元/时）：各类车的补运力成本（demand_routes.time_value），按各类车的补能电量加权。
+    同一座站服务各类车，排一分钟队的代价按来站的电量结构平均。"""
+    import demand_routes as DR
     num = den = 0.0
-    for f, sc in zip(("short", "mid", "long"), config["vehicles"]["heavy"]["scenes"]):
-        stop = getattr(h, f).extra_stop_hours_day
-        freq = float(sc["daily_km"]) * float(sc["energy_consumption_kwh_km"]) / (float(sc["onboard_battery_kwh"]) * usable)
-        wgt = float(sc["weight"]) * freq
-        num += wgt * float(tco["annual_gain_swap"]) / (stop * days)
-        den += wgt
+    for i, sc in enumerate(config["vehicles"]["heavy"]["scenes"]):
+        e = float(sc["weight"]) * float(sc["daily_km"]) * float(sc["energy_consumption_kwh_km"])
+        num += e * DR.time_value(config, i)["w"]
+        den += e
     return num / den
 
 

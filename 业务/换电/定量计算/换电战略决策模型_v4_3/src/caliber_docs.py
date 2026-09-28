@@ -651,6 +651,7 @@ def supply_route_values(config: dict) -> dict[str, str]:
     row("⑦ 占地（㎡，不含排队区）", lambda d: _f(d["area_m2"]))
     row("年：资本回收", lambda d: _f(d["capital_wan"], 1))
     row("年：⑧ 场地租金", lambda d: _f(d["rent_wan"], 1))
+    row("⑨ 人员（人当量）", lambda d: _f(d["fte"]))
     row("年：⑨ 人员", lambda d: _f(d["staff_wan"], 1))
     row("年：⑩ 运维与保险", lambda d: _f(d["om_wan"] + d["insurance_wan"], 1))
     row("年：站内电池持有（电池银行保本价）", lambda d: _f(d["battery_hold_wan"], 1) if d["battery_hold_wan"] else "无")
@@ -680,8 +681,8 @@ def supply_route_values(config: dict) -> dict[str, str]:
     V["换电规划最优车次"] = _f(op["swap"]["sessions_day"])
     V["临时时间价值"] = _f(sm["w"])
     # 兆瓦站规模敏感：同样的终端单价、每车位占地与人员，站越大、每站固定项摊得越薄
-    mrow = ["| 兆瓦站规模 | 接入（kVA） | 站投资（万元） | 每千瓦投资（元/kW） | 时间利用率 20% 时每度电站成本（元） | 规划最优时每度电站成本（元） |", "|---|---|---|---|---|---|"]
-    for piles, kva, units in ((2, 2500, 1), (4, 5000, 2), (6, 7500, 3)):
+    mrow = ["| 兆瓦站规格（中性 4 × 1 MW） | 接入（kVA） | 站投资（万元） | 每千瓦投资（元/kW） | 时间利用率 20% 时每度电站成本（元） | 规划最优时每度电站成本（元） |", "|---|---|---|---|---|---|"]
+    for piles, kva, units in ((2, 2500, 1), (4, 5000, 2), (6, 7500, 3)):  # 对换电有利／中性／对换电不利
         cc = copy.deepcopy(config)
         m = cc["supply_routes"]["megawatt"]
         m["equipment_wan"] = float(m["equipment_wan"]) / int(m["piles"]) * piles

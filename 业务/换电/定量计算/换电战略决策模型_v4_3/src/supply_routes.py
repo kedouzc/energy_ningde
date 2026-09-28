@@ -93,7 +93,7 @@ def station(config: dict, key: str) -> dict:
         st = config["stations"]["qiji75_trunk"]
         power_kw = kva                                  # 换电站的"千瓦"取接入容量
         cable = power_kw * float(S["cable_rmb_per_kw"]) / 1e4
-        area = float(R["equipment_m2"])
+        area = float(S["swap_building_m2"]) + float(S["swap_corridor_width_m"]) * (2 * float(S["swap_approach_m"]) + 2 * float(S["end_aisle_m"]))
         blocks, bkwh = float(st["inventory_blocks"]), float(st["block_kwh"])
         import entities
         from derived import battery_price_rmb_kwh
@@ -105,7 +105,7 @@ def station(config: dict, key: str) -> dict:
     else:
         power_kw = float(R["pile_kw"]) * int(R["piles"])
         cable = power_kw * float(S["cable_rmb_per_kw"]) / 1e4
-        area = float(R["m2_per_bay"]) * int(R["piles"])
+        area = int(R["piles"]) * float(S["bay_width_m"]) * (float(S["bay_length_m"]) + 2 * float(S["end_aisle_m"])) + float(S["charge_equipment_pad_m2"])
         bat_value = bat_hold = 0.0
         out.update(power_kw=power_kw, bays=int(R["piles"]), battery_kwh=0.0, battery_value_wan=0.0, battery_hold_wan=0.0)
     civil = area * float(S["civil_rmb_per_m2"]) / 1e4
@@ -116,10 +116,11 @@ def station(config: dict, key: str) -> dict:
     capital = equipment * _crf(r, n_eq) + (transformer + external + cable + civil) * _crf(r, n_in)
     rent = area * float(S["land_rent_rmb_m2_month"]) * 12.0 / 1e4
     insurance = float(S["insurance_rate"]) * (capex + bat_value)
-    fixed = capital + rent + float(R["staff_wan_year"]) + om + insurance + bat_hold
+    staff = float(R["fte"]) * float(S["attendant_cost_wan_per_fte"])
+    fixed = capital + rent + staff + om + insurance + bat_hold
     out.update(equipment_wan=equipment, transformer_wan=transformer, external_wan=external, cable_wan=cable,
                civil_wan=civil, area_m2=area, capex_wan=capex, capex_per_kw=capex * 1e4 / power_kw,
-               capital_wan=capital, rent_wan=rent, staff_wan=float(R["staff_wan_year"]), om_wan=om,
+               capital_wan=capital, rent_wan=rent, staff_wan=staff, fte=float(R["fte"]), om_wan=om,
                insurance_wan=insurance, fixed_wan=fixed)
     return out
 

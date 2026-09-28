@@ -2335,6 +2335,51 @@
     "type": "float"
   },
   {
+    "key": "supply_routes.bay_length_m",
+    "value": 20.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.bay_width_m",
+    "value": 5.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.end_aisle_m",
+    "value": 12.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.charge_equipment_pad_m2",
+    "value": 100.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.swap_building_m2",
+    "value": 200.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.swap_corridor_width_m",
+    "value": 8.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.swap_approach_m",
+    "value": 20.0,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.attendant_cost_wan_per_fte",
+    "value": 9.1,
+    "type": "float"
+  },
+  {
+    "key": "supply_routes.fte_workdays_year",
+    "value": 250.0,
+    "type": "float"
+  },
+  {
     "key": "supply_routes.queue_service_level",
     "value": 0.95,
     "type": "float"
@@ -2400,13 +2445,8 @@
     "type": "int"
   },
   {
-    "key": "supply_routes.conventional.m2_per_bay",
-    "value": 110.0,
-    "type": "float"
-  },
-  {
-    "key": "supply_routes.conventional.staff_wan_year",
-    "value": 11.3,
+    "key": "supply_routes.conventional.fte",
+    "value": 1.0,
     "type": "float"
   },
   {
@@ -2450,13 +2490,8 @@
     "type": "int"
   },
   {
-    "key": "supply_routes.highpower.m2_per_bay",
-    "value": 300.0,
-    "type": "float"
-  },
-  {
-    "key": "supply_routes.highpower.staff_wan_year",
-    "value": 11.3,
+    "key": "supply_routes.highpower.fte",
+    "value": 1.0,
     "type": "float"
   },
   {
@@ -2481,32 +2516,27 @@
   },
   {
     "key": "supply_routes.megawatt.piles",
-    "value": 2,
+    "value": 4,
     "type": "int"
   },
   {
     "key": "supply_routes.megawatt.equipment_wan",
-    "value": 240.0,
+    "value": 480.0,
     "type": "float"
   },
   {
     "key": "supply_routes.megawatt.kva",
-    "value": 2500.0,
+    "value": 5000.0,
     "type": "float"
   },
   {
     "key": "supply_routes.megawatt.transformer_units",
-    "value": 1,
+    "value": 2,
     "type": "int"
   },
   {
-    "key": "supply_routes.megawatt.m2_per_bay",
-    "value": 490.0,
-    "type": "float"
-  },
-  {
-    "key": "supply_routes.megawatt.staff_wan_year",
-    "value": 11.3,
+    "key": "supply_routes.megawatt.fte",
+    "value": 1.0,
     "type": "float"
   },
   {
@@ -2545,8 +2575,8 @@
     "type": "float"
   },
   {
-    "key": "supply_routes.swap.staff_wan_year",
-    "value": 40.2,
+    "key": "supply_routes.swap.fte",
+    "value": 3.0,
     "type": "float"
   },
   {

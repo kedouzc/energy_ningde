@@ -9695,6 +9695,45 @@
   "note": "较低（乘用车口径，只作参考）｜用于 补能三路线_供给成本 运维",
   "origin": "src"
  },
+ "src.jgj100_2015": {
+  "label": "住建部《车库建筑设计规范》JGJ 100-2015（铰接车最小转弯半径 10.5–12.5 m；大型与铰接车车位、通道按车型计算）",
+  "v": "https://china-xcsy.com/data/upload/20230310/59caef9dba938cda4b847dc2b8968af0.pdf",
+  "text": "[住建部《车库建筑设计规范》JGJ 100-2015（铰接车最小转弯半径 10.5–12.5 m；大型与铰接车车位、通道按车型计算）](https://china-xcsy.com/data/upload/20230310/59caef9dba938cda4b847dc2b8968af0.pdf)（抓取于 2026-09-28·一手（行业标准，转载 PDF））",
+  "bare": "[住建部《车库建筑设计规范》JGJ 100-2015（铰接车最小转弯半径 10.5–12.5 m；大型与铰接车车位、通道按车型计算）](https://china-xcsy.com/data/upload/20230310/59caef9dba938cda4b847dc2b8968af0.pdf)（抓取于 2026-09-28·一手（行业标准，转载 PDF））",
+  "unit": "",
+  "kind": "src",
+  "watch": 1.0,
+  "from": "https://china-xcsy.com/data/upload/20230310/59caef9dba938cda4b847dc2b8968af0.pdf",
+  "as_of": "2026-09-28",
+  "note": "一手（行业标准，转载 PDF）｜用于 补能三路线_供给成本 占地几何",
+  "origin": "src"
+ },
+ "src.chuxiong_tower_2026": {
+  "label": "新浪 楚雄铁塔南华重卡充电站（2026-05-27：24 小时无人值守＋远程智能运维，3×400 kW）",
+  "v": "https://finance.sina.com.cn/roll/2026-05-27/doc-inhzhtty0940319.shtml",
+  "text": "[新浪 楚雄铁塔南华重卡充电站（2026-05-27：24 小时无人值守＋远程智能运维，3×400 kW）](https://finance.sina.com.cn/roll/2026-05-27/doc-inhzhtty0940319.shtml)（抓取于 2026-09-28·二手（媒体））",
+  "bare": "[新浪 楚雄铁塔南华重卡充电站（2026-05-27：24 小时无人值守＋远程智能运维，3×400 kW）](https://finance.sina.com.cn/roll/2026-05-27/doc-inhzhtty0940319.shtml)（抓取于 2026-09-28·二手（媒体））",
+  "unit": "",
+  "kind": "src",
+  "watch": 1.0,
+  "from": "https://finance.sina.com.cn/roll/2026-05-27/doc-inhzhtty0940319.shtml",
+  "as_of": "2026-09-28",
+  "note": "二手（媒体）｜用于 补能三路线_供给成本 人员",
+  "origin": "src"
+ },
+ "src.broker_swap_2022": {
+  "label": "券商《换电站系列专题（一）》（2022-07-24：重卡换电站 4 人/站、7 万元/人·年；商用车换电站站体 120–240 ㎡）",
+  "v": "https://pdf.dfcfw.com/pdf/H3_AP202207241576497196_1.pdf",
+  "text": "[券商《换电站系列专题（一）》（2022-07-24：重卡换电站 4 人/站、7 万元/人·年；商用车换电站站体 120–240 ㎡）](https://pdf.dfcfw.com/pdf/H3_AP202207241576497196_1.pdf)（抓取于 2026-09-28·二手（券商研报，券商名未核））",
+  "bare": "[券商《换电站系列专题（一）》（2022-07-24：重卡换电站 4 人/站、7 万元/人·年；商用车换电站站体 120–240 ㎡）](https://pdf.dfcfw.com/pdf/H3_AP202207241576497196_1.pdf)（抓取于 2026-09-28·二手（券商研报，券商名未核））",
+  "unit": "",
+  "kind": "src",
+  "watch": 1.0,
+  "from": "https://pdf.dfcfw.com/pdf/H3_AP202207241576497196_1.pdf",
+  "as_of": "2026-09-28",
+  "note": "二手（券商研报，券商名未核）｜用于 补能三路线_供给成本 人员、占地",
+  "origin": "src"
+ },
  "ext.mult_infra_low": {
   "label": "重资产基建运营族·区间下沿",
   "v": 6.7,

@@ -216,8 +216,10 @@ def build_charging_economics(config: dict, scale, capex, pool_ops: dict) -> dict
         station_bat_gwh = float(getattr(ops, "station_battery_gwh", 0.0) or 0.0) if ops else 0.0
         bat_price = battery_price_rmb_kwh(config, config["meta"]["reference_year"])
         bat_wan = station_bat_gwh * 1e6 / stations * bat_price / 1e4 if station_bat_gwh else 0.0
+        # 【2026-09-28】站层投资只含站体（含电力接入与土建）：周转电池归电池银行、不向站收租（src/entities.py），
+        # bat_wan 只作备注——它是电池银行放在站里的钱。与超充站同一定义：站体＋电力接入，不含电池。
         r = _station_economics(
-            capex_wan=body_wan + bat_wan,
+            capex_wan=body_wan,
             annual_kwh=annual, service_fee=swap_fee,
             life_years=float(config.get("finance", {}).get("model_horizon_years") or life),
             salvage_rate=salvage,
@@ -227,7 +229,7 @@ def build_charging_economics(config: dict, scale, capex, pool_ops: dict) -> dict
             power_price=power_price,
             other_cash_wan=float(sb.get("site_rent_wan_year") or 0.0)
             + float(sb.get("heavy_station_labor_wan_year") or 0.0))
-        out["swap_station_capex_wan"] = body_wan + bat_wan
+        out["swap_station_capex_wan"] = body_wan
         out["swap_station_body_wan"] = body_wan
         out["swap_station_battery_wan"] = bat_wan
         out["swap_annual_kwh"] = annual
@@ -271,9 +273,19 @@ def build_charging_economics(config: dict, scale, capex, pool_ops: dict) -> dict
         # 两个假设都没有实测支撑。所以必须问一句：**如果把这两项拉平，谁的站更赚钱？**
         # 这是本模块最要紧的一次对照——它剥掉假设，只剩两种站的资产结构在比。
         ref_kwh = station_kw * _HOURS_YEAR * float(cfg.get("utilization_heavy_observed") or 0.0)
+        # 【2026-09-28】同价同吞吐：换电站（只含站体）对兆瓦超充站（同装机，按超充每千瓦造价），
+        # 两边都按超充均衡服务费、都交出参照站在中性利用率下的年电量
+        mw_capex_wan = supercharge_capex_per_kw(config) * station_kw / 1e4
+        mw = _station_economics(
+            capex_wan=mw_capex_wan, annual_kwh=ref_kwh, service_fee=swap_fee,
+            life_years=life, salvage_rate=salvage, opex_rate=opex_rate, platform_rate=platform,
+            loss_rate=loss_rate, power_price=power_price, other_cash_wan=site_wan + labor_wan)
+        out["mw_station_capex_wan"] = mw_capex_wan
+        out["mw_level_cash_return"] = mw["cash_return"]
+        out["mw_level_payback_years"] = mw["payback_years"]
         level = _station_economics(
-            capex_wan=body_wan + bat_wan,
-            annual_kwh=ref_kwh, service_fee=fee,          # ← 用超充的服务费
+            capex_wan=body_wan,
+            annual_kwh=ref_kwh, service_fee=swap_fee,     # ← 同一个均衡服务费
             life_years=float(config.get("finance", {}).get("model_horizon_years") or life),
             salvage_rate=salvage,
             opex_rate=float(sb.get("equipment_insurance_rate") or 0.0),
@@ -291,7 +303,7 @@ def build_charging_economics(config: dict, scale, capex, pool_ops: dict) -> dict
         # 吞吐不超上限时，"压回上限"就是原值——读数照常给出，不留空
         if window_kwh:
             r2 = _station_economics(
-                capex_wan=body_wan + bat_wan,
+                capex_wan=body_wan,
                 annual_kwh=min(daily_out, window_kwh) * days, service_fee=swap_fee,
                 life_years=float(config.get("finance", {}).get("model_horizon_years") or life),
                 salvage_rate=salvage,

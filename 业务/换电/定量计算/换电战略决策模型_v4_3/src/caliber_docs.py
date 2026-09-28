@@ -291,6 +291,20 @@ def ledger_values(config: dict) -> dict[str, str]:
     urow = ["| 超充站能量利用率 | 22%（中性） | 27%（悲观） | 35% | 50% |", "|---|---|---|---|---|",
             "| 超充均衡服务费（元/度） | " + " | ".join(f"{equilibrium_service_fee(config, u)['equilibrium_fee']:.3f}" for u in (0.22, 0.27, 0.35, 0.50)) + " |"]
     V["表:超充利用率与均衡价"] = "\n".join(urow)
+    # 三条路线的博弈：兆瓦超充的价上限 ＝ 常规快充均衡价 ＋ 车队愿为少停的时间多付的每度钱
+    from tco import build_scene_economics as _bse
+    _h = _bse(config)
+    conv = equilibrium_service_fee(config, kind="conventional")["equilibrium_fee"]
+    mwc = equilibrium_service_fee(config)["equilibrium_fee"]
+    grow = ["| 场景 | 常规快充均衡价 | 少停时间值多少（元/度） | 兆瓦超充价的上限 | 兆瓦超充自己的均衡价 | 谁定兆瓦超充的价 |", "|---|---|---|---|---|---|"]
+    for f, sc in zip(("short", "mid", "long"), config["vehicles"]["heavy"]["scenes"]):
+        o = getattr(_h, f)
+        kwh_y = float(sc["daily_km"]) * float(sc["energy_consumption_kwh_km"]) * float(config["swap_business"]["operating_days"])
+        prem = (o.tv_year_wan - o.tv_mw_year_wan) * 1e4 / kwh_y if kwh_y else 0.0
+        cap = conv + prem
+        who = "自己的成本（上限不起作用）" if mwc < cap else "**常规快充＋时间价值**"
+        grow.append(f"| {sc['name']} | {conv:.3f} | {prem:.3f} | {cap:.3f} | {mwc:.3f} | {who} |")
+    V["表:三路博弈"] = "\n".join(grow)
     V["充电服务费"] = f"{float(tco['charge_service_fee_rmb_kwh']):.4f}"
     V["换电服务费"] = f"{float(sb['service_fee_rmb_kwh']):.4f}"
     c2 = copy.deepcopy(config); c2["charging_station"]["capex_rmb_per_kw"] = 1500.0 / (1 + float(cs["supercharge_equipment_share"]) * (float(cs["supercharge_equipment_price_ratio"]) - 1))
@@ -587,7 +601,11 @@ def queue_values(config: dict) -> dict[str, str]:
     V["年运营小时"] = _f(C["hours_year"])
     V["每车小时时间成本"] = _f(w)
     V["最优利用率"] = f"{rho:.2f}"
-    V["最优利用率下日换电次数"] = _f(lane_max * rho)
+    V["最优利用率(三位)"] = f"{rho:.3f}"
+    V["最优利用率下日换电次数"] = f"{lane_max * rho:.1f}"
+    _rho0 = optimal_swap_utilization((C["total_year"] - C["turnover"]) / C["hours_year"], w)
+    V["不计周转电池时最优利用率"] = f"{_rho0:.2f}"
+    V["不计周转电池时日换电次数"] = _f(math.floor(lane_max * _rho0))
     rows = ["| 利用率 ρ | 日换电次数 | 平均排队车辆 | 平均排队（分钟） | 排队＋换电（分钟） | 每次换电：工位成本＋排队时间成本（元） |", "|---|---|---|---|---|---|"]
     for r in (0.6, 0.7, rho, 0.8, 0.9):
         lq = r * r / (2 * (1 - r))

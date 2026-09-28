@@ -3239,7 +3239,7 @@ platform_commission_rate_high.scale = 100.0
 platform_commission_rate_high.note = "重卡场景唯一一条实际平台报价；抽成基数（服务费 vs 交易额）原文未言明，取服务费口径"
 # 参照站规模：用黄骅港站的口径（26 桩 × 320kW），它是少数投资额、月充电量、月服务费收入三者齐全的公开样本
 reference_station_kw.v = 8320.0
-reference_station_kw.label = "参照超充站装机"
+reference_station_kw.label = "常规重卡充电站装机"
 reference_station_kw.unit = "kW"
 reference_station_kw.decimals = 0
 reference_station_kw.note = "26 桩 × 320kW，对应总投资 500 万元（src.chargeonline_2026）"

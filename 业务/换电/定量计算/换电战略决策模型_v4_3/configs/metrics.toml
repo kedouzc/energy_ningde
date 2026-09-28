@@ -3371,7 +3371,7 @@ note = "资本压在哪一层的一个数：它决定了价格战打在哪一层
 [[metric]]
 key = "charge.ref_revenue"
 source = "charging"
-label = "参照超充站·年服务费收入"
+label = "常规重卡充电站·年服务费收入"
 at = "swap_business.charging_economics.charge_mid_revenue_wan"
 unit = "万元/年"
 decimals = 0
@@ -3381,7 +3381,7 @@ note = "26桩×320kW参照站，按实测利用率中位"
 [[metric]]
 key = "charge.ref_cashcost"
 source = "charging"
-label = "参照超充站·年现金成本"
+label = "常规重卡充电站·年现金成本"
 at = "swap_business.charging_economics.charge_mid_cash_cost_wan"
 unit = "万元/年"
 decimals = 0
@@ -3391,7 +3391,7 @@ note = "平台分成＋电损＋运维＋场地＋人工，不含折旧、不含
 [[metric]]
 key = "charge.ref_cashflow"
 source = "charging"
-label = "参照超充站·年现金流"
+label = "常规重卡充电站·年现金流"
 at = "swap_business.charging_economics.charge_mid_cash_flow_wan"
 unit = "万元/年"
 decimals = 0
@@ -3401,7 +3401,7 @@ note = "收入减现金成本。不扣折旧、不扣利息、不扣税"
 [[metric]]
 key = "charge.ref_return"
 source = "charging"
-label = "参照超充站·全投资现金回报率"
+label = "常规重卡充电站·全投资现金回报率"
 at = "swap_business.charging_economics.charge_mid_cash_return"
 unit = "%"
 decimals = 0
@@ -3412,7 +3412,7 @@ note = "年现金流 ÷ 总投资。**不加杠杆、不含资金成本**——�
 [[metric]]
 key = "charge.ref_payback"
 source = "charging"
-label = "参照超充站·静态回收期"
+label = "常规重卡充电站·静态回收期"
 at = "swap_business.charging_economics.charge_mid_payback_years"
 unit = "年"
 decimals = 1
@@ -3422,7 +3422,7 @@ note = "总投资 ÷ 年现金流"
 [[metric]]
 key = "charge.ref_cost"
 source = "charging"
-label = "参照超充站·度电成本"
+label = "常规重卡充电站·度电成本"
 at = "swap_business.charging_economics.charge_mid_cost_rmb_kwh"
 unit = "元/kWh"
 decimals = 3
@@ -3432,7 +3432,7 @@ note = "含直线折旧的会计口径度电成本，可直接与服务费比"
 [[metric]]
 key = "charge.ref_return_idle"
 source = "charging"
-label = "参照超充站·全投资回报率（最闲一档）"
+label = "常规重卡充电站·全投资回报率（最闲一档）"
 at = "swap_business.charging_economics.charge_low_cash_return"
 unit = "%"
 decimals = 0
@@ -3443,7 +3443,7 @@ note = "利用率取实测区间下沿"
 [[metric]]
 key = "charge.ref_return_busy"
 source = "charging"
-label = "参照超充站·全投资回报率（最忙一档）"
+label = "常规重卡充电站·全投资回报率（最忙一档）"
 at = "swap_business.charging_economics.charge_high_cash_return"
 unit = "%"
 decimals = 0
@@ -3454,7 +3454,7 @@ note = "利用率取实测区间上沿"
 [[metric]]
 key = "charge.ref_return_platform"
 source = "charging"
-label = "参照超充站·全投资回报率（计平台分成）"
+label = "常规重卡充电站·全投资回报率（计平台分成）"
 at = "swap_business.charging_economics.charge_mid_cash_return_with_platform"
 unit = "%"
 decimals = 0
@@ -3465,7 +3465,7 @@ note = "压力档：按重卡场景唯一一条实际平台报价抽成"
 [[metric]]
 key = "charge.breakeven_util"
 source = "charging"
-label = "参照超充站·现金打平利用率"
+label = "常规重卡充电站·现金打平利用率"
 at = "swap_business.charging_economics.charge_cash_breakeven_utilization"
 unit = "%"
 decimals = 1
@@ -3481,12 +3481,12 @@ at = "swap_business.charging_economics.swap_station_capex_wan"
 unit = "万元"
 decimals = 0
 group = "⑧重卡"
-note = "站体 ＋ 站内周转电池。**不含车端电池**——那是电池银行的资产，靠租金回收"
+note = "站体（含电力接入与土建），不含电池——车上与站内周转电池都是电池银行的资产"
 
 [[metric]]
 key = "charge.swap_battery_wan"
 source = "charging"
-label = "换电站·其中站内周转电池"
+label = "换电站·站内周转电池（电池银行的）"
 at = "swap_business.charging_economics.swap_station_battery_wan"
 unit = "万元"
 decimals = 0
@@ -3807,3 +3807,33 @@ unit = "%"
 decimals = 1
 group = "⑧重卡"
 scale = 100.0
+
+[[metric]]
+key = "charge.mw_capex"
+source = "charging"
+label = "兆瓦超充站·单站投资（同装机）"
+at = "swap_business.charging_economics.mw_station_capex_wan"
+unit = "万元"
+decimals = 0
+group = "⑧重卡"
+note = "超充每千瓦造价 × 参照站装机；站体＋电力接入，不含电池"
+
+[[metric]]
+key = "charge.mw_level_return"
+source = "charging"
+label = "兆瓦超充站·全投资回报率（同价同吞吐）"
+at = "swap_business.charging_economics.mw_level_cash_return"
+unit = "%"
+decimals = 0
+scale = 100.0
+group = "⑧重卡"
+
+[[metric]]
+key = "charge.mw_level_payback"
+source = "charging"
+label = "兆瓦超充站·静态回收期（同价同吞吐）"
+at = "swap_business.charging_economics.mw_level_payback_years"
+unit = "年"
+decimals = 1
+group = "⑧重卡"
+

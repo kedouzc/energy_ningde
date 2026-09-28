@@ -3778,9 +3778,12 @@ rest_minutes = 20.0
 # 夜间与班间：干线单班车夜里停着，出车前补满不占时间（充电车在场站慢充，按常规快充的站成本计；换电车收车前换满）；
 # 封闭多班倒车连续运转，没有空档，每次补能都占时间。
 session_overhead_minutes = 5.0           # 每次补能的进出、扫码、插拔（四条路线同，声明值）
-charge_soc_window = 0.75                 # 充电一次补 20%→95%（沿用 tco_jpm.charge_soc_window）
+charge_soc_window = 0.80                 # 出车带电与每次可补电量：与换电同一个可用深度（swap_business.usable_energy_factor 0.80），同一块电池不该两种口径
 # 车端成本
-mw_battery_premium = 0.10                # 高倍率电池溢价：乘用车口径"贵不到 10%"（src.peoplecen_ultrafast_2024）；悲观 0、乐观 0.20
+mw_battery_premium = 0.10                # 高倍率电芯比普通电池贵：乘用车口径"贵不到 10%"（src.peoplecen_ultrafast_2024）；相对"普通电池包"
+swap_pack_premium = 0.15                 # 换电专用包比普通包贵：锁止、快换接口、强化 BMS，附加 15–20% 取下沿（电池价格口径手册 §2.3，真锂研究院）
+# 电池价：价格曲线的 590 元/度是"换电专用包"价（手册：TrendForce 含税 pack 0.51 × 1.15）；普通包 ＝ 曲线价 ÷ 1.15；
+# 常规快充车用普通包，兆瓦车用普通包 ×（1 ＋ 高倍率溢价），换电车用换电包。
 swap_chassis_premium_wan = 0.0           # 换电底盘相对充电底盘的溢价：查无信源（缺口），基准 0；悲观 3 万
 # 车队自备轮换（只用于短途封闭）：三一迷你站作代理
 depot_station_wan = 140.0                # 迷你站不含电池 100 万以内＋ 800 kVA 接入约 40 万（src.sany_mini_2023；推算）

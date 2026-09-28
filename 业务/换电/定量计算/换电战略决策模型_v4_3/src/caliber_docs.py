@@ -727,7 +727,8 @@ def demand_route_values(config: dict) -> dict[str, str]:
         return gap(cc)
 
     def wage_up(x): x["demand_routes"]["driver_wage_rmb_month"] = float(x["demand_routes"]["driver_wage_rmb_month"]) * 1.5
-    def prem0(x): x["demand_routes"]["mw_battery_premium"] = 0.0
+    def prem0(x):
+        x["demand_routes"]["mw_battery_premium"] = 0.0; x["demand_routes"]["swap_pack_premium"] = 0.0
     def life_pess(x):
         t = x["drivers"]["battery_life"]["悲观"]
         x["battery_life_model"]["critical_cycles"] = float(t["critical_cycles"]); x["battery_life_model"]["pool_life_multiplier"] = float(t["pool_life_multiplier"])
@@ -736,7 +737,7 @@ def demand_route_values(config: dict) -> dict[str, str]:
     def swap_bad(x):
         x["supply_routes"]["swap"]["fte"] = 4.0; x["supply_routes"]["swap"]["equipment_wan"] = 300.0
         x["demand_routes"]["swap_chassis_premium_wan"] = 3.0
-    rows = [("基准", gap(config)), ("司机工资高 50%（时间更值钱，对换电有利）", mod(wage_up)), ("高倍率电池不溢价", mod(prem0)),
+    rows = [("基准", gap(config)), ("司机工资高 50%（时间更值钱，对换电有利）", mod(wage_up)), ("电池一律同价（高倍率、换电专用都不加溢价）", mod(prem0)),
             ("电池寿命取悲观档（快充只少活 23%，欣旺达同场一对数）", mod(life_pess)), ("兆瓦站做到 6 × 1 MW", mod(mw6)),
             ("换电站 4 人、设备 300 万、换电底盘贵 3 万", mod(swap_bad)),
             ("以上四项对换电不利的同时成立（不含第二行）", mod(prem0, life_pess, mw6, swap_bad))]
@@ -772,17 +773,33 @@ def demand_example_values(config: dict) -> dict[str, str]:
     cyc = daily * days / kwh
     f = mw["enroute_kwh"] / daily
     p0 = terminal_battery_price(config)
+    rec = retirement_recovery_ratio(config)
+    r = float(config["finance"]["wacc"])
     lines = [
         f"第 1 步　每天用多少电：{km:.0f} 公里 × {epk:.1f} 度/公里 ＝ {daily:.0f} 度；一年 {days:.0f} 天 ＝ {daily*days/1e4:.1f} 万度",
-        f"第 2 步　夜里补满、途中补差额：干线单班车夜里停着，出车前补满不占时间。兆瓦车出车带 {kwh:.0f} × {soc:.2f} ＝ {kwh*soc:.0f} 度，途中要补 {daily:.0f} − {kwh*soc:.0f} ＝ {mw['enroute_kwh']:.0f} 度，停 {mw['sessions_day']:.0f} 次；"
-        f"换电车出车带 {kwh:.0f} × {usable:.2f} ＝ {kwh*usable:.0f} 度，途中要补 {sw['enroute_kwh']:.0f} 度，换 {sw['sessions_day']:.0f} 次",
-        f"第 3 步　途中每次停多久：兆瓦 ＝ 进出 {float(D['session_overhead_minutes']):.0f} ＋ 排队 {sup['optimum']['megawatt']['wait_min']:.1f} ＋ 充 {mw['enroute_kwh']/mw['sessions_day']:.0f} 度 ÷ 850 kW ＝ {mw['session_min']:.1f} 分钟；换电 ＝ {float(D['session_overhead_minutes']):.0f} ＋ {sup['optimum']['swap']['wait_min']:.1f} ＋ 5 ＝ {sw['session_min']:.1f} 分钟",
-        f"第 4 步　和强制休息重合（算出来的，不是输入）：一天开 {km:.0f} ÷ {float(D['highway_speed_kmh']):.0f} ＝ {drive_h:.1f} 小时 → 休息 {rests} 次、每次 20 分钟；途中补能安排在休息时，重合 ＝ min（停 {mw['sessions_day']:.0f} 次，休息 {rests} 次）× min（每次停多久，20）→ 兆瓦 {mw['absorbed_min']:.1f}、换电 {sw['absorbed_min']:.1f} 分钟",
-        f"第 5 步　每天多停：兆瓦 {mw['session_min']:.1f} − {mw['absorbed_min']:.1f} ＝ {mw['stop_h_day']*60:.1f} 分钟；换电 {sw['session_min']:.1f} − {sw['absorbed_min']:.1f} ＝ {sw['stop_h_day']*60:.1f} 分钟",
-        f"第 6 步　时间一年值多少：每天多停 × {days:.0f} 天 × {w:.1f} 元/时 → 兆瓦 {mw['time_wan']:.2f} 万、换电 {sw['time_wan']:.2f} 万",
-        f"第 7 步　电池能用几年：一年循环 {daily:.0f} × {days:.0f} ÷ {kwh:.0f} ＝ {cyc:.0f} 次。兆瓦车只有途中那 {f:.0%} 的电是大电流快充（寿命 {crit:.0f} 次），其余夜里慢充（{crit*mult:.0f} 次）→ 折合 {1/(f/crit+(1-f)/(crit*mult)):.0f} 次 → {mw['battery_life']:.1f} 年；换电电池全在站里慢充 → {crit*mult/cyc:.1f} 年，封顶 10 年",
-        f"第 8 步　电池一年摊多少：2030 年电池价 {p0:.0f} 元/度（兆瓦加溢价 {float(D['mw_battery_premium']):.0%}），按寿命做资本回收（扣残值）→ 兆瓦 {mw['battery_wan']:.2f} 万、换电 {sw['battery_wan']:.2f} 万",
-        f"第 9 步　补能设施一年摊多少：兆瓦车途中的电按兆瓦站成本、夜里的电按常规站成本 → {mw['facility_wan']:.2f} 万；换电 → {sw['facility_wan']:.2f} 万",
+        f"第 2 步　夜里补满、途中补差额：干线单班车夜里停着，出车前补满不占时间。两种车用同一个可用深度 {soc:.0%}，出车都带 {kwh:.0f} × {soc:.2f} ＝ {kwh*soc:.0f} 度；途中要补 {daily:.0f} − {kwh*soc:.0f} ＝ {mw['enroute_kwh']:.0f} 度，停 {mw['sessions_day']:.0f} 次",
+        f"第 3 步　途中每次停多久：兆瓦 ＝ 进出 {float(D['session_overhead_minutes']):.0f} ＋ 排队 {sup['optimum']['megawatt']['wait_min']:.1f} ＋ 充电 {mw['enroute_kwh']/mw['sessions_day']:.0f} 度 ÷（{float(config['supply_routes']['megawatt']['pile_kw']):.0f} kW × {float(config['supply_routes']['charge_power_factor']):.2f}）× 60 ＝ {mw['session_min']:.1f} 分钟；换电 ＝ {float(D['session_overhead_minutes']):.0f} ＋ {sup['optimum']['swap']['wait_min']:.1f} ＋ 5 ＝ {sw['session_min']:.1f} 分钟",
+        f"第 4 步　和强制休息重合：一天开 {km:.0f} ÷ {float(D['highway_speed_kmh']):.0f} ＝ {drive_h:.1f} 小时 → 休息 {rests} 次、每次 20 分钟。途中这次停车就是休息：不满 20 分钟也得歇满 20 分钟，这 20 分钟两边都要停，不算补能的代价；只有超出 20 分钟的部分才算",
+        f"第 5 步　每天多停 ＝ max（0，每次停多久 − 20）× 停几次：兆瓦 {mw['session_min']:.1f} − 20 ＝ {mw['stop_h_day']*60:.1f} 分钟；换电 {sw['session_min']:.1f} 不到 20 → 0 分钟",
+        f"第 6 步　时间一年值多少 ＝ 每天多停（小时）× {days:.0f} 天 × {w:.1f} 元/时 → 兆瓦 {mw['stop_h_day']:.3f} × {days:.0f} × {w:.1f} ＝ {mw['time_wan']*1e4:,.0f} 元；换电 0 元",
+    ]
+    lines += [
+        f"第 7 步　电池能用几年：一年循环 {daily:.0f} × {days:.0f} ÷ {kwh:.0f} ＝ {cyc:.0f} 次。兆瓦车快充电量占比 ＝ 途中 {mw['enroute_kwh']:.0f} ÷ 全天 {daily:.0f} ＝ {f:.0%}，其余夜里慢充；"
+        f"折合寿命 ＝ 1 ÷（{f:.2f} ÷ {crit:.0f} ＋ {1-f:.2f} ÷ {crit*mult:.0f}）＝ {1/(f/crit+(1-f)/(crit*mult)):.0f} 次 → {1/(f/crit+(1-f)/(crit*mult)):.0f} ÷ {cyc:.0f} ＝ {mw['battery_life']:.1f} 年；换电电池全在站里慢充 {crit*mult:.0f} ÷ {cyc:.0f} ＝ {crit*mult/cyc:.1f} 年，封顶 10 年",
+    ]
+    for tag, d, kind in (("兆瓦", mw, "megawatt"), ("换电", sw, "swap")):
+        price = DR.pack_price(config, kind)
+        life = d["battery_life"]
+        buy = price * kwh
+        salv = buy * rec / (1 + r) ** life
+        crf = r / (1 - (1 + r) ** -life)
+        lines.append(f"第 8 步（{tag}）电池一年摊多少：买价 {price:.0f} 元/度 × {kwh:.0f} 度 ＝ {buy/1e4:.2f} 万；残值现值 ＝ {buy/1e4:.2f} 万 × {rec:.3f} ÷ 1.075^{life:.1f} ＝ {salv/1e4:.2f} 万；"
+                     f"年金系数 ＝ 0.075 ÷（1 − 1.075^−{life:.1f}）＝ {crf:.4f}；一年 ＝（{buy/1e4:.2f} − {salv/1e4:.2f}）× {crf:.4f} ＝ {(buy-salv)*crf/1e4:.2f} 万")
+    cst = sup["optimum"]["conventional"]["station_cost"]; mst = sup["optimum"]["megawatt"]["station_cost"]; sst = sup["optimum"]["swap"]["station_cost"]
+    night = daily - mw["enroute_kwh"]
+    lines += [
+        f"第 9 步　补能设施一年摊多少：兆瓦 ＝（途中 {mw['enroute_kwh']:.0f} 度 × 兆瓦站 {mst:.3f} 元 ＋ 夜里 {night:.0f} 度 × 常规站 {cst:.3f} 元）× {days:.0f} 天 ＝ {mw['facility_wan']:.2f} 万；"
+        f"换电 ＝ {daily:.0f} 度 × 换电站 {sst:.3f} 元 × {days:.0f} 天 ＝ {sw['facility_wan']:.2f} 万（每度电站成本见 补能三路线_供给成本 第六节算例）",
         f"合计　　兆瓦 {mw['facility_wan']:.2f} ＋ {mw['battery_wan']:.2f} ＋ {mw['time_wan']:.2f} ＝ {mw['total_wan']:.2f} 万；换电 {sw['facility_wan']:.2f} ＋ {sw['battery_wan']:.2f} ＋ {sw['time_wan']:.2f} ＝ {sw['total_wan']:.2f} 万",
     ]
     V["算例:需求_中途"] = "\n".join(lines)

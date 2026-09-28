@@ -142,3 +142,11 @@ what  = """[demand_routes] 改键（driver_wage_rmb_month、truck_scrap_years／
 why   = """研究者五条质疑：工资差一倍不合常识；车辆年数依据；重合比例应是算出的、1.77 次含义；电池寿命信源是重卡的；兆瓦为何没有任何优势。"""
 watch = """主链读数不应动。"""
 expect = "主链读数不变（覆盖 1.14／1.35／1.69）；中途换电领先明显收窄；build、tree、run 全绿。"
+
+[[round]]
+date  = "2026-09-28l"
+focus = "A4 再更正：强制休息内的停车不算代价（只算超出 20 分钟的部分）；出车带电统一 80%；电池包三价（换电包、普通包、兆瓦包）；算例第 8、9 步写出算式"
+what  = """[demand_routes] charge_soc_window 0.80、新增 swap_pack_premium；demand_routes.pack_price；caliber_docs 算例与敏感性；车队总账第〇之二节。"""
+why   = """研究者：换电不足 20 分钟也得歇满；43% 怎么来、0.75 与 0.8 口径不一；兆瓦溢价单加不公平；第 8、9 步没有算式。"""
+watch = """主链读数不应动。"""
+expect = "主链读数不变（覆盖 1.14／1.35／1.69）；中途领先约 0.3 万；build、tree、run 全绿。"

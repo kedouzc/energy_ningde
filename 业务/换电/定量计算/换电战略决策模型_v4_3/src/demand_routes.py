@@ -46,10 +46,18 @@ def time_value(config: dict, scene_idx: int) -> dict:
     return {"driver": drv, "truck": 0.0, "w": drv, "life": truck_life(config, scene_idx), "basis": "司机工时是瓶颈：多雇司机"}
 
 
-def _battery_year(config: dict, kwh: float, life_cycles: float, cycles_year: float, premium: float = 0.0) -> tuple[float, float]:
-    from derived import retirement_recovery_ratio, terminal_battery_price
+def pack_price(config: dict, kind: str) -> float:
+    """兑现年电池包价（元/度）：曲线价是换电专用包；普通包 ＝ 曲线价 ÷ (1＋换电附加)；兆瓦包 ＝ 普通包 ×（1＋高倍率溢价）。"""
+    from derived import terminal_battery_price
+    D = config["demand_routes"]
+    swap = terminal_battery_price(config)
+    plain = swap / (1.0 + float(D["swap_pack_premium"]))
+    return {"swap": swap, "plain": plain, "megawatt": plain * (1.0 + float(D["mw_battery_premium"]))}[kind]
+
+
+def _battery_year(config: dict, kwh: float, life_cycles: float, cycles_year: float, price: float) -> tuple[float, float]:
+    from derived import retirement_recovery_ratio
     life = min(life_cycles / cycles_year if cycles_year else 99.0, float(config["battery_life_model"]["calendar_cap_years"]))
-    price = terminal_battery_price(config) * (1.0 + premium)
     r = float(config["finance"]["wacc"])
     cap = kwh * price
     salvage = cap * retirement_recovery_ratio(config) / (1.0 + r) ** life
@@ -77,14 +85,14 @@ def scene_route(config: dict, scene_idx: int, route: str, supply: dict | None = 
         dur_h = float(config["stations"]["qiji75_trunk"]["swap_duration_seconds"]) / 3600.0
         queue_h = o["wait_min"] / 60.0
         station_cost = o["station_cost"]
-        bat, life = _battery_year(config, onboard, crit * pool_mult, cycles_year)
+        bat, life = _battery_year(config, onboard, crit * pool_mult, cycles_year, pack_price(config, "swap"))
         extra = float(D["swap_chassis_premium_wan"]) * 1e4 * _crf(float(config["finance"]["wacc"]), truck_life(config, scene_idx))
     elif route == "depot":
         per_session = onboard * usable
         dur_h, queue_h = 5.0 / 60.0, 0.0
         station_cost = 0.0
         spare = float(D["depot_spare_sets"])
-        b1, life = _battery_year(config, onboard, crit * pool_mult, cycles_year / (1.0 + spare))
+        b1, life = _battery_year(config, onboard, crit * pool_mult, cycles_year / (1.0 + spare), pack_price(config, "swap"))
         bat = b1 * (1.0 + spare)
         r = float(config["finance"]["wacc"])
         extra = float(D["depot_station_wan"]) * 1e4 / float(D["depot_trucks_served"]) * _crf(r, float(S["equipment_life_years"]))
@@ -97,9 +105,9 @@ def scene_route(config: dict, scene_idx: int, route: str, supply: dict | None = 
         queue_h = o["wait_min"] / 60.0
         station_cost = o["station_cost"]
         if route == "megawatt":
-            bat, life = _battery_year(config, onboard, crit, cycles_year, float(D["mw_battery_premium"]))
+            bat, life = _battery_year(config, onboard, crit, cycles_year, pack_price(config, "megawatt"))
         else:
-            bat, life = _battery_year(config, onboard, crit * pool_mult, cycles_year)
+            bat, life = _battery_year(config, onboard, crit * pool_mult, cycles_year, pack_price(config, "plain"))
         extra = 0.0
     # 夜间补满：干线单班车出车前满电，途中只补差额；封闭多班倒没有空档，全部在途中补
     overnight = scene_idx > 0
@@ -127,7 +135,7 @@ def scene_route(config: dict, scene_idx: int, route: str, supply: dict | None = 
     if route == "megawatt":
         f_fast = enroute_kwh / daily_kwh if daily_kwh else 1.0
         eff = 1.0 / (f_fast / crit + (1.0 - f_fast) / (crit * pool_mult))
-        bat, life = _battery_year(config, onboard, eff, cycles_year, float(D["mw_battery_premium"]))
+        bat, life = _battery_year(config, onboard, eff, cycles_year, pack_price(config, "megawatt"))
     # 夜间那部分电走的设施：充电车在场站慢充（常规快充的站成本），换电车收车前换满（换电站成本）
     if overnight and route in ("conventional", "megawatt"):
         station_cost = (enroute_kwh * station_cost + (daily_kwh - enroute_kwh) * supply["optimum"]["conventional"]["station_cost"]) / daily_kwh

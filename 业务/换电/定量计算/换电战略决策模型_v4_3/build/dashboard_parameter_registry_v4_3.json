@@ -2656,12 +2656,17 @@
   },
   {
     "key": "demand_routes.charge_soc_window",
-    "value": 0.75,
+    "value": 0.8,
     "type": "float"
   },
   {
     "key": "demand_routes.mw_battery_premium",
     "value": 0.1,
+    "type": "float"
+  },
+  {
+    "key": "demand_routes.swap_pack_premium",
+    "value": 0.15,
     "type": "float"
   },
   {

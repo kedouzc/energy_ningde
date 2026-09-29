@@ -949,6 +949,67 @@ def equilibrium_values(config: dict) -> dict[str, str]:
                          f"程序在不计排队区时求得 {_rho_noq:.3f}，与闭式解一致；计入排队区（95% 分位车数 × 每车位面积的租金与土建，随利用率连续变化）后最优为 {sm['optimum']['swap']['rho']:.3f}——排队区随利用率变大，把最优点往下拉一点")
     return V
 
+def component_values(config: dict) -> dict[str, str]:
+    """分项跟平（2026-09-29e）：服务费、租金各自的上限与换电成本；时间优势两种处理；租赁商在场／不在场；车队资金成本；套利漏损。"""
+    import copy as _copy
+    import equilibrium as E
+    V: dict[str, str] = {}
+    names = {"conventional": "常规快充", "megawatt": "兆瓦超充"}
+    scen = E.scenario_configs(config)
+    MODES = ((False, "时间优势留给车队（现行）"), (True, "换电在服务费上收走时间差"))
+    t = ["| 情景 | 时间优势 | 封闭短途：可及范围内选换电／份额／每度电利润（服务费＋租金） | 干线：同左 | 重卡合计份额 |", "|---|---|---|---|---|"]
+    for tier, cc in scen.items():
+        cw = E.class_weights(cc)
+        for tp, lab in MODES:
+            cells, tot = [], 0.0
+            for k in ("short", "trunk"):
+                x = E.class_components(cc, k, "optimal", True, tp)
+                tot += cw[k] * x["market_share"]
+                cells.append(f"{x['share']:.0%}／{x['market_share']:.0%}／{x['m_kwh']:.3f}（{x['m_fee']:+.3f} ＋ {x['m_rent']:+.3f}）" if x["share"] else "0%／0%／—")
+            t.append(f"| {tier} | {lab} | " + " | ".join(cells) + f" | **{tot / sum(cw.values()):.0%}** |")
+    V["表:分项_三档"] = "\n".join(t)
+    ex = ["| 日里程（公里） | 车队最省的充电替代 | 服务费上限／换电站成本（元/度） | 租金上限（谁定）／电池银行成本（元/度） | 每度电利润 | 时间差（元/度，充电多花的） | 换电服务吗 |", "|---|---|---|---|---|---|---|"]
+    trx = E.class_components(config, "trunk")
+    for p_ in trx["points"]:
+        ex.append(f"| {p_['km']:.0f} | {names[p_['alt']]} | {p_['fee_cap']:.3f}／{p_['fee_cost']:.3f} | {p_['rent_cap']:.3f}（{p_['alt_rent_src']}）／{p_['rent_cost']:.3f} | "
+                  f"{p_['m_kwh']:+.3f} | {p_['time_gap_kwh']:.3f} | {'服务' if p_['chosen'] else '不服务（两项利润之和为负）'} |")
+    V["算例:分项_干线"] = "\n".join(ex)
+    p0 = next(p_ for p_ in trx["points"] if p_["chosen"]) if any(p_["chosen"] for p_ in trx["points"]) else trx["points"][-1]
+    V["分项例_里程"] = f"{p0['km']:.0f}"
+    V["分项例_服务费上限"] = f"{p0['fee_cap']:.3f}"; V["分项例_站成本"] = f"{p0['fee_cost']:.3f}"
+    V["分项例_租金上限"] = f"{p0['rent_cap']:.3f}"; V["分项例_银行成本"] = f"{p0['rent_cost']:.3f}"
+    V["分项例_利润"] = f"{p0['m_kwh']:.3f}"; V["分项例_租金来源"] = p0["alt_rent_src"]
+    V["分项例_替代"] = names[p0["alt"]]
+    # 租赁商在场／不在场
+    r = ["| 车类 | 租赁商在场：租金一项每度电利润 | 租赁商不在场 | 差 |", "|---|---|---|---|"]
+    for k in ("short", "trunk"):
+        a_ = E.class_components(config, k, "optimal", True); b_ = E.class_components(config, k, "optimal", False)
+        r.append(f"| {E.CLASS_CN[k]} | {a_['m_rent']:.3f} | {b_['m_rent']:.3f} | {b_['m_rent'] - a_['m_rent']:+.3f} |")
+    V["表:分项_租赁商"] = "\n".join(r)
+    # 车队资金成本：租金上限按哪一群车队定
+    tco = config["tco_jpm"]
+    f = ["| 租金上限按哪群车队的自买成本定 | 封闭短途：选换电／每度电利润 | 干线：选换电／每度电利润 |", "|---|---|---|"]
+    for key, lab in (("fleet_discount_rate_low", "低息群"), ("fleet_discount_rate_mid", "中档群"), ("fleet_discount_rate_high", "高息群")):
+        c = _copy.deepcopy(config); c["tco_jpm"]["fleet_discount_rate_low"] = float(tco[key])
+        cells = []
+        for k in ("short", "trunk"):
+            x = E.class_components(c, k)
+            cells.append(f"{x['share']:.0%}／{x['m_kwh']:.3f}" if x["share"] else "0%／—")
+        f.append(f"| {lab}（{float(tco[key]):.0%}） | " + " | ".join(cells) + " |")
+    V["表:分项_车队资金"] = "\n".join(f)
+    # 套利漏损
+    lk = ["| 换电车在别处充的电量比例 | 封闭短途每度电利润 | 干线每度电利润 |", "|---|---|---|"]
+    xs = {k: E.class_components(config, k) for k in ("short", "trunk")}
+    for leak in (0.0, 0.1, 0.2):
+        lk.append(f"| {leak:.0%} | " + " | ".join(f"{E.leakage_margin(xs[k], leak):.3f}" if xs[k]["share"] else "—" for k in ("short", "trunk")) + " |")
+    V["表:分项_漏损"] = "\n".join(lk)
+    V["分项_低息"] = f"{float(tco['fleet_discount_rate_low']):.0%}"
+    V["分项_租赁商资金"] = f"{float(tco['lessor_capital_rate']):.1%}"
+    V["分项_银行资金"] = f"{float(config['finance']['wacc']):.1%}"
+    V["分项_购置税"] = f"{float(tco['purchase_tax_rate']):.0%}"
+    return V
+
+
 def values(config: dict) -> dict[str, str]:
     """口径文档可用的现算值（表与算式中间量）。注入由 src/inject.py 统一做（与叙述同一个注入器）。"""
     V = ledger_values(config)
@@ -961,4 +1022,5 @@ def values(config: dict) -> dict[str, str]:
     V.update(demand_example_values(config))
     V.update(supply_example_values(config))
     V.update(equilibrium_values(config))
+    V.update(component_values(config))
     return V

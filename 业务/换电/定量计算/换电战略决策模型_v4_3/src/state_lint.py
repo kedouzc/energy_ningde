@@ -128,9 +128,27 @@ def check_calc_explained() -> tuple[list[str], list[str]]:
     return bad, debt
 
 
+# 每份口径文档要能独立阅读：不许出现只在交接里有定义的工作计划编号与轮次（2026-09-29e，研究者指出总框架里的"B3"）。
+# 允许：{{…}} 注入键、附录编号（"附录 A3""见 A5"、行首 "**A1 "）。
+PLAN_TERMS = re.compile(r"全景计划|第[一二三四五六七八九十]轮|(?<![A-Za-z0-9_])(?:A[1-5]|B[1-3]|C[1-4]|D[1-2])(?![0-9A-Za-z_])")
+
+
+def check_standalone() -> list[str]:
+    bad = []
+    for f in sorted((ROOT / "口径").glob("*.src.md")):
+        for i, line in enumerate(f.read_text(encoding="utf-8").split("\n"), 1):
+            t = re.sub(r"\{\{[^}]*\}\}", "", line)
+            t = re.sub(r"(附录 ?|见 ?)A[1-9]", "", t)
+            t = re.sub(r"^\*\*A[1-9] ", "", t)
+            m = PLAN_TERMS.search(t)
+            if m:
+                bad.append(f"{f.relative_to(ROOT)}:{i} 出现工作计划编号或轮次「{m.group(0)}」——口径文档要能独立阅读，改成说清楚是什么（研究项目约定 C12）")
+    return bad
+
+
 def main() -> int:
     calc_bad, calc_debt = check_calc_explained()
-    bad = check() + check_sources() + check_inventory() + calc_bad
+    bad = check() + check_sources() + check_inventory() + calc_bad + check_standalone()
     if calc_debt:
         print(f"  ◇ 算式与算例待补（旧节，{len(calc_debt)} 处）：" + "；".join(calc_debt))
     for b in bad:

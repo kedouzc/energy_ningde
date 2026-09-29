@@ -37,10 +37,13 @@ def class_equilibrium(config: dict, cls: str, basis: str = "optimal") -> dict:
     scenes = config["vehicles"]["heavy"]["scenes"]
     members = CLASSES[cls]
     wsum = sum(float(scenes[i]["weight"]) for i, _ in members)
-    share = margin_w = margin_kwh_w = 0.0
+    share = margin_w = margin_kwh_w = price_w = cost_w = 0.0
+    setters: dict = {}
+    access_w = 0.0
     pts = []
     for scene_idx, fixed_w in members:
         sw = fixed_w if fixed_w is not None else float(scenes[scene_idx]["weight"]) / wsum
+        access_w += sw * float(scenes[scene_idx]["swap_share_ceiling"])
         routes = DR.ROUTE_KEYS if scene_idx == 0 else ("conventional", "megawatt", "swap")
         for m, w in _km_grid(config):
             cc = copy.deepcopy(config)
@@ -54,14 +57,31 @@ def class_equilibrium(config: dict, cls: str, basis: str = "optimal") -> dict:
             mg = (second["total_wan"] - best["total_wan"]) if win else 0.0
             ww = w * sw
             if win:
+                sr = rows["swap"]
                 share += ww
                 margin_w += ww * mg
                 margin_kwh_w += ww * mg * 1e4 / kwh_year
+                # 换电向车队收的整包（不含电费）＝ 第二名全年资源账 − 车队自己承担的时间与车端溢价
+                price_w += ww * (second["total_wan"] - sr["time_wan"] - sr["extra_wan"]) * 1e4 / kwh_year
+                cost_w += ww * (sr["facility_wan"] + sr["battery_wan"]) * 1e4 / kwh_year
+                setters[second["route"]] = setters.get(second["route"], 0.0) + ww
             pts.append({"scene": scene_idx, "km": float(sc["daily_km"]), "weight": ww, "winner": best["route"], "second": second["route"],
                         "swap": rows["swap"]["total_wan"], "best_total": best["total_wan"], "second_total": second["total_wan"],
                         "margin_wan": mg, "margin_kwh": mg * 1e4 / kwh_year if win else 0.0, "rows": rows})
     return {"share": share, "margin_wan": margin_w / share if share else 0.0,
-            "margin_kwh": margin_kwh_w / share if share else 0.0, "points": sorted(pts, key=lambda p: p["km"])}
+            "margin_kwh": margin_kwh_w / share if share else 0.0,
+            "price_kwh": price_w / share if share else 0.0, "cost_kwh": cost_w / share if share else 0.0,
+            "setters": {k: v / share for k, v in setters.items()} if share else {},
+            "access": access_w, "market_share": access_w * share,
+            "points": sorted(pts, key=lambda p: p["km"])}
+
+
+CLASS_CN = {"short": "封闭短途多班倒", "trunk": "干线"}
+
+
+def class_weights(config: dict) -> dict:
+    sc = config["vehicles"]["heavy"]["scenes"]
+    return {"short": float(sc[0]["weight"]), "trunk": float(sc[1]["weight"]) + float(sc[2]["weight"])}
 
 
 def scenario_configs(config: dict) -> dict:

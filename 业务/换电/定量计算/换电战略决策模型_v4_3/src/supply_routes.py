@@ -35,16 +35,17 @@ def mgc_wait_hours(c: int, rho: float, service_h: float, cv: float) -> float:
     return _erlang_c(c, rho) * service_h / (c * (1.0 - rho)) * (1.0 + cv * cv) / 2.0
 
 
-def mgc_queue_at_level(c: int, rho: float, level: float) -> int:
-    """M/M/c 下排队车数的分位数：P(Lq ≥ k) ＝ P_w × ρ^k（保守，未做 M/G/c 修正）。"""
+def mgc_queue_at_level(c: int, rho: float, level: float) -> float:
+    """M/M/c 下排队车数的分位数（连续值）：P(Lq ≥ k) ＝ P_w × ρ^k，解 P_w × ρ^k ＝ 1 − level（保守，未做 M/G/c 修正）。"""
     pw = _erlang_c(c, rho)
     if pw <= 1.0 - level:
-        return 0
-    return int(math.ceil(math.log((1.0 - level) / pw) / math.log(rho)))
+        return 0.0
+    return math.log((1.0 - level) / pw) / math.log(rho)
 
 
-def md1_queue_at_level(rho: float, level: float, n_max: int = 60) -> int:
-    """M/D/1 排队车数的分位数（离开时刻嵌入马氏链，数值解）。"""
+def md1_queue_at_level(rho: float, level: float, n_max: int = 80) -> float:
+    """M/D/1 排队车数的分位数（连续值）：系统内车数的分布用"离开时刻嵌入马氏链"精确算出（没有闭式），
+    再在相邻两个整数之间按累计概率线性插值，使排队区面积随利用率平滑变化。"""
     a = [math.exp(-rho)]
     for k in range(1, n_max):
         a.append(a[-1] * rho / k)
@@ -52,10 +53,14 @@ def md1_queue_at_level(rho: float, level: float, n_max: int = 60) -> int:
     p[0] = 1.0 - rho
     for j in range(n_max - 1):
         s_ = p[j] - p[0] * a[j] - sum(p[i] * a[j - i + 1] for i in range(1, j + 1))
-        p[j + 1] = s_ / a[0]
-        if sum(p[: j + 2]) >= level:
-            return max(0, j)          # 系统内 ≤ j＋1 辆 → 排队 ≤ j 辆
-    return n_max
+        p[j + 1] = max(0.0, s_ / a[0])
+    prev = 0.0                                   # 排队 ≤ −1 辆的概率记为 0
+    for k in range(n_max - 1):
+        cur = sum(p[: k + 2])                    # 排队 ≤ k 辆 ＝ 系统内 ≤ k＋1 辆
+        if cur >= level:
+            return max(0.0, (k - 1) + (level - prev) / (cur - prev))
+        prev = cur
+    return float(n_max)
 
 
 def provisional_wait_cost(config: dict) -> float:
@@ -180,16 +185,31 @@ def cost_at(config: dict, key: str, rho: float, w: float | None = None) -> dict:
 
 
 def planner_optimum(config: dict, key: str, w: float | None = None) -> dict:
-    """规划最优：在可行域里扫 ρ，使每度电的"站成本 ＋ 排队时间成本"最小。"""
+    """规划最优：使每度电的"站成本（含随利用率变的排队区）＋ 排队时间成本"最小。
+    先每隔 1 个百分点粗扫找到最低点所在的区间，再在该区间内用黄金分割法精确求解（精度 0.0001）。
+    换电另受电量上限约束：利用率不超过 电量上限 ÷ 工位上限。"""
     w = provisional_wait_cost(config) if w is None else w
-    best = None
-    for i in range(5, 96):
-        res = cost_at(config, key, i / 100.0, w)
-        if not res["feasible"]:
-            break
-        if best is None or res["total"] < best["total"]:
-            best = res
-    return best
+    hi = 0.95
+    if key == "swap":
+        c = swap_constraints(config)
+        hi = min(hi, c["energy"] / c["lane"])
+    grid = [x / 100.0 for x in range(5, int(hi * 100) + 1)] + [hi]
+    vals = [cost_at(config, key, r, w)["total"] for r in grid]
+    i = min(range(len(vals)), key=vals.__getitem__)
+    lo_, hi_ = grid[max(0, i - 1)], grid[min(len(grid) - 1, i + 1)]
+    g = (math.sqrt(5) - 1) / 2
+    x1, x2 = hi_ - g * (hi_ - lo_), lo_ + g * (hi_ - lo_)
+    f1, f2 = cost_at(config, key, x1, w)["total"], cost_at(config, key, x2, w)["total"]
+    while hi_ - lo_ > 1e-4:
+        if f1 < f2:
+            hi_, x2, f2 = x2, x1, f1
+            x1 = hi_ - g * (hi_ - lo_)
+            f1 = cost_at(config, key, x1, w)["total"]
+        else:
+            lo_, x1, f1 = x1, x2, f2
+            x2 = lo_ + g * (hi_ - lo_)
+            f2 = cost_at(config, key, x2, w)["total"]
+    return cost_at(config, key, (lo_ + hi_) / 2, w)
 
 
 def summary(config: dict) -> dict:

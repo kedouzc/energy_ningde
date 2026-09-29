@@ -888,6 +888,33 @@ def equilibrium_values(config: dict) -> dict[str, str]:
             cells = [f"{x['share']:.0%}／{x['margin_wan']:.2f}／{x['margin_kwh']:.3f} 元" for x in res]
             r.append(f"| {tier} | {E.BASIS_CN[b]} | " + " | ".join(cells) + " |")
     V["表:均衡_结果"] = "\n".join(r)
+    # 交给财务的数：价格按谁定、整包价、成本、利润厚度、可及比例、赢的比例、份额
+    tr_pts = E.class_equilibrium(config, "trunk")["points"]
+    fin = ["| 情景 | 车类 | 价格由谁定（第二名构成） | 整包价（元/度，不含电费） | 换电成本（元/度） | 利润厚度（元/度） | 可及比例 | 可及范围内赢的比例 | 份额（占该类电动重卡） |",
+           "|---|---|---|---|---|---|---|---|---|"]
+    for tier, cc in scen.items():
+        tot_w = tot_s = 0.0
+        cw = E.class_weights(cc)
+        for k in ("short", "trunk"):
+            x = E.class_equilibrium(cc, k)
+            st_ = "、".join(f"{names[r_]} {v:.0%}" for r_, v in sorted(x["setters"].items(), key=lambda kv: -kv[1])) or "—（换电不赢）"
+            fin.append(f"| {tier} | {E.CLASS_CN[k]} | {st_} | {x['price_kwh']:.3f} | {x['cost_kwh']:.3f} | {x['margin_kwh']:.3f} | {x['access']:.0%} | {x['share']:.0%} | **{x['market_share']:.0%}** |")
+            tot_w += cw[k]; tot_s += cw[k] * x["market_share"]
+        fin.append(f"| {tier} | **重卡合计**（按车类权重） | | | | | | | **{tot_s / tot_w:.0%}** |")
+    # 算例：干线一辆车
+    ptk = [p_ for p_ in tr_pts if p_["winner"] == "swap"]
+    pk = min(ptk, key=lambda p_: abs(p_["km"] - 480)) if ptk else None
+    if pk:
+        sr = pk["rows"]["swap"]; kwh = pk["rows"]["swap"]["daily_kwh"] * float(config["swap_business"]["operating_days"])
+        V["算例:均衡_价格"] = "\n".join([
+            f"干线日跑 {pk['km']:.0f} 公里的车：年用电 {pk['rows']['swap']['daily_kwh']:.0f} × {float(config['swap_business']['operating_days']):.0f} ＝ {kwh/1e4:.2f} 万度",
+            f"第二名（{names[pk['second']]}）全年资源账 {pk['second_total']:.2f} 万；换电车自己承担的时间 {sr['time_wan']:.2f} 万、车端溢价 {sr['extra_wan']:.2f} 万",
+            f"整包价上限 ＝（{pk['second_total']:.2f} − {sr['time_wan']:.2f} − {sr['extra_wan']:.2f}）万 ÷ {kwh/1e4:.2f} 万度 ＝ {(pk['second_total']-sr['time_wan']-sr['extra_wan'])/(kwh/1e4):.3f} 元/度",
+            f"换电成本 ＝（补能设施 {sr['facility_wan']:.2f} ＋ 电池 {sr['battery_wan']:.2f}）万 ÷ {kwh/1e4:.2f} 万度 ＝ {(sr['facility_wan']+sr['battery_wan'])/(kwh/1e4):.3f} 元/度；利润厚度 ＝ {pk['margin_kwh']:.3f} 元/度",
+        ])
+    else:
+        V["算例:均衡_价格"] = "中性情景下干线换电不赢，无算例"
+    V["表:均衡_给财务"] = "\n".join(fin)
     tr = E.class_equilibrium(config, "trunk")
     sh = E.class_equilibrium(config, "short")
     V["均衡_干线份额"] = f"{tr['share']:.0%}"
@@ -903,25 +930,29 @@ def equilibrium_values(config: dict) -> dict[str, str]:
     # 最优利用率的求解过程
     w = SR.provisional_wait_cost(config)
     V["排队时间价值"] = f"{w:.1f}"
-    opt = ["| 路线 | 时间利用率 | 每度电站成本（元） | 每度电排队成本（元） | 合计（元） | 95% 排队车数 |", "|---|---|---|---|---|---|"]
+    opt = ["| 路线 | 时间利用率 | 电量利用率 | 每度电站成本（元，含排队区） | 每度电排队时间成本（元） | 合计（元） | 95% 分位排队车数 |", "|---|---|---|---|---|---|---|"]
     sm = SR.summary(config)
     for k in ("conventional", "megawatt", "swap"):
         best = sm["optimum"][k]["rho"]
-        for rr in sorted(set([0.5, 0.6, 0.7, 0.8, 0.9, best])):
+        for rr in sorted(set([0.5, 0.6, 0.7, 0.8, 0.9, round(best, 3)])):
             x = SR.cost_at(config, k, rr, w)
             if not x["feasible"]:
-                opt.append(f"| {SR.station(config, k)['label']} | {rr:.2f} | 超出电量上限 | — | — | — |")
+                opt.append(f"| {SR.station(config, k)['label']} | {rr:.2f} | — | 超出电量上限 | — | — | — |")
                 continue
-            tag = "**" if rr == best else ""
-            opt.append(f"| {SR.station(config, k)['label']} | {tag}{rr:.2f}{'（最优）' if rr == best else ''}{tag} | {x['station_cost']:.4f} | {x['wait_cost']:.4f} | {tag}{x['total']:.4f}{tag} | {x['queue_trucks']} |")
+            is_b = abs(rr - round(best, 3)) < 1e-9
+            tag = "**" if is_b else ""
+            lab = f"{rr:.3f}（最优）" if is_b else f"{rr:.2f}"
+            opt.append(f"| {SR.station(config, k)['label']} | {tag}{lab}{tag} | {x['energy_util']:.0%} | {x['station_cost']:.4f} | {x['wait_cost']:.4f} | {tag}{x['total']:.4f}{tag} | {x['queue_trucks']:.1f} |")
     V["表:最优利用率_扫描"] = "\n".join(opt)
     st = SR.station(config, "swap"); c_ = SR.swap_constraints(config)
     C = st["fixed_wan"] * 1e4 / (c_["hours"] * float(config["swap_business"]["operating_days"]))
     rho_cf = 1 / (1 + math.sqrt(w / (2 * C)))
+    _cc = copy.deepcopy(config); _cc["supply_routes"]["queue_m2_per_truck"] = 0.0
+    _rho_noq = SR.planner_optimum(_cc, "swap", w)["rho"]
     V["算例:换电闭式解"] = (f"工位每小时全成本 C ＝ 年固定成本 {st['fixed_wan']:.1f} 万 ÷（{c_['hours']:.0f} 小时 × {float(config['swap_business']['operating_days']):.0f} 天）＝ {C:.0f} 元/时；"
                          f"排队时间价值 w ＝ {w:.1f} 元/时\n"
                          f"ρ* ＝ 1 ÷（1 ＋ √(w ÷ 2C)）＝ 1 ÷（1 ＋ √({w:.1f} ÷ {2*C:.0f})）＝ {rho_cf:.3f}\n"
-                         f"逐点扫描（含排队区租金与电损）得 {sm['optimum']['swap']['rho']:.2f}；两者差在排队区按整车位加租金，使曲线在少数点上有台阶")
+                         f"程序在不计排队区时求得 {_rho_noq:.3f}，与闭式解一致；计入排队区（95% 分位车数 × 每车位面积的租金与土建，随利用率连续变化）后最优为 {sm['optimum']['swap']['rho']:.3f}——排队区随利用率变大，把最优点往下拉一点")
     return V
 
 def values(config: dict) -> dict[str, str]:

@@ -960,8 +960,8 @@ def component_values(config: dict) -> dict[str, str]:
     def setter(d: dict) -> str:
         return "、".join(f"{names.get(k, k)} {v:.0%}" for k, v in sorted(d.items(), key=lambda kv: -kv[1])) or "—"
 
-    head = "| 情景 | 车类 | 服务费的价由谁定（按电量） | 租金的价由谁定（按电量） | 可及比例 | 可及范围内选换电 | **份额** | **每度电利润**（服务费＋租金，元） |"
-    t = [head, "|---|---|---|---|---|---|---|---|"]
+    head = "| 情景 | 车类 | 服务费的价由谁定（换电服务到的车里，按电量） | 租金的价由谁定（同左） | 可及比例 | 可及范围内换电服务到的车 | **份额** | **每度电利润**（服务费＋租金，元，按换电车全部用电摊） | 换电车的电有多少经换电站 |"
+    t = [head, "|---|---|---|---|---|---|---|---|---|"]
     for tier, cc in scen.items():
         cw = E.class_weights(cc)
         tot = 0.0
@@ -969,10 +969,10 @@ def component_values(config: dict) -> dict[str, str]:
             x = E.class_components(cc, k)
             tot += cw[k] * x["market_share"]
             if x["share"]:
-                t.append(f"| {tier} | {E.CLASS_CN[k]} | {setter(x['fee_setter'])} | {setter(x['rent_setter'])} | {x['access']:.0%} | {x['share']:.0%} | **{x['market_share']:.0%}** | **{x['m_kwh']:.3f}**（{x['m_fee']:+.3f} ＋ {x['m_rent']:+.3f}） |")
+                t.append(f"| {tier} | {E.CLASS_CN[k]} | {setter(x['fee_setter'])} | {setter(x['rent_setter'])} | {x['access']:.0%} | {x['share']:.0%} | **{x['market_share']:.0%}** | **{x['m_kwh']:.3f}**（{x['m_fee']:+.3f} ＋ {x['m_rent']:+.3f}） | {x['station_share']:.0%} |")
             else:
-                t.append(f"| {tier} | {E.CLASS_CN[k]} | — | — | {x['access']:.0%} | 0% | **0%** | —（换电在每辆车上都亏，不服务） |")
-        t.append(f"| {tier} | **重卡合计**（按车类权重） | | | | | **{tot / sum(cw.values()):.0%}** | |")
+                t.append(f"| {tier} | {E.CLASS_CN[k]} | — | — | {x['access']:.0%} | 0% | **0%** | —（换电在每辆车上都亏，不服务） | — |")
+        t.append(f"| {tier} | **重卡合计**（按车类权重） | | | | | **{tot / sum(cw.values()):.0%}** | | |")
     V["表:分项_三档"] = "\n".join(t)
     c0 = ["| 情景 | 封闭短途：份额／每度电利润 | 干线：份额／每度电利润 | 重卡合计份额 |", "|---|---|---|---|"]
     for tier, cc in scen.items():
@@ -983,10 +983,10 @@ def component_values(config: dict) -> dict[str, str]:
             cells.append(f"{x['market_share']:.0%}／{x['m_kwh']:.3f}" if x["share"] else "0%／—")
         c0.append(f"| {tier} | " + " | ".join(cells) + f" | {tot / sum(cw.values()):.0%} |")
     V["表:分项_对照不计时间"] = "\n".join(c0)
-    ex = ["| 日里程（公里） | 车队最省的充电替代 | 服务费上限／换电站成本（元/度） | 租金上限（谁定）／电池银行成本（元/度） | 每度电利润 | 其中时间差（元/度） | 换电服务吗 |", "|---|---|---|---|---|---|---|"]
+    ex = ["| 日里程（公里） | 这类车占干线的比例 | 车队最省的充电替代（＝服务费的定价者） | 服务费上限／换电站成本（元/度） | 租金上限（定价者）／电池银行成本（元/度） | 每度电利润 | 其中时间差（元/度） | 换电服务吗 |", "|---|---|---|---|---|---|---|---|"]
     trx = E.class_components(config, "trunk")
     for p_ in trx["points"]:
-        ex.append(f"| {p_['km']:.0f} | {names[p_['alt']]} | {p_['fee_cap']:.3f}／{p_['fee_cost']:.3f} | {p_['rent_cap']:.3f}（{p_['alt_rent_src']}）／{p_['rent_cost']:.3f} | "
+        ex.append(f"| {p_['km']:.0f} | {p_['weight']:.1%} | {names[p_['alt']]} | {p_['fee_cap']:.3f}／{p_['fee_cost']:.3f} | {p_['rent_cap']:.3f}（{p_['alt_rent_src']}）／{p_['rent_cost']:.3f} | "
                   f"{p_['m_kwh']:+.3f} | {p_['time_gap_kwh']:.3f} | {'服务' if p_['chosen'] else '不服务（两项利润之和为负）'} |")
     V["算例:分项_干线"] = "\n".join(ex)
     p0 = next(p_ for p_ in trx["points"] if p_["chosen"]) if any(p_["chosen"] for p_ in trx["points"]) else trx["points"][-1]
@@ -997,14 +997,17 @@ def component_values(config: dict) -> dict[str, str]:
     V["分项例_租金上限"] = f"{p0['rent_cap']:.3f}"; V["分项例_银行成本"] = f"{p0['rent_cost']:.3f}"
     V["分项例_利润"] = f"{p0['m_kwh']:.3f}"; V["分项例_租金来源"] = p0["alt_rent_src"]
     V["分项例_替代"] = names[p0["alt"]]
+    V["勾稽_服务比例"] = f"{trx['share']:.0%}"; V["勾稽_可及"] = f"{trx['access']:.0%}"; V["勾稽_份额"] = f"{trx['market_share']:.0%}"
+    V["勾稽_利润"] = f"{trx['m_kwh']:.3f}"
+    V["勾稽_常规占比"] = f"{trx['fee_setter'].get('conventional', 0.0):.0%}"
     # 核心客户：租金定在哪一群车队算得过的位置。定得高，借钱便宜的车队会自己买电池、改买充电车，份额按车队占比打折
     tco = config["tco_jpm"]
     mix = config["fleet_capital_mix"]
-    f = ["| 租金定在谁算得过的位置 | 留下的车队 | 封闭短途：份额／每度电利润 | 干线：份额／每度电利润 | 两类合计：份额 × 每度电利润（相对第一行） |", "|---|---|---|---|---|"]
+    f = ["| 租金定在谁算得过的位置 | 按借钱成本分群，哪几群还选换电 | 封闭短途：份额／每度电利润 | 干线：份额／每度电利润 | 两类合计：份额 × 每度电利润（相对第一行） |", "|---|---|---|---|---|"]
     cw = E.class_weights(config)
-    rows_ = (("fleet_discount_rate_low", "低息群也算得过（借钱 {r}）", 1.0, "全部车队"),
+    rows_ = (("fleet_discount_rate_low", "低息群也算得过（借钱 {r}）", 1.0, "三群都选（份额不打折）"),
              ("fleet_discount_rate_mid", "只有中档、高息群算得过（借钱 {r}；有租赁商时高息群的上限也停在租赁商价，与此同价）",
-              float(mix["mid"]) + float(mix["high"]), "中档与高息群，约 {p}"))
+              float(mix["mid"]) + float(mix["high"]), "只剩中档与高息群，约占车队的 {p}（份额乘这个比例）"))
     base_idx = None
     for key, lab, keep, who in rows_:
         c = _copy.deepcopy(config); c["tco_jpm"]["fleet_discount_rate_low"] = float(tco[key])
@@ -1041,46 +1044,46 @@ def critical_values(config: dict) -> dict[str, str]:
     import critical_density as K
     import equilibrium as E
     V: dict[str, str] = {}
-    e_km = float(config["vehicles"]["heavy"]["scenes"][1]["energy_consumption_kwh_km"])
-    t = ["| 情景 | 站能承受的每度电站成本（元） | 保本利用率 | 保本时每天换电（次） | 保本每站车数（辆） | 站距上限（公里） | 临界密度（每公里通道的换电车） | 相当于每个方向每天经过（辆） | 3 万公里通道合计需要（辆） | 终局最优时每站车数（辆） |",
-         "|---|---|---|---|---|---|---|---|---|---|"]
+    t = ["| 情景 | ① 单站保本：每天换电（次） | ② 筛选线：每方向每天要经过的换电车（辆） | 折成电动重卡（按终局换电份额） | ③ 2030 年 15 万公里网上平均：电动重卡／其中换电车 | 平均线路是筛选线的几倍 | ④ 要建的站：按需求／按铺满／取大 | 平均站距（公里） |",
+         "|---|---|---|---|---|---|---|---|"]
     for tier, cc in E.scenario_configs(config).items():
         k = K.summary(cc)
         if not k.get("ok"):
-            t.append(f"| {tier} | — | — | — | — | {k['spacing']:.0f} | 换电在干线上每辆车都亏，没有保本点 | — | — | — |")
+            t.append(f"| {tier} | 没有保本点（换电在干线上每辆车都亏） | — | — | {k['ev_flow']:,.0f}／0 | — | — | — |")
             continue
-        flow = k["density"] * (k["afford"]["kwh_day"] / e_km) / k["dirs"]
-        t.append(f"| {tier} | {k['afford']['cap']:.3f} | {k['rho']:.0%} | {k['swaps_day']:.0f} | **{k['n_star']:.0f}** | {k['spacing']:.0f} | **{k['density']:.2f}** | {flow:.0f} | {k['national_trucks']:,.0f} | {k['opt_trucks']:.0f} |")
+        t.append(f"| {tier} | {k['swaps_day']:.0f} | **{k['q_star']:.0f}** | {k['ev_flow_star']:,.0f} | {k['ev_flow']:,.0f}／{k['swap_flow']:,.0f} | {k['swap_flow'] / k['q_star']:.1f} | "
+                 f"{k['demand_stations']:,.0f}／{k['cover_stations']:,.0f}／**{k['stations']:,.0f}** | {k['opt_spacing']:.0f} |")
     V["表:临界_三档"] = "\n".join(t)
     k = K.summary(config)
-    a = k["afford"]
-    V["临界_服务费上限"] = f"{a['fee_cap']:.3f}"; V["临界_租金利润"] = f"{a['m_rent']:+.3f}"; V["临界_上限"] = f"{a['cap']:.3f}"
-    V["临界_车日用电"] = f"{a['kwh_day']:.0f}"; V["临界_车日里程"] = f"{a['kwh_day'] / e_km:.0f}"
-    V["临界_工位上限"] = f"{k['lane']:.0f}"; V["临界_每次电量"] = f"{k['e_swap']:.0f}"
-    V["临界_可用里程"] = f"{k['usable_range']:.0f}"; V["临界_预留"] = f"{float(config['critical_density']['range_reserve']):.0%}"
-    V["临界_站距"] = f"{k['spacing']:.0f}"; V["临界_方向"] = f"{k['dirs']:.0f}"
-    V["临界_每公里站"] = f"{k['stations_per_km'] * 100:.2f}"
-    V["临界_电耗"] = f"{e_km:.1f}"
-    V["临界_车上电量"] = f"{float(config['vehicles']['heavy']['scenes'][1]['onboard_battery_kwh']):.0f}"
-    V["临界_可用比例"] = f"{float(config['swap_business']['usable_energy_factor']):.0%}"
+    tr = k["trunk"]
+    cd = config["critical_density"]
+    f = lambda x, d=0: f"{x:,.{d}f}"
+    V.update({"临界_服务费上限": f"{tr['fee_cap']:.3f}", "临界_租金利润": f"{tr['m_rent']:+.3f}", "临界_上限": f"{tr['cap']:.3f}",
+              "临界_工位上限": f(k["lane"]), "临界_每次电量": f(k["e_swap"]), "临界_电耗": f"{k['e_km']:.1f}",
+              "临界_可用里程": f(k["usable_range"]), "临界_预留": f"{float(cd['range_reserve']):.0%}", "临界_站距": f(k["spacing"]),
+              "临界_方向": f(k["dirs"]), "临界_车上电量": f(float(config['vehicles']['heavy']['scenes'][1]['onboard_battery_kwh'])),
+              "临界_可用比例": f"{float(config['swap_business']['usable_energy_factor']):.0%}",
+              "临界_网里程": f(k["L"]), "临界_网运力": f"{float(cd['network_trunk_share']):.0%}", "临界_保有": f(float(cd["ev_heavy_stock_2030_wan"])),
+              "临界_干线车": f(k["trunk_trucks"] / 1e4, 1), "临界_日里程": f(k["km_day"]), "临界_车公里": f(k["veh_km"] / 1e8, 2),
+              "临界_电车流量": f(k["ev_flow"]), "临界_铺满站": f(k["cover_stations"]), "临界_旧站数": f(k["old_stations"]),
+              "临界_旧站距": f(float(cd["old_spacing_km"])), "临界_晋江": f(float(cd["jinjiang_trucks_day"])),
+              "临界_今天车": f(float(cd["today_swap_trucks"])), "临界_今天站": f(float(cd["today_swap_stations"])),
+              "临界_运营天": f(float(config['swap_business']['operating_days']))})
     if k.get("ok"):
-        V["临界_利用率"] = f"{k['rho']:.1%}"; V["临界_换电次数"] = f"{k['swaps_day']:.0f}"
-        V["临界_站日电量"] = f"{k['kwh_day_station']:,.0f}"; V["临界_车数"] = f"{k['n_star']:.0f}"
-        V["临界_密度"] = f"{k['density']:.2f}"; V["临界_全国车"] = f"{k['national_trucks']:,.0f}"; V["临界_全国站"] = f"{k['national_stations']:,.0f}"
-        V["临界_通道"] = f"{float(config['critical_density']['corridor_km_terminal']):,.0f}"
-        V["临界_流量"] = f"{k['density'] * (a['kwh_day'] / e_km) / k['dirs']:.0f}"
-        V["临界_今天每站"] = f"{k['today_per_station']:.0f}"
-        V["临界_今天车"] = f"{float(config['critical_density']['today_swap_trucks']):,.0f}"
-        V["临界_今天站"] = f"{float(config['critical_density']['today_swap_stations']):,.0f}"
-        V["临界_最优利用率"] = f"{k['opt_rho']:.1%}"; V["临界_最优车数"] = f"{k['opt_trucks']:.0f}"
-        V["临界_晋江"] = f"{float(config['critical_density']['jinjiang_trucks_day']):.0f}"
-        rows = ["| 每站来的换电车（辆） | 利用率 | 每度电站成本（元） | 每度电盈亏（元） | 每站每年盈亏（万元） |", "|---|---|---|---|---|"]
+        V.update({"临界_利用率": f"{k['rho']:.1%}", "临界_换电次数": f(k["swaps_day"]), "临界_途中占比": f"{tr['station_share']:.0%}",
+                  "临界_每车每站电量": f(k["per_truck_kwh"]), "临界_筛选线": f(k["q_star"]), "临界_份额": f"{tr['market_share']:.0%}",
+                  "临界_筛选线电车": f(k["ev_flow_star"]), "临界_换电流量": f(k["swap_flow"]), "临界_倍数": f"{k['swap_flow'] / k['q_star']:.1f}",
+                  "临界_临界份额": f"{k['share_star']:.0%}", "临界_最优利用率": f"{k['opt_rho']:.1%}", "临界_最优次数": f(k["opt_swaps"]),
+                  "临界_换电车": f(k["swap_trucks"] / 1e4, 1), "临界_车日用电": f(tr["kwh_day"]), "临界_日换电次数": f(k["swaps_needed"] / 1e4, 1),
+                  "临界_需求站": f(k["demand_stations"]), "临界_站数": f(k["stations"]), "临界_平均站距": f(k["opt_spacing"]),
+                  "临界_电车比": f"{k['ev_flow_star'] / k['ev_flow']:.0%}"})
+        rows = ["| 每方向每天经过的换电车（辆） | 每站每天换电（次） | 利用率 | 每度电站成本（元） | 每度电盈亏（元） | 每站每年盈亏（万元） |", "|---|---|---|---|---|---|"]
         for r in k["loss_rows"]:
-            rows.append(f"| {r['n']} | {r['rho']:.0%} | {r['station_cost']:.3f} | {r['margin']:+.3f} | {r['profit_wan']:+.0f} |")
+            rows.append(f"| {r['q']:.0f} | {r['swaps']:.0f} | {r['rho']:.0%} | {r['station_cost']:.3f} | {r['margin']:+.3f} | {r['profit_wan']:+.0f} |")
         V["表:临界_盈亏"] = "\n".join(rows)
-        l20 = next((r for r in k["loss_rows"] if r["n"] == 20), None)
-        V["临界_20车亏"] = f"{-l20['profit_wan']:.0f}" if l20 else "—"
-        V["临界_覆盖站全亏"] = f"{-l20['profit_wan'] * k['national_stations'] / 1e4:.1f}" if l20 else "—"
+        half = min(k["loss_rows"], key=lambda r: abs(r["q"] - k["q_star"] * 0.5))
+        V["临界_半数亏"] = f(-half["profit_wan"]); V["临界_半数车"] = f(half["q"])
+        V["临界_铺满全亏"] = f"{-half['profit_wan'] * k['cover_stations'] / 1e4:.1f}"
     return V
 
 

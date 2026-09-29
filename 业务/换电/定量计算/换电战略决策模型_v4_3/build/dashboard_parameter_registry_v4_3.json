@@ -2705,8 +2705,18 @@
     "type": "float"
   },
   {
-    "key": "critical_density.corridor_km_terminal",
-    "value": 30000.0,
+    "key": "critical_density.network_km",
+    "value": 150000.0,
+    "type": "float"
+  },
+  {
+    "key": "critical_density.network_trunk_share",
+    "value": 0.8,
+    "type": "float"
+  },
+  {
+    "key": "critical_density.ev_heavy_stock_2030_wan",
+    "value": 160.0,
     "type": "float"
   },
   {
@@ -2722,6 +2732,11 @@
   {
     "key": "critical_density.jinjiang_trucks_day",
     "value": 200.0,
+    "type": "float"
+  },
+  {
+    "key": "critical_density.old_spacing_km",
+    "value": 100.0,
     "type": "float"
   }
 ]

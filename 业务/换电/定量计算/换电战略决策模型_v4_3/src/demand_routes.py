@@ -138,9 +138,16 @@ def scene_route(config: dict, scene_idx: int, route: str, supply: dict | None = 
         f_fast = enroute_kwh / daily_kwh if daily_kwh else 1.0
         eff = 1.0 / (f_fast / crit + (1.0 - f_fast) / (crit * pool_mult))
         bat, life = _battery_year(config, onboard, eff, cycles_year, pack_price(config, "megawatt"))
-    # 夜间那部分电走的设施：充电车在场站慢充（常规快充的站成本），换电车收车前换满（换电站成本）
-    if overnight and route in ("conventional", "megawatt"):
-        station_cost = (enroute_kwh * station_cost + (daily_kwh - enroute_kwh) * supply["optimum"]["conventional"]["station_cost"]) / daily_kwh
+    # 夜间那部分电走的设施：干线单班车夜里停在场站，自己的桩慢充最便宜（常规快充的站成本），充电车与换电车一样
+    # （研究者 2026-09-29：车主比"自家充电桩的成本"与"换电服务费"，夜里没有时间差，换电收不到溢价；DECISIONS 2026-09-29h）。
+    # 换电车夜里那部分电走两者中便宜的：自家桩（常规快充的站成本）或收车前换满（换电站成本）。
+    night_via_swap = False
+    if overnight and route in ("conventional", "megawatt", "swap"):
+        conv = supply["optimum"]["conventional"]["station_cost"]
+        night = conv
+        if route == "swap" and station_cost < conv:
+            night, night_via_swap = station_cost, True
+        station_cost = (enroute_kwh * station_cost + (daily_kwh - enroute_kwh) * night) / daily_kwh
     tv = time_value(config, scene_idx)
     time_cost = stop_h_day * days * tv["w"]
     facility = station_cost * kwh_year
@@ -148,7 +155,8 @@ def scene_route(config: dict, scene_idx: int, route: str, supply: dict | None = 
     return {"scene": sc["name"], "route": route, "daily_kwh": daily_kwh, "sessions_day": sessions_day, "enroute_kwh": enroute_kwh,
             "session_min": session_h * 60.0, "absorbed_min": absorbed_h * 60.0, "stop_h_day": stop_h_day,
             "battery_life": life, "facility_wan": facility / 1e4, "battery_wan": bat / 1e4, "time_wan": time_cost / 1e4,
-            "extra_wan": extra / 1e4, "total_wan": total / 1e4, "w": tv["w"]}
+            "extra_wan": extra / 1e4, "total_wan": total / 1e4, "w": tv["w"],
+            "station_share": (1.0 if (not overnight or night_via_swap) else enroute_kwh / daily_kwh) if daily_kwh else 1.0}
 
 
 def summary(config: dict) -> dict:

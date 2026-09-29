@@ -3793,14 +3793,17 @@ depot_station_wan = 140.0                # 迷你站不含电池 100 万以内�
 depot_trucks_served = 20.0               # 服务 10–30 车取中（src.sany_mini_2023）
 depot_spare_sets = 1.0                   # 每车多备一套电池
 
-# ----【2026-09-29g】换电网络的临界密度（口径/换电网络_临界密度.md；不进主链读数）----
+# ----【2026-09-29g/h】换电网络的临界密度（口径/换电网络_临界密度.md；不进主链读数）----
 [critical_density]
 range_reserve = 0.25            # 站距上限 ＝ 满电可用里程 ×（1 − 预留）：车任何时候决定去换电，都要能开到下一座站，还留四分之一电应对堵车、绕路（声明值）
 directions = 2.0                # 高速两侧各建一座（服务区成对），每侧只服务本方向（声明值）
-corridor_km_terminal = 30000.0  # 2030 年零碳货运通道约 3 万公里（src.mot_52_plan）
+network_km = 150000.0           # 宁德 2030 年"八横十纵"：高速及国省道干线 15 万公里，覆盖全国 80% 干线运力（src.catl_qiji_launch_202505）
+network_trunk_share = 0.80      # 同上：这 15 万公里承载全国干线运力的 80%
+ev_heavy_stock_2030_wan = 160.0 # 2030 年新能源重卡保有量约 160 万辆（src.mot_52_plan）
 today_swap_trucks = 70000.0     # 2025 年 8 月：全国重卡换电站约 1,400 座、服务 7 万余辆车（src.cav_swap_why_202508）
 today_swap_stations = 1400.0
 jinjiang_trucks_day = 200.0     # 晋江骐骥站设计日均服务近 200 辆（src.jinjiang_gov_2026），只作核对
+old_spacing_km = 100.0          # 旧算法：每百公里一站、双向（15 万 × 2 ÷ 100 ＝ 3,000 座），只作对照
 
 # ----【2026-09-28m】供给层与需求层的三档（A3/A4 参数进情景轴；主链尚未读这些参数，读数不受影响）----
 [drivers.mw_station_scale]

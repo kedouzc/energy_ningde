@@ -184,7 +184,7 @@ def component_point(config: dict, scene_idx: int, sup: dict, lessor: bool = True
             "m_fee": m_fee / kwh_year, "m_rent": m_rent / kwh_year, "m_kwh": (m_fee + m_rent) / kwh_year,
             "m_wan": (m_fee + m_rent) / 1e4, "served": served, "prefers": prefers, "chosen": served and prefers,
             "time_swap_wan": sw["time_wan"] + sw["extra_wan"], "time_alt_wan": a["time"] / 1e4,
-            "swap_life": sw["battery_life"], "alt_life": rows[ak]["battery_life"]}
+            "swap_life": sw["battery_life"], "alt_life": rows[ak]["battery_life"], "station_share": sw["station_share"]}
 
 
 def class_components(config: dict, cls: str, basis: str = "optimal", lessor: bool = True, time_premium: bool = True) -> dict:
@@ -221,7 +221,8 @@ def class_components(config: dict, cls: str, basis: str = "optimal", lessor: boo
             "served_share": sum(p["weight"] for p in pts if p["served"]),
             "fee_cap": avg("fee_cap", ch), "fee_cost": avg("fee_cost", ch), "rent_cap": avg("rent_cap", ch), "rent_cost": avg("rent_cost", ch),
             "m_fee": avg("m_fee", ch), "m_rent": avg("m_rent", ch), "m_kwh": avg("m_kwh", ch),
-            "m_wan": sum(p["weight"] * p["m_wan"] for p in ch) / share if share else 0.0, "kwh_w": ekwh}
+            "m_wan": sum(p["weight"] * p["m_wan"] for p in ch) / share if share else 0.0, "kwh_w": ekwh,
+            "station_share": avg("station_share", ch)}
 
 
 def leakage_margin(res: dict, leak: float) -> float:

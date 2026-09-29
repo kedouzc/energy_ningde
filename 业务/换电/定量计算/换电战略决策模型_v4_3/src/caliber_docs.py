@@ -956,8 +956,8 @@ def component_values(config: dict) -> dict[str, str]:
     V: dict[str, str] = {}
     names = {"conventional": "常规快充", "megawatt": "兆瓦超充"}
     scen = E.scenario_configs(config)
-    MODES = ((False, "时间优势留给车队（现行）"), (True, "换电在服务费上收走时间差"))
-    t = ["| 情景 | 时间优势 | 封闭短途：可及范围内选换电／份额／每度电利润（服务费＋租金） | 干线：同左 | 重卡合计份额 |", "|---|---|---|---|---|"]
+    MODES = ((True, "服务费含时间差（已定）"), (False, "对照：只跟平、不计时间差"))
+    t = ["| 情景 | 服务费上限 | 封闭短途：可及范围内选换电／份额／每度电利润（服务费＋租金） | 干线：同左 | 重卡合计份额 |", "|---|---|---|---|---|"]
     for tier, cc in scen.items():
         cw = E.class_weights(cc)
         for tp, lab in MODES:
@@ -977,6 +977,8 @@ def component_values(config: dict) -> dict[str, str]:
     p0 = next(p_ for p_ in trx["points"] if p_["chosen"]) if any(p_["chosen"] for p_ in trx["points"]) else trx["points"][-1]
     V["分项例_里程"] = f"{p0['km']:.0f}"
     V["分项例_服务费上限"] = f"{p0['fee_cap']:.3f}"; V["分项例_站成本"] = f"{p0['fee_cost']:.3f}"
+    V["分项例_基础服务费"] = f"{p0['fee_base']:.3f}"; V["分项例_时间差"] = f"{p0['time_gap_kwh']:.3f}"
+    V["分项例_时间差万"] = f"{p0['time_alt_wan'] - p0['time_swap_wan']:.2f}"; V["分项例_年用电"] = f"{p0['kwh_year']:,.0f}"
     V["分项例_租金上限"] = f"{p0['rent_cap']:.3f}"; V["分项例_银行成本"] = f"{p0['rent_cost']:.3f}"
     V["分项例_利润"] = f"{p0['m_kwh']:.3f}"; V["分项例_租金来源"] = p0["alt_rent_src"]
     V["分项例_替代"] = names[p0["alt"]]

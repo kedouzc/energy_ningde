@@ -125,11 +125,11 @@ def scenario_configs(config: dict) -> dict:
 
 # ---------------------------------------------------------------------------
 # 分项跟平（2026-09-29e，已定判断第 1、2、3、7 条）：账单账口径
-# 服务费：上限 ＝ 车队最省的充电替代的每度电站成本（途中那部分按兆瓦或常规、夜里按常规慢充，与资源账同一设施口径）；
+# 服务费：上限 ＝ 车队最省的充电替代的每度电站成本（途中那部分按兆瓦或常规、夜里按常规慢充，与资源账同一设施口径）＋ 时间差；
 #         换电成本 ＝ 换电站每度电成本（含站内周转电池）。
 # 租金：  上限 ＝ 替代路线车上电池的持有成本（含购置税），有租赁商时取 min（租赁商保本，低息车队自买），没有时取低息车队自买；
 #         换电成本 ＝ 电池银行持有车上那块换电包（不交购置税、池里慢充延寿），资金按 WACC。
-# 换电服务这辆车 ＝ 两项利润之和 > 0；车队选换电 ＝ 价格跟平后，换电车自己承担的时间 ＋ 车端溢价不高于充电替代。
+# 换电服务这辆车 ＝ 两项利润之和 > 0；车队选换电 ＝ 换电车自己承担的时间 ＋ 车端溢价不高于充电替代（价格到上限时车队两边一样，按选换电计）。
 # 电费各家同价，不列。
 # ---------------------------------------------------------------------------
 LESSOR_STATES = (True, False)
@@ -141,7 +141,7 @@ def _rent_year(config: dict, kwh: float, kind: str, life: float, rate: float, ta
     return 12.0 * battery_hold_month(kwh, DR.pack_price(config, kind), tax, rate, life, resale, hold, sale_price_ratio(config, life))
 
 
-def component_point(config: dict, scene_idx: int, sup: dict, lessor: bool = True, time_premium: bool = False) -> dict:
+def component_point(config: dict, scene_idx: int, sup: dict, lessor: bool = True, time_premium: bool = True) -> dict:
     from derived import fleet_resale_ratio, retirement_recovery_ratio
     tco = config["tco_jpm"]
     sc = config["vehicles"]["heavy"]["scenes"][scene_idx]
@@ -169,7 +169,8 @@ def component_point(config: dict, scene_idx: int, sup: dict, lessor: bool = True
     sw = rows["swap"]
     s_fee = sw["facility_wan"] * 1e4
     s_rent = _rent_year(config, kwh_bat, "swap", sw["battery_life"], r_bank, 0.0, bank_res, pool_hold)
-    # 时间差：车队走充电替代比走换电多花的时间与车端溢价（元/年）。time_premium＝True 时换电在服务费上收走它（待研究者定，DECISIONS 2026-09-29e）
+    # 时间差：车队走充电替代比走换电多花的时间与车端溢价（元/年，与车队总账同一笔时间账）。服务费上限 ＝ 充电服务费 ＋ 时间差（已定判断第 2 条，DECISIONS 2026-09-29f）；
+    # 对手为兆瓦超充时时间差约为零，即跟平。time_premium＝False 只作对照。
     dt = a["time"] - (sw["time_wan"] + sw["extra_wan"]) * 1e4
     prem = max(0.0, dt) if time_premium else 0.0
     m_fee, m_rent = a["fee"] + prem - s_fee, a["rent"] - s_rent
@@ -186,7 +187,7 @@ def component_point(config: dict, scene_idx: int, sup: dict, lessor: bool = True
             "swap_life": sw["battery_life"], "alt_life": rows[ak]["battery_life"]}
 
 
-def class_components(config: dict, cls: str, basis: str = "optimal", lessor: bool = True, time_premium: bool = False) -> dict:
+def class_components(config: dict, cls: str, basis: str = "optimal", lessor: bool = True, time_premium: bool = True) -> dict:
     """一类车的分项跟平均衡：逐车（里程分布）算两项上限、两项换电成本、利润与是否被选。"""
     sup = supply_for(config, basis)
     scenes = config["vehicles"]["heavy"]["scenes"]

@@ -170,7 +170,7 @@ def cost_at(config: dict, key: str, rho: float, w: float | None = None) -> dict:
         e_session = float(R["pile_kw"]) * float(S["charge_power_factor"]) * s_h
         hours = float(S["charge_operating_hours"])
         sessions_day = cpiles * rho * hours / s_h
-        kwh_year = sessions_day * e_session * 365.0
+        kwh_year = sessions_day * e_session * float(config["swap_business"]["operating_days"])   # 与换电同：站一年卖的电按车一年跑的天数算
         wq_h = mgc_wait_hours(cpiles, rho, s_h, float(S["charge_service_cv"]))
         qn = mgc_queue_at_level(cpiles, rho, lvl)
         feasible = True
@@ -212,8 +212,39 @@ def planner_optimum(config: dict, key: str, w: float | None = None) -> dict:
     return cost_at(config, key, (lo_ + hi_) / 2, w)
 
 
+def depot_cost(config: dict, trucks: float | None = None) -> dict:
+    """车队自建场站夜里充电的每度电成本（元/度）。用常规快充的桩与电气（同一套单价），按车队规模配桩：
+    每根桩一夜能充几辆 ＝ 夜里停车窗口 ÷ 每辆充满要的时长；桩数 ＝ 车数 ÷ 每桩车数（向上取整）；箱变按桩数折算、外线接入每站固定。
+    自家场地不另计场租（停车场本来就要有），不另计值守人工（车队自己的人）；只算设备、电气、土建硬化的资本回收、运维、保险与电损。"""
+    import math as _m
+    S = config["supply_routes"]; R = S["conventional"]; D = config["demand_routes"]
+    r = float(config["finance"]["wacc"])
+    trucks = float(D["depot_fleet_trucks"]) if trucks is None else float(trucks)
+    e_truck = float(config["vehicles"]["heavy"]["scenes"][1]["onboard_battery_kwh"]) * float(config["swap_business"]["usable_energy_factor"])
+    p_avg = float(R["pile_kw"]) * float(S["charge_power_factor"])
+    per_pile = max(1, int(float(D["night_window_hours"]) // (e_truck / p_avg)))
+    piles = max(1, _m.ceil(trucks / per_pile))
+    share = piles / float(R["piles"])                      # 相对标准常规站的规模
+    kva = float(R["kva"]) * share
+    transformer = kva * float(S["transformer_rmb_per_kva"]) / 1e4 + max(1, _m.ceil(share * int(R["transformer_units"]))) * float(S["cabinet_wan_per_unit"])
+    external = float(S["external_line_wan"])
+    power_kw = float(R["pile_kw"]) * piles
+    cable = power_kw * float(S["cable_rmb_per_kw"]) / 1e4
+    area = piles * float(S["bay_width_m"]) * (float(S["bay_length_m"]) + 2 * float(S["end_aisle_m"])) + float(S["charge_equipment_pad_m2"])
+    civil = area * float(S["civil_rmb_per_m2"]) / 1e4
+    equipment = float(R["equipment_wan"]) * share
+    capex = equipment + transformer + external + cable + civil
+    capital = equipment * _crf(r, float(S["equipment_life_years"])) + (transformer + external + cable + civil) * _crf(r, float(S["infra_life_years"]))
+    om = float(R["om_rate"]) * capex
+    insurance = float(S["insurance_rate"]) * capex
+    kwh_year = trucks * e_truck * float(config["swap_business"]["operating_days"])
+    loss = float(config["charging_station"]["loss_rate"]) * _power_price(config)
+    return {"trucks": trucks, "piles": piles, "per_pile": per_pile, "capex_wan": capex, "fixed_wan": capital + om + insurance,
+            "kwh_year": kwh_year, "cost": (capital + om + insurance) * 1e4 / kwh_year + loss}
+
+
 def summary(config: dict) -> dict:
     w = provisional_wait_cost(config)
     return {"w": w, "stations": {k: station(config, k) for k in ROUTES},
             "optimum": {k: planner_optimum(config, k, w) for k in ROUTES},
-            "swap_constraints": swap_constraints(config)}
+            "swap_constraints": swap_constraints(config), "depot": depot_cost(config)}

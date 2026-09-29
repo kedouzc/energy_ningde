@@ -66,7 +66,7 @@ def _battery_year(config: dict, kwh: float, life_cycles: float, cycles_year: flo
     return (cap - salvage) * _crf(r, life), life
 
 
-def scene_route(config: dict, scene_idx: int, route: str, supply: dict | None = None) -> dict:
+def scene_route(config: dict, scene_idx: int, route: str, supply: dict | None = None, night: str = "public") -> dict:
     D = config["demand_routes"]
     sc = config["vehicles"]["heavy"]["scenes"][scene_idx]
     supply = supply or SR.summary(config)
@@ -138,16 +138,19 @@ def scene_route(config: dict, scene_idx: int, route: str, supply: dict | None = 
         f_fast = enroute_kwh / daily_kwh if daily_kwh else 1.0
         eff = 1.0 / (f_fast / crit + (1.0 - f_fast) / (crit * pool_mult))
         bat, life = _battery_year(config, onboard, eff, cycles_year, pack_price(config, "megawatt"))
-    # 夜间那部分电走的设施：干线单班车夜里停在场站，自己的桩慢充最便宜（常规快充的站成本），充电车与换电车一样
-    # （研究者 2026-09-29：车主比"自家充电桩的成本"与"换电服务费"，夜里没有时间差，换电收不到溢价；DECISIONS 2026-09-29h）。
-    # 换电车夜里那部分电走两者中便宜的：自家桩（常规快充的站成本）或收车前换满（换电站成本）。
+    # 夜间那部分电（干线单班车夜里停着，没有时间差）走最便宜的地方（研究者 2026-09-29，DECISIONS 2026-09-29h、2026-09-29i）：
+    #   散户（零售）：公共常规快充站（按其最优利用率的站成本）；重卡司机多数没有固定车位，不像私家车能在自家车位装桩；
+    #   签长协的车队（批发）：公共站与自建场站（supply_routes.depot_cost）取便宜的。
+    #   换电车若换电站比上面更便宜，收车前去换满。充电车与换电车夜里的选项相同。
     night_via_swap = False
+    night_cost = supply["optimum"]["conventional"]["station_cost"]
+    if night == "depot":
+        night_cost = min(night_cost, supply["depot"]["cost"])
     if overnight and route in ("conventional", "megawatt", "swap"):
-        conv = supply["optimum"]["conventional"]["station_cost"]
-        night = conv
-        if route == "swap" and station_cost < conv:
-            night, night_via_swap = station_cost, True
-        station_cost = (enroute_kwh * station_cost + (daily_kwh - enroute_kwh) * night) / daily_kwh
+        night_c = night_cost
+        if route == "swap" and station_cost < night_cost:
+            night_c, night_via_swap = station_cost, True
+        station_cost = (enroute_kwh * station_cost + (daily_kwh - enroute_kwh) * night_c) / daily_kwh
     tv = time_value(config, scene_idx)
     time_cost = stop_h_day * days * tv["w"]
     facility = station_cost * kwh_year
@@ -156,7 +159,8 @@ def scene_route(config: dict, scene_idx: int, route: str, supply: dict | None = 
             "session_min": session_h * 60.0, "absorbed_min": absorbed_h * 60.0, "stop_h_day": stop_h_day,
             "battery_life": life, "facility_wan": facility / 1e4, "battery_wan": bat / 1e4, "time_wan": time_cost / 1e4,
             "extra_wan": extra / 1e4, "total_wan": total / 1e4, "w": tv["w"],
-            "station_share": (1.0 if (not overnight or night_via_swap) else enroute_kwh / daily_kwh) if daily_kwh else 1.0}
+            "station_share": (1.0 if (not overnight or night_via_swap) else enroute_kwh / daily_kwh) if daily_kwh else 1.0,
+            "night_cost": night_cost, "night_kwh": (daily_kwh - enroute_kwh) if overnight else 0.0, "night_via_swap": night_via_swap}
 
 
 def summary(config: dict) -> dict:

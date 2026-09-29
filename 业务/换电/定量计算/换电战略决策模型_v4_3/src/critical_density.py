@@ -15,13 +15,28 @@ import supply_routes as SR
 
 
 def _trunk(config: dict) -> dict:
-    x = E.class_components(config, "trunk")
-    pts = [p for p in x["points"] if p["chosen"]]
+    """干线换电车（批发与零售合起来）：站能承受的每度电成本、每车每天用电、途中换电占比、份额。"""
+    x = E.class_market(config, "trunk")
     days = float(config["swap_business"]["operating_days"])
-    w = sum(p["weight"] for p in pts)
-    kwh_day = sum(p["weight"] * p["kwh_year"] for p in pts) / w / days if w else 0.0
+    c = x["contract_share"]
+    num = den = 0.0
+    for seg, f in ((x["contract"], c), (x["retail"], 1.0 - c)):
+        for p in seg["points"]:
+            if p["chosen"]:
+                num += f * p["weight"] * p["kwh_year"]; den += f * p["weight"]
+    kwh_day = num / den / days if den else 0.0
+    # 按日里程分组：中途、长途各自途中换多少（研究者 2026-09-29：先按分布逐车算，再按构成加权，不先平均里程）
+    groups: dict = {}
+    for seg, f in ((x["contract"], c), (x["retail"], 1.0 - c)):
+        for p in seg["points"]:
+            if not p["chosen"]:
+                continue
+            g = groups.setdefault(p["scene"], {"w": 0.0, "kwh": 0.0, "st": 0.0, "km": 0.0})
+            g["w"] += f * p["weight"]; g["kwh"] += f * p["weight"] * p["kwh_year"] / days
+            g["st"] += f * p["weight"] * p["st_kwh"] / days; g["km"] += f * p["weight"] * p["km"]
     return {"cap": x["fee_cap"] + x["m_rent"], "fee_cap": x["fee_cap"], "m_rent": x["m_rent"], "kwh_day": kwh_day,
-            "station_share": x["station_share"], "share": x["share"], "access": x["access"], "market_share": x["market_share"]}
+            "station_share": x["station_share"], "share": x["share"], "access": x["access"], "market_share": x["market_share"],
+            "groups": groups}
 
 
 def station_cost(config: dict, rho: float, w: float) -> float:
@@ -55,17 +70,20 @@ def summary(config: dict) -> dict:
     spacing = usable_range * (1.0 - float(cd["range_reserve"]))
     dirs = float(cd["directions"])
     L = float(cd["network_km"])
-    days = float(config["swap_business"]["operating_days"])
     out = {"trunk": tr, "w": w, "lane": c["lane"], "e_swap": c["e_swap"], "e_km": e_km, "usable_range": usable_range,
            "spacing": spacing, "dirs": dirs, "L": L}
-    # ③ 线路上的车：2030 年电动重卡里跑干线的，按日里程与运营天折成每天的车公里；80% 跑在这 15 万公里上
-    trunk_w = sum(float(s["weight"]) for s in scenes[1:])
-    trunk_trucks = float(cd["ev_heavy_stock_2030_wan"]) * 1e4 * trunk_w
-    km_day = sum(float(s["weight"]) * float(s["daily_km"]) for s in scenes[1:]) / trunk_w
-    veh_km = trunk_trucks * km_day * days / 365.0 * float(cd["network_trunk_share"])
-    ev_flow = veh_km / L / dirs                       # 每个方向每天经过某一点的电动重卡
+    # ③ 线路上的车：2030 年纯电重卡（车辆与站数推算：2026–2030 逐年新车 × 电动化率 × 纯电占比之和，不含 2025 年以前的存量）里跑干线的，
+    #    按日里程折成每个运营日的车公里；网承载的干线运力占比那部分跑在这张网上。以下"每天"都指运营日。
+    import scale as _S
+    h = config["vehicles"]["heavy"]
+    ev_heavy = sum(_S._annual_ev_wan(h, i, {}) for i in range(len(h["nev_rates"]))) * 1e4
+    trunk_w = sum(float(sc["weight"]) for sc in scenes[1:])
+    trunk_trucks = ev_heavy * trunk_w
+    km_day = sum(float(sc["weight"]) * float(sc["daily_km"]) for sc in scenes[1:]) / trunk_w
+    veh_km = trunk_trucks * km_day * float(cd["network_trunk_share"])
+    ev_flow = veh_km / L / dirs                       # 每个方向每天经过某一点的纯电重卡
     swap_flow = ev_flow * tr["market_share"]
-    out.update(trunk_trucks=trunk_trucks, km_day=km_day, veh_km=veh_km, ev_flow=ev_flow, swap_flow=swap_flow,
+    out.update(ev_heavy=ev_heavy, trunk_trucks=trunk_trucks, km_day=km_day, veh_km=veh_km, ev_flow=ev_flow, swap_flow=swap_flow,
                cover_stations=dirs * L / spacing, old_stations=dirs * L / float(cd["old_spacing_km"]))
     rho = breakeven_rho(config, tr["cap"], w) if tr["kwh_day"] else None
     out["rho"] = rho
@@ -81,9 +99,9 @@ def summary(config: dict) -> dict:
     opt = SR.planner_optimum(config, "swap", w)
     opt_swaps = c["lane"] * opt["rho"]
     swap_trucks = trunk_trucks * tr["market_share"] * float(cd["network_trunk_share"])
-    swaps_needed = swap_trucks * tr["kwh_day"] * tr["station_share"] / c["e_swap"] * days / 365.0
+    swaps_needed = swap_trucks * tr["kwh_day"] * tr["station_share"] / c["e_swap"]
     demand_stations = swaps_needed / opt_swaps
-    out.update(ok=True, swaps_day=swaps, per_truck_kwh=per_truck_kwh, q_star=q_star, ev_flow_star=q_star / tr["market_share"],
+    out.update(ok=True, swaps_day=swaps, per_truck_kwh=per_truck_kwh, q_star=q_star,
                share_star=q_star / ev_flow, opt_rho=opt["rho"], opt_swaps=opt_swaps, swap_trucks=swap_trucks,
                swaps_needed=swaps_needed, demand_stations=demand_stations, stations=max(demand_stations, out["cover_stations"]),
                opt_spacing=dirs * L / max(demand_stations, out["cover_stations"]),

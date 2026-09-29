@@ -568,7 +568,7 @@
         "catl_swap_share": 0.8,
         "daily_km": 400.0,
         "onboard_battery_kwh": 513.0,
-        "energy_consumption_kwh_km": 1.7
+        "energy_consumption_kwh_km": 1.4
       },
       {
         "name": "长途",
@@ -578,7 +578,7 @@
         "catl_swap_share": 0.8,
         "daily_km": 650.0,
         "onboard_battery_kwh": 513.0,
-        "energy_consumption_kwh_km": 1.7
+        "energy_consumption_kwh_km": 1.4
       }
     ],
     "type": "list"
@@ -1018,7 +1018,7 @@
   },
   {
     "key": "stations.qiji75_short.planning_daily_capacity",
-    "value": 146.0,
+    "value": 144.0,
     "type": "float"
   },
   {
@@ -1058,7 +1058,7 @@
   },
   {
     "key": "stations.qiji75_trunk.planning_daily_capacity",
-    "value": 146.0,
+    "value": 144.0,
     "type": "float"
   },
   {
@@ -1379,12 +1379,12 @@
   },
   {
     "key": "swap_business.battery_rent_rmb_kwh_month",
-    "value": 7.566,
+    "value": 6.6017,
     "type": "float"
   },
   {
     "key": "swap_business.battery_rent_per_kwh_rmb",
-    "value": 0.1711,
+    "value": 0.1818,
     "type": "float"
   },
   {
@@ -2692,6 +2692,21 @@
   {
     "key": "demand_routes.depot_spare_sets",
     "value": 1.0,
+    "type": "float"
+  },
+  {
+    "key": "demand_routes.night_window_hours",
+    "value": 10.0,
+    "type": "float"
+  },
+  {
+    "key": "demand_routes.depot_fleet_trucks",
+    "value": 48.0,
+    "type": "float"
+  },
+  {
+    "key": "pricing_segments.contract_share",
+    "value": 0.25,
     "type": "float"
   },
   {

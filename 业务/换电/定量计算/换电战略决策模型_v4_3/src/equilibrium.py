@@ -68,11 +68,39 @@ def class_equilibrium(config: dict, cls: str, basis: str = "optimal") -> dict:
             pts.append({"scene": scene_idx, "km": float(sc["daily_km"]), "weight": ww, "winner": best["route"], "second": second["route"],
                         "swap": rows["swap"]["total_wan"], "best_total": best["total_wan"], "second_total": second["total_wan"],
                         "margin_wan": mg, "margin_kwh": mg * 1e4 / kwh_year if win else 0.0, "rows": rows})
+    # 统一价（研究者 2026-09-29）：价格由充电体系内部竞争定下——每辆车的充电替代（兆瓦或常规，取它最省的那条）
+    # 折成"车队愿付给换电的整包价"（不含电费）＝（替代的全年资源账 − 换电车自己承担的时间与车端溢价）÷ 年用电；
+    # 这一类车的价 ＝ 这些值按电量加权的平均；换电跟随这个价，只服务自己成本低于这个价的车。
+    num = den = 0.0
+    alt_mix: dict = {}
+    for p in pts:
+        sr = p["rows"]["swap"]
+        kwh = sr["daily_kwh"] * float(config["swap_business"]["operating_days"])
+        alts = {k: v for k, v in p["rows"].items() if k != "swap"}
+        ak = min(alts, key=lambda k: alts[k]["total_wan"])
+        p["alt"] = ak
+        p["wtp_kwh"] = (alts[ak]["total_wan"] - sr["time_wan"] - sr["extra_wan"]) * 1e4 / kwh
+        p["swap_cost_kwh"] = (sr["facility_wan"] + sr["battery_wan"]) * 1e4 / kwh
+        p["kwh"] = kwh
+        num += p["weight"] * kwh * p["wtp_kwh"]; den += p["weight"] * kwh
+        alt_mix[ak] = alt_mix.get(ak, 0.0) + p["weight"] * kwh
+    price = num / den if den else 0.0
+    u_share = u_mw = u_kwh = u_cost = 0.0
+    for p in pts:
+        p["served"] = p["swap_cost_kwh"] < price
+        if p["served"]:
+            u_share += p["weight"]
+            u_kwh += p["weight"] * p["kwh"]
+            u_cost += p["weight"] * p["kwh"] * p["swap_cost_kwh"]
+    u_cost_kwh = u_cost / u_kwh if u_kwh else 0.0
     return {"share": share, "margin_wan": margin_w / share if share else 0.0,
             "margin_kwh": margin_kwh_w / share if share else 0.0,
             "price_kwh": price_w / share if share else 0.0, "cost_kwh": cost_w / share if share else 0.0,
             "setters": {k: v / share for k, v in setters.items()} if share else {},
             "access": access_w, "market_share": access_w * share,
+            "u_price": price, "u_alt_mix": {k: v / den for k, v in alt_mix.items()} if den else {},
+            "u_share": u_share, "u_cost_kwh": u_cost_kwh, "u_margin_kwh": price - u_cost_kwh if u_kwh else 0.0,
+            "u_market_share": access_w * u_share,
             "points": sorted(pts, key=lambda p: p["km"])}
 
 

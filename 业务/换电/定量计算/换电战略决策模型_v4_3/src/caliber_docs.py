@@ -890,30 +890,24 @@ def equilibrium_values(config: dict) -> dict[str, str]:
     V["表:均衡_结果"] = "\n".join(r)
     # 交给财务的数：价格按谁定、整包价、成本、利润厚度、可及比例、赢的比例、份额
     tr_pts = E.class_equilibrium(config, "trunk")["points"]
-    fin = ["| 情景 | 车类 | 价格由谁定（第二名构成） | 整包价（元/度，不含电费） | 换电成本（元/度） | 利润厚度（元/度） | 可及比例 | 可及范围内赢的比例 | 份额（占该类电动重卡） |",
+    fin = ["| 情景 | 车类 | 定价者（车队的充电替代，按电量构成） | 整包价（元/度，不含电费） | 换电成本（元/度，服务到的车） | 利润厚度（元/度） | 可及比例 | 可及范围内换电服务到的比例 | 份额（占该类电动重卡） |",
            "|---|---|---|---|---|---|---|---|---|"]
     for tier, cc in scen.items():
         tot_w = tot_s = 0.0
         cw = E.class_weights(cc)
         for k in ("short", "trunk"):
             x = E.class_equilibrium(cc, k)
-            st_ = "、".join(f"{names[r_]} {v:.0%}" for r_, v in sorted(x["setters"].items(), key=lambda kv: -kv[1])) or "—（换电不赢）"
-            fin.append(f"| {tier} | {E.CLASS_CN[k]} | {st_} | {x['price_kwh']:.3f} | {x['cost_kwh']:.3f} | {x['margin_kwh']:.3f} | {x['access']:.0%} | {x['share']:.0%} | **{x['market_share']:.0%}** |")
-            tot_w += cw[k]; tot_s += cw[k] * x["market_share"]
+            st_ = "、".join(f"{names[r_]} {v:.0%}" for r_, v in sorted(x["u_alt_mix"].items(), key=lambda kv: -kv[1]))
+            cost_s = f"{x['u_cost_kwh']:.3f}" if x["u_share"] else "—（成本都高于价，不服务）"
+            fin.append(f"| {tier} | {E.CLASS_CN[k]} | {st_} | {x['u_price']:.3f} | {cost_s} | {x['u_margin_kwh']:.3f} | {x['access']:.0%} | {x['u_share']:.0%} | **{x['u_market_share']:.0%}** |")
+            tot_w += cw[k]; tot_s += cw[k] * x["u_market_share"]
         fin.append(f"| {tier} | **重卡合计**（按车类权重） | | | | | | | **{tot_s / tot_w:.0%}** |")
-    # 算例：干线一辆车
-    ptk = [p_ for p_ in tr_pts if p_["winner"] == "swap"]
-    pk = min(ptk, key=lambda p_: abs(p_["km"] - 480)) if ptk else None
-    if pk:
-        sr = pk["rows"]["swap"]; kwh = pk["rows"]["swap"]["daily_kwh"] * float(config["swap_business"]["operating_days"])
-        V["算例:均衡_价格"] = "\n".join([
-            f"干线日跑 {pk['km']:.0f} 公里的车：年用电 {pk['rows']['swap']['daily_kwh']:.0f} × {float(config['swap_business']['operating_days']):.0f} ＝ {kwh/1e4:.2f} 万度",
-            f"第二名（{names[pk['second']]}）全年资源账 {pk['second_total']:.2f} 万；换电车自己承担的时间 {sr['time_wan']:.2f} 万、车端溢价 {sr['extra_wan']:.2f} 万",
-            f"整包价上限 ＝（{pk['second_total']:.2f} − {sr['time_wan']:.2f} − {sr['extra_wan']:.2f}）万 ÷ {kwh/1e4:.2f} 万度 ＝ {(pk['second_total']-sr['time_wan']-sr['extra_wan'])/(kwh/1e4):.3f} 元/度",
-            f"换电成本 ＝（补能设施 {sr['facility_wan']:.2f} ＋ 电池 {sr['battery_wan']:.2f}）万 ÷ {kwh/1e4:.2f} 万度 ＝ {(sr['facility_wan']+sr['battery_wan'])/(kwh/1e4):.3f} 元/度；利润厚度 ＝ {pk['margin_kwh']:.3f} 元/度",
-        ])
-    else:
-        V["算例:均衡_价格"] = "中性情景下干线换电不赢，无算例"
+    trx = E.class_equilibrium(config, "trunk")
+    ex2 = ["| 日里程（公里） | 车队最省的充电替代 | 车队愿付给换电的整包价（元/度） | 换电自己的成本（元/度） | 换电服务吗 |", "|---|---|---|---|---|"]
+    for p_ in trx["points"]:
+        ex2.append(f"| {p_['km']:.0f} | {names[p_['alt']]} | {p_['wtp_kwh']:.3f} | {p_['swap_cost_kwh']:.3f} | {'服务' if p_['served'] else '不服务（成本高于价）'} |")
+    V["算例:均衡_统一价"] = "\n".join(ex2)
+    V["均衡_干线价"] = f"{trx['u_price']:.3f}"
     V["表:均衡_给财务"] = "\n".join(fin)
     tr = E.class_equilibrium(config, "trunk")
     sh = E.class_equilibrium(config, "short")

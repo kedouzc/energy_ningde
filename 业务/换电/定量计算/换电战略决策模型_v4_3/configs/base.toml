@@ -3793,6 +3793,15 @@ depot_station_wan = 140.0                # 迷你站不含电池 100 万以内�
 depot_trucks_served = 20.0               # 服务 10–30 车取中（src.sany_mini_2023）
 depot_spare_sets = 1.0                   # 每车多备一套电池
 
+# ----【2026-09-29g】换电网络的临界密度（口径/换电网络_临界密度.md；不进主链读数）----
+[critical_density]
+range_reserve = 0.25            # 站距上限 ＝ 满电可用里程 ×（1 − 预留）：车任何时候决定去换电，都要能开到下一座站，还留四分之一电应对堵车、绕路（声明值）
+directions = 2.0                # 高速两侧各建一座（服务区成对），每侧只服务本方向（声明值）
+corridor_km_terminal = 30000.0  # 2030 年零碳货运通道约 3 万公里（src.mot_52_plan）
+today_swap_trucks = 70000.0     # 2025 年 8 月：全国重卡换电站约 1,400 座、服务 7 万余辆车（src.cav_swap_why_202508）
+today_swap_stations = 1400.0
+jinjiang_trucks_day = 200.0     # 晋江骐骥站设计日均服务近 200 辆（src.jinjiang_gov_2026），只作核对
+
 # ----【2026-09-28m】供给层与需求层的三档（A3/A4 参数进情景轴；主链尚未读这些参数，读数不受影响）----
 [drivers.mw_station_scale]
 scenario_axis = true

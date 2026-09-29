@@ -210,7 +210,14 @@ def class_components(config: dict, cls: str, basis: str = "optimal", lessor: boo
     def avg(key: str, sel: list) -> float:
         d = sum(p["weight"] * p["kwh_year"] for p in sel)
         return sum(p["weight"] * p["kwh_year"] * p[key] for p in sel) / d if d else 0.0
+    fee_setter: dict = {}
+    rent_setter: dict = {}
+    for p in ch:
+        e = p["weight"] * p["kwh_year"]
+        fee_setter[p["alt"]] = fee_setter.get(p["alt"], 0.0) + e / ekwh
+        rent_setter[p["alt_rent_src"]] = rent_setter.get(p["alt_rent_src"], 0.0) + e / ekwh
     return {"points": sorted(pts, key=lambda p: p["km"]), "share": share, "access": access, "market_share": access * share,
+            "fee_setter": fee_setter, "rent_setter": rent_setter,
             "served_share": sum(p["weight"] for p in pts if p["served"]),
             "fee_cap": avg("fee_cap", ch), "fee_cost": avg("fee_cost", ch), "rent_cap": avg("rent_cap", ch), "rent_cost": avg("rent_cost", ch),
             "m_fee": avg("m_fee", ch), "m_rent": avg("m_rent", ch), "m_kwh": avg("m_kwh", ch),

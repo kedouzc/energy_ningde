@@ -2693,5 +2693,35 @@
     "key": "demand_routes.depot_spare_sets",
     "value": 1.0,
     "type": "float"
+  },
+  {
+    "key": "critical_density.range_reserve",
+    "value": 0.25,
+    "type": "float"
+  },
+  {
+    "key": "critical_density.directions",
+    "value": 2.0,
+    "type": "float"
+  },
+  {
+    "key": "critical_density.corridor_km_terminal",
+    "value": 30000.0,
+    "type": "float"
+  },
+  {
+    "key": "critical_density.today_swap_trucks",
+    "value": 70000.0,
+    "type": "float"
+  },
+  {
+    "key": "critical_density.today_swap_stations",
+    "value": 1400.0,
+    "type": "float"
+  },
+  {
+    "key": "critical_density.jinjiang_trucks_day",
+    "value": 200.0,
+    "type": "float"
   }
 ]

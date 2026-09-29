@@ -182,3 +182,19 @@ what  = """vehicles.heavy.scenes 中途、长途 energy_consumption_kwh_km 1.4�
 why   = """1.7 无信源；实证平原高速满载约 1.2、车速 80 时 1.4–1.6、JPM 1.5；干线换电的生意取决于"夜里一格电够不够跑一天"，电耗是主开关。"""
 watch = """主链读数会动：电耗低 → 途中换电少 → 换电站电量、站数下降；租金上沿随电池活得更久而降。"""
 expect = "覆盖倍数下降约一成：1.01／1.23／1.58（原 1.14／1.35／1.69）；中性重卡站约 11,700 座；build 全绿。"
+
+[[round]]
+date  = "2026-09-29k"
+focus = "规划能力的时间成本改用补运力成本（弃用 JPM 4 万元）；临界密度修重复乘可及比例；零售分时段挂牌；要紧参数表"
+what  = """caliber_docs.queue_values 改用 supply_routes.provisional_wait_cost；stations.qiji75_* planning_daily_capacity 149；critical_density 换电车数与车流；equilibrium 零售白天夜里分开；删 critical_density.network_trunk_share。"""
+why   = """研究者：规划能力还在用已被否掉的 JPM 4 万元；临界密度的数要可追溯。"""
+watch = """主链只动规划能力：站数略降。"""
+expect = "主链覆盖倍数约 1.01／1.23／1.58 基本不变；中性重卡站约 11,400 座；build 全绿。"
+
+[[round]]
+date  = "2026-09-29l"
+focus = "干线日里程分布按 JPM 分档重建（300–500、500–800 公里，每场景 10 点）；均衡定价全文重写；临界密度算出干线可及比例"
+what  = """price_response._km_grid 支持 km_range；vehicles.heavy.scenes 中途、长途 km_range；share_model.km_points 10；critical_density 第⑥步与 corridor_flow_sigma；state_lint 表后读法检查；约定 C13。"""
+why   = """研究者同意日里程分布重建与可及比例算出来；文档要能读懂逻辑与结论。"""
+watch = """主链读数小动（份额模型的里程分布变了）。"""
+expect = "主链覆盖倍数约 1.01／1.23／1.58 基本不变；中性重卡站约 11,400 座；build 全绿。"

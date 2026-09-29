@@ -27,11 +27,14 @@ def _trunk(config: dict) -> dict:
     kwh_day = num / den / days if den else 0.0
     # 按日里程分组：中途、长途各自途中换多少（研究者 2026-09-29：先按分布逐车算，再按构成加权，不先平均里程）
     groups: dict = {}
-    for seg, f in ((x["contract"], c), (x["retail"], 1.0 - c)):
+    for seg, f, tag in ((x["contract"], c, "wc"), (x["retail"], 1.0 - c, "wr")):
         for p in seg["points"]:
+            g = groups.setdefault(p["scene"], {"w": 0.0, "kwh": 0.0, "st": 0.0, "km": 0.0, "wc": 0.0, "wr": 0.0, "all": 0.0})
+            if tag == "wc":
+                g["all"] += p["weight"]
             if not p["chosen"]:
                 continue
-            g = groups.setdefault(p["scene"], {"w": 0.0, "kwh": 0.0, "st": 0.0, "km": 0.0})
+            g[tag] += p["weight"]
             g["w"] += f * p["weight"]; g["kwh"] += f * p["weight"] * p["kwh_year"] / days
             g["st"] += f * p["weight"] * p["st_kwh"] / days; g["km"] += f * p["weight"] * p["km"]
     return {"cap": x["fee_cap"] + x["m_rent"], "fee_cap": x["fee_cap"], "m_rent": x["m_rent"], "kwh_day": kwh_day,
@@ -80,10 +83,12 @@ def summary(config: dict) -> dict:
     trunk_w = sum(float(sc["weight"]) for sc in scenes[1:])
     trunk_trucks = ev_heavy * trunk_w
     km_day = sum(float(sc["weight"]) * float(sc["daily_km"]) for sc in scenes[1:]) / trunk_w
-    veh_km = trunk_trucks * km_day * float(cd["network_trunk_share"])
+    # 跑在这张网上的比例 ＝ 可及比例（同一个量：宁德"八横十纵"覆盖全国 80% 干线运力，src.catl_qiji_launch_202505；三档随 [drivers.swap_share_ceiling]）
+    on_net = tr["access"]
+    veh_km = trunk_trucks * km_day * on_net
     ev_flow = veh_km / L / dirs                       # 每个方向每天经过某一点的纯电重卡
-    swap_flow = ev_flow * tr["market_share"]
-    out.update(ev_heavy=ev_heavy, trunk_trucks=trunk_trucks, km_day=km_day, veh_km=veh_km, ev_flow=ev_flow, swap_flow=swap_flow,
+    swap_flow = ev_flow * tr["share"]                 # 网上的车里选换电的比例（可及范围内），不再乘可及比例
+    out.update(on_net=on_net, ev_heavy=ev_heavy, trunk_trucks=trunk_trucks, km_day=km_day, veh_km=veh_km, ev_flow=ev_flow, swap_flow=swap_flow,
                cover_stations=dirs * L / spacing, old_stations=dirs * L / float(cd["old_spacing_km"]))
     rho = breakeven_rho(config, tr["cap"], w) if tr["kwh_day"] else None
     out["rho"] = rho
@@ -98,7 +103,7 @@ def summary(config: dict) -> dict:
     # ④ 要建多少站：途中换电总次数 ÷ 最优利用率时每站每天的换电次数，不少于铺满所需
     opt = SR.planner_optimum(config, "swap", w)
     opt_swaps = c["lane"] * opt["rho"]
-    swap_trucks = trunk_trucks * tr["market_share"] * float(cd["network_trunk_share"])
+    swap_trucks = trunk_trucks * tr["market_share"]   # ＝ 干线纯电重卡 × 可及比例 × 可及范围内选换电
     swaps_needed = swap_trucks * tr["kwh_day"] * tr["station_share"] / c["e_swap"]
     demand_stations = swaps_needed / opt_swaps
     out.update(ok=True, swaps_day=swaps, per_truck_kwh=per_truck_kwh, q_star=q_star,
@@ -118,4 +123,19 @@ def summary(config: dict) -> dict:
         kwh_year = SR.cost_at(config, "swap", r, w)["kwh_year"]
         rows.append({"q": q, "rho": r, "swaps": r * c["lane"], "station_cost": sc, "margin": tr["cap"] - sc, "profit_wan": (tr["cap"] - sc) * kwh_year / 1e4})
     out["loss_rows"] = rows
+    # ⑥ 可及比例算出来（干线）：线路车流不均匀。按对数正态分布，离散程度 σ 取省际货运密度基尼系数 0.30 反推
+    #   （基尼 ＝ 2Φ(σ/√2) − 1，src.chd_expressway_2020；线路之间比省之间更不均，σ 另给 0.8、1.0 作敏感性）。
+    #   一条线路要过筛选线，它的纯电重卡流量 ≥ 筛选线 ÷ 网上的车里选换电的比例；
+    #   可及比例 ＝ 在网上的比例 × 过线线路承载的车公里占比（按车流加权）。
+    from statistics import NormalDist
+    import math as _m
+    Nd = NormalDist()
+    thr = q_star / tr["share"] if tr["share"] else float("inf")
+    acc = []
+    for sig in (float(cd["corridor_flow_sigma"]), 0.8, 1.0):
+        mu = _m.log(ev_flow) - sig * sig / 2
+        frac_flow = 1 - Nd.cdf((_m.log(thr) - mu - sig * sig) / sig)
+        frac_km = 1 - Nd.cdf((_m.log(thr) - mu) / sig)
+        acc.append({"sigma": sig, "frac_flow": frac_flow, "frac_km": frac_km, "access": on_net * frac_flow})
+    out.update(thr_ev=thr, access_rows=acc, access_derived=acc[0]["access"])
     return out

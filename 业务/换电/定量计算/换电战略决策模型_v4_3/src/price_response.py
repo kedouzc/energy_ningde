@@ -94,12 +94,17 @@ def _addressable(mix: list[tuple[float, float]], r_star: float | None) -> float:
     return 0.0
 
 
-def _km_grid(config: dict) -> list[tuple[float, float]]:
-    """场景内日里程的分布：以场景代表里程为中心、左右各 spread 的均匀分布，取 points 个等权点。
-    声明的平滑约定（没有分场景的里程分布统计），敏感性见 口径/车队总账 第五节。"""
+def _km_grid(config: dict, scene: dict | None = None) -> list[tuple[float, float]]:
+    """场景内日里程的分布，返回（相对代表里程的倍数，权重）。
+    场景给了 km_range ＝ [下限, 上限] 时：区间内均匀，切成 points 段、取每段中点、等权（干线按 JPM 的分类：中途 300–500、长途 500–800 公里）。
+    没给时：代表里程 × [1 − spread, 1 ＋ spread] 均匀取 points 个等权点（声明的平滑约定）。"""
     sm = config.get("share_model") or {}
-    spread = float(sm.get("km_spread", 0.4))
     n = int(sm.get("km_points", 5))
+    if scene is not None and scene.get("km_range"):
+        lo, hi = (float(x) for x in scene["km_range"])
+        rep = float(scene["daily_km"])
+        return [((lo + (i + 0.5) * (hi - lo) / n) / rep, 1.0 / n) for i in range(n)]
+    spread = float(sm.get("km_spread", 0.4))
     if n <= 1 or spread <= 0:
         return [(1.0, 1.0)]
     return [(1.0 - spread + 2.0 * spread * i / (n - 1), 1.0 / n) for i in range(n)]
@@ -140,7 +145,7 @@ def system_fraction(config: dict, cfg_sc: dict, tv_mw_year_wan: float, spot_reli
     regime = str(cfg_sc.get("charge_regime") or "megawatt")
     frac = frac_spot = 0.0
     pts = []
-    for m, w in _km_grid(config):
+    for m, w in _km_grid(config, cfg_sc):
         km = float(cfg_sc["daily_km"]) * m
         cpy = km * float(cfg_sc["energy_consumption_kwh_km"]) * days / kwh if kwh else 0.0
         if cpy <= 0:

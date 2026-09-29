@@ -945,6 +945,9 @@ weight = 0.50
 swap_share_ceiling = 0.80
 catl_swap_share = 0.30 # **并购前初值**；同上，重放后 0.80
 daily_km = 400.0
+# 日里程分布：300–500 公里均匀（JPM 引 GGII 的分类：300 公里以下算短途、300–500 公里一档，src.jpm_truck_electrification；
+# 旁证：中重型货车司机月均 8,000–12,000 公里占 38%，约合每天 300–460 公里，src.cflp_survey_2023）
+km_range = [300.0, 500.0]
 # 513kWh = 171×3 三包满配：骐骥官网 + JPM + 零一汽车港牵专车选配佐证
 onboard_battery_kwh = 513.0
 # 干线电耗（研究者 2026-09-29 定，DECISIONS 2026-09-29j）：平原高速满载实测约 1.2（src.kacheren_xinghan、src.cvzone_coldchain_2024），
@@ -960,6 +963,8 @@ swap_share_ceiling = 0.80
 # 宁德 70%/启源 30%：长途属宁德底盘式主阵地（极兔 5000 台验证）
 catl_swap_share = 0.70 # **并购前初值**；同上，重放后 0.80
 daily_km = 650.0
+# 日里程分布：500–800 公里均匀（JPM 分类 500 公里以上一档；代表值 650 取区间中点；旁证：一年 30 万公里以上的车很少，约合每天 860 公里，src.truck_mileage_blog_2025）
+km_range = [500.0, 800.0]
 onboard_battery_kwh = 513.0
 # 干线电耗（研究者 2026-09-29 定，DECISIONS 2026-09-29j）：平原高速满载实测约 1.2（src.kacheren_xinghan、src.cvzone_coldchain_2024），
 # 车速 80 时 1.4–1.6（src.cvzone_express_route），JPM 1.5；模型车速 70、2030 年能效更高 → 中性 1.4。三档 1.2／1.4／1.6 见 [drivers.trunk_energy]
@@ -1137,7 +1142,7 @@ charging_power_kw = 4500.0   # 孝感立项公示（4500kVA 箱变）
 operating_hours_day = 16.0
 # 换电 5 分钟/车：盐田港官网一手（"5 分钟换电"）
 swap_duration_seconds = 300.0
-# 规划能力 144 次/日（2026-09-29j 干线电耗改 1.4 后由 146 重算）＝工位上限 192（16h × 3600s ÷ 300s）× 最优利用率 ρ*≈0.75：使「每次换电的工位成本 ＋ 司机排队的时间成本」最小（M/D/1，
+# 规划能力 149 次/日（2026-09-29k 时间成本改用补运力成本后重算）＝工位上限 192（16h × 3600s ÷ 300s）× 最优利用率 ρ*≈0.78：使「每次换电的工位成本 ＋ 司机排队的时间成本」最小（M/D/1，
 # ρ* ＝ 1 ÷ (1 ＋ √(每车小时时间成本 ÷ (2 × 工位每小时全成本)))，derived.optimal_swap_utilization；工位成本 derived.swap_station_hour_cost，
 # 时间成本按 JPM 时间价值折成每小时、按各场景换电次数加权）。口径：口径/车辆与站数_推算方法 2.2 节；构建时核对本值与 192 × ρ* 取整一致。
 # 方法同超换一体站财务模型（定性分析/宁德时代_超换一体站_财务模型_修正版.md §三）；JPM 实测口径「日 168 次」在其上。
@@ -1145,7 +1150,7 @@ swap_duration_seconds = 300.0
 # 约束A（工位手速）16h×3600s÷300s=192 次、约束B（充电能量）4500kW×16h×RTE÷净补≈484 次，
 # 取 min=192，并硬断言 192 ≤ 192（手速为绑定约束）——验证是每次运行的强制关卡，
 # 不因拍值落档而消失（推导全文见 MANIFEST §3.2）
-planning_daily_capacity = 144.0
+planning_daily_capacity = 149.0
 
 [stations.qiji75_trunk]
 label = "骐骥干线站"
@@ -1157,7 +1162,7 @@ block_kwh = 171.0
 charging_power_kw = 4500.0
 operating_hours_day = 16.0
 swap_duration_seconds = 300.0
-planning_daily_capacity = 144.0
+planning_daily_capacity = 149.0
 
 [stations.choco25_passenger]
 label = "巧克力乘用站"
@@ -1376,8 +1381,8 @@ response_floor = 0.10
 # 场景内日里程分布：代表里程 × [1 − spread, 1 ＋ spread] 均匀，取 points 个等权点。声明的平滑约定——
 # 没有分场景的里程分布统计。旁证：src.ndanev_hdt_mileage_2022（换电牵引车日均 208.9 公里、320 公里以上占 23.9%，全体口径）；
 # src.sinoiov_freight_2023／src.sinoiov_freight_2022（货运车辆日均 265／240 公里，牵引车 300 公里以上）。份额对 spread 不敏感（车队总账第五节）。
-km_spread = 0.4
-km_points = 5
+km_spread = 0.4        # 只用于没给 km_range 的场景（短途）
+km_points = 10         # 每个场景 10 个代表点（干线两场景共 20 个）；点太少时一个点进出就让份额整格跳（DECISIONS 2026-09-29l）
 
 [fleet_capital_mix]
 low = 0.25      # 资金成本低档（大型车队、国企背景运输企业、场景方自购）
@@ -3813,12 +3818,12 @@ contract_share = 0.25   # 签长协的车队占干线电动重卡的比例：组
 range_reserve = 0.25            # 站距上限 ＝ 满电可用里程 ×（1 − 预留）：车任何时候决定去换电，都要能开到下一座站，还留四分之一电应对堵车、绕路（声明值）
 directions = 2.0                # 高速两侧各建一座（服务区成对），每侧只服务本方向（声明值）
 network_km = 150000.0           # 宁德 2030 年"八横十纵"：高速及国省道干线 15 万公里，覆盖全国 80% 干线运力（src.catl_qiji_launch_202505）
-network_trunk_share = 0.80      # 同上：这 15 万公里承载全国干线运力的 80%
 ev_heavy_stock_2030_wan = 160.0 # 2030 年新能源重卡保有量约 160 万辆（src.mot_52_plan）
 today_swap_trucks = 70000.0     # 2025 年 8 月：全国重卡换电站约 1,400 座、服务 7 万余辆车（src.cav_swap_why_202508）
 today_swap_stations = 1400.0
 jinjiang_trucks_day = 200.0     # 晋江骐骥站设计日均服务近 200 辆（src.jinjiang_gov_2026），只作核对
 old_spacing_km = 100.0          # 旧算法：每百公里一站、双向（15 万 × 2 ÷ 100 ＝ 3,000 座），只作对照
+corridor_flow_sigma = 0.545     # 线路车流的离散程度（对数正态 σ）：2018 年各省高速货运密度基尼系数 0.30（src.chd_expressway_2020），基尼 ＝ 2Φ(σ/√2) − 1 反推；线路间更不均，另报 0.8、1.0
 
 # ----【2026-09-28m】供给层与需求层的三档（A3/A4 参数进情景轴；主链尚未读这些参数，读数不受影响）----
 [drivers.trunk_energy]

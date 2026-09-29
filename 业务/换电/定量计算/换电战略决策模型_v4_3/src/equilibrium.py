@@ -45,7 +45,7 @@ def class_equilibrium(config: dict, cls: str, basis: str = "optimal") -> dict:
         sw = fixed_w if fixed_w is not None else float(scenes[scene_idx]["weight"]) / wsum
         access_w += sw * float(scenes[scene_idx]["swap_share_ceiling"])
         routes = DR.ROUTE_KEYS if scene_idx == 0 else ("conventional", "megawatt", "swap")
-        for m, w in _km_grid(config):
+        for m, w in _km_grid(config, scenes[scene_idx]):
             cc = copy.deepcopy(config)
             sc = cc["vehicles"]["heavy"]["scenes"][scene_idx]
             sc["daily_km"] = float(sc["daily_km"]) * m
@@ -178,12 +178,18 @@ def component_point(config: dict, scene_idx: int, sup: dict, lessor: bool = True
     served = (m_fee + m_rent) > 0
     prefers = True if time_premium else dt >= -1e-6
     # 换电站实际卖出的电（途中那部分；夜里若换电站更便宜也算）与"按换电站电量计"的服务费上限——零售挂牌价用它
-    st_kwh = kwh_year * sw["station_share"]
-    night_outside = 0.0 if sw["night_via_swap"] else sw["night_cost"] * sw["night_kwh"] * days
-    cap_st = (a["fee"] + prem - night_outside) / st_kwh if st_kwh else 0.0
-    cost_st = (s_fee - night_outside) / st_kwh if st_kwh else 0.0
+    # 白天（途中）与夜里分开定价（零售用；研究者同意换电站分时段挂牌）：
+    #   白天：上限 ＝（充电替代的全年服务费 ＋ 时间差 − 夜里那部分电在外面的成本）÷ 途中电量；成本 ＝ 换电站每度电成本
+    #   夜里：换电站比公共站／自建场站便宜时才卖，价格跟那个外面的价，利润 ＝（外面的价 − 换电站成本）× 夜里电量，与白天挂牌价无关
+    swap_c = sup["optimum"]["swap"]["station_cost"]
+    night_y = sw["night_kwh"] * days
+    day_kwh = kwh_year - night_y
+    night_margin = (sw["night_cost"] - swap_c) * night_y if sw["night_via_swap"] else 0.0
+    cap_st = (a["fee"] + prem - sw["night_cost"] * night_y) / day_kwh if day_kwh else 0.0
+    cost_st = swap_c
+    st_kwh = day_kwh
     return {"km": float(sc["daily_km"]), "kwh_year": kwh_year, "alt": ak, "alt_rent_src": a["rent_src"],
-            "st_kwh": st_kwh, "cap_st": cap_st, "cost_st": cost_st, "m_rent_y": m_rent, "night_cost": sw["night_cost"], "night_via_swap": sw["night_via_swap"],
+            "st_kwh": st_kwh, "cap_st": cap_st, "cost_st": cost_st, "m_rent_y": m_rent, "night_margin_y": night_margin, "night_kwh_y": night_y, "night_cost": sw["night_cost"], "night_via_swap": sw["night_via_swap"],
             "fee_cap": (a["fee"] + prem) / kwh_year, "fee_base": a["fee"] / kwh_year, "time_gap_kwh": dt / kwh_year, "fee_cost": s_fee / kwh_year,
             "rent_cap": a["rent"] / kwh_year, "rent_cost": s_rent / kwh_year,
             "rent_cap_month_kwh": a["rent"] / 12.0 / kwh_bat, "rent_cost_month_kwh": s_rent / 12.0 / kwh_bat,
@@ -208,7 +214,7 @@ def class_components(config: dict, cls: str, basis: str = "optimal", lessor: boo
     for scene_idx, fixed_w in members:
         sw = fixed_w if fixed_w is not None else float(scenes[scene_idx]["weight"]) / wsum
         access += sw * float(scenes[scene_idx]["swap_share_ceiling"])
-        for m, w in _km_grid(config):
+        for m, w in _km_grid(config, scenes[scene_idx]):
             cc = copy.deepcopy(config)
             cc["vehicles"]["heavy"]["scenes"][scene_idx]["daily_km"] = float(scenes[scene_idx]["daily_km"]) * m
             p = component_point(cc, scene_idx, sup, lessor, time_premium, "depot" if segment == "contract" else "public")
@@ -216,17 +222,22 @@ def class_components(config: dict, cls: str, basis: str = "optimal", lessor: boo
             p["scene"] = scenes[scene_idx]["name"]
             pts.append(p)
     posted = None
+    tried: list = []
     if segment == "retail":
         best = (0.0, None)
+        def prof_i(p, P):
+            return (P - p["cost_st"]) * p["st_kwh"] + p["night_margin_y"] + p["m_rent_y"]
+        tried = []
         for P in sorted(set(p["cap_st"] for p in pts if p["st_kwh"] > 0)):
-            prof = sum(p["weight"] * ((P - p["cost_st"]) * p["st_kwh"] + p["m_rent_y"]) for p in pts
-                       if p["st_kwh"] > 0 and p["cap_st"] >= P - 1e-12 and (P - p["cost_st"]) * p["st_kwh"] + p["m_rent_y"] > 0)
+            sel = [p for p in pts if p["st_kwh"] > 0 and p["cap_st"] >= P - 1e-12 and prof_i(p, P) > 0]
+            prof = sum(p["weight"] * prof_i(p, P) for p in sel)
+            tried.append({"P": P, "share": sum(p["weight"] for p in sel), "profit": prof})
             if prof > best[0]:
                 best = (prof, P)
         posted = best[1]
         for p in pts:
             ok = posted is not None and p["st_kwh"] > 0 and p["cap_st"] >= posted - 1e-12
-            mf = (posted - p["cost_st"]) * p["st_kwh"] if ok else 0.0
+            mf = ((posted - p["cost_st"]) * p["st_kwh"] + p["night_margin_y"]) if ok else 0.0
             p["m_fee"] = mf / p["kwh_year"]
             p["m_kwh"] = p["m_fee"] + p["m_rent"]
             p["m_wan"] = (mf + p["m_rent_y"]) / 1e4
@@ -252,11 +263,15 @@ def class_components(config: dict, cls: str, basis: str = "optimal", lessor: boo
             "fee_cap": avg("fee_cap", ch), "fee_cost": avg("fee_cost", ch), "rent_cap": avg("rent_cap", ch), "rent_cost": avg("rent_cost", ch),
             "m_fee": avg("m_fee", ch), "m_rent": avg("m_rent", ch), "m_kwh": avg("m_kwh", ch),
             "m_wan": sum(p["weight"] * p["m_wan"] for p in ch) / share if share else 0.0, "kwh_w": ekwh,
-            "station_share": avg("station_share", ch), "segment": segment, "posted": posted}
+            "station_share": avg("station_share", ch), "segment": segment, "posted": posted,
+            "st_w": sum(p["weight"] * p["st_kwh"] for p in ch),
+            "day_price": (sum(p["weight"] * p["st_kwh"] * (posted if segment == "retail" else p["cap_st"]) for p in ch)
+                          / sum(p["weight"] * p["st_kwh"] for p in ch)) if any(p["st_kwh"] > 0 for p in ch) else 0.0,
+            "tried": tried if segment == "retail" else []}
 
 
 def class_market(config: dict, cls: str, basis: str = "optimal", lessor: bool = True, time_premium: bool = True) -> dict:
-    """批发与零售合起来（研究者 2026-09-29 定）。封闭短途的场景方（港口、矿山、钢厂）都签合同，全按批发；
+    """批发与零售合起来。封闭短途的场景方（港口、矿山、钢厂）都签合同，全按批发；
     干线按 [pricing_segments].contract_share 分：签长协的车队按批发，其余按零售。
     份额按车数加权；每度电利润与各种占比按电量加权。"""
     c = 1.0 if cls == "short" else float(config["pricing_segments"]["contract_share"])
@@ -277,7 +292,9 @@ def class_market(config: dict, cls: str, basis: str = "optimal", lessor: bool = 
             "contract": xc, "retail": xr, "m_kwh": mix("m_kwh"), "m_fee": mix("m_fee"), "m_rent": mix("m_rent"),
             "fee_cap": mix("fee_cap"), "fee_cost": mix("fee_cost"), "rent_cap": mix("rent_cap"), "rent_cost": mix("rent_cost"),
             "station_share": mix("station_share"), "fee_setter": mixd("fee_setter") if share else {}, "rent_setter": mixd("rent_setter") if share else {},
-            "kwh_w": ec + er, "points": xc["points"]}
+            "kwh_w": ec + er, "points": xc["points"],
+            "day_price": ((c * xc["st_w"] * xc["day_price"] + (1.0 - c) * xr["st_w"] * xr["day_price"])
+                          / (c * xc["st_w"] + (1.0 - c) * xr["st_w"])) if (c * xc["st_w"] + (1.0 - c) * xr["st_w"]) else 0.0}
 
 
 def leakage_margin(res: dict, leak: float) -> float:

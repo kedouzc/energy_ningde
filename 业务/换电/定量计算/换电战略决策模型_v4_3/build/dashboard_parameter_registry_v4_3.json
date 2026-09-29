@@ -567,6 +567,10 @@
         "swap_share_ceiling": 0.8,
         "catl_swap_share": 0.8,
         "daily_km": 400.0,
+        "km_range": [
+          300.0,
+          500.0
+        ],
         "onboard_battery_kwh": 513.0,
         "energy_consumption_kwh_km": 1.4
       },
@@ -577,6 +581,10 @@
         "swap_share_ceiling": 0.8,
         "catl_swap_share": 0.8,
         "daily_km": 650.0,
+        "km_range": [
+          500.0,
+          800.0
+        ],
         "onboard_battery_kwh": 513.0,
         "energy_consumption_kwh_km": 1.4
       }
@@ -1018,7 +1026,7 @@
   },
   {
     "key": "stations.qiji75_short.planning_daily_capacity",
-    "value": 144.0,
+    "value": 149.0,
     "type": "float"
   },
   {
@@ -1058,7 +1066,7 @@
   },
   {
     "key": "stations.qiji75_trunk.planning_daily_capacity",
-    "value": 144.0,
+    "value": 149.0,
     "type": "float"
   },
   {
@@ -1319,7 +1327,7 @@
   },
   {
     "key": "share_model.km_points",
-    "value": 5,
+    "value": 10,
     "type": "int"
   },
   {
@@ -2725,11 +2733,6 @@
     "type": "float"
   },
   {
-    "key": "critical_density.network_trunk_share",
-    "value": 0.8,
-    "type": "float"
-  },
-  {
     "key": "critical_density.ev_heavy_stock_2030_wan",
     "value": 160.0,
     "type": "float"
@@ -2752,6 +2755,11 @@
   {
     "key": "critical_density.old_spacing_km",
     "value": 100.0,
+    "type": "float"
+  },
+  {
+    "key": "critical_density.corridor_flow_sigma",
+    "value": 0.545,
     "type": "float"
   }
 ]

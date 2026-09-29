@@ -131,6 +131,8 @@ def check_calc_explained() -> tuple[list[str], list[str]]:
 # 每份口径文档要能独立阅读：不许出现只在交接里有定义的工作计划编号与轮次（2026-09-29e，研究者指出总框架里的"B3"）。
 # 允许：{{…}} 注入键、附录编号（"附录 A3""见 A5"、行首 "**A1 "）。
 PLAN_TERMS = re.compile(r"全景计划|第[一二三四五六七八九十]轮|(?<![A-Za-z0-9_])(?:A[1-5]|B[1-3]|C[1-4]|D[1-2])(?![0-9A-Za-z_])")
+# 口径是终态文档：不写"研究者某日定""由研究者定"这类过程痕迹（2026-09-29k）；来历只挂 DECISIONS 编号。
+PROCESS_TERMS = re.compile(r"研究者 ?20\d\d|由研究者定|（研究者[^）]{0,20}(定|确认|同意)）")
 
 
 def check_standalone() -> list[str]:
@@ -140,15 +142,51 @@ def check_standalone() -> list[str]:
             t = re.sub(r"\{\{[^}]*\}\}", "", line)
             t = re.sub(r"(附录 ?|见 ?)A[1-9]", "", t)
             t = re.sub(r"^\*\*A[1-9] ", "", t)
-            m = PLAN_TERMS.search(t)
+            m = PLAN_TERMS.search(t) or PROCESS_TERMS.search(t)
             if m:
                 bad.append(f"{f.relative_to(ROOT)}:{i} 出现工作计划编号或轮次「{m.group(0)}」——口径文档要能独立阅读，改成说清楚是什么（研究项目约定 C12）")
     return bad
 
 
+# 口径文档里每张程序现算表（{{表:…}}／{{算例:…}}）后 8 行内必须有一段"**读法**"或"**结论**"——表要说明它说明了什么（2026-09-29l）。
+# 下列旧表在这条规矩之前就存在，列为待补账（逐轮补齐后从这里删掉）；新写的表不许进这张表。
+READING_DEBT = {
+    ("补能三路线_供给成本.src.md", "{{算例:供给}}"), ("补能三路线_供给成本.src.md", "{{算例:换电闭式解}}"),
+    ("补能三路线_供给成本.src.md", "{{表:最优利用率_扫描}}"), ("补能三路线_供给成本.src.md", "{{表:供给_单站}}"),
+    ("补能三路线_供给成本.src.md", "{{表:供给_规划最优}}"),
+    ("车队总账_换电对充电.src.md", "{{算例:补运力}}"), ("车队总账_换电对充电.src.md", "{{算例:需求_中途}}"),
+    ("车队总账_换电对充电.src.md", "{{表:需求_资源账}}"), ("车队总账_换电对充电.src.md", "{{表:需求_时间价值}}"),
+    ("车队总账_换电对充电.src.md", "{{表:需求_敏感}}"), ("车队总账_换电对充电.src.md", "{{表:服务费}}"),
+    ("车队总账_换电对充电.src.md", "{{表:超充利用率与均衡价}}"), ("车队总账_换电对充电.src.md", "{{表:上沿}}"),
+    ("车队总账_换电对充电.src.md", "{{表:逐项替换}}"), ("车队总账_换电对充电.src.md", "{{表:让出空间}}"),
+    ("车队总账_换电对充电.src.md", "{{表:逐车系统成本}}"), ("车队总账_换电对充电.src.md", "{{表:车上电池单价比}}"),
+    ("运营收入与成本_口径.src.md", "{{表:分拆账}}"),
+}
+
+
+def check_table_reading() -> tuple[list[str], list[str]]:
+    bad, debt = [], []
+    for f in sorted((ROOT / "口径").glob("*.src.md")):
+        L = f.read_text(encoding="utf-8").split("\n")
+        for i, line in enumerate(L):
+            m = re.search(r"\{\{(表|算例):[^}]*\}\}", line)
+            if not m:
+                continue
+            if any(re.match(r"\s*(\*\*)?(读法|结论)", w) for w in L[i + 1:i + 9]):
+                continue
+            if (f.name, m.group(0)) in READING_DEBT:
+                debt.append(f"{f.name} {m.group(0)}")
+            else:
+                bad.append(f"{f.relative_to(ROOT)}:{i + 1} {m.group(0)} 后面没有「读法」或「结论」——每张表要说明它说明了什么（研究项目约定 C13）")
+    return bad, debt
+
+
 def main() -> int:
     calc_bad, calc_debt = check_calc_explained()
-    bad = check() + check_sources() + check_inventory() + calc_bad + check_standalone()
+    read_bad, read_debt = check_table_reading()
+    if read_debt:
+        print(f"  ◇ 表后读法待补（旧表，{len(read_debt)} 处）")
+    bad = check() + check_sources() + check_inventory() + calc_bad + check_standalone() + read_bad
     if calc_debt:
         print(f"  ◇ 算式与算例待补（旧节，{len(calc_debt)} 处）：" + "；".join(calc_debt))
     for b in bad:

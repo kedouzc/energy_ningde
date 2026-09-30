@@ -2713,11 +2713,6 @@
     "type": "float"
   },
   {
-    "key": "pricing_segments.contract_share",
-    "value": 0.25,
-    "type": "float"
-  },
-  {
     "key": "critical_density.range_reserve",
     "value": 0.25,
     "type": "float"

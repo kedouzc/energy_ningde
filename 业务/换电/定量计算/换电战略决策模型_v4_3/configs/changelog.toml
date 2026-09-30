@@ -206,3 +206,19 @@ what  = """equilibrium.class_components 分项利润之和 >0 即换电车（服
 why   = """研究者：租金照收不算车走；可及比例方法复杂且数据过时，结论不变；以终为始、抓大放小。"""
 watch = """主链未接（A6），读数不动。"""
 expect = "均衡层中性干线份额约 36%；临界密度中性站约 2,900 座；build 全绿。"
+
+[[round]]
+date  = "2026-09-29o"
+focus = "租金上限按车队借钱成本分群；均衡定价第八节改为租金上限怎么算"
+what  = """equilibrium.fleet_rate_groups；component_point 增 segment（批发＝低息群，零售＝中、高两群按占比）；caliber_docs 删核心客户表，增 表:分项_租金上限 与 租限_* 数；总框架第八节第 3 条修订。"""
+why   = """研究者：不能用全市场最便宜的钱代表所有车队；租金上限算法要在均衡定价里独立可读。"""
+watch = """主链未接（A6），derived.rent_ceiling 仍按低息群。"""
+expect = "均衡层中性干线份额约 41%、重卡合计约 37%；临界密度中性站约 2,340 座；build 全绿。"
+
+[[round]]
+date  = "2026-09-29p"
+focus = "均衡层三群车队各算各的账；长协比例＝低息群；可及比例三档固定"
+what  = """equilibrium.fleet_groups、component_point(fleet_rate)、class_components 按群建点、class_market 输出 group_share；demand_routes.scene_route／time_value 增 fleet_rate；删 pricing_segments.contract_share、drivers.contract_share、drivers.swap_share_ceiling；caliber 增 表:分项_分群、逐车表加车队群列、要紧参数表可及比例改手动 ±15%、删长协比例行。"""
+why   = """研究者：三群车队要各算各的账；长协＝低息群；可及比例固定。"""
+watch = """主链悲观、乐观两档随可及比例固定而变。"""
+expect = "均衡层中性干线 41%、重卡 37%；乐观干线 62%；build 全绿。"

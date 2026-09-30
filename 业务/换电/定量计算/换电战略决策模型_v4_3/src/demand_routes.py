@@ -31,11 +31,12 @@ def truck_life(config: dict, scene_idx: int) -> float:
     return min(float(D["truck_scrap_years"]), float(D["truck_scrap_km"]) / km_year)
 
 
-def time_value(config: dict, scene_idx: int) -> dict:
-    """补运力成本（元/时）。司机工资各场景相同（同一个劳动力市场）。"""
+def time_value(config: dict, scene_idx: int, fleet_rate: float | None = None) -> dict:
+    """补运力成本（元/时）。司机工资各场景相同（同一个劳动力市场）。
+    fleet_rate：车队自己的借钱成本（均衡层按车队分群传入）；不传时按 WACC（资源账口径）。"""
     D = config["demand_routes"]
     soc = float(D["employer_social_factor"])
-    r = float(config["finance"]["wacc"])
+    r = float(config["finance"]["wacc"]) if fleet_rate is None else float(fleet_rate)
     hours_driver = float(D["driver_hours_day"]) * float(D["driver_days_year"])
     drv = float(D["driver_wage_rmb_month"]) * 12 * soc / hours_driver
     if scene_idx == 0:
@@ -66,7 +67,9 @@ def _battery_year(config: dict, kwh: float, life_cycles: float, cycles_year: flo
     return (cap - salvage) * _crf(r, life), life
 
 
-def scene_route(config: dict, scene_idx: int, route: str, supply: dict | None = None, night: str = "public") -> dict:
+def scene_route(config: dict, scene_idx: int, route: str, supply: dict | None = None, night: str = "public",
+                fleet_rate: float | None = None) -> dict:
+    """fleet_rate：车队这一侧的钱（换电底盘溢价年金化、补车的年金）按车队自己的借钱成本；不传时按 WACC（资源账口径）。"""
     D = config["demand_routes"]
     sc = config["vehicles"]["heavy"]["scenes"][scene_idx]
     supply = supply or SR.summary(config)
@@ -88,7 +91,8 @@ def scene_route(config: dict, scene_idx: int, route: str, supply: dict | None = 
         queue_h = o["wait_min"] / 60.0
         station_cost = o["station_cost"]
         bat, life = _battery_year(config, onboard, crit * pool_mult, cycles_year, pack_price(config, "swap"))
-        extra = float(D["swap_chassis_premium_wan"]) * 1e4 * _crf(float(config["finance"]["wacc"]), truck_life(config, scene_idx))
+        r_fleet = float(config["finance"]["wacc"]) if fleet_rate is None else float(fleet_rate)
+        extra = float(D["swap_chassis_premium_wan"]) * 1e4 * _crf(r_fleet, truck_life(config, scene_idx))
     elif route == "depot":
         per_session = onboard * usable
         dur_h, queue_h = 5.0 / 60.0, 0.0
@@ -151,7 +155,7 @@ def scene_route(config: dict, scene_idx: int, route: str, supply: dict | None = 
         if route == "swap" and station_cost < night_cost:
             night_c, night_via_swap = station_cost, True
         station_cost = (enroute_kwh * station_cost + (daily_kwh - enroute_kwh) * night_c) / daily_kwh
-    tv = time_value(config, scene_idx)
+    tv = time_value(config, scene_idx, fleet_rate)
     time_cost = stop_h_day * days * tv["w"]
     facility = station_cost * kwh_year
     total = facility + bat + time_cost + extra

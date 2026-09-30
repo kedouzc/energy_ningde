@@ -141,25 +141,47 @@ def _rent_year(config: dict, kwh: float, kind: str, life: float, rate: float, ta
     return 12.0 * battery_hold_month(kwh, DR.pack_price(config, kind), tax, rate, life, resale, hold, sale_price_ratio(config, life))
 
 
-def component_point(config: dict, scene_idx: int, sup: dict, lessor: bool = True, time_premium: bool = True, night: str = "public") -> dict:
+GROUP_CN = {"low": "低息群", "mid": "中档群", "high": "高息群"}
+
+
+def fleet_groups(config: dict, cls: str) -> dict:
+    """车队按借钱成本分群（车队总账附录 A5：低 3%／中 9%／高 18%，占约 25／45／30）。
+    返回 {"contract": [(群, 利率, 群内权重)], "retail": [...], "c": 批发占这类车的比例}。
+    干线：低息群（组织化大车队、国资）签长协＝批发；中档、高息两群看挂牌价＝零售；批发比例＝低息群占比。
+    封闭短途：场景方（港口、钢厂、矿山）自购，属低息群，全按批发。"""
+    tco, mix = config["tco_jpm"], config["fleet_capital_mix"]
+    rate = {g: float(tco[f"fleet_discount_rate_{g}"]) for g in ("low", "mid", "high")}
+    if cls == "short":
+        return {"contract": [("low", rate["low"], 1.0)], "retail": [], "c": 1.0}
+    wl, wm, wh = float(mix["low"]), float(mix["mid"]), float(mix["high"])
+    tot = wl + wm + wh
+    return {"contract": [("low", rate["low"], 1.0)],
+            "retail": [("mid", rate["mid"], wm / (wm + wh)), ("high", rate["high"], wh / (wm + wh))],
+            "c": wl / tot}
+
+
+def component_point(config: dict, scene_idx: int, sup: dict, lessor: bool = True, time_premium: bool = True, night: str = "public",
+                    fleet_rate: float | None = None) -> dict:
     from derived import fleet_resale_ratio, retirement_recovery_ratio
     tco = config["tco_jpm"]
     sc = config["vehicles"]["heavy"]["scenes"][scene_idx]
     kwh_bat = float(sc["onboard_battery_kwh"])
     days = float(config["swap_business"]["operating_days"])
     tax = float(tco.get("purchase_tax_rate") or 0.0)
-    r_les, r_low = float(tco["lessor_capital_rate"]), float(tco["fleet_discount_rate_low"])
+    r_les = float(tco["lessor_capital_rate"])
+    r_own = float(tco["fleet_discount_rate_low"]) if fleet_rate is None else float(fleet_rate)   # 这辆车所在群的借钱成本
     r_bank = float(config["finance"]["wacc"])
     bank_res, fleet_res = retirement_recovery_ratio(config), fleet_resale_ratio(config)
     pool_hold, fleet_hold = float(tco["pool_hold_rmb_kwh_year"]), float(tco["fleet_battery_hold_rmb_kwh_year"])
-    rows = {rt: DR.scene_route(config, scene_idx, rt, sup, night) for rt in ("conventional", "megawatt", "swap")}
+    rows = {rt: DR.scene_route(config, scene_idx, rt, sup, night, r_own) for rt in ("conventional", "megawatt", "swap")}
     kwh_year = rows["swap"]["daily_kwh"] * days
     alts = {}
     for k in ("conventional", "megawatt"):
         rw = rows[k]
         kind = "megawatt" if k == "megawatt" else "plain"
         les = _rent_year(config, kwh_bat, kind, rw["battery_life"], r_les, tax, bank_res, pool_hold)
-        own = _rent_year(config, kwh_bat, kind, rw["battery_life"], r_low, tax, fleet_res, fleet_hold)
+        # 租金上限按这辆车所在群的借钱成本：min（租赁商保本，按本群利率自己买）（车队总账附录 A5）
+        own = _rent_year(config, kwh_bat, kind, rw["battery_life"], r_own, tax, fleet_res, fleet_hold)
         rent = min(les, own) if lessor else own
         fee = rw["facility_wan"] * 1e4
         alts[k] = {"fee": fee, "rent": rent, "lessor": les, "own": own, "rent_src": "租赁商" if (lessor and les <= own) else "车队自买",
@@ -211,16 +233,19 @@ def class_components(config: dict, cls: str, basis: str = "optimal", lessor: boo
     members = CLASSES[cls]
     wsum = sum(float(scenes[i]["weight"]) for i, _ in members)
     pts, access = [], 0.0
+    groups = fleet_groups(config, cls)[segment]
     for scene_idx, fixed_w in members:
         sw = fixed_w if fixed_w is not None else float(scenes[scene_idx]["weight"]) / wsum
         access += sw * float(scenes[scene_idx]["swap_share_ceiling"])
         for m, w in _km_grid(config, scenes[scene_idx]):
             cc = copy.deepcopy(config)
             cc["vehicles"]["heavy"]["scenes"][scene_idx]["daily_km"] = float(scenes[scene_idx]["daily_km"]) * m
-            p = component_point(cc, scene_idx, sup, lessor, time_premium, "depot" if segment == "contract" else "public")
-            p["weight"] = w * sw
-            p["scene"] = scenes[scene_idx]["name"]
-            pts.append(p)
+            for g, rg, wg in groups:        # 每群各算各的账（借钱成本不同）；零售两群看同一个挂牌价
+                p = component_point(cc, scene_idx, sup, lessor, time_premium, "depot" if segment == "contract" else "public", rg)
+                p["weight"] = w * sw * wg
+                p["scene"] = scenes[scene_idx]["name"]
+                p["group"], p["group_w"] = g, wg
+                pts.append(p)
     # 每辆车在某个白天价下给换电的利润：租金一项照收（电池已经租了）；服务费一项只在它愿意付这个价、且换电在这一项上不亏时才有。
     # 愿意付不了（或换电在服务费上亏）的车，仍是换电车，只租电池、白天去充电（总框架第八节第 6 条：套利是合理行为）。
     def fee_part(p, P):
@@ -290,14 +315,15 @@ def class_components(config: dict, cls: str, basis: str = "optimal", lessor: boo
             "rent_only_share": sum(p["weight"] for p in ch if p["rent_only"]),
             "day_price": (sum(p["weight"] * p["st_kwh"] * p["price_day"] for p in ch if p["swaps"])
                           / sum(p["weight"] * p["st_kwh"] for p in ch if p["swaps"])) if any(p["swaps"] for p in ch) else 0.0,
-            "tried": tried if segment == "retail" else []}
+            "tried": tried if segment == "retail" else [],
+            "group_share": {g: (sum(p["weight"] for p in ch if p["group"] == g) / wg if wg else 0.0) for g, _, wg in groups}}
 
 
 def class_market(config: dict, cls: str, basis: str = "optimal", lessor: bool = True, time_premium: bool = True) -> dict:
     """批发与零售合起来。封闭短途的场景方（港口、矿山、钢厂）都签合同，全按批发；
-    干线按 [pricing_segments].contract_share 分：签长协的车队按批发，其余按零售。
+    干线按车队借钱成本分群：低息群签长协（批发），中档、高息两群看挂牌价（零售）；批发比例＝低息群占比。
     份额按车数加权；每度电利润与各种占比按电量加权。"""
-    c = 1.0 if cls == "short" else float(config["pricing_segments"]["contract_share"])
+    c = fleet_groups(config, cls)["c"]
     xc = class_components(config, cls, basis, lessor, time_premium, "contract")
     xr = class_components(config, cls, basis, lessor, time_premium, "retail") if c < 1.0 else xc
     wc, wr = c * xc["share"], (1.0 - c) * xr["share"]
@@ -311,7 +337,13 @@ def class_market(config: dict, cls: str, basis: str = "optimal", lessor: bool = 
             for k, v in x[key].items():
                 out[k] = out.get(k, 0.0) + v * e / (ec + er)
         return out
+    gs = {"low": xc["group_share"].get("low", 0.0)}
+    if c < 1.0:
+        gs.update({g: v for g, v in xr["group_share"].items()})
+    mixw = config["fleet_capital_mix"]
+    gw = {"low": 1.0} if c >= 1.0 else {g: float(mixw[g]) / sum(float(mixw[k]) for k in ("low", "mid", "high")) for g in ("low", "mid", "high")}
     return {"share": share, "access": xc["access"], "market_share": xc["access"] * share, "contract_share": c,
+            "group_share": gs, "group_w": gw,
             "contract": xc, "retail": xr, "m_kwh": mix("m_kwh"), "m_fee": mix("m_fee"), "m_rent": mix("m_rent"),
             "fee_cap": mix("fee_cap"), "fee_cost": mix("fee_cost"), "rent_cap": mix("rent_cap"), "rent_cost": mix("rent_cost"),
             "station_share": mix("station_share"), "fee_setter": mixd("fee_setter") if share else {}, "rent_setter": mixd("rent_setter") if share else {},

@@ -995,14 +995,14 @@ def component_values(config: dict) -> dict[str, str]:
                 status = "不选换电（两项利润之和为负）"
             cap_txt = f"{p_['cap_st']:.3f}" if p_["st_kwh"] > 0 else "—（途中不用换）"
             price_txt = f"{price:.3f}" if price is not None else "—"
-            rows_.append(f"| {p_['km']:.0f} | {p_['weight']:.1%} | {names[p_['alt']]} | {cap_txt} | {price_txt} | {p_['cost_st']:.3f} | {p_['st_kwh']:,.0f} | "
+            rows_.append(f"| {E.GROUP_CN.get(p_.get('group'), '')} | {p_['km']:.0f} | {p_['weight']:.1%} | {names[p_['alt']]} | {cap_txt} | {price_txt} | {p_['cost_st']:.3f} | {p_['st_kwh']:,.0f} | "
                          f"{fee_y:,.0f} | {p_['rent_cap'] * yr:,.0f}／{p_['rent_cost'] * yr:,.0f}（{p_['alt_rent_src']}） | {p_['m_rent_y']:,.0f} | "
                          + (f"**{tot:,.0f}**" if p_["chosen"] else f"{tot:,.0f}") + f" | {status} |")
         return rows_
-    head_u = ("| 日里程（公里） | 这类车占干线的比例 | 充电替代（定价者） | 这辆车白天最多能接受的价（元/度） | 实际白天价（元/度） | 换电站成本（元/度） | 途中换的电（度/年） | "
+    head_u = ("| 车队群（借钱成本） | 日里程（公里） | 这辆代表车占本段车的比例 | 充电替代（定价者） | 这辆车白天最多能接受的价（元/度） | 实际白天价（元/度） | 换电站成本（元/度） | 途中换的电（度/年） | "
               "服务费一项利润（元/年） | 租金上限／电池银行成本（元/年） | 租金一项利润（元/年） | 合计（元/年） | 结果 |")
     trx = E.class_components(config, "trunk")
-    ex = [head_u, "|---|---|---|---|---|---|---|---|---|---|---|---|"] + unit_rows(trx["points"], lambda p_: p_["cap_st"] if p_["st_kwh"] > 0 else None, lambda p_: p_["chosen"])
+    ex = [head_u, "|---|---|---|---|---|---|---|---|---|---|---|---|---|"] + unit_rows(trx["points"], lambda p_: p_["cap_st"] if p_["st_kwh"] > 0 else None, lambda p_: p_["chosen"])
     V["算例:分项_干线"] = "\n".join(ex)
     p0 = next(p_ for p_ in trx["points"] if p_["chosen"]) if any(p_["chosen"] for p_ in trx["points"]) else trx["points"][-1]
     V["批例_里程"] = f"{p0['km']:.0f}"; V["批例_替代"] = names[p0["alt"]]
@@ -1021,7 +1021,7 @@ def component_values(config: dict) -> dict[str, str]:
     V["批例_最低服务里程"] = f"{min(p_['km'] for p_ in trx['points'] if p_['chosen']):.0f}" if trx["share"] else "—"
     xr_ = E.class_components(config, "trunk", segment="retail")
     posted_ = xr_["posted"]
-    rr_ = [head_u, "|---|---|---|---|---|---|---|---|---|---|---|---|"] + unit_rows(xr_["points"], lambda p_: posted_, lambda p_: p_["chosen"], retail=True)
+    rr_ = [head_u, "|---|---|---|---|---|---|---|---|---|---|---|---|---|"] + unit_rows(xr_["points"], lambda p_: posted_, lambda p_: p_["chosen"], retail=True)
     V["表:零售逐车"] = "\n".join(rr_)
 
     V["分项例_里程"] = f"{p0['km']:.0f}"
@@ -1034,26 +1034,45 @@ def component_values(config: dict) -> dict[str, str]:
     V["勾稽_服务比例"] = f"{trx['share']:.0%}"; V["勾稽_可及"] = f"{trx['access']:.0%}"; V["勾稽_份额"] = f"{trx['market_share']:.0%}"
     V["勾稽_利润"] = f"{trx['m_kwh']:.3f}"
     V["勾稽_常规占比"] = f"{trx['fee_setter'].get('conventional', 0.0):.0%}"
-    # 核心客户：租金定在哪一群车队算得过的位置。定得高，借钱便宜的车队会自己买电池、改买充电车，份额按车队占比打折
-    tco = config["tco_jpm"]
-    mix = config["fleet_capital_mix"]
-    f = ["| 租金定在谁算得过的位置 | 按借钱成本分群，哪几群还选换电 | 封闭短途：份额／每度电利润 | 干线：份额／每度电利润 | 两类合计：份额 × 每度电利润（相对第一行） |", "|---|---|---|---|---|"]
-    cw = E.class_weights(config)
-    rows_ = (("fleet_discount_rate_low", "低息群也算得过（借钱 {r}）", 1.0, "三群都选（份额不打折）"),
-             ("fleet_discount_rate_mid", "只有中档、高息群算得过（借钱 {r}；有租赁商时高息群的上限也停在租赁商价，与此同价）",
-              float(mix["mid"]) + float(mix["high"]), "只剩中档与高息群，约占车队的 {p}（份额乘这个比例）"))
-    base_idx = None
-    for key, lab, keep, who in rows_:
-        c = _copy.deepcopy(config); c["tco_jpm"]["fleet_discount_rate_low"] = float(tco[key])
-        cells, idx = [], 0.0
-        for k in ("short", "trunk"):
-            x = E.class_market(c, k)
-            ms = x["market_share"] * keep
-            idx += cw[k] * ms * x["m_kwh"]
-            cells.append(f"{ms:.0%}／{x['m_kwh']:.3f}" if x["share"] else "0%／—")
-        base_idx = base_idx or idx
-        f.append(f"| {lab.format(r=f'{float(tco[key]):.0%}')} | {who.format(p=f'{keep:.0%}')} | " + " | ".join(cells) + f" | {idx / base_idx:.2f} |")
-    V["表:分项_车队资金"] = "\n".join(f)
+    # 租金上限怎么算：按车队借钱成本分群（车队总账 A5），中性干线中途代表车（对手常规快充）
+    from derived import fleet_resale_ratio as _frr, retirement_recovery_ratio as _rrr
+    import demand_routes as _DR
+    tco = config["tco_jpm"]; mix = config["fleet_capital_mix"]
+    sc1 = config["vehicles"]["heavy"]["scenes"][1]
+    kb = float(sc1["onboard_battery_kwh"]); km_ex = float(sc1["daily_km"])
+    sup_ = E.supply_for(config, "optimal")
+    life_c = _DR.scene_route(config, 1, "conventional", sup_)["battery_life"]
+    life_s = _DR.scene_route(config, 1, "swap", sup_)["battery_life"]
+    tax_ = float(tco.get("purchase_tax_rate") or 0.0)
+    bres, fres = _rrr(config), _frr(config)
+    ph, fh = float(tco["pool_hold_rmb_kwh_year"]), float(tco["fleet_battery_hold_rmb_kwh_year"])
+    pp, ps = _DR.pack_price(config, "plain"), _DR.pack_price(config, "swap")
+    r_les, r_bank = float(tco["lessor_capital_rate"]), float(config["finance"]["wacc"])
+    les_y = E._rent_year(config, kb, "plain", life_c, r_les, tax_, bres, ph)
+    bank_y = E._rent_year(config, kb, "swap", life_s, r_bank, 0.0, bres, ph)
+    f = ["| 谁持有电池 | 借钱成本 | 电池价（元/度） | 购置税 | 旧电池卖价（占卖出年新电池价） | 保险维护（元/度·年） | 持有成本（元/年） | 占车队 | 这群的租金上限（元/年） |",
+         "|---|---|---|---|---|---|---|---|---|"]
+    grp = (("大车队、国资（低息群）", "fleet_discount_rate_low", "low"), ("个体与小微（中档群）", "fleet_discount_rate_mid", "mid"),
+           ("平台信贷、高费用租赁（高息群）", "fleet_discount_rate_high", "high"))
+    caps = {}
+    for lab, key, mk in grp:
+        r_ = float(tco[key]); own_ = E._rent_year(config, kb, "plain", life_c, r_, tax_, fres, fh)
+        cap_ = min(les_y, own_); caps[mk] = cap_
+        src_ = "自己买" if own_ < les_y else "租赁商"
+        f.append(f"| 车队自己买：{lab} | {r_:.0%} | {pp:.0f}（普通包） | {tax_:.0%} | {fres:.0%} | {fh:.1f} | {own_:,.0f} | {float(mix[mk]):.0%} | **{cap_:,.0f}**（{src_}更便宜） |")
+    f.append(f"| 租赁商 | {r_les:.1%} | {pp:.0f}（普通包） | {tax_:.0%} | {bres:.0%} | {ph:.1f} | {les_y:,.0f} | — | 各群的上限都不会高于它 |")
+    f.append(f"| 电池银行（换电的成本） | {r_bank:.1%}（WACC） | {ps:.0f}（换电专用包） | 不交 | {bres:.0%} | {ph:.1f} | {bank_y:,.0f} | — | — |")
+    V["表:分项_租金上限"] = "\n".join(f)
+    step1 = E._rent_year(config, kb, "swap", life_c, r_les, tax_, bres, ph)      # 租赁商换成换电专用包
+    step2 = E._rent_year(config, kb, "swap", life_c, r_les, 0.0, bres, ph)       # 再免购置税
+    V["租限_中高占比"] = f"{float(mix['mid']) + float(mix['high']):.0%}"
+    V["租限_里程"] = f"{km_ex:.0f}"; V["租限_电池度"] = f"{kb:.0f}"; V["租限_寿命"] = f"{life_c:.0f}"
+    V["租限_租赁商"] = f"{les_y:,.0f}"; V["租限_银行"] = f"{bank_y:,.0f}"; V["租限_低息"] = f"{caps['low']:,.0f}"
+    V["租限_批发亏"] = f"{bank_y - caps['low']:,.0f}"; V["租限_零售亏"] = f"{bank_y - les_y:,.0f}"
+    V["租限_包溢价"] = f"{float(config['demand_routes']['swap_pack_premium']):.0%}"
+    V["租限_包溢价元"] = f"{step1 - les_y:,.0f}"; V["租限_免税元"] = f"{step2 - step1:,.0f}"
+    V["租限_其余元"] = f"{bank_y - step2:,.0f}"   # 资金成本与寿命之差（中性两者相同时为 0）
+    V["租限_中档自买"] = f"{E._rent_year(config, kb, 'plain', life_c, float(tco['fleet_discount_rate_mid']), tax_, fres, fh):,.0f}"
     # 稳健性：同一套列
     base = {k: E.class_market(config, k) for k in ("short", "trunk")}
     nol = {k: E.class_market(config, k, "optimal", False) for k in ("short", "trunk")}
@@ -1090,6 +1109,19 @@ def component_values(config: dict) -> dict[str, str]:
         bs.append(f"| {tier} | {c:.0%} | {seg(xc, cprice)} | {seg(xr, post)} | "
                   f"{c:.0%} × {xc['share']:.0%} ＋ {1 - c:.0%} × {xr['share']:.0%} ＝ {x['share']:.0%} | {x['day_price']:.3f} | {x['m_kwh']:.3f} | {x['access']:.0%} | **{x['market_share']:.0%}** |")
     V["表:分项_批发零售"] = "\n".join(bs)
+    # 三群车队各算各的：每群服务到的车与份额（干线，三档）
+    tco_ = config["tco_jpm"]
+    gtab = ["| 情景 | 车队群 | 借钱成本 | 占干线车队 | 怎么定价 | 本群可及范围内服务到的车 | 本群份额 ＝ 可及 × 服务到的车 | 对干线份额的贡献 ＝ 占比 × 本群份额 |",
+            "|---|---|---|---|---|---|---|---|"]
+    for tier, cc in scen.items():
+        x = E.class_market(cc, "trunk")
+        tot_ = 0.0
+        for g in ("low", "mid", "high"):
+            w_ = x["group_w"][g]; sh_ = x["group_share"].get(g, 0.0); ms_ = x["access"] * sh_; tot_ += w_ * ms_
+            how = "签长协，按车签价（批发）" if g == "low" else "看挂牌价（零售）"
+            gtab.append(f"| {tier} | {E.GROUP_CN[g]} | {float(tco_[f'fleet_discount_rate_{g}']):.0%} | {w_:.0%} | {how} | {sh_:.0%} | {ms_:.0%} | {w_ * ms_:.1%} |")
+        gtab.append(f"| {tier} | **干线合计** | | 100% | | | | **{tot_:.0%}** |")
+    V["表:分项_分群"] = "\n".join(gtab)
     xn = E.class_market(config, "trunk")
     V["批零_长协"] = f"{xn['contract_share']:.0%}"; V["批零_批发服务"] = f"{xn['contract']['share']:.0%}"; V["批零_零售服务"] = f"{xn['retail']['share']:.0%}"
     V["批零_合计服务"] = f"{xn['share']:.0%}"
@@ -1172,12 +1204,13 @@ def tornado_values(config: dict) -> dict[str, str]:
                   ("vehicles.heavy.scenes.1.km_range", [x * 1.2 for x in sc[1]["km_range"]]), ("vehicles.heavy.scenes.2.km_range", [x * 1.2 for x in sc[2]["km_range"]])])],
          "分档有信源（JPM 分类、司机调查），档内均匀是声明值"),
         ("强制休息时长", "30 ↔ 10 分钟", [manual([("demand_routes.rest_minutes", 30.0)]), manual([("demand_routes.rest_minutes", 10.0)])], "法规 20 分钟"),
-        ("可及比例（情景轴）", "−15% ↔ +15%", axis("swap_share_ceiling"), "人为摆幅"),
+        ("可及比例（固定值，此处只作敏感性）", "−15% ↔ +15%",
+         [manual([(f"vehicles.heavy.scenes.{i}.swap_share_ceiling", float(sc[i]["swap_share_ceiling"]) * 0.85) for i in range(3)]),
+          manual([(f"vehicles.heavy.scenes.{i}.swap_share_ceiling", float(sc[i]["swap_share_ceiling"]) * 1.15) for i in range(3)])], "判断值"),
         ("电池寿命（情景轴）", "悲观 ↔ 乐观", axis("battery_life"), "有"),
         ("司机月薪", "−20% ↔ +20%", [manual([("demand_routes.driver_wage_rmb_month", float(D["driver_wage_rmb_month"]) * 0.8)]),
                                    manual([("demand_routes.driver_wage_rmb_month", float(D["driver_wage_rmb_month"]) * 1.2)])], "有"),
         ("兆瓦站规模（情景轴）", "6 ↔ 2 个 1 MW 终端", axis("mw_station_scale"), "有"),
-        ("签长协的车队占比（情景轴）", "15% ↔ 40%", axis("contract_share"), "二手、待核"),
         ("换电站设备与人员（情景轴）", "悲观 ↔ 乐观", axis("swap_station_ops"), "有"),
     ]
     base = out(config)
@@ -1233,7 +1266,7 @@ def critical_values(config: dict) -> dict[str, str]:
                   "临界_换电车": f(k["swap_trucks"] / 1e4, 1), "临界_车日用电": f(tr["kwh_day"]), "临界_日换电次数": f(k["swaps_needed"] / 1e4, 1),
                   "临界_需求站": f(k["demand_stations"]), "临界_站数": f(k["stations"]), "临界_平均站距": f(k["opt_spacing"]),
                   })
-        c_ = float(config["pricing_segments"]["contract_share"])
+        c_ = E.fleet_groups(config, "trunk")["c"]
         gr = [f"| 场景 | 占干线（全部车） | 批发里换电服务到的（占干线） | 零售里换电服务到的（占干线） | 换电车占干线 ＝ {c_:.0%} × 批发 ＋ {1 - c_:.0%} × 零售 | 平均日里程（公里） | 每天用电（度） | 其中途中换电（度） | 途中换电占比 |",
               "|---|---|---|---|---|---|---|---|---|"]
         tw = tk = ts = ta = twc = twr = 0.0

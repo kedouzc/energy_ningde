@@ -127,21 +127,9 @@ targets = [
   "vehicles.city.scenes.1.swap_penetration",
 ]
 # 【2026-09-22 · 门②】重卡三场景移出本轴：重卡的换电份额改为"天花板 × 算得过账的车队占比"，
-# 天花板由下面 [drivers.swap_share_ceiling] 拨，算得过账的占比由价格链（price_response.py）内生。
-
-[drivers.swap_share_ceiling]
-scenario_axis = true     # 需求族：站网铺多密、车型适配多少
-cn      = "换电可及比例（重卡）"
-unit    = "换电/纯电"
-desc    = "可及比例：换电在物理上够得着的那部分车。短途＝多班倒封闭场景占比（代理值 2025 实测 30%）；中长途＝干线运力覆盖（宁德 2030 目标 80%）。三档按 ±15% 人为摆幅（本文件约定）。实际份额＝可及比例 × 系统成本低于替代的车占比（price_response.system_fraction）。"
-targets = [
-  "vehicles.heavy.scenes.0.swap_share_ceiling",
-  "vehicles.heavy.scenes.1.swap_share_ceiling",
-  "vehicles.heavy.scenes.2.swap_share_ceiling",
-]
-"悲观" = { "短途" = 0.255, "中途" = 0.68, "长途" = 0.68 }
-"中性" = { "短途" = 0.30, "中途" = 0.80, "长途" = 0.80 }
-"乐观" = { "短途" = 0.345, "中途" = 0.92, "长途" = 0.92 }
+# 天花板由下面 # 【2026-09-30 · 研究者定】可及比例三档固定（不再进情景轴）：干线 80%、封闭短途 30%。
+# 理由：它是"宁德这张网物理上够得着多少车"，网铺没铺成、车流够不够由第二层临界密度与各档份额反映，再摆一次是重复计算；
+# ±15% 只留在要紧参数表里作敏感性（caliber_docs.tornado_values）。取值依据见 vehicles.heavy.scenes 的注释。
 
 # 【±15% 是人为设定的摆幅，不需要出处（2026-09-15 定，A2③ 关闭）】
 # 情景是对未来的预测，预测本来就没有出处。这条轴回答的不是"未来会怎样"，
@@ -3809,9 +3797,8 @@ night_window_hours = 10.0
 # 车队自建场站的规模：8 根常规桩 × 每桩一夜约 6 辆 ≈ 48 辆（一个标准常规站的桩数，声明值）；更小的车队每度电更贵，见 口径/车队总账 第〇之二节
 depot_fleet_trucks = 48.0
 
-# 批发与零售（研究者 2026-09-29 定）：签长协的车队按各自线路的上限签价（批发），个体司机走一条线路一个挂牌价（零售）
-[pricing_segments]
-contract_share = 0.25   # 签长协的车队占干线电动重卡的比例：组织化车队约占运力 25%（src.fleet_finance_hy3，二手汇编、待核）；三档随 [drivers.contract_share]
+# 批发与零售：干线按车队借钱成本分群（[fleet_capital_mix]）——低息群签长协（批发），中档、高息群看挂牌价（零售）；
+# 批发比例＝低息群占比（研究者 2026-09-30 定，原单独的 contract_share 参数与三档删除）
 
 # ----【2026-09-29g/h】换电网络的临界密度（口径/换电网络_临界密度.md；不进主链读数）----
 [critical_density]
@@ -3834,15 +3821,6 @@ targets = ["vehicles.heavy.scenes.1.energy_consumption_kwh_km", "vehicles.heavy.
 "悲观" = { "中途" = 1.2, "长途" = 1.2 }
 "中性" = { "中途" = 1.4, "长途" = 1.4 }
 "乐观" = { "中途" = 1.6, "长途" = 1.6 }
-[drivers.contract_share]
-scenario_axis = true
-cn      = "签长协的车队占比"
-unit    = "比例"
-desc    = "研究者 2026-09-29 定：批发（长协大客户）与零售（个体司机）分开定价。中性 25%（组织化车队约占运力 25%，二手待核）；悲观 15%；乐观 40%。"
-targets = ["pricing_segments.contract_share"]
-"悲观" = { contract_share = 0.15 }
-"中性" = { contract_share = 0.25 }
-"乐观" = { contract_share = 0.40 }
 [drivers.mw_station_scale]
 scenario_axis = true
 cn      = "兆瓦超充站规格"

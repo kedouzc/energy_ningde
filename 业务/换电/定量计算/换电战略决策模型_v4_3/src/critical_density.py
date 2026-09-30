@@ -86,7 +86,7 @@ def summary(config: dict) -> dict:
     trunk_w = sum(float(sc["weight"]) for sc in scenes[1:])
     trunk_trucks = ev_heavy * trunk_w
     km_day = sum(float(sc["weight"]) * float(sc["daily_km"]) for sc in scenes[1:]) / trunk_w
-    # 跑在这张网上的比例 ＝ 可及比例（同一个量：宁德"八横十纵"覆盖全国 80% 干线运力，src.catl_qiji_launch_202505；三档随 [drivers.swap_share_ceiling]）
+    # 跑在这张网上的比例 ＝ 可及比例（同一个量：宁德"八横十纵"覆盖全国 80% 干线运力，src.catl_qiji_launch_202505；三档都用这个值，不摆动）
     on_net = tr["access"]
     veh_km = trunk_trucks * km_day * on_net
     ev_flow = veh_km / L / dirs                       # 每个方向每天经过某一点的纯电重卡

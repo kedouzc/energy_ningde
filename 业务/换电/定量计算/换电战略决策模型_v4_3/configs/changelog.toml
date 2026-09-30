@@ -198,3 +198,11 @@ what  = """price_response._km_grid 支持 km_range；vehicles.heavy.scenes 中�
 why   = """研究者同意日里程分布重建与可及比例算出来；文档要能读懂逻辑与结论。"""
 watch = """主链读数小动（份额模型的里程分布变了）。"""
 expect = "主链覆盖倍数约 1.01／1.23／1.58 基本不变；中性重卡站约 11,400 座；build 全绿。"
+
+[[round]]
+date  = "2026-09-29n"
+focus = "只租电池也算换电车；删可及比例的分布算法；短途可及定为判断值"
+what  = """equilibrium.class_components 分项利润之和 >0 即换电车（服务费项为负记 0，rent_only）；零售候选价只取高于成本；逐车表并入上限列；critical_density 删第⑥步，换电车流与站数只按来换电的车；删 corridor_flow_sigma；均衡定价第一节可及比例改写。"""
+why   = """研究者：租金照收不算车走；可及比例方法复杂且数据过时，结论不变；以终为始、抓大放小。"""
+watch = """主链未接（A6），读数不动。"""
+expect = "均衡层中性干线份额约 36%；临界密度中性站约 2,900 座；build 全绿。"

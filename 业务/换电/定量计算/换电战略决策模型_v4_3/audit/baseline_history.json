@@ -1,37 +1,5 @@
 [
  {
-  "date": "2026-09-18h",
-  "tiers": {
-   "悲观": {
-    "val.swap_increment": 2106.0754181870966,
-    "val.incr_over_mktcap": 0.11860536229020086,
-    "swap.coverage": 1.1566337496677987,
-    "swap.ebitda": 505.148358623631,
-    "scale.stations_total": 8688.0,
-    "val.implied_multiple_perpetual": 7.045626522619804,
-    "val.turnover_multiple": 7.1713140295738365
-   },
-   "中性": {
-    "val.swap_increment": 10118.558771971335,
-    "val.incr_over_mktcap": 0.569834925492557,
-    "swap.coverage": 1.6347205402289045,
-    "swap.ebitda": 1371.1149035281765,
-    "scale.stations_total": 14798.0,
-    "val.implied_multiple_perpetual": 7.950684151077765,
-    "val.turnover_multiple": 9.614992272374597
-   },
-   "乐观": {
-    "val.swap_increment": 24067.977067516247,
-    "val.incr_over_mktcap": 1.3554078429642533,
-    "swap.coverage": 2.0853671752774443,
-    "swap.ebitda": 2957.5801649655186,
-    "scale.stations_total": 22722.0,
-    "val.implied_multiple_perpetual": 8.403120170608396,
-    "val.turnover_multiple": 10.388153397136223
-   }
-  }
- },
- {
   "date": "2026-09-18i",
   "tiers": {
    "悲观": {
@@ -1249,6 +1217,38 @@
  },
  {
   "date": "2026-09-29l",
+  "tiers": {
+   "悲观": {
+    "val.swap_increment": 1494.1634051536168,
+    "val.incr_over_mktcap": 0.0841450360507753,
+    "swap.coverage": 1.0124778456240844,
+    "swap.ebitda": 479.0199466807731,
+    "scale.stations_total": 11230.0,
+    "val.implied_multiple_perpetual": 8.026493722695127,
+    "val.turnover_multiple": 8.450257558851641
+   },
+   "中性": {
+    "val.swap_increment": 6822.76317543328,
+    "val.incr_over_mktcap": 0.3842294968425567,
+    "swap.coverage": 1.2332268096023877,
+    "swap.ebitda": 1018.0740799787342,
+    "scale.stations_total": 19091.0,
+    "val.implied_multiple_perpetual": 8.380391676894154,
+    "val.turnover_multiple": 9.670335328317313
+   },
+   "乐观": {
+    "val.swap_increment": 16496.65425850557,
+    "val.incr_over_mktcap": 0.9290225972014174,
+    "swap.coverage": 1.583020819016416,
+    "swap.ebitda": 2082.8082350691707,
+    "scale.stations_total": 30020.0,
+    "val.implied_multiple_perpetual": 8.652144861503716,
+    "val.turnover_multiple": 10.373015412976342
+   }
+  }
+ },
+ {
+  "date": "2026-09-29n",
   "tiers": {
    "悲观": {
     "val.swap_increment": 1494.1634051536168,

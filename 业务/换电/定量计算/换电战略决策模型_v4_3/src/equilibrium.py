@@ -221,29 +221,51 @@ def class_components(config: dict, cls: str, basis: str = "optimal", lessor: boo
             p["weight"] = w * sw
             p["scene"] = scenes[scene_idx]["name"]
             pts.append(p)
+    # 每辆车在某个白天价下给换电的利润：租金一项照收（电池已经租了）；服务费一项只在它愿意付这个价、且换电在这一项上不亏时才有。
+    # 愿意付不了（或换电在服务费上亏）的车，仍是换电车，只租电池、白天去充电（总框架第八节第 6 条：套利是合理行为）。
+    def fee_part(p, P):
+        if P is None or p["st_kwh"] <= 0 or p["cap_st"] < P - 1e-12:
+            return 0.0
+        f = (P - p["cost_st"]) * p["st_kwh"] + p["night_margin_y"]
+        return f if f > 0 else 0.0
+
+    def settle(p, P):
+        fp = fee_part(p, P)
+        tot = p["m_rent_y"] + fp
+        p["m_fee"] = fp / p["kwh_year"]
+        p["m_kwh"] = p["m_fee"] + p["m_rent"]
+        p["m_wan"] = tot / 1e4
+        p["fee_cap"] = p["fee_cost"] + p["m_fee"]
+        p["served"] = tot > 0
+        p["chosen"] = p["served"] and p["prefers"]
+        p["rent_only"] = p["chosen"] and not fp > 0
+        p["swaps"] = p["chosen"] and fp > 0
+        if p["rent_only"]:
+            p["station_share"] = 0.0
+        p["price_day"] = P
     posted = None
     tried: list = []
     if segment == "retail":
         best = (0.0, None)
-        def prof_i(p, P):
-            return (P - p["cost_st"]) * p["st_kwh"] + p["night_margin_y"] + p["m_rent_y"]
         tried = []
-        for P in sorted(set(p["cap_st"] for p in pts if p["st_kwh"] > 0)):
-            sel = [p for p in pts if p["st_kwh"] > 0 and p["cap_st"] >= P - 1e-12 and prof_i(p, P) > 0]
-            prof = sum(p["weight"] * prof_i(p, P) for p in sel)
-            tried.append({"P": P, "share": sum(p["weight"] for p in sel), "profit": prof})
+        floor_ = min((p["cost_st"] for p in pts), default=0.0)
+        for P in sorted(set(p["cap_st"] for p in pts if p["st_kwh"] > 0 and p["cap_st"] > floor_)):
+            vals = [(p, p["m_rent_y"] + fee_part(p, P)) for p in pts]
+            sel = [(p, v) for p, v in vals if v > 0]
+            prof = sum(p["weight"] * v for p, v in sel)
+            tried.append({"P": P, "share": sum(p["weight"] for p, _ in sel),
+                          "swap_share": sum(p["weight"] for p, v in sel if fee_part(p, P) > 0), "profit": prof})
             if prof > best[0]:
                 best = (prof, P)
         posted = best[1]
+        if posted is None:                                   # 挂任何价都没有换电生意：只剩租电池的车
+            base_rent = sum(p["weight"] * p["m_rent_y"] for p in pts if p["m_rent_y"] > 0)
+            tried.append({"P": None, "share": sum(p["weight"] for p in pts if p["m_rent_y"] > 0), "swap_share": 0.0, "profit": base_rent})
         for p in pts:
-            ok = posted is not None and p["st_kwh"] > 0 and p["cap_st"] >= posted - 1e-12
-            mf = ((posted - p["cost_st"]) * p["st_kwh"] + p["night_margin_y"]) if ok else 0.0
-            p["m_fee"] = mf / p["kwh_year"]
-            p["m_kwh"] = p["m_fee"] + p["m_rent"]
-            p["m_wan"] = (mf + p["m_rent_y"]) / 1e4
-            p["fee_cap"] = p["fee_cost"] + p["m_fee"]
-            p["served"] = ok and (mf + p["m_rent_y"]) > 0
-            p["chosen"] = p["served"] and p["prefers"]
+            settle(p, posted)
+    else:
+        for p in pts:
+            settle(p, p["cap_st"] if p["st_kwh"] > 0 else None)
     ch = [p for p in pts if p["chosen"]]
     share = sum(p["weight"] for p in ch)
     ekwh = sum(p["weight"] * p["kwh_year"] for p in ch)
@@ -264,9 +286,10 @@ def class_components(config: dict, cls: str, basis: str = "optimal", lessor: boo
             "m_fee": avg("m_fee", ch), "m_rent": avg("m_rent", ch), "m_kwh": avg("m_kwh", ch),
             "m_wan": sum(p["weight"] * p["m_wan"] for p in ch) / share if share else 0.0, "kwh_w": ekwh,
             "station_share": avg("station_share", ch), "segment": segment, "posted": posted,
-            "st_w": sum(p["weight"] * p["st_kwh"] for p in ch),
-            "day_price": (sum(p["weight"] * p["st_kwh"] * (posted if segment == "retail" else p["cap_st"]) for p in ch)
-                          / sum(p["weight"] * p["st_kwh"] for p in ch)) if any(p["st_kwh"] > 0 for p in ch) else 0.0,
+            "st_w": sum(p["weight"] * p["st_kwh"] for p in ch if p["swaps"]),
+            "rent_only_share": sum(p["weight"] for p in ch if p["rent_only"]),
+            "day_price": (sum(p["weight"] * p["st_kwh"] * p["price_day"] for p in ch if p["swaps"])
+                          / sum(p["weight"] * p["st_kwh"] for p in ch if p["swaps"])) if any(p["swaps"] for p in ch) else 0.0,
             "tried": tried if segment == "retail" else []}
 
 

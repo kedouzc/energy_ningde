@@ -3823,7 +3823,6 @@ today_swap_trucks = 70000.0     # 2025 年 8 月：全国重卡换电站约 1,40
 today_swap_stations = 1400.0
 jinjiang_trucks_day = 200.0     # 晋江骐骥站设计日均服务近 200 辆（src.jinjiang_gov_2026），只作核对
 old_spacing_km = 100.0          # 旧算法：每百公里一站、双向（15 万 × 2 ÷ 100 ＝ 3,000 座），只作对照
-corridor_flow_sigma = 0.545     # 线路车流的离散程度（对数正态 σ）：2018 年各省高速货运密度基尼系数 0.30（src.chd_expressway_2020），基尼 ＝ 2Φ(σ/√2) − 1 反推；线路间更不均，另报 0.8、1.0
 
 # ----【2026-09-28m】供给层与需求层的三档（A3/A4 参数进情景轴；主链尚未读这些参数，读数不受影响）----
 [drivers.trunk_energy]

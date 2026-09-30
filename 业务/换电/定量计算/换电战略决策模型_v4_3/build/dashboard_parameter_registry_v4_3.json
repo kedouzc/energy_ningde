@@ -2756,10 +2756,5 @@
     "key": "critical_density.old_spacing_km",
     "value": 100.0,
     "type": "float"
-  },
-  {
-    "key": "critical_density.corridor_flow_sigma",
-    "value": 0.545,
-    "type": "float"
   }
 ]

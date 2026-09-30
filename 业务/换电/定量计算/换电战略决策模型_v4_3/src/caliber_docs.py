@@ -982,21 +982,27 @@ def component_values(config: dict) -> dict[str, str]:
         rows_ = []
         for p_ in pts:
             yr = p_["kwh_year"]
-            price = price_of(p_)
-            fee_y = ((price - p_["cost_st"]) * p_["st_kwh"] + p_["night_margin_y"]) if (price is not None and p_["st_kwh"] > 0) else p_["night_margin_y"]
+            price = p_.get("price_day")
+            fee_y = p_["m_fee"] * yr
             tot = fee_y + p_["m_rent_y"]
-            keep = keep_of(p_)
-            rows_.append(f"| {p_['km']:.0f} | {p_['weight']:.1%} | {names[p_['alt']]} | "
-                         + (f"{price:.3f}" if (price is not None and p_['st_kwh'] > 0) else "—（途中不用换）")
-                         + f" | {p_['cost_st']:.3f} | {p_['st_kwh']:,.0f} | {fee_y:,.0f} | {p_['rent_cap'] * yr:,.0f}／{p_['rent_cost'] * yr:,.0f}（{p_['alt_rent_src']}） | {p_['m_rent_y']:,.0f} | "
-                         + (f"**{tot:,.0f}**" if keep else f"{tot:,.0f}")
-                         + (" | 服务 |" if keep else (" | 走了（接受不了挂牌价，这几列只是假设它留下） |" if (retail and p_["st_kwh"] > 0 and p_["cap_st"] < price - 1e-12)
-                                                     else " | 不服务（两项利润之和为负） |")))
+            if p_.get("rent_only"):
+                status = "只租电池（白天价接受不了，去充电；租金照收）" if (price is not None and p_["st_kwh"] > 0 and p_["cap_st"] < price - 1e-12) else "只租电池（换电在服务费上不挣钱，白天去充电）"
+            elif p_["chosen"]:
+                status = "换电（服务费＋租金）"
+            elif retail and price is not None and p_["st_kwh"] > 0 and p_["cap_st"] < price - 1e-12:
+                status = "不选换电（接受不了白天价，租金一项也不挣）"
+            else:
+                status = "不选换电（两项利润之和为负）"
+            cap_txt = f"{p_['cap_st']:.3f}" if p_["st_kwh"] > 0 else "—（途中不用换）"
+            price_txt = f"{price:.3f}" if price is not None else "—"
+            rows_.append(f"| {p_['km']:.0f} | {p_['weight']:.1%} | {names[p_['alt']]} | {cap_txt} | {price_txt} | {p_['cost_st']:.3f} | {p_['st_kwh']:,.0f} | "
+                         f"{fee_y:,.0f} | {p_['rent_cap'] * yr:,.0f}／{p_['rent_cost'] * yr:,.0f}（{p_['alt_rent_src']}） | {p_['m_rent_y']:,.0f} | "
+                         + (f"**{tot:,.0f}**" if p_["chosen"] else f"{tot:,.0f}") + f" | {status} |")
         return rows_
-    head_u = ("| 日里程（公里） | 这类车占干线的比例 | 充电替代（定价者） | 白天服务费（元/度，按途中换的电） | 换电站成本（元/度） | 途中换的电（度/年） | "
-              "服务费一项利润（元/年） | 租金上限／电池银行成本（元/年） | 租金一项利润（元/年） | 合计（元/年） | 换电服务吗 |")
+    head_u = ("| 日里程（公里） | 这类车占干线的比例 | 充电替代（定价者） | 这辆车白天最多能接受的价（元/度） | 实际白天价（元/度） | 换电站成本（元/度） | 途中换的电（度/年） | "
+              "服务费一项利润（元/年） | 租金上限／电池银行成本（元/年） | 租金一项利润（元/年） | 合计（元/年） | 结果 |")
     trx = E.class_components(config, "trunk")
-    ex = [head_u, "|---|---|---|---|---|---|---|---|---|---|---|"] + unit_rows(trx["points"], lambda p_: p_["cap_st"] if p_["st_kwh"] > 0 else None, lambda p_: p_["chosen"])
+    ex = [head_u, "|---|---|---|---|---|---|---|---|---|---|---|---|"] + unit_rows(trx["points"], lambda p_: p_["cap_st"] if p_["st_kwh"] > 0 else None, lambda p_: p_["chosen"])
     V["算例:分项_干线"] = "\n".join(ex)
     p0 = next(p_ for p_ in trx["points"] if p_["chosen"]) if any(p_["chosen"] for p_ in trx["points"]) else trx["points"][-1]
     V["批例_里程"] = f"{p0['km']:.0f}"; V["批例_替代"] = names[p0["alt"]]
@@ -1015,12 +1021,9 @@ def component_values(config: dict) -> dict[str, str]:
     V["批例_最低服务里程"] = f"{min(p_['km'] for p_ in trx['points'] if p_['chosen']):.0f}" if trx["share"] else "—"
     xr_ = E.class_components(config, "trunk", segment="retail")
     posted_ = xr_["posted"]
-    rr_ = [head_u, "|---|---|---|---|---|---|---|---|---|---|---|"] + unit_rows(xr_["points"], lambda p_: posted_, lambda p_: p_["chosen"], retail=True)
+    rr_ = [head_u, "|---|---|---|---|---|---|---|---|---|---|---|---|"] + unit_rows(xr_["points"], lambda p_: posted_, lambda p_: p_["chosen"], retail=True)
     V["表:零售逐车"] = "\n".join(rr_)
-    cap_rows = ["| 日里程（公里） | 这类车占干线的比例 | 这辆车白天最多能接受的价（元/度） |", "|---|---|---|"]
-    for p_ in xr_["points"]:
-        cap_rows.append(f"| {p_['km']:.0f} | {p_['weight']:.1%} | " + (f"{p_['cap_st']:.3f}" if p_["st_kwh"] > 0 else "—（途中不用换）") + " |")
-    V["表:零售上限"] = "\n".join(cap_rows)
+
     V["分项例_里程"] = f"{p0['km']:.0f}"
     V["分项例_服务费上限"] = f"{p0['fee_cap']:.3f}"; V["分项例_站成本"] = f"{p0['fee_cost']:.3f}"
     V["分项例_基础服务费"] = f"{p0['fee_base']:.3f}"; V["分项例_时间差"] = f"{p0['time_gap_kwh']:.3f}"
@@ -1093,10 +1096,12 @@ def component_values(config: dict) -> dict[str, str]:
     # 零售：逐车白天上限与试价过程（中性干线）
     xr = xn["retail"]
 
-    tt = ["| 试挂的白天价（元/度） | 留下的车（占干线） | 换电一年的利润（平均每辆干线车，元） |", "|---|---|---|"]
+    tt = ["| 试挂的白天价（元/度） | 来换电的车（占干线） | 换电车合计（含只租电池的，占干线） | 换电一年的利润（平均每辆干线车，元） |", "|---|---|---|---|"]
     for r_ in xr["tried"]:
+        if r_["P"] is None:
+            tt.append(f"| 任何价都没有换电生意 | 0% | {r_['share']:.0%} | {r_['profit']:,.0f} |"); continue
         mark = "**" if xr["posted"] is not None and abs(r_["P"] - xr["posted"]) < 1e-12 else ""
-        tt.append(f"| {mark}{r_['P']:.3f}{mark} | {mark}{r_['share']:.0%}{mark} | {mark}{r_['profit']:,.0f}{mark} |")
+        tt.append(f"| {mark}{r_['P']:.3f}{mark} | {mark}{r_['swap_share']:.0%}{mark} | {mark}{r_['share']:.0%}{mark} | {mark}{r_['profit']:,.0f}{mark} |")
     V["表:零售试价"] = "\n".join(tt)
     V["零售_挂牌"] = f"{xr['posted']:.3f}" if xr.get("posted") else "—"
     V["零售_换电站成本"] = f"{SR.summary(config)['optimum']['swap']['station_cost']:.3f}"
@@ -1211,7 +1216,10 @@ def critical_values(config: dict) -> dict[str, str]:
               "临界_可用里程": f(k["usable_range"]), "临界_预留": f"{float(cd['range_reserve']):.0%}", "临界_站距": f(k["spacing"]),
               "临界_方向": f(k["dirs"]), "临界_车上电量": f(float(config['vehicles']['heavy']['scenes'][1]['onboard_battery_kwh'])),
               "临界_可用比例": f"{float(config['swap_business']['usable_energy_factor']):.0%}",
-              "临界_网里程": f(k["L"]), "临界_网运力": f"{k['on_net']:.0%}", "临界_网上换电": f"{tr['share']:.0%}", "临界_干线权重": f"{sum(float(x['weight']) for x in config['vehicles']['heavy']['scenes'][1:]):.0%}", "临界_保有": f(k["ev_heavy"] / 1e4, 0),
+              "临界_网里程": f(k["L"]), "临界_网运力": f"{k['on_net']:.0%}", "临界_网上换电": f"{tr['swap_count']:.0%}", "临界_车流占比": f"{k['flow_share']:.0%}", "临界_换电里程和": f"{k['swap_km_per_truck']:.0f}",
+              "临界_中途服务": f"{tr['groups'].get('中途', {}).get('w', 0.0):.1%}", "临界_长途服务": f"{tr['groups'].get('长途', {}).get('w', 0.0):.1%}",
+              "临界_中途里程": f"{(tr['groups']['中途']['km'] / tr['groups']['中途']['w']) if tr['groups'].get('中途', {}).get('w') else 0:.0f}",
+              "临界_长途里程": f"{(tr['groups']['长途']['km'] / tr['groups']['长途']['w']) if tr['groups'].get('长途', {}).get('w') else 0:.0f}", "临界_干线权重": f"{sum(float(x['weight']) for x in config['vehicles']['heavy']['scenes'][1:]):.0%}", "临界_保有": f(k["ev_heavy"] / 1e4, 0),
               "临界_干线车": f(k["trunk_trucks"] / 1e4, 1), "临界_日里程": f(k["km_day"]), "临界_车公里": f(k["veh_km"] / 1e8, 2),
               "临界_电车流量": f(k["ev_flow"]), "临界_铺满站": f(k["cover_stations"]), "临界_旧站数": f(k["old_stations"]),
               "临界_旧站距": f(float(cd["old_spacing_km"])), "临界_晋江": f(float(cd["jinjiang_trucks_day"])),
@@ -1240,11 +1248,6 @@ def critical_values(config: dict) -> dict[str, str]:
         for r in k["loss_rows"]:
             rows.append(f"| {r['q']:.0f} | {r['swaps']:.0f} | {r['rho']:.0%} | {r['station_cost']:.3f} | {r['margin']:+.3f} | {r['profit_wan']:+.0f} |")
         V["表:临界_盈亏"] = "\n".join(rows)
-        ar = ["| 线路车流的离散程度 σ | 依据 | 过筛选线的线路里程占比 | 过线线路承载的车公里占比 | 算出的可及比例 ＝ 在网上的比例 × 车公里占比 |", "|---|---|---|---|---|"]
-        for r_, why in zip(k["access_rows"], ("省际货运密度基尼 0.30 反推（中性）", "线路间更不均（敏感性）", "更不均（敏感性）")):
-            ar.append(f"| {r_['sigma']:.2f} | {why} | {r_['frac_km']:.0%} | {r_['frac_flow']:.0%} | **{r_['access']:.0%}** |")
-        V["表:临界_可及"] = "\n".join(ar)
-        V["临界_线路门槛"] = f(k["thr_ev"]); V["临界_算出可及"] = f"{k['access_derived']:.0%}"
         V["临界_声明可及"] = f"{k['on_net']:.0%}"
         half = min(k["loss_rows"], key=lambda r: abs(r["q"] - k["q_star"] * 0.5))
         V["临界_半数亏"] = f(-half["profit_wan"]); V["临界_半数车"] = f(half["q"])

@@ -1,0 +1,1348 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>换电沙盘</title>
+<style>
+/* 版式：研究报告式单栏长页。顶部固定条（标题、版本、三档切换、版面导航），下面五块版面依次排列；
+   宽表格只在自己的容器里横向滚动，整页不横向滚动。所有颜色是下面的变量。 */
+:root {
+  --bg: #F2F4F4;        /* 页面底：偏冷的纸色 */
+  --surface: #FFFFFF;   /* 卡片、表格底 */
+  --sunk: #E7EBED;      /* 表头、关键数底 */
+  --ink: #16202A;       /* 正文 */
+  --ink-2: #56626E;     /* 次要文字 */
+  --line: #D4DADE;      /* 分隔线 */
+  --accent: #1D5B72;    /* 链接 */
+  --t0: #A0432E;        /* 悲观 */
+  --t1: #3E5467;        /* 中性 */
+  --t2: #2D7650;        /* 乐观 */
+  --on-tier: #FFFFFF;   /* 档位色上的文字 */
+  --band-bg: #F3C63F;   /* 示例数据横条 */
+  --band-ink: #2A2000;
+  --f-display: "Songti SC", "STSong", "Noto Serif CJK SC", "Source Han Serif SC", "Noto Serif SC", "SimSun", serif;
+  --f-body: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+  --f-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", "Noto Sans Mono CJK SC", monospace;
+  --hdr-h: 140px;
+  --tier-c: var(--t1);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11161B; --surface: #182027; --sunk: #202A33; --ink: #E3E8EC; --ink-2: #98A5B0;
+    --line: #2C3843; --accent: #86BDD1; --t0: #E4917A; --t1: #AFC2D1; --t2: #80C99D;
+    --on-tier: #10161B; --band-bg: #D9AE35; --band-ink: #1C1500;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11161B; --surface: #182027; --sunk: #202A33; --ink: #E3E8EC; --ink-2: #98A5B0;
+  --line: #2C3843; --accent: #86BDD1; --t0: #E4917A; --t1: #AFC2D1; --t2: #80C99D;
+  --on-tier: #10161B; --band-bg: #D9AE35; --band-ink: #1C1500;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.7 var(--f-body);
+  overflow-wrap: break-word;
+}
+body[data-tier="0"] { --tier-c: var(--t0); }
+body[data-tier="1"] { --tier-c: var(--t1); }
+body[data-tier="2"] { --tier-c: var(--t2); }
+a { color: var(--accent); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+.wrap { width: 100%; max-width: 1040px; margin-inline: auto; padding-inline: 16px; }
+@media (min-width: 720px) { .wrap { padding-inline: 24px; } }
+
+/* 顶部固定条 */
+.bar {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.band {
+  background: var(--band-bg); color: var(--band-ink);
+  font-size: 13px; line-height: 1.45; font-weight: 600;
+  padding: 5px 16px; text-align: center;
+}
+.bar-in {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center;
+  column-gap: 12px; row-gap: 2px; padding-block: 8px 4px;
+}
+.bar-in h1 { margin: 0; min-width: 0; font: 600 19px/1.3 var(--f-display); letter-spacing: .03em; }
+.ver { grid-column: 1 / -1; font-size: 12px; line-height: 1.4; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+@media (min-width: 720px) {
+  .bar-in { padding-block: 10px 6px; }
+  .bar-in .tiers { grid-column: 2; grid-row: 1 / span 2; }
+  .ver { grid-column: 1; }
+}
+.tiers {
+  display: inline-flex; flex: none;
+  border: 1px solid var(--line); border-radius: 6px; overflow: hidden;
+  background: var(--surface);
+}
+.tiers button {
+  appearance: none; border: 0; margin: 0; background: transparent; color: var(--ink);
+  font: 500 14px/1 var(--f-body); padding: 9px 12px; min-height: 36px; cursor: pointer;
+}
+@media (min-width: 720px) { .tiers button { padding: 10px 14px; min-height: 38px; } }
+.tiers button + button { border-left: 1px solid var(--line); }
+.tiers button[data-idx="0"] { --tier-c: var(--t0); }
+.tiers button[data-idx="1"] { --tier-c: var(--t1); }
+.tiers button[data-idx="2"] { --tier-c: var(--t2); }
+.tiers button:hover { background: var(--sunk); }
+.tiers button[aria-pressed="true"] { background: var(--tier-c); color: var(--on-tier); font-weight: 600; }
+.tiers button:focus-visible { outline-offset: -3px; }
+.toc {
+  display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none;
+  padding-block: 0 6px;
+}
+.toc::-webkit-scrollbar { display: none; }
+.toc a {
+  flex: none; color: var(--ink-2); text-decoration: none;
+  font-size: 13px; line-height: 1.5; padding: 4px 8px; border-radius: 4px;
+}
+.toc a:first-child { margin-left: -8px; }
+.toc a:hover { color: var(--ink); background: var(--sunk); }
+
+/* 版面 */
+main { padding-block: 4px 32px; }
+.sec { scroll-margin-top: calc(var(--hdr-h) + 8px); padding-block: 28px 12px; border-top: 1px solid var(--line); }
+.sec:first-child { border-top: 0; }
+.sec-h { display: flex; align-items: baseline; gap: 0; margin-bottom: 10px; }
+.sec-h h2, .sec-no { margin: 0; font: 600 24px/1.3 var(--f-display); text-wrap: balance; }
+.sec-no { color: var(--ink-2); }
+.intro { max-width: 40em; margin-bottom: 18px; }
+.intro p, .intro ul, .intro ol { margin: 0 0 .55em; }
+.intro ul, .intro ol { padding-left: 1.3em; }
+.intro h4 { margin: .9em 0 .3em; font-size: 15px; }
+.intro code, .kv, td.f { font-family: var(--f-mono); }
+.intro code { font-size: .9em; background: var(--sunk); padding: 1px 4px; border-radius: 3px; }
+.empty { color: var(--ink-2); font-size: 14px; margin: 0; }
+.src { font-size: 12px; line-height: 1.5; color: var(--ink-2); margin: 6px 0 0; }
+.chip {
+  display: inline-block; font-size: 12px; line-height: 1.6; padding: 0 8px; border-radius: 999px;
+  border: 1px solid var(--tier-c); color: var(--tier-c); white-space: nowrap;
+}
+
+/* 结论：一句话 + 指标卡片 */
+.verdict {
+  margin: 0 0 16px; padding: 14px 16px 16px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 4px;
+}
+.verdict-lbl { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); letter-spacing: .04em; }
+.verdict-txt { margin: 6px 0 0; font: 600 18px/1.6 var(--f-display); max-width: 34em; text-wrap: pretty; }
+@media (min-width: 720px) { .verdict-txt { font-size: 20px; } }
+.metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 720px) { .metrics { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; } }
+.m {
+  min-width: 0; display: flex; flex-direction: column; gap: 4px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 12px 14px;
+}
+.m-name { font-size: 13px; line-height: 1.45; color: var(--ink-2); }
+.m-val { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; min-height: 33px; font-variant-numeric: tabular-nums; }
+.m-val .v { font-size: 26px; line-height: 1.25; font-weight: 600; letter-spacing: -.01em; }
+.m-val .v.txt { font-size: 19px; letter-spacing: 0; }
+.m-val .u { font-size: 13px; color: var(--ink-2); }
+.m-tiers {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 6px; margin-top: 2px;
+  padding-top: 6px; border-top: 1px dashed var(--line);
+  font-size: 12px; line-height: 1.5; color: var(--ink-2); font-variant-numeric: tabular-nums;
+}
+.m-tiers span { min-width: 0; display: flex; flex-direction: column; }
+.m-tiers b { font-size: 11px; font-weight: 400; }
+.m-tiers .on { color: var(--tier-c); font-weight: 600; }
+.m-tiers .on b { font-weight: 600; }
+.m-note { font-size: 12px; line-height: 1.5; color: var(--ink-2); }
+.m .src { margin-top: auto; padding-top: 4px; }
+
+/* 表格 */
+.tbl-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 1.55; }
+th, td { padding: 8px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+thead th { background: var(--sunk); color: var(--ink-2); font-size: 13px; font-weight: 600; white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.f { font-size: 12.5px; color: var(--ink-2); min-width: 10em; }
+td.lead { font-weight: 600; }
+.pl { white-space: pre-line; }
+.calc td:first-child { min-width: 8em; }
+.calc tr.top td:not(.f) { font-weight: 600; }
+.cell-sub { display: block; font-size: 12px; color: var(--ink-2); }
+
+/* 窄屏：文字表（推翻、跟踪）改成一行一张卡片 */
+@media (max-width: 719px) {
+  .stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .stack, .stack tbody, .stack tr { display: block; width: 100%; }
+  .stack tr { padding: 12px 14px; border-bottom: 1px solid var(--line); }
+  .stack tr:last-child { border-bottom: 0; }
+  .stack td { display: grid; grid-template-columns: 6.3em minmax(0, 1fr); gap: 8px; padding: 3px 0; border: 0; }
+  .stack td::before { content: attr(data-label); font-size: 12px; line-height: 1.85; color: var(--ink-2); }
+  .stack td.lead { display: block; font-size: 15px; padding-bottom: 6px; }
+  .stack td.lead::before { content: none; }
+  .stack td.blank { display: none; }
+}
+
+/* 为什么这么想：竖向论证链 */
+.chain { list-style: none; margin: 0; padding: 0; }
+.chain li { position: relative; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 14px; padding-bottom: 22px; }
+.chain li::before { content: ""; position: absolute; left: 15px; top: 34px; bottom: 2px; width: 2px; background: var(--line); }
+.chain li:last-child { padding-bottom: 4px; }
+.chain li:last-child::before { display: none; }
+.chain .no {
+  width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--ink-2);
+  display: grid; place-items: center; background: var(--bg);
+  font: 600 14px/1 var(--f-body); font-variant-numeric: tabular-nums;
+}
+.chain h3 { margin: 3px 0 2px; font: 600 17px/1.5 var(--f-display); }
+.chain p { margin: 0 0 6px; max-width: 40em; }
+.chain .meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; font-size: 13px; color: var(--ink-2); }
+.kv {
+  font-size: 13px; color: var(--ink); background: var(--sunk);
+  padding: 2px 7px; border-radius: 3px; font-variant-numeric: tabular-nums;
+}
+
+/* 怎么算出来的：每章一张表 */
+.calc { margin-bottom: 26px; }
+.calc:last-child { margin-bottom: 8px; }
+.calc-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 2px; }
+.calc h3 { margin: 0; font: 600 17px/1.5 var(--f-display); }
+.calc .q { margin: 0 0 10px; color: var(--ink-2); max-width: 40em; }
+
+/* 页脚与无数据提示 */
+.foot { font-size: 12px; line-height: 1.6; color: var(--ink-2); border-top: 1px solid var(--line); padding-block: 18px 32px; }
+.nodata { padding-block: 48px; max-width: 36em; }
+.nodata h2 { font: 600 20px/1.4 var(--f-display); margin: 0 0 8px; }
+</style>
+</head>
+<body data-tier="1">
+
+<header class="bar" id="bar">
+  <div class="band" id="band" hidden>示例数据：页面上的数字都是假数，不是研究结论</div>
+  <div class="wrap bar-in">
+    <h1>换电沙盘</h1>
+    <div class="tiers" id="tiers" role="group" aria-label="情景档位"></div>
+    <span class="ver" id="ver"></span>
+  </div>
+  <nav class="wrap toc" aria-label="版面导航">
+    <a href="#jielun">结论</a>
+    <a href="#tuifan">什么会推翻</a>
+    <a href="#lunzheng">为什么这么想</a>
+    <a href="#jisuan">怎么算出来的</a>
+    <a href="#genzong">跟踪</a>
+  </nav>
+</header>
+
+<main class="wrap" id="main">
+  <section class="sec" id="jielun" aria-labelledby="h-jielun">
+    <div class="sec-h"><span class="sec-no">一、</span><h2 id="h-jielun">结论</h2></div>
+    <div class="intro" data-text="结论"></div>
+    <div id="b-jielun"></div>
+  </section>
+  <section class="sec" id="tuifan" aria-labelledby="h-tuifan">
+    <div class="sec-h"><span class="sec-no">二、</span><h2 id="h-tuifan">什么会推翻</h2></div>
+    <div class="intro" data-text="什么会推翻"></div>
+    <div id="b-tuifan"></div>
+  </section>
+  <section class="sec" id="lunzheng" aria-labelledby="h-lunzheng">
+    <div class="sec-h"><span class="sec-no">三、</span><h2 id="h-lunzheng">为什么这么想</h2></div>
+    <div class="intro" data-text="为什么这么想"></div>
+    <div id="b-lunzheng"></div>
+  </section>
+  <section class="sec" id="jisuan" aria-labelledby="h-jisuan">
+    <div class="sec-h"><span class="sec-no">四、</span><h2 id="h-jisuan">怎么算出来的</h2></div>
+    <div class="intro" data-text="怎么算出来的"></div>
+    <div id="b-jisuan"></div>
+  </section>
+  <section class="sec" id="genzong" aria-labelledby="h-genzong">
+    <div class="sec-h"><span class="sec-no">五、</span><h2 id="h-genzong">跟踪</h2></div>
+    <div class="intro" data-text="跟踪"></div>
+    <div id="b-genzong"></div>
+  </section>
+</main>
+
+<footer class="wrap foot" id="foot"></footer>
+
+<script>
+// 下面两行由 主线/生成沙盘.py 替换成真实内容；直接打开模板时它们是 null。
+const DATA = {
+ "版本": "2026-10-03 冲刺 v5（毛估版，待研究者审）",
+ "三档": [
+  "多交付 0%",
+  "多交付 20%",
+  "多交付 50%"
+ ],
+ "默认档": "多交付 20%",
+ "结论": {
+  "一句话": {
+   "多交付 0%": "没有延寿，换电在接力、多班倒上仍便宜约 2–3 分钱/度；但限价下税前回报只有 0.6%，按主口径让宁德少值约 11%。",
+   "多交付 20%": "换电能卖约 2,053 亿度、建近两万座站，但每度只赚几分钱，税前回报 1.2%；按主口径让宁德少值约 4%，价值要靠价格规则、便宜资金和护城河。",
+   "多交付 50%": "延寿到 50%，税前回报也只有 2.2%，离 7.5% 很远；按主口径让宁德多值约 5%。结论卡在价格规则上，不在电池技术上。"
+  },
+  "指标": [
+   {
+    "名": "2030 年过换电站的电",
+    "单位": "亿度",
+    "值": {
+     "多交付 0%": 2053,
+     "多交付 20%": 2053,
+     "多交付 50%": 2053
+    },
+    "出处": "计算书 4.5 节",
+    "注": "三档相同，约占重卡用电四成"
+   },
+   {
+    "名": "要建的站",
+    "单位": "座",
+    "值": {
+     "多交付 0%": 19548,
+     "多交付 20%": 19548,
+     "多交付 50%": 19548
+    },
+    "出处": "计算书 5.1 节",
+    "注": "宁德规划 5,000 座只够干线需要的三成"
+   },
+   {
+    "名": "到 2030 年投入",
+    "单位": "亿元",
+    "值": {
+     "多交付 0%": 4631,
+     "多交付 20%": 4631,
+     "多交付 50%": 4631
+    },
+    "出处": "计算书 5.2 节",
+    "注": "站体 1,710、周转电池 473、车上电池 2,448"
+   },
+   {
+    "名": "息税折旧前利润",
+    "单位": "亿元",
+    "值": {
+     "多交付 0%": 428,
+     "多交付 20%": 456,
+     "多交付 50%": 501
+    },
+    "出处": "计算书 6.1 节",
+    "注": ""
+   },
+   {
+    "名": "税前资本回报",
+    "单位": "",
+    "值": {
+     "多交付 0%": "0.6%",
+     "多交付 20%": "1.2%",
+     "多交付 50%": "2.2%"
+    },
+    "出处": "计算书 6.1 节",
+    "注": "对手要 7.5% 回报时 3.2%／3.8%／4.7%"
+   },
+   {
+    "名": "换电业务值（主口径）",
+    "单位": "亿元",
+    "值": {
+     "多交付 0%": 2939,
+     "多交付 20%": 3444,
+     "多交付 50%": 4245
+    },
+    "出处": "计算书 7.1 节",
+    "注": "扣电池更新再给 18 倍"
+   },
+   {
+    "名": "给宁德净增（主口径）",
+    "单位": "亿元",
+    "值": {
+     "多交付 0%": -1648,
+     "多交付 20%": -558,
+     "多交付 50%": 738
+    },
+    "出处": "计算书第 8 章",
+    "注": "现市值 14,424 亿元"
+   },
+   {
+    "名": "占宁德现市值（主口径）",
+    "单位": "",
+    "值": {
+     "多交付 0%": "−11.4%",
+     "多交付 20%": "−3.9%",
+     "多交付 50%": "5.1%"
+    },
+    "出处": "计算书第 8 章",
+    "注": ""
+   },
+   {
+    "名": "护城河：净利率每 1 个点",
+    "单位": "亿元市值",
+    "值": {
+     "多交付 0%": 633,
+     "多交付 20%": 633,
+     "多交付 50%": 633
+    },
+    "出处": "计算书第 8 章",
+    "注": "现取 0／0.5／1 个点"
+   }
+  ]
+ },
+ "推翻": [
+  {
+   "参数": "价格规则：对手要不要回报（0.4 第 13 条）",
+   "现值": "收益率 0",
+   "阈值与后果": "对手要 7.5% 时中性回报 1.2% → 3.8%，接近便宜资金成本",
+   "会不会发生": "充电价格战已在打，但现行服务费 0.21–0.25 元仍高于极致成本 0.080",
+   "跟踪信源": "重卡站服务费（计算书 3.1 节第（7）部分来源）"
+  },
+  {
+   "参数": "护城河：不做换电时动力电池净利率少几个点",
+   "现值": {
+    "多交付 0%": "0",
+    "多交付 20%": "0.5",
+    "多交付 50%": "1.0"
+   },
+   "阈值与后果": "每 1 个点约 633 亿元；到约 1.4 个点时中性主口径净增值转正",
+   "会不会发生": "取决于车企二供与自制电芯的速度，没有数据能证明",
+   "跟踪信源": "宁德财报；中国汽车动力电池产业创新联盟"
+  },
+  {
+   "参数": "争夺块铺不铺",
+   "现值": "跟着需求铺（研究者定）",
+   "阈值与后果": "只建核心块时中性净增值 −558 → ＋583 亿元",
+   "会不会发生": "研究者判断市场让出去就难拿回",
+   "跟踪信源": "换电重卡月销量里干线车型占比"
+  },
+  {
+   "参数": "电池寿命差（三档）",
+   "现值": "多交付 20%",
+   "阈值与后果": "0% → 50%：中性主口径净增值 −1,648 → ＋738 亿元",
+   "会不会发生": "耐快充电芯在改善，往 0% 那档走",
+   "跟踪信源": "超充电池质保与循环发布"
+  },
+  {
+   "参数": "谁出钱持有电池",
+   "现值": "宁德全额出资",
+   "阈值与后果": "电池银行限价下只拿零回报；便宜资金持有时宁德少投 2,921 亿元",
+   "会不会发生": "蔚能、启源已有资产支持证券先例",
+   "跟踪信源": "骐骥电池银行资金结构、公募 REITs"
+  },
+  {
+   "参数": "估值口径",
+   "现值": "主口径（扣电池更新）",
+   "阈值与后果": "与上沿差 4,770 亿元；若连站的折旧也扣，中性约 1,022 亿元",
+   "会不会发生": "市场给不给这类利润 18 倍",
+   "跟踪信源": "卖方是否单列换电、给的倍数"
+  }
+ ],
+ "论证链": [
+  {
+   "环": "商业模式在变",
+   "一句话": "动力电池制造在线性竞争里被挤压；换电把卖电池变成运营电池，电池卖出后仍归运营方持有。",
+   "关键数": "—",
+   "正文": "第 1、2 章"
+  },
+  {
+   "环": "需求是真的",
+   "一句话": "接力、短途多班倒三档都比最便宜的对手便宜，没有延寿也便宜；有长停的干线车多数只便宜一两分钱。",
+   "关键数": "2030 年电动重卡用电 5,230 亿度",
+   "正文": "第 3 章"
+  },
+  {
+   "环": "站要跟着需求建",
+   "一句话": "车队想换的电要近两万座站，宁德规划只够干线三成；建设不是瓶颈，卡的是钱和回报。",
+   "关键数": "19,548 座；4,631 亿元",
+   "正文": "第 5 章"
+  },
+  {
+   "环": "但钱很薄",
+   "一句话": "限价下只赚比对手便宜的部分；电池银行的电池只能拿零回报。",
+   "关键数": {
+    "多交付 0%": "税前 0.6%",
+    "多交付 20%": "税前 1.2%",
+    "多交付 50%": "税前 2.2%"
+   },
+   "正文": "第 4、5 章"
+  },
+  {
+   "环": "价值在别处",
+   "一句话": "护城河、便宜资金（宁德当管理人）、价格规则，三者决定值不值得押。",
+   "关键数": "护城河每 1 个点 633 亿元",
+   "正文": "第 6、7 章"
+  },
+  {
+   "环": "历史先例",
+   "一句话": "成功的商业模式相变约 2–2.5 年被重估；运营方自持电池的两个先例都没有形成持久重估。",
+   "关键数": "Better Place、蔚来电池租用",
+   "正文": "相变案例回测"
+  }
+ ],
+ "计算链": [
+  {
+   "章": "第 4 章 谁选换电",
+   "问题": "2030 年有多少电过换电站？",
+   "列": [
+    "项",
+    "值",
+    "公式"
+   ],
+   "行": {
+    "多交付 0%": [
+     [
+      "过站的电（亿度）",
+      2053,
+      "接力 ＋ 短途多班倒 ＋ 争夺块"
+     ],
+     [
+      "　接力",
+      733,
+      "917 × 可及 80% × 100%"
+     ],
+     [
+      "　短途多班倒",
+      336,
+      "373 × 90%（由 2025 年实测反推）"
+     ],
+     [
+      "　争夺块",
+      983,
+      "3,069 × 80% × 便宜格 55.3% × 铺到 87.7% × 过站 0.826"
+     ]
+    ],
+    "多交付 20%": [
+     [
+      "过站的电（亿度）",
+      2053,
+      "接力 ＋ 短途多班倒 ＋ 争夺块"
+     ],
+     [
+      "　接力",
+      733,
+      "917 × 可及 80% × 100%"
+     ],
+     [
+      "　短途多班倒",
+      336,
+      "373 × 90%（由 2025 年实测反推）"
+     ],
+     [
+      "　争夺块",
+      983,
+      "3,069 × 80% × 便宜格 55.3% × 铺到 87.7% × 过站 0.826"
+     ]
+    ],
+    "多交付 50%": [
+     [
+      "过站的电（亿度）",
+      2053,
+      "接力 ＋ 短途多班倒 ＋ 争夺块"
+     ],
+     [
+      "　接力",
+      733,
+      "917 × 可及 80% × 100%"
+     ],
+     [
+      "　短途多班倒",
+      336,
+      "373 × 90%（由 2025 年实测反推）"
+     ],
+     [
+      "　争夺块",
+      983,
+      "3,069 × 80% × 便宜格 55.3% × 铺到 87.7% × 过站 0.826"
+     ]
+    ]
+   },
+   "出处": "计算书 4.5 节"
+  },
+  {
+   "章": "第 4 章 每度利润",
+   "问题": "限价下换电每度比最便宜的对手便宜多少？",
+   "列": [
+    "项",
+    "元/度",
+    "说明"
+   ],
+   "行": {
+    "多交付 0%": [
+     [
+      "接力",
+      "0.019",
+      "最强对手：兆瓦超充 ＋ 租电池"
+     ],
+     [
+      "短途多班倒",
+      "0.028",
+      "同上，另加省时间"
+     ],
+     [
+      "争夺块（选换电的格）",
+      "0.005",
+      "只便宜一两分钱"
+     ]
+    ],
+    "多交付 20%": [
+     [
+      "接力",
+      "0.040",
+      "最强对手：兆瓦超充 ＋ 租电池"
+     ],
+     [
+      "短途多班倒",
+      "0.045",
+      "同上，另加省时间"
+     ],
+     [
+      "争夺块（选换电的格）",
+      "0.012",
+      "只便宜一两分钱"
+     ]
+    ],
+    "多交付 50%": [
+     [
+      "接力",
+      "0.073",
+      "最强对手：兆瓦超充 ＋ 租电池"
+     ],
+     [
+      "短途多班倒",
+      "0.077",
+      "同上，另加省时间"
+     ],
+     [
+      "争夺块（选换电的格）",
+      "0.023",
+      "只便宜一两分钱"
+     ]
+    ]
+   },
+   "出处": "计算书 4.2 节第（11）部分、4.5 节"
+  },
+  {
+   "章": "第 5 章 站与投资",
+   "问题": "要建多少站、投多少钱？",
+   "列": [
+    "项",
+    "值",
+    "公式"
+   ],
+   "行": {
+    "多交付 0%": [
+     [
+      "到 2030 年投入（亿元）",
+      4631,
+      "站体 ＋ 周转电池 ＋ 车上电池"
+     ],
+     [
+      "　站体",
+      1710,
+      "19,548 座 × 874.8 万元"
+     ],
+     [
+      "　周转电池",
+      473,
+      "19,548 座 × 242.1 万元"
+     ],
+     [
+      "　车上电池",
+      2448,
+      "约 89 万辆换电车 × 电池 × 590 元/度"
+     ],
+     [
+      "站数（座）",
+      19548,
+      "过站的电 ÷（每站每天 3 万度 × 350 天）"
+     ],
+     [
+      "电池装机（吉瓦时）",
+      495,
+      "车上 ＋ 站里"
+     ]
+    ],
+    "多交付 20%": [
+     [
+      "到 2030 年投入（亿元）",
+      4631,
+      "站体 ＋ 周转电池 ＋ 车上电池"
+     ],
+     [
+      "　站体",
+      1710,
+      "19,548 座 × 874.8 万元"
+     ],
+     [
+      "　周转电池",
+      473,
+      "19,548 座 × 242.1 万元"
+     ],
+     [
+      "　车上电池",
+      2448,
+      "约 89 万辆换电车 × 电池 × 590 元/度"
+     ],
+     [
+      "站数（座）",
+      19548,
+      "过站的电 ÷（每站每天 3 万度 × 350 天）"
+     ],
+     [
+      "电池装机（吉瓦时）",
+      495,
+      "车上 ＋ 站里"
+     ]
+    ],
+    "多交付 50%": [
+     [
+      "到 2030 年投入（亿元）",
+      4631,
+      "站体 ＋ 周转电池 ＋ 车上电池"
+     ],
+     [
+      "　站体",
+      1710,
+      "19,548 座 × 874.8 万元"
+     ],
+     [
+      "　周转电池",
+      473,
+      "19,548 座 × 242.1 万元"
+     ],
+     [
+      "　车上电池",
+      2448,
+      "约 89 万辆换电车 × 电池 × 590 元/度"
+     ],
+     [
+      "站数（座）",
+      19548,
+      "过站的电 ÷（每站每天 3 万度 × 350 天）"
+     ],
+     [
+      "电池装机（吉瓦时）",
+      495,
+      "车上 ＋ 站里"
+     ]
+    ]
+   },
+   "出处": "计算书第 5 章"
+  },
+  {
+   "章": "第 6 章 利润与回报",
+   "问题": "一年赚多少、回报多少？",
+   "列": [
+    "项",
+    "值",
+    "公式"
+   ],
+   "行": {
+    "多交付 0%": [
+     [
+      "息税折旧前利润（亿元）",
+      428.3,
+      "税息前利润 ＋ 折旧"
+     ],
+     [
+      "　税息前利润",
+      28.7,
+      "Σ 各块卖量 × 每度利润"
+     ],
+     [
+      "　电池折旧",
+      265.0,
+      "Σ 卖量 × 每度电池成本"
+     ],
+     [
+      "　站折旧",
+      134.6,
+      "Σ 卖量 × 每度站折旧 0.0656"
+     ],
+     [
+      "税前资本回报",
+      "0.6%",
+      "税息前利润 ÷ 投入 4,631"
+     ]
+    ],
+    "多交付 20%": [
+     [
+      "息税折旧前利润（亿元）",
+      456.3,
+      "税息前利润 ＋ 折旧"
+     ],
+     [
+      "　税息前利润",
+      56.8,
+      "Σ 各块卖量 × 每度利润"
+     ],
+     [
+      "　电池折旧",
+      265.0,
+      "Σ 卖量 × 每度电池成本"
+     ],
+     [
+      "　站折旧",
+      134.6,
+      "Σ 卖量 × 每度站折旧 0.0656"
+     ],
+     [
+      "税前资本回报",
+      "1.2%",
+      "税息前利润 ÷ 投入 4,631"
+     ]
+    ],
+    "多交付 50%": [
+     [
+      "息税折旧前利润（亿元）",
+      500.8,
+      "税息前利润 ＋ 折旧"
+     ],
+     [
+      "　税息前利润",
+      101.3,
+      "Σ 各块卖量 × 每度利润"
+     ],
+     [
+      "　电池折旧",
+      265.0,
+      "Σ 卖量 × 每度电池成本"
+     ],
+     [
+      "　站折旧",
+      134.6,
+      "Σ 卖量 × 每度站折旧 0.0656"
+     ],
+     [
+      "税前资本回报",
+      "2.2%",
+      "税息前利润 ÷ 投入 4,631"
+     ]
+    ]
+   },
+   "出处": "计算书 6.1 节"
+  },
+  {
+   "章": "第 7–8 章 估值与对宁德",
+   "问题": "值多少、给宁德多值多少？",
+   "列": [
+    "项",
+    "亿元",
+    "公式"
+   ],
+   "行": {
+    "多交付 0%": [
+     [
+      "给宁德净增（主口径）",
+      -1648,
+      "业务值 − 投入 ＋ 多卖电池 ＋ 护城河"
+     ],
+     [
+      "　业务值（主口径）",
+      2939,
+      "18 ×（息税折旧前利润 − 电池更新）"
+     ],
+     [
+      "　　对照：上沿",
+      7709,
+      "18 × 息税折旧前利润"
+     ],
+     [
+      "　　对照：地板",
+      287,
+      "税息前利润 × 0.75 ÷ 7.5%"
+     ],
+     [
+      "　投入",
+      4631,
+      "第 5 章"
+     ],
+     [
+      "　多卖电池",
+      45,
+      "每年换电池约 45 吉瓦时 × 多拿份额 × 0.10 元/Wh × 20 倍"
+     ],
+     [
+      "　护城河",
+      0,
+      "3,165.1 × 少掉的净利率 × 20 倍"
+     ]
+    ],
+    "多交付 20%": [
+     [
+      "给宁德净增（主口径）",
+      -558,
+      "业务值 − 投入 ＋ 多卖电池 ＋ 护城河"
+     ],
+     [
+      "　业务值（主口径）",
+      3444,
+      "18 ×（息税折旧前利润 − 电池更新）"
+     ],
+     [
+      "　　对照：上沿",
+      8214,
+      "18 × 息税折旧前利润"
+     ],
+     [
+      "　　对照：地板",
+      568,
+      "税息前利润 × 0.75 ÷ 7.5%"
+     ],
+     [
+      "　投入",
+      4631,
+      "第 5 章"
+     ],
+     [
+      "　多卖电池",
+      313,
+      "每年换电池约 45 吉瓦时 × 多拿份额 × 0.10 元/Wh × 20 倍"
+     ],
+     [
+      "　护城河",
+      317,
+      "3,165.1 × 少掉的净利率 × 20 倍"
+     ]
+    ],
+    "多交付 50%": [
+     [
+      "给宁德净增（主口径）",
+      738,
+      "业务值 − 投入 ＋ 多卖电池 ＋ 护城河"
+     ],
+     [
+      "　业务值（主口径）",
+      4245,
+      "18 ×（息税折旧前利润 − 电池更新）"
+     ],
+     [
+      "　　对照：上沿",
+      9015,
+      "18 × 息税折旧前利润"
+     ],
+     [
+      "　　对照：地板",
+      1013,
+      "税息前利润 × 0.75 ÷ 7.5%"
+     ],
+     [
+      "　投入",
+      4631,
+      "第 5 章"
+     ],
+     [
+      "　多卖电池",
+      491,
+      "每年换电池约 45 吉瓦时 × 多拿份额 × 0.10 元/Wh × 20 倍"
+     ],
+     [
+      "　护城河",
+      633,
+      "3,165.1 × 少掉的净利率 × 20 倍"
+     ]
+    ]
+   },
+   "出处": "计算书第 7、8 章"
+  }
+ ],
+ "跟踪": [
+  {
+   "看什么": "换电重卡月度销量与占纯电重卡比例（分干线、短途车型）",
+   "信源": "第一商用车网（电车人整理）",
+   "什么说明我错了": "2027 年起干线车型里换电仍很少",
+   "仪表盘序列": "换电重卡占纯电比例"
+  },
+  {
+   "看什么": "接力车队交付与复购（宁德—极兔 5,000 多台、圆通智驾接龙）",
+   "信源": "公司公告、卡车之家、36 氪",
+   "什么说明我错了": "2027 年底极兔交付不到一半、没有第二家复购",
+   "仪表盘序列": ""
+  },
+  {
+   "看什么": "骐骥已建站数与规划",
+   "信源": "宁德官网、骐骥换电公众号",
+   "什么说明我错了": "2028 年仍按 5,000 座的节奏，只够干线三成",
+   "仪表盘序列": ""
+  },
+  {
+   "看什么": "宁德站实际日均换电量",
+   "信源": "宁德披露",
+   "什么说明我错了": "成熟站稳定低于 2.2 万度",
+   "仪表盘序列": ""
+  },
+  {
+   "看什么": "宁德动力电池毛利率与国内份额；车企二供、自制电芯",
+   "信源": "宁德财报；动力电池产业创新联盟",
+   "什么说明我错了": "有换电的情况下份额仍每年掉 3 个点以上",
+   "仪表盘序列": "动力电池装机量"
+  },
+  {
+   "看什么": "电池银行的资金来源与成本",
+   "信源": "宁德公告、交易所资产支持证券披露",
+   "什么说明我错了": "宁德一直全额自有出资",
+   "仪表盘序列": ""
+  },
+  {
+   "看什么": "超充电池的质保与循环",
+   "信源": "宁德、比亚迪、欣旺达发布",
+   "什么说明我错了": "兆瓦超充少活不到 10%",
+   "仪表盘序列": ""
+  },
+  {
+   "看什么": "重卡充电站服务费",
+   "信源": "各运营商价目",
+   "什么说明我错了": "持续低于 0.10 元/度",
+   "仪表盘序列": ""
+  },
+  {
+   "看什么": "骐骥站设备采购价",
+   "信源": "供应商订单与招标公告",
+   "什么说明我错了": "高于 500 万元",
+   "仪表盘序列": ""
+  },
+  {
+   "看什么": "电池包价格",
+   "信源": "TrendForce 月度",
+   "什么说明我错了": "2028 年前低于 0.40 元/Wh",
+   "仪表盘序列": ""
+  },
+  {
+   "看什么": "骐骥换电车型的充电接口配置",
+   "信源": "工信部产品公告",
+   "什么说明我错了": "不带充电口",
+   "仪表盘序列": ""
+  },
+  {
+   "看什么": "分时电价表与储能价格",
+   "信源": "各省发改委；CNESA",
+   "什么说明我错了": "峰谷差收窄或储能降到 681 元/度",
+   "仪表盘序列": ""
+  },
+  {
+   "看什么": "城配换电车型销量占比",
+   "信源": "工信部、电车资源",
+   "什么说明我错了": "—（上行）",
+   "仪表盘序列": ""
+  },
+  {
+   "看什么": "干线换电接近独占后是否招来政府定价",
+   "信源": "各地发改委价格文件",
+   "什么说明我错了": "出台重卡换电服务费指导价",
+   "仪表盘序列": ""
+  }
+ ]
+};
+const TEXT = {
+ "段落": {
+  "结论": "\u003cp\u003e本页回答：宁德时代做重卡换电，到 2030 年能做多大、值多少钱、对宁德意味着什么。顶部三档是\u003cstrong\u003e换电电池一生比对手多交付的电：0%／20%／50%\u003c/strong\u003e（压力测试，只这一样分档；设备、投资、购置税取中性）。\u003c/p\u003e\u003cp\u003e\u003cstrong\u003e一句话\u003c/strong\u003e：换电在跑得狠的重卡上确实更便宜，2030 年能做成约 2,053 亿度电、近两万座站的生意；但按\"对手不赚钱也要做\"的限价，每度只赚几分钱，税前回报 1%–2%，本身撑不起\"几倍\"。值不值得押，看三件事：价格规则、谁的钱最便宜来持有电池、护城河。当前：观察仓。\u003c/p\u003e\u003cp\u003e数字全部出自 \u003ccode\u003e主线/换电计算书.md\u003c/code\u003e（毛估版，待研究者审），卡片下的小字是出处。\u003c/p\u003e",
+  "什么会推翻": "\u003cp\u003e下面每一行是一个能翻结论的数：现在取多少、动到多少结论就变、会不会真发生、从哪能持续跟踪。按对中性结论的影响从大到小排。\u003cstrong\u003e只有电池寿命差是技术问题，其余都是价格、资金和判断。\u003c/strong\u003e\u003c/p\u003e",
+  "为什么这么想": "\u003cp\u003e结论靠一条六环的论证链撑着：商业模式在变 → 需求是真的 → 站要跟着需求建 → 但钱很薄 → 所以价值在护城河、便宜资金和价格规则 → 历史先例怎么说。任何一环断了，后面的环要重新看。\u003c/p\u003e",
+  "怎么算出来的": "\u003cp\u003e每章一张表，按\u003cstrong\u003e总分\u003c/strong\u003e排列：最上面一行是这一章要的结果，往下缩进的是组成项和输入；\"公式\"一列写明怎么算、代入了哪些数。三档只改每度利润与回报，卖量、站数、投入三档相同。算式在 \u003ccode\u003e主线/毛估链.py\u003c/code\u003e，每个式子对应计算书的一张表。\u003c/p\u003e",
+  "跟踪": "\u003cp\u003e每一条写明从哪个信源能查到、出现什么情况说明结论错了。只算客户主动的\"拉动型\"信号——宁德自己签的单和规划只算意图。标有\"见月度仪表盘\"的条目，在同目录的月度跟踪仪表盘里有逐月数据（第一商用车网，经电车人整理）。\u003c/p\u003e"
+ },
+ "来源": {
+  "数据": "主线/结论数.json",
+  "文字": "主线/沙盘文字.md"
+ }
+};
+
+(function () {
+  'use strict';
+
+  var MINUS = '−';
+  var DASHBOARD = '月度跟踪仪表盘.html';
+
+  function el(tag, attrs) {
+    var n = document.createElement(tag);
+    if (attrs) {
+      for (var k in attrs) {
+        var v = attrs[k];
+        if (v === null || v === undefined || v === false) continue;
+        if (k === 'class') n.className = v;
+        else if (k === 'html') n.innerHTML = v;
+        else n.setAttribute(k, v === true ? '' : v);
+      }
+    }
+    for (var i = 2; i < arguments.length; i++) append(n, arguments[i]);
+    return n;
+  }
+  function append(n, c) {
+    if (c === null || c === undefined || c === false) return;
+    if (Array.isArray(c)) { c.forEach(function (x) { append(n, x); }); return; }
+    n.appendChild(c.nodeType ? c : document.createTextNode(String(c)));
+  }
+
+  // 数字显示：整数加千分位；小于 1 的小数原样；负号用 U+2212；字符串原样。
+  function groupInt(s) { return s.replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+  function fmt(v) {
+    if (v === null || v === undefined || v === '') return '—';
+    if (typeof v === 'number') {
+      if (!isFinite(v)) return String(v);
+      var neg = v < 0, a = Math.abs(v), s;
+      if (Number.isInteger(a)) s = groupInt(String(a));
+      else if (a < 1) s = String(a);
+      else { var p = String(a).split('.'); s = groupInt(p[0]) + (p.length > 1 ? '.' + p[1] : ''); }
+      return (neg ? MINUS : '') + s;
+    }
+    if (typeof v === 'boolean') return v ? '是' : '否';
+    if (typeof v === 'object') return JSON.stringify(v);
+    return String(v);
+  }
+  function looksNumeric(v) {
+    if (typeof v === 'number') return true;
+    return typeof v === 'string' && /^[+\-−]?[\d,]*\.?\d+%?$/.test(v.trim());
+  }
+  function blank(v) { return v === null || v === undefined || v === ''; }
+
+  var main = document.getElementById('main');
+
+  if (!DATA || typeof DATA !== 'object') {
+    main.innerHTML = '';
+    main.appendChild(el('div', { class: 'nodata' },
+      el('h2', null, '这是模板，还没有嵌入数据'),
+      el('p', null, '在仓库根目录运行 python 主线/生成沙盘.py，脚本会读 主线/结论数.json 和 主线/沙盘文字.md，生成 outputs/换电沙盘_v5.html。')));
+    document.getElementById('tiers').hidden = true;
+    return;
+  }
+
+  var TIERS = (Array.isArray(DATA['三档']) && DATA['三档'].length) ? DATA['三档'].map(String) : ['悲观', '中性', '乐观'];
+  var cur = TIERS.indexOf(DATA['默认档']) >= 0 ? DATA['默认档'] : TIERS[Math.floor(TIERS.length / 2)];
+
+  function isTierObj(v) {
+    if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+    for (var i = 0; i < TIERS.length; i++) if (Object.prototype.hasOwnProperty.call(v, TIERS[i])) return true;
+    return false;
+  }
+  function pick(v) { return isTierObj(v) ? v[cur] : v; }
+  function list(v) { return Array.isArray(v) ? v : []; }
+  function tierIdx(t) { return String(TIERS.indexOf(t)); }
+
+  // 顶部：版本、示例横条、三档按钮
+  var ver = String(DATA['版本'] || '');
+  document.getElementById('ver').textContent = ver ? '版本 ' + ver : '';
+  if (ver.indexOf('示例') >= 0) document.getElementById('band').hidden = false;
+
+  var tiersBox = document.getElementById('tiers');
+  TIERS.forEach(function (t, i) {
+    var b = el('button', { type: 'button', 'data-idx': String(i), 'data-tier': t, 'aria-pressed': 'false' }, t);
+    b.addEventListener('click', function () { setTier(t); });
+    tiersBox.appendChild(b);
+  });
+
+  // 各版面顶部说明文字（来自 沙盘文字.md）
+  var paras = (TEXT && TEXT['段落']) || {};
+  Array.prototype.forEach.call(document.querySelectorAll('.intro[data-text]'), function (box) {
+    var h = paras[box.getAttribute('data-text')];
+    if (h) box.innerHTML = h; else box.hidden = true;
+  });
+
+  function emptyNote() { return el('p', { class: 'empty' }, '（暂无）'); }
+  function tierChip() { return el('span', { class: 'chip' }, cur + '档'); }
+
+  // 一、结论
+  function renderConclusion() {
+    var c = DATA['结论'] || {};
+    var box = el('div');
+    var one = pick(c['一句话']);
+    if (!blank(one)) {
+      box.appendChild(el('div', { class: 'verdict' },
+        el('div', { class: 'verdict-lbl' }, tierChip(), '一句话结论'),
+        el('p', { class: 'verdict-txt pl' }, fmt(one))));
+    }
+    var ms = list(c['指标']);
+    if (!ms.length) { box.appendChild(emptyNote()); return box; }
+    var grid = el('div', { class: 'metrics' });
+    ms.forEach(function (m) {
+      var raw = m['值'], val = pick(raw);
+      var vSpan = el('span', { class: 'v' + (looksNumeric(val) || blank(val) ? '' : ' txt') }, fmt(val));
+      var card = el('div', { class: 'm' },
+        el('div', { class: 'm-name' }, m['名'] || '—'),
+        el('div', { class: 'm-val' }, vSpan, m['单位'] ? el('span', { class: 'u' }, m['单位']) : null));
+      if (isTierObj(raw)) {
+        var strip = el('div', { class: 'm-tiers', 'aria-label': '三档对比' });
+        TIERS.forEach(function (t) {
+          strip.appendChild(el('span', { class: t === cur ? 'on' : null }, el('b', null, t), fmt(raw[t])));
+        });
+        card.appendChild(strip);
+      }
+      var note = pick(m['注']);
+      if (!blank(note)) card.appendChild(el('div', { class: 'm-note pl' }, fmt(note)));
+      if (!blank(m['出处'])) card.appendChild(el('p', { class: 'src' }, '出处：' + m['出处']));
+      grid.appendChild(card);
+    });
+    box.appendChild(grid);
+    return box;
+  }
+
+  // 文字表（推翻、跟踪共用）：宽屏是表格，窄屏每行一张卡片
+  function textTable(rows, cols) {
+    var thead = el('thead', null, el('tr', null, cols.map(function (c) { return el('th', { scope: 'col', style: c.w ? 'width:' + c.w : null }, c.label); })));
+    var tbody = el('tbody');
+    rows.forEach(function (r) {
+      var tr = el('tr');
+      cols.forEach(function (c, i) {
+        var content = c.render ? c.render(r) : fmt(pick(r[c.key]));
+        var isBlank = content === '—' || content === null;
+        var td = el('td', { 'data-label': c.label, class: [i === 0 ? 'lead' : '', 'pl', isBlank ? 'blank' : ''].join(' ').trim() });
+        append(td, content === null ? '—' : content);
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    return el('div', { class: 'tbl-scroll' }, el('table', { class: 'stack' }, thead, tbody));
+  }
+
+  // 二、什么会推翻
+  function renderOverturn() {
+    var rows = list(DATA['推翻']);
+    if (!rows.length) return emptyNote();
+    return textTable(rows, [
+      { key: '参数', label: '参数', w: '16%' },
+      { key: '现值', label: '现值', w: '13%' },
+      { key: '阈值与后果', label: '阈值与后果', w: '27%' },
+      { key: '会不会发生', label: '会不会发生', w: '26%' },
+      { key: '跟踪信源', label: '跟踪信源', w: '18%' }
+    ]);
+  }
+
+  // 三、为什么这么想
+  function renderChain() {
+    var rows = list(DATA['论证链']);
+    if (!rows.length) return emptyNote();
+    var ol = el('ol', { class: 'chain' });
+    rows.forEach(function (r, i) {
+      var meta = el('div', { class: 'meta' });
+      var k = pick(r['关键数']);
+      if (!blank(k)) meta.appendChild(el('span', { class: 'kv' }, fmt(k)));
+      var ref = r['正文'];
+      if (!blank(ref)) {
+        ref = String(ref).trim();
+        meta.appendChild(el('span', null, /^见/.test(ref) ? ref : (/^第/.test(ref) ? '见正文' + ref : '见正文 ' + ref)));
+      }
+      var one = pick(r['一句话']);
+      ol.appendChild(el('li', null,
+        el('span', { class: 'no', 'aria-hidden': 'true' }, String(i + 1)),
+        el('div', { style: 'min-width:0' },
+          el('h3', null, r['环'] || '—'),
+          blank(one) ? null : el('p', { class: 'pl' }, fmt(one)),
+          meta.childNodes.length ? meta : null)));
+    });
+    return ol;
+  }
+
+  // 四、怎么算出来的：每章一张表，行随档切换；项名前的全角空格或两个半角空格表示下一层
+  function splitIndent(v) {
+    if (typeof v !== 'string') return { lvl: 0, text: v };
+    var m = v.match(/^((?:　| {2})*)/), lead = m ? m[1] : '';
+    var lvl = (lead.match(/　/g) || []).length + Math.floor((lead.match(/ /g) || []).length / 2);
+    return { lvl: lvl, text: v.slice(lead.length) };
+  }
+  function renderCalc() {
+    var chs = list(DATA['计算链']);
+    if (!chs.length) return emptyNote();
+    var box = el('div');
+    chs.forEach(function (ch) {
+      var cols = list(ch['列']);
+      var rows = list(pick(ch['行']));
+      var width = Math.max(cols.length, rows.reduce(function (a, r) { return Math.max(a, list(r).length); }, 0));
+      var numCol = [], fCol = [];
+      for (var j = 0; j < width; j++) {
+        var seen = 0, nums = 0;
+        rows.forEach(function (r) { var v = list(r)[j]; if (!blank(v)) { seen++; if (looksNumeric(v)) nums++; } });
+        numCol[j] = j > 0 && seen > 0 && nums === seen;
+        fCol[j] = /公式/.test(String(cols[j] || ''));
+      }
+      var thead = el('thead', null, el('tr', null, Array.from({ length: width }, function (_, j) {
+        return el('th', { scope: 'col', class: numCol[j] ? 'num' : null }, cols[j] !== undefined ? cols[j] : '');
+      })));
+      var tbody = el('tbody');
+      if (!rows.length) {
+        tbody.appendChild(el('tr', null, el('td', { colspan: String(Math.max(width, 1)), class: 'empty' }, '（这一档没有数据）')));
+      }
+      rows.forEach(function (r) {
+        r = list(r);
+        var first = splitIndent(r[0]);
+        var tr = el('tr', { class: first.lvl === 0 && rows.length > 1 && rows.some(function (x) { return splitIndent(list(x)[0]).lvl > 0; }) ? 'top' : null });
+        for (var j = 0; j < width; j++) {
+          var v = j === 0 ? first.text : r[j];
+          var cls = numCol[j] ? 'num' : (fCol[j] ? 'f pl' : 'pl');
+          var td = el('td', { class: cls }, fmt(v));
+          if (j === 0 && first.lvl) td.style.paddingLeft = (12 + first.lvl * 16) + 'px';
+          tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+      });
+      box.appendChild(el('article', { class: 'calc' },
+        el('div', { class: 'calc-h' }, el('h3', null, ch['章'] || '—'), isTierObj(ch['行']) ? tierChip() : null),
+        blank(ch['问题']) ? null : el('p', { class: 'q pl' }, fmt(pick(ch['问题']))),
+        el('div', { class: 'tbl-scroll' }, el('table', null, thead, tbody)),
+        blank(ch['出处']) ? null : el('p', { class: 'src' }, '出自 ' + ch['出处'])));
+    });
+    return box;
+  }
+
+  // 五、跟踪
+  function renderTrack() {
+    var rows = list(DATA['跟踪']);
+    if (!rows.length) return emptyNote();
+    return textTable(rows, [
+      { key: '看什么', label: '看什么', w: '22%' },
+      { key: '信源', label: '信源', w: '26%' },
+      { key: '什么说明我错了', label: '什么说明我错了', w: '32%' },
+      { label: '月度仪表盘', w: '20%', render: function (r) {
+        var s = r['仪表盘序列'];
+        if (blank(s)) return null;
+        return el('span', null, el('a', { href: DASHBOARD }, '见月度仪表盘'),
+                el('span', { class: 'cell-sub' }, '序列：' + s));
+      } }
+    ]);
+  }
+
+  var parts = [
+    ['b-jielun', renderConclusion],
+    ['b-tuifan', renderOverturn],
+    ['b-lunzheng', renderChain],
+    ['b-jisuan', renderCalc],
+    ['b-genzong', renderTrack]
+  ];
+  function renderAll() {
+    parts.forEach(function (p) {
+      var host = document.getElementById(p[0]);
+      var node;
+      try { node = p[1](); }
+      catch (e) { node = el('p', { class: 'empty' }, '这一块数据格式有误，未能显示：' + e.message); }
+      host.replaceChildren(node);
+    });
+  }
+  function setTier(t) {
+    if (TIERS.indexOf(t) < 0) return;
+    cur = t;
+    document.body.setAttribute('data-tier', tierIdx(t));
+    Array.prototype.forEach.call(tiersBox.children, function (b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-tier') === t ? 'true' : 'false');
+    });
+    renderAll();
+  }
+
+  // 页脚：数据和文字分别来自哪个文件
+  var src = (TEXT && TEXT['来源']) || {};
+  var foot = document.getElementById('foot');
+  var bits = [];
+  if (src['数据']) bits.push('数字来自 ' + src['数据']);
+  if (src['文字']) bits.push('说明文字来自 ' + src['文字']);
+  bits.push('由 主线/生成沙盘.py 生成');
+  foot.textContent = bits.join('；') + '。';
+
+  // 固定条高度 → 锚点跳转时不被遮住
+  var bar = document.getElementById('bar');
+  function syncHeader() { document.documentElement.style.setProperty('--hdr-h', bar.offsetHeight + 'px'); }
+  if (window.ResizeObserver) new ResizeObserver(syncHeader).observe(bar);
+  window.addEventListener('resize', syncHeader);
+
+  setTier(cur);
+  syncHeader();
+})();
+</script>
+</body>
+</html>

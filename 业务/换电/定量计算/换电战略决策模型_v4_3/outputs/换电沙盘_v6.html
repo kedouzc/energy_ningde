@@ -1,0 +1,356 @@
+<title>宁德换电沙盘</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700&display=swap">
+<style>
+/* 版式：一张研究台面——左对齐单栏，顶部一条档位控制，三张主表依次往下；数字一律等宽对齐 */
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --ink:#15202b; --ink2:#465564; --muted:#75838f; --line:#d6dde4;
+  --accent:#0b6b6b; --accent-soft:#dcecea; --s1:#2a78d6; --s2:#eb6834; --crit:#b42318; --crit-soft:#fbe9e7;
+  --f-display:"Noto Serif SC","Songti SC","STSong",serif;
+  --f-body:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151b; --surface:#161e26; --ink:#e3e9ee; --ink2:#a9b5c1; --muted:#7e8b97; --line:#2a3540;
+  --accent:#4cc0ba; --accent-soft:#12302f; --s1:#3987e5; --s2:#d95926; --crit:#ff8a7a; --crit-soft:#3a1d1a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151b; --surface:#161e26; --ink:#e3e9ee; --ink2:#a9b5c1; --muted:#7e8b97; --line:#2a3540;
+  --accent:#4cc0ba; --accent-soft:#12302f; --s1:#3987e5; --s2:#d95926; --crit:#ff8a7a; --crit-soft:#3a1d1a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.7 var(--f-body);margin:0}
+.wrap{max-width:980px;margin:0 auto;padding-inline:16px;padding-block:28px 64px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.3;margin:0}
+h1{font-size:clamp(28px,5vw,40px);letter-spacing:.02em}
+h2{font-size:22px;margin-top:8px}
+h3{font-size:16px;font-family:var(--f-body);font-weight:700}
+p{margin:0}
+.eyebrow{font-size:12px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+.lede{color:var(--ink2);max-width:62ch;margin-top:10px}
+.num,td.n,th.n{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+header{display:grid;gap:6px;margin-bottom:18px}
+.controls{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;padding-block:10px;border-bottom:1px solid var(--line);margin-bottom:22px}
+.seg{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.seg .lb{font-size:13px;color:var(--muted)}
+.seg .btns{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg button{font:inherit;font-size:13px;color:var(--ink2);background:transparent;border:0;padding:6px 12px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--surface);font-weight:700}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:2px;min-width:0}
+.kpi .k{font-size:13px;color:var(--muted)}
+.kpi .v{font-family:var(--f-num);font-size:30px;font-weight:500;letter-spacing:-.01em}
+.kpi .s{font-size:13px;color:var(--ink2)}
+.note{font-size:13px;color:var(--ink2);margin-top:6px}
+.flag{display:flex;gap:10px;align-items:flex-start;background:var(--crit-soft);border-radius:8px;padding:10px 12px;font-size:14px;margin:6px 0 4px}
+.flag b{color:var(--crit)}
+.flag .ic{font-family:var(--f-num);color:var(--crit);font-weight:700}
+section{margin-top:40px;display:grid;gap:12px}
+.ask{font-size:14px;color:var(--ink2)}
+.ask b{color:var(--ink)}
+.tbl{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:560px}
+th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:500;color:var(--muted);font-size:13px;background:transparent}
+td.n,th.n{text-align:right;white-space:nowrap}
+tr.total td{font-weight:700;border-top:2px solid var(--ink2)}
+tr.sub td{color:var(--ink2);font-size:13px}
+tr.sub td:first-child{padding-left:26px}
+tr:last-child td{border-bottom:0}
+.read{display:grid;gap:6px;font-size:14px;color:var(--ink2);max-width:72ch}
+.read li{margin-left:1.1em}
+ul.read{padding:0;margin:0}
+.chart{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:10px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--ink2)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.barrow{display:grid;grid-template-columns:112px 1fr;gap:10px;align-items:center}
+.barrow .nm{font-size:13px;color:var(--ink2)}
+.track{position:relative;height:26px}
+.seg1,.seg2{position:absolute;top:0;height:26px}
+.seg1{background:var(--s1);border-radius:4px 0 0 4px}
+.seg2{background:var(--s2);border-radius:0 4px 4px 0}
+.seg1.solo{border-radius:4px}
+.barval{position:absolute;top:3px;font-family:var(--f-num);font-size:13px;color:var(--ink);white-space:nowrap}
+.axis{display:grid;grid-template-columns:112px 1fr;gap:10px}
+.ticks{position:relative;height:18px;border-top:1px solid var(--line)}
+.ticks span{position:absolute;top:2px;transform:translateX(-50%);font-family:var(--f-num);font-size:11px;color:var(--muted)}
+.tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--surface);font-size:12px;padding:6px 8px;border-radius:6px;max-width:260px;z-index:10}
+.qa{display:grid;gap:14px}
+.qa article{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:6px;min-width:0}
+.qa .q{font-size:13px;color:var(--accent);font-weight:700;letter-spacing:.04em}
+.qa h3{font-family:var(--f-display);font-size:18px}
+.qa p{font-size:14px;color:var(--ink2)}
+.pill{display:inline-block;font-size:12px;border-radius:999px;padding:1px 8px;white-space:nowrap}
+.pill.ok{background:var(--accent-soft);color:var(--accent)}
+.pill.no{background:var(--crit-soft);color:var(--crit)}
+a{color:var(--accent)}
+footer{margin-top:44px;font-size:13px;color:var(--muted);display:grid;gap:4px}
+@media (max-width:520px){.barrow,.axis{grid-template-columns:76px 1fr}.kpi .v{font-size:26px}}
+@media (prefers-reduced-motion:no-preference){.seg1,.seg2{transition:width .3s ease,left .3s ease}}
+</style>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">宁德时代 · 换电研究 · 主线 2 大账版 · 2026-10-05</p>
+  <h1>宁德换电沙盘</h1>
+  <p class="lede">换电能给宁德加多少市值，取决于两件事：电池在换电站里能多活多久（延寿），和换电的钱比对手便宜多少（资金）。下面三张表随档位一起变。所有数出自 <span class="num">01_逻辑七环.md</span>，正文第 1–8 章展开论证。</p>
+</header>
+
+<div class="controls" role="group" aria-label="档位">
+  <div class="seg"><span class="lb">延寿（换电比车上充电多交付）</span>
+    <span class="btns" id="tierBtns"><button id="t0" data-t="0">0%</button><button id="t1" data-t="1" aria-pressed="true">20%</button><button id="t2" data-t="2">50%</button></span></div>
+  <div class="seg"><span class="lb">资金</span>
+    <span class="btns" id="stressBtns"><button id="s0" data-s="base" aria-pressed="true">出钱人 3%</button><button id="s1" data-s="s5">出钱人 5%</button><button id="s2" data-s="war">价格战</button></span></div>
+</div>
+
+<div class="kpis">
+  <div class="kpi"><span class="k">2030 年换电给宁德加的市值</span><span class="v" id="kTotal">—</span><span class="s" id="kPct">—</span></div>
+  <div class="kpi"><span class="k">宁德整体到 2030 年</span><span class="v" id="kMult">—</span><span class="s">基线 1.3–1.5 倍（现价持有拿到股权成本）＋ 换电</span></div>
+  <div class="kpi"><span class="k">换电体系每年留下的钱（2030，税前）</span><span class="v" id="kSys">—</span><span class="s" id="kSysS">—</span></div>
+</div>
+<p class="note" id="stressNote"></p>
+<div class="flag"><span class="ic">!</span><span><b>价格战今天已经在打。</b>2026 年 9 月部分地区电动重卡充电服务费压到 1 毛、局部 8 分（山东枣庄、山西吕梁、唐山、邯郸；新浪汽车 2026-09-01）。基准按 2030 年稳态"对手要 7.5% 正常回报"算；点"价格战"看最坏情形。</span></div>
+
+<section id="scale">
+  <h2>一、规模的两跳</h2>
+  <p class="ask"><b>问什么：</b>换电锁住的电，从 2025 到 2030、再到 2035，各由哪几个因子乘出来。<b>怎么读：</b>单位亿度；第二跳按同口径（两头都连同城配、营运乘用、私家车）。</p>
+  <div class="tbl"><table>
+    <thead><tr><th>因子</th><th class="n">2025</th><th class="n">2030</th><th class="n">2035</th><th>来处</th></tr></thead>
+    <tbody>
+      <tr><td>电动重卡</td><td class="n">37 万辆</td><td class="n">271 万辆</td><td class="n">约 600 万辆</td><td>第一商用车网；旧计算书第 2 章车队周转模型</td></tr>
+      <tr><td>电动重卡一年用电</td><td class="n">约 600</td><td class="n">5,230</td><td class="n">约 9,500</td><td>2035 年按 2030 年每车用电打八折</td></tr>
+      <tr><td>换电份额</td><td class="n">30%</td><td class="n">约 40%</td><td class="n">约 50%</td><td>2026 年 1–7 月跌到约 24%，第一号跟踪</td></tr>
+      <tr><td>重卡换电</td><td class="n">180</td><td class="n">2,000</td><td class="n">约 4,500</td><td>上两行相乘</td></tr>
+      <tr><td>城配、营运乘用、私家车</td><td class="n">—</td><td class="n">约 440</td><td class="n">约 1,000</td><td>按重卡换电的约两成带上</td></tr>
+      <tr class="total"><td>换电锁住的电</td><td class="n">180</td><td class="n">约 2,440</td><td class="n">约 5,500</td><td>第一跳约 10 倍（重卡），第二跳同口径约 2.3 倍</td></tr>
+      <tr class="sub"><td>交通电动用电（占全社会）</td><td class="n">1,500（1.5%）</td><td class="n">9,000（7%）</td><td class="n">远期 1.6 万亿（12%）</td><td>国家能源局；七环第 5 环</td></tr>
+    </tbody></table></div>
+  <ul class="read"><li>十倍里约九倍是电动化本身；换电自己挣的只有份额那 1.3 倍，也是最软的一环——眼下它正往反方向走。</li>
+  <li>2030 年要投约 4,000 亿元（站 830、周转电池 230、车上电池 2,900），锁住在役电池约 530 吉瓦时；钱的大头是电池，所以"谁出钱持有电池"是核心问题。</li></ul>
+</section>
+
+<section id="perkwh">
+  <h2>二、度电账：换电每度比对手便宜多少，钱从哪来</h2>
+  <p class="ask"><b>问什么：</b>三类车上换电比最强对手（超充 ＋ 电池租赁）每度便宜多少；这笔差价里多少是换电真的更省、多少是对手价里的回报；付完出钱人的租金、让利车队 2 分以后还剩多少。<b>怎么读：</b>单位分/度；要停的车按每度过站的电算。</p>
+  <div class="chart" id="chart" aria-label="差价拆成两块的横条图">
+    <div class="legend"><span><i style="background:var(--s1)"></i>换电真的更省（站、延寿、换电块溢价、时间）</span><span><i style="background:var(--s2)"></i>对手价里的 7.5% 回报（资金价差的来源）</span></div>
+    <div id="bars"></div>
+    <div class="axis"><span></span><div class="ticks" id="ticks"></div></div>
+  </div>
+  <div class="tbl"><table id="kwhTable">
+    <thead><tr><th>每度（分）</th><th class="n">接力</th><th class="n">多班倒</th><th class="n">要停的车（蹭站）</th><th class="n">要停的车（另建站）</th></tr></thead>
+    <tbody></tbody></table></div>
+  <ul class="read" id="kwhRead"></ul>
+</section>
+
+<section id="value">
+  <h2>三、分部估值：2030 年值多少</h2>
+  <p class="ask"><b>问什么：</b>换电给宁德 2030 年加多少市值。<b>怎么读：</b>上半是体系留的钱怎么来（每度 × 度数），下半是怎么估：相当于 1% 管理费的部分按管理人 25 倍；其余资金价差按宁德现在的 15 倍；锁住的电池更新需求按 25 倍、只算增量。单位亿元；百分比的分母是今天约 1.35 万亿的市值。</p>
+  <div class="tbl"><table id="valTable">
+    <thead><tr><th>块</th><th class="n">度（亿）</th><th class="n">每度留（分）</th><th class="n">一年（亿元）</th></tr></thead>
+    <tbody></tbody></table></div>
+  <ul class="read" id="valRead"></ul>
+</section>
+
+<section id="answers">
+  <h2>三问的答案</h2>
+  <div class="qa">
+    <article><span class="q">问一 · 会不会相变</span><h3>会，但换电的差异价值比看上去薄</h3>
+      <p>按每度有用功算，柴油 1.75 元、电 1.1 元，电动化不可逆。电动时代"电池 ＋ 补能"可以归同一方，车厂与能源方错配，换电是从"卖电池"变成"卖用能服务"。账上换电三档都比对手便宜，但真比对手省的每度只有约 4 分，其余是对手价里的回报。市场按竞争性制造给宁德约 14 倍，没看到"管理人 ＋ 便宜资金"这个位置。</p></article>
+    <article><span class="q">问二 · 谁有能力、做没做</span><h3>宁德两端都握、动作不可逆；打样成没成到 2028 年看</h3>
+      <p>宁德同时握制造与运营，2025 年净利 722 亿元养得起打样；增持启源芯动力到 30.32%、骐骥 2025 年末 305 座站、牵头两项换电标准。缺的是被证明的资金端：电池银行的钱从哪来、多少成本还没披露。比亚迪是唯一补一端就能凑齐的候选者。</p></article>
+    <article><span class="q">问三 · 几年几倍</span><h3>2030 年约 1.5–1.8 倍，换电多出两三成；几倍在 2035 年</h3>
+      <p>2035 年第二跳成真时，换电约再造 0.55 个今天的宁德（上沿 0.8 个），宁德整体约 2.5–3 倍。要靠换电再多一倍，得锁住 1.1–1.5 万亿度，接近远期全部交通电动用电——2030 年的利润撑不起翻倍。</p></article>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>节点</th><th>基线（现价持有拿到股权成本 8%–10%/年）</th><th>换电多出来的</th><th>宁德整体</th></tr></thead>
+    <tbody>
+      <tr><td>2030（约 4 年）</td><td>1.3–1.5 倍</td><td>0.2–0.3 倍（上沿 0.26–0.44）</td><td><b>约 1.5–1.8 倍</b></td></tr>
+      <tr><td>2035（约 9 年）</td><td>2.0–2.4 倍</td><td>0.55–0.8 倍（条件：第二跳成真）</td><td><b>约 2.5–3 倍</b></td></tr>
+    </tbody></table></div>
+</section>
+
+<section id="track">
+  <h2>观测量与"什么说明我错了"</h2>
+  <p class="ask"><b>问什么：</b>2028 年前看什么、去哪看、看到什么说明打样没成或判断错了。<b>怎么读：</b>"接数"一列说明月度仪表盘里有没有这条的数据。</p>
+  <div class="tbl"><table>
+    <thead><tr><th>看什么</th><th>信源</th><th>说明我错了</th><th>接数</th></tr></thead>
+    <tbody>
+      <tr><td>换电占纯电重卡的比例（观测量）</td><td>第一商用车网月度上险，电车人整理</td><td>2027 年仍低于 25%，且短途场景内部也在跌</td><td><span class="pill ok">已接</span></td></tr>
+      <tr><td>以服务方式交付的电占宁德出货的比例（观测量）</td><td>宁德年报、半年报</td><td>2028 年前不升</td><td><span class="pill no">没有月度数据</span></td></tr>
+      <tr><td>车企主动发布的换电车型数（观测量）</td><td>工信部《道路机动车辆生产企业及产品公告》</td><td>2028 年前没有新增的主流重卡车企主动适配</td><td><span class="pill no">未接</span></td></tr>
+      <tr><td>电池银行拿到 3% 一级的钱（观测量）</td><td>宁德、启源公告；保险、公募 REITs、资产支持证券公告</td><td>2028 年仍拿不到 5% 以下的外部资金</td><td><span class="pill no">事件型，无月度</span></td></tr>
+      <tr><td>对手电池租赁的报价（反证）</td><td>解放时代、鲸E租；亿纬与福田的电池银行</td><td>按接近 3% 的资金成本报价：资金价差消失</td><td><span class="pill no">事件型，无月度</span></td></tr>
+      <tr><td>重卡充电服务费（反证）</td><td>充换电研究院月报、行业媒体</td><td>2028 年以后仍在 1 毛以下：价格战成常态</td><td><span class="pill no">未接</span></td></tr>
+      <tr><td>超充电池寿命（反证）</td><td>宁德、比亚迪、欣旺达超充电池的质保与循环发布</td><td>质保寿命追上池里 5,000 次：延寿归零</td><td><span class="pill no">事件型</span></td></tr>
+      <tr><td>宁德在商用车电池里的装车份额（锁住的制造）</td><td>中国汽车动力电池产业创新联盟月报</td><td>持续下滑且换电车也用别家电池</td><td><span class="pill ok">已接</span></td></tr>
+    </tbody></table></div>
+  <p class="note">月度数据见 <a href="月度跟踪仪表盘.html">月度跟踪仪表盘</a>（数据截至 2026 年 8 月；换电占比最新为 2026 年 1–7 月累计 24.0%、7 月单月 20.9%）。</p>
+</section>
+
+<footer>
+  <span>数据：<span class="num">主线2_大账版/01_逻辑七环.md</span>（第 3、4、5、7 环）；Claude 自己定的取舍见 <span class="num">03_决策日志.md</span>。</span>
+  <span>口径：对手按 7.5% 正常回报定价；出钱人 3%（压力 5%）；让利车队 2 分/度；蹭站按全蹭；市值 2026-09-30 约 1.35 万亿元。</span>
+</footer>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script type="application/json" id="data">{"cap": 13500, "vol": {"接力": 700, "多班倒": 300, "要停的车_蹭站": 1000}, "city": [0.02, 0.04, 0.07], "blocks": {"接力": [{"gap": 0.0908, "gap0": 0.0191, "real": 0.0191, "ret": 0.0717, "inv": 1.4961, "roi": 0.0607, "rent": 0.0449, "rent5": 0.0748, "left": 0.0259, "left5": -0.004, "left0": -0.0458, "payback": 5.9}, {"gap": 0.1129, "gap0": 0.0405, "real": 0.0405, "ret": 0.0724, "inv": 1.4961, "roi": 0.0754, "rent": 0.0449, "rent5": 0.0748, "left": 0.048, "left5": 0.0181, "left0": -0.0244, "payback": 5.4}, {"gap": 0.1461, "gap0": 0.0726, "real": 0.0726, "ret": 0.0734, "inv": 1.4961, "roi": 0.0976, "rent": 0.0449, "rent5": 0.0748, "left": 0.0812, "left5": 0.0513, "left0": 0.0078, "payback": 4.8}], "多班倒": [{"gap": 0.1397, "gap0": 0.0257, "real": 0.0257, "ret": 0.114, "inv": 2.542, "roi": 0.055, "rent": 0.0763, "rent5": 0.1271, "left": 0.0435, "left5": -0.0074, "left0": -0.0705, "payback": 7.8}, {"gap": 0.1561, "gap0": 0.0425, "real": 0.0425, "ret": 0.1137, "inv": 2.542, "roi": 0.0614, "rent": 0.0763, "rent5": 0.1271, "left": 0.0599, "left5": 0.009, "left0": -0.0538, "payback": 7.4}, {"gap": 0.1882, "gap0": 0.0746, "real": 0.0746, "ret": 0.1136, "inv": 2.542, "roi": 0.074, "rent": 0.0763, "rent5": 0.1271, "left": 0.092, "left5": 0.0411, "left0": -0.0217, "payback": 6.8}], "要停的车_蹭站": [{"gap": 0.1621, "gap0": 0.0201, "real": 0.0201, "ret": 0.1421, "inv": 2.1619, "roi": 0.075, "rent": 0.0649, "rent5": 0.1081, "left": 0.0773, "left5": 0.034, "left0": -0.0648, "payback": 6.2}, {"gap": 0.1834, "gap0": 0.0415, "real": 0.0415, "ret": 0.1419, "inv": 2.1619, "roi": 0.0848, "rent": 0.0649, "rent5": 0.1081, "left": 0.0986, "left5": 0.0553, "left0": -0.0434, "payback": 5.8}, {"gap": 0.2157, "gap0": 0.0736, "real": 0.0736, "ret": 0.142, "inv": 2.1619, "roi": 0.0998, "rent": 0.0649, "rent5": 0.1081, "left": 0.1308, "left5": 0.0876, "left0": -0.0112, "payback": 5.4}], "要停的车_另建站": [{"gap": 0.153, "gap0": 0.0109, "real": 0.0109, "ret": 0.1421, "inv": 3.2257, "roi": 0.0474, "rent": 0.0968, "rent5": 0.1613, "left": 0.0362, "left5": -0.0283, "left0": -0.1058, "payback": 8.0}, {"gap": 0.1743, "gap0": 0.0323, "real": 0.0323, "ret": 0.1419, "inv": 3.2257, "roi": 0.054, "rent": 0.0968, "rent5": 0.1613, "left": 0.0575, "left5": -0.007, "left0": -0.0844, "payback": 7.6}, {"gap": 0.2065, "gap0": 0.0645, "real": 0.0645, "ret": 0.142, "inv": 3.2257, "roi": 0.064, "rent": 0.0968, "rent5": 0.1613, "left": 0.0897, "left5": 0.0252, "left0": -0.0523, "payback": 7.0}]}, "val": [{"sys_pre": 115.4, "sys_pre5": 36.0, "sys_pre0": -111.0, "fee": 39.7, "spread": 75.7, "mgr_fee": 744.7, "spread_v": 851.9, "lock_incr": 899.9, "lock_full": 1406.0, "main": 2496.5, "main5": 1575.0, "main0": -348.7, "total_full": 3570.6, "inv_heavy": 3971.8, "pie_heavy": 267.6, "roi_heavy": 0.1}, {"sys_pre": 164.1, "sys_pre5": 84.7, "sys_pre0": -62.6, "fee": 39.7, "spread": 124.4, "mgr_fee": 744.7, "spread_v": 1399.6, "lock_incr": 899.9, "lock_full": 1406.0, "main": 3044.2, "main5": 2150.5, "main0": 196.1, "total_full": 4483.4, "inv_heavy": 3971.8, "pie_heavy": 309.3, "roi_heavy": 0.1}, {"sys_pre": 239.7, "sys_pre5": 160.3, "sys_pre0": 12.2, "fee": 39.7, "spread": 200.0, "mgr_fee": 744.7, "spread_v": 2250.2, "lock_incr": 899.9, "lock_full": 1406.0, "main": 3894.7, "main5": 3001.1, "main0": 1128.8, "total_full": 5901.0, "inv_heavy": 3971.8, "pie_heavy": 374.4, "roi_heavy": 0.1}], "y2035": {"sys_pre": 370.0, "main": 7455.9, "total_incr": 9411.4, "inv": 10922.5}, "net": {"基本盘站": 9523.8, "干线站": 6666.7, "干线站余量车次每天": 766666.7, "要停的车要的车次每天": 714285.7, "接力车": 100000.0, "多班倒车": 219780.2, "要停的车": 714285.7, "站投资亿": 833.1, "周转电池亿": 230.6, "车上电池亿": 2908.1, "锁住的电池吉瓦时": 532.0, "另建四分之一的站": 2381.0}}</script>
+<script>
+"use strict";
+var D = JSON.parse(document.getElementById("data").textContent);
+var state = {t: 1, s: "base"};
+var NAMES = [["接力","接力"],["多班倒","多班倒"],["要停的车_蹭站","要停的车（蹭站）"],["要停的车_另建站","要停的车（另建站）"]];
+
+function fen(x){ return (x*100).toFixed(1); }
+function yi(x){ var a=Math.abs(x), r = a<1000 ? Math.round(x/50)*50 : Math.round(x/100)*100; return r.toLocaleString("en-US"); }
+function yi5(x){ return (Math.round(x/5)*5).toLocaleString("en-US"); }
+function pct(x){ return Math.round(x*100) + "%"; }
+
+function row(name, s){
+  var b = D.blocks[name][state.t];
+  if (s === "war") return {gap:b.gap0, real:b.gap0, ret:0, inv:b.inv, roi:b.gap0/b.inv, rent:b.rent, left:b.left0, payback:null};
+  return {gap:b.gap, real:b.real, ret:b.ret, inv:b.inv, roi:b.roi, rent:(s==="s5"?b.rent5:b.rent), left:(s==="s5"?b.left5:b.left), payback:b.payback};
+}
+
+function valuation(){
+  var t = state.t, s = state.s, v = D.val[t];
+  var parts = [
+    ["基本盘：接力", D.vol["接力"], row("接力", s).left],
+    ["基本盘：多班倒", D.vol["多班倒"], row("多班倒", s).left],
+    ["利润源：要停的重卡（蹭站）", D.vol["要停的车_蹭站"], row("要停的车_蹭站", s).left],
+    ["利润源：城配高频、营运乘用（判断值）", 350, D.city[t]],
+    ["私家车（期权，不计）", 90, 0]
+  ];
+  var sys = 0; parts.forEach(function(p){ sys += p[1]*p[2]; });
+  var fee = Math.max(0, Math.min(sys, 0.01*v.inv_heavy));
+  var spread = sys - fee;
+  var mgr = fee*0.75*25, spv = spread*0.75*15, lock = v.lock_incr;
+  var total = mgr + spv + lock;
+  return {parts:parts, sys:sys, fee:fee, spread:spread, mgr:mgr, spv:spv, lock:lock, total:total, full:v.total_full};
+}
+
+var tip = document.getElementById("tip");
+function showTip(e, text){ tip.textContent = text; tip.hidden = false; var x = Math.min(e.clientX+12, window.innerWidth-270); tip.style.left = x+"px"; tip.style.top = (e.clientY+14)+"px"; }
+function hideTip(){ tip.hidden = true; }
+
+function renderChart(){
+  var bars = document.getElementById("bars"); bars.textContent = "";
+  var MAX = 0.25;
+  NAMES.slice(0,3).forEach(function(n){
+    var r = row(n[0], state.s);
+    var wrap = document.createElement("div"); wrap.className = "barrow";
+    var nm = document.createElement("span"); nm.className = "nm"; nm.textContent = n[1];
+    var tr = document.createElement("div"); tr.className = "track";
+    var a = Math.max(0, r.real), b = Math.max(0, r.ret);
+    var s1 = document.createElement("div"); s1.className = "seg1" + (b>0 ? "" : " solo");
+    s1.style.left = "0%"; s1.style.width = (a/MAX*100) + "%";
+    var s2 = document.createElement("div"); s2.className = "seg2";
+    s2.style.left = "calc(" + (a/MAX*100) + "% + 2px)"; s2.style.width = (b>0 ? "calc(" + (b/MAX*100) + "% - 2px)" : "0");
+    var lab = document.createElement("span"); lab.className = "barval";
+    lab.style.left = "calc(" + ((a+b)/MAX*100) + "% + 8px)";
+    lab.textContent = fen(r.gap) + " 分";
+    var t1 = n[1] + "：换电真的更省 " + fen(a) + " 分/度";
+    var t2 = n[1] + "：对手价里的回报 " + fen(b) + " 分/度";
+    s1.addEventListener("mousemove", function(e){ showTip(e, t1); }); s1.addEventListener("mouseleave", hideTip);
+    s2.addEventListener("mousemove", function(e){ showTip(e, t2); }); s2.addEventListener("mouseleave", hideTip);
+    tr.appendChild(s1); tr.appendChild(s2); tr.appendChild(lab);
+    wrap.appendChild(nm); wrap.appendChild(tr); bars.appendChild(wrap);
+  });
+  var ticks = document.getElementById("ticks"); ticks.textContent = "";
+  [0,5,10,15,20,25].forEach(function(v){ var s = document.createElement("span"); s.style.left = (v/25*100)+"%"; s.textContent = v; ticks.appendChild(s); });
+}
+
+function td(text, cls){ var c = document.createElement("td"); if (cls) c.className = cls; c.textContent = text; return c; }
+
+function renderKwh(){
+  var tb = document.querySelector("#kwhTable tbody"); tb.textContent = "";
+  var rows = NAMES.map(function(n){ return row(n[0], state.s); });
+  var rentLabel = state.s === "s5" ? "租金 ＝ 投资 × 5%" : "租金 ＝ 投资 × 3%";
+  var spec = [
+    ["差价（对超充）", function(r){ return fen(r.gap); }, "total"],
+    ["换电真的更省", function(r){ return fen(r.real); }, "sub"],
+    ["对手价里的 7.5% 回报", function(r){ return fen(r.ret); }, "sub"],
+    ["每度一年占的投资（元）", function(r){ return r.inv.toFixed(2); }, ""],
+    ["全投资收益率", function(r){ return (r.roi*100).toFixed(1) + "%"; }, ""],
+    [rentLabel, function(r){ return fen(r.rent); }, ""],
+    ["让利车队", function(){ return "2.0"; }, ""],
+    ["留在换电体系里", function(r){ return fen(r.left); }, "total"],
+    ["回本年数", function(r){ return r.payback === null ? "—" : r.payback.toFixed(0) + " 年"; }, ""]
+  ];
+  spec.forEach(function(sp){
+    var tr = document.createElement("tr"); if (sp[2]) tr.className = sp[2];
+    tr.appendChild(td(sp[0]));
+    rows.forEach(function(r){ tr.appendChild(td(sp[1](r), "n")); });
+    tb.appendChild(tr);
+  });
+  var rd = document.getElementById("kwhRead"); rd.textContent = "";
+  var lines;
+  if (state.s === "war") lines = ["价格战档：对手只收回本金，价里没有回报，差价就只剩换电真的更省那一截。付完 3% 租金和让利以后各块都是负的或接近零。"];
+  else lines = [
+    "三类车换电真的更省的都只有每度约 4 分（站便宜 3–4 分 ＋ 延寿 − 换电块贵 1–3 分 ＋ 多班倒省时间 3 分）；其余是对手价里的 7.5% 回报。",
+    "全投资收益率和对手要的 7.5% 差不多：换电在对手的价上赚到的大致也是正常回报。留下的钱约三分之二是资金价差——用 " + (state.s==="s5"?"5%":"3%") + " 的钱打对手 7.5% 的价。"
+  ];
+  lines.forEach(function(l){ var li = document.createElement("li"); li.textContent = l; rd.appendChild(li); });
+}
+
+function renderVal(){
+  var V = valuation();
+  var tb = document.querySelector("#valTable tbody"); tb.textContent = "";
+  V.parts.forEach(function(p){
+    var tr = document.createElement("tr");
+    tr.appendChild(td(p[0])); tr.appendChild(td(p[1].toLocaleString("en-US"), "n")); tr.appendChild(td(fen(p[2]), "n")); tr.appendChild(td(Math.round(p[1]*p[2]).toLocaleString("en-US"), "n"));
+    tb.appendChild(tr);
+  });
+  function line(label, val, cls){ var tr = document.createElement("tr"); if (cls) tr.className = cls; tr.appendChild(td(label)); tr.appendChild(td("")); tr.appendChild(td("")); tr.appendChild(td(val, "n")); tb.appendChild(tr); }
+  line("留在体系里（税前）", yi5(V.sys), "total");
+  if (V.sys > 0){
+    line("其中相当于 1% 管理费（管着约 4,000 亿资产）", Math.round(V.fee).toLocaleString("en-US"), "sub");
+    line("其中资金价差", Math.round(V.spread).toLocaleString("en-US"), "sub");
+    line("管理费 × 0.75 × 25 倍", yi(V.mgr), "");
+    line("资金价差 × 0.75 × 15 倍", yi(V.spv), "");
+  } else {
+    line("体系亏损 × 0.75 × 15 倍（从下一行扣）", yi(V.spv), "");
+  }
+  line("锁住的制造（增量：55 亿 × 25 倍 − 六成 × 15 倍）", yi(V.lock), "");
+  line("换电给宁德加的市值", yi(V.total) + "（" + pct(V.total/D.cap) + "）", "total");
+  if (state.s === "base") line("上沿：体系全按 25 倍、锁住的制造全额", yi(V.full) + "（" + pct(V.full/D.cap) + "）", "sub");
+
+  document.getElementById("kTotal").textContent = "约 " + yi(V.total) + " 亿";
+  document.getElementById("kPct").textContent = "今天市值的 " + pct(V.total/D.cap) + (state.s==="base" ? "；上沿 " + pct(V.full/D.cap) : "");
+  var p = V.total/D.cap;
+  document.getElementById("kMult").textContent = (1.3+p).toFixed(1) + "–" + (1.5+p).toFixed(1) + " 倍";
+  document.getElementById("kSys").textContent = "约 " + yi5(V.sys) + " 亿";
+  document.getElementById("kSysS").textContent = "重卡投入约 4,000 亿；体系的钱是它的 " + (V.sys/D.val[state.t].inv_heavy*100).toFixed(1) + "%（黑石一类约 1%）";
+  var notes = {base:"基准：对手按 7.5% 正常回报定价，出钱人要 3%。", s5:"压力：出钱人要 5%，基本盘几乎剩不下，增值少约三成。", war:"压力：对手打价格战到只收回本金，换电跟价；增值几乎只剩锁住的制造。"};
+  document.getElementById("stressNote").textContent = notes[state.s] + "延寿档 " + ["0%","20%","50%"][state.t] + "。";
+  var rd = document.getElementById("valRead"); rd.textContent = "";
+  [ "主口径 2030 年约 18%–29%（延寿 0／20／50%，出钱人 3%）；延寿只把它从两成弱推到三成弱。",
+    "命门在资金：出钱人要 5% 时 12%–22%；对手拿到同样便宜的钱时只剩锁住的制造约 900 亿（约 7%）；价格战约 −3% 到 ＋8%。",
+    "2035 年第二跳成真时约 7,500 亿（0.55 个今天的宁德），上沿约 1.08 万亿（0.8 个）。"
+  ].forEach(function(l){ var li = document.createElement("li"); li.textContent = l; rd.appendChild(li); });
+}
+
+function render(){ renderChart(); renderKwh(); renderVal(); }
+
+function bind(groupId, key, attr){
+  var g = document.getElementById(groupId);
+  g.addEventListener("click", function(e){
+    var btn = e.target.closest("button"); if (!btn) return;
+    state[key] = key === "t" ? +btn.getAttribute(attr) : btn.getAttribute(attr);
+    Array.prototype.forEach.call(g.querySelectorAll("button"), function(b){ b.setAttribute("aria-pressed", b === btn ? "true" : "false"); });
+    try { localStorage.setItem("swap-sandbox-v6", JSON.stringify(state)); } catch(err) {}
+    render();
+  });
+}
+try {
+  var saved = JSON.parse(localStorage.getItem("swap-sandbox-v6") || "null");
+  if (saved && (saved.t===0||saved.t===1||saved.t===2) && ["base","s5","war"].indexOf(saved.s) >= 0) state = saved;
+} catch(err) {}
+Array.prototype.forEach.call(document.querySelectorAll("#tierBtns button"), function(b){ b.setAttribute("aria-pressed", +b.dataset.t === state.t ? "true" : "false"); });
+Array.prototype.forEach.call(document.querySelectorAll("#stressBtns button"), function(b){ b.setAttribute("aria-pressed", b.dataset.s === state.s ? "true" : "false"); });
+bind("tierBtns", "t", "data-t");
+bind("stressBtns", "s", "data-s");
+render();
+</script>

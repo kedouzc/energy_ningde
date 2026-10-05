@@ -76,7 +76,6 @@ def block(name, daily, pack, fast_share, swap_share, tval, rest, swap_batt, st_s
         rbx, _ = rival_battery(pack, daily, fast_share, x, True)
         k = 1 / swap_share   # 每度过站的电背多少度的电池
         # 对手：取超充、普快里便宜的
-        t_mw = time_cost(KWH_SWAP if kwh_per_event is None else kwh_per_event, 0, 1)  # placeholder
         ev = kwh_per_event
         t_mw = time_cost(ev / MW_KW * 60, tval, ev, rest)
         t_fast = time_cost(ev / FAST_KW * 60, tval, ev, rest)
@@ -170,12 +169,12 @@ for i, x in enumerate(TIERS):
         "接力": blocks["接力"]["tiers"][i]["left5"],
         "多班倒": blocks["多班倒"]["tiers"][i]["left5"],
         "要停的车": blocks["要停的车_蹭站"]["tiers"][i]["left5"],
-        "城配乘用": CITY_LEFT[i], "私家车": PRIV_LEFT[i]}
+        "城配乘用": 0.0, "私家车": 0.0}   # 压力档：城配、营运乘用的判断值同步归零（审稿意见）
     left0 = {
         "接力": blocks["接力"]["tiers"][i]["left0"],
         "多班倒": blocks["多班倒"]["tiers"][i]["left0"],
         "要停的车": blocks["要停的车_蹭站"]["tiers"][i]["left0"],
-        "城配乘用": CITY_LEFT[i], "私家车": PRIV_LEFT[i]}
+        "城配乘用": 0.0, "私家车": 0.0}
     sys_pre0 = sum(VOL[k] * left0[k] for k in VOL)
     sys_pre = sum(VOL[k] * left[k] for k in VOL)            # 亿元
     sys_pre5 = sum(VOL[k] * left5[k] for k in VOL)
@@ -228,20 +227,24 @@ res["network_2030"] = {"基本盘站": st_base, "干线站": st_trunk, "干线�
 v35 = res["valuation_2030"][1]
 avg_left = v35["sys_pre"] / sum(VOL.values())
 sys35 = 5500 * avg_left
-lock35_gwh = lock_gwh({k: v * 5500 / 2000 for k, v in VOL.items() if k in ("接力", "多班倒", "要停的车")} | {"城配乘用": 0, "私家车": 0})
+HEAVY35 = 4500 / 2000   # 2035 年重卡换电 4,500 亿度 ÷ 2030 年 2,000（锁住的制造与投资只按重卡放大）
+lock35_gwh = lock_gwh({k: v * HEAVY35 for k, v in VOL.items() if k in ("接力", "多班倒", "要停的车")} | {"城配乘用": 0, "私家车": 0})
 lock35 = lock35_gwh * PROFIT_PER_KWH / 100
 mgr35 = sys35 * 0.75 * PE_MGR
 lock35_incr = lock35 * PE_LOCK - BASE_SHARE * lock35 * PE_BASE
-inv35 = res["valuation_2030"][1]["inv_heavy"] * 5500 / 2000
+inv35 = res["valuation_2030"][1]["inv_heavy"] * HEAVY35
 fee35 = min(sys35, FEE_RATE * inv35)
 main35 = fee35 * 0.75 * PE_MGR + (sys35 - fee35) * 0.75 * PE_SPREAD + lock35_incr
-res["y2035"] = {"inv": inv35, "fee": fee35, "main": main35, "main_share": main35 / MKT_CAP,"avg_left": avg_left, "sys_pre": sys35, "lock_gwh": lock35_gwh, "lock_profit": lock35,
+full35 = sys35 * 0.75 * PE_MGR + lock35 * PE_LOCK
+res["y2035"] = {"full": full35, "full_share": full35 / MKT_CAP, "inv": inv35, "fee": fee35, "main": main35, "main_share": main35 / MKT_CAP,"avg_left": avg_left, "sys_pre": sys35, "lock_gwh": lock35_gwh, "lock_profit": lock35,
                 "mgr": mgr35, "lock_incr": lock35_incr, "lock_full": lock35 * PE_LOCK,
                 "total_incr": mgr35 + lock35_incr, "share_of_today": (mgr35 + lock35_incr) / MKT_CAP}
 # 反算
 need_after_tax = MKT_CAP / PE_MGR
 res["reverse"] = {"税后": need_after_tax, "税前": need_after_tax / 0.75,
-                  "度数_亿": need_after_tax / 0.75 / avg_left}
+                  "度数_亿_只算体系": need_after_tax / 0.75 / avg_left,
+                  "度数_亿_主口径": 5500 * MKT_CAP / main35,
+                  "度数_亿_上沿": 5500 * MKT_CAP / full35}
 
 def fmt(v, d=3):
     return f"{v:.{d}f}"
@@ -271,3 +274,82 @@ if __name__ == "__main__":
     with open(out, "w", encoding="utf-8") as f:
         json.dump(res, f, ensure_ascii=False, indent=1)
     print("写出", out)
+
+
+# ---------- 复核补充（2026-10-05 独立审稿后加）：同口径回报、年金租金、宁德自持、蹭站损失储能回血 ----------
+def solve_irr(f, lo=-0.5, hi=1.0):
+    for _ in range(200):
+        mid = (lo + hi) / 2
+        if f(mid) > 0: lo = mid
+        else: hi = mid
+    return (lo + hi) / 2
+
+def excess(r, assets):
+    """一组资产每度一年的"回报部分"：按 r 年金摊回比按寿命直线摊回多出来的（元/度）"""
+    return sum(inv * (annuity(r, life) - 1 / life) if r != 0 else 0.0 for inv, life in assets)
+
+ST_EQ = 500 / 874.8
+def station_assets(per):   # 站：设备 10 年、其余 20 年
+    return [(per * ST_EQ, 10), (per * (1 - ST_EQ), 20)]
+
+SW_PER = SW_INV / SW_SALES
+ROT_PER = ROT_INV / SW_SALES
+ASSETS = {
+    "接力": [(P_S * 513 / (2000 * D) + ROT_PER, (P_S * 513 / (2000 * D) + ROT_PER) / (P_S / N))] + station_assets(SW_PER),
+    "多班倒": [(P_S * 342 / (390 * D) + ROT_PER, CAL)] + station_assets(SW_PER),
+    "要停的车_蹭站": [(P_S * 513 / (400 * D), (P_S * 513 / (400 * D)) / (P_S / N * 700 / 400))],
+    "要停的车_另建站": [(P_S * 513 / (400 * D), (P_S * 513 / (400 * D)) / (P_S / N * 700 / 400)), (ROT_PER, 5.6)] + station_assets(SW_PER),
+}
+RIVAL_INV = {}
+for name, daily, pack, k in [("接力", 2000, 513, 1.0), ("多班倒", 390, 342, 1.0), ("要停的车_蹭站", 700, 513, 700 / 400), ("要停的车_另建站", 700, 513, 700 / 400)]:
+    RIVAL_INV[name] = (1639 + 1254) / SALES_KW + pack * P_C * (1 + TAX) / (daily * D) * k
+
+R_SELF = 0.075
+chk = {}
+for name, b in blocks.items():
+    rows = []
+    for t in b["tiers"]:
+        a = ASSETS[name]
+        irr = solve_irr(lambda r: t["gap"] - excess(r, a))
+        rent3a = excess(R_FUND, a); rent5a = excess(R_STRESS, a); rent_self = excess(R_SELF, a)
+        b_ret = t["gap"] - (t["gap_station"] - (t["rival_station"] - ST_MW) + t["gap_time"] + t["gap_batt_premium_tax"] + t["gap_batt_life"])
+        rows.append({"x": t["x"], "irr_swap": irr, "rival_roi_simple": b_ret / RIVAL_INV[name], "swap_roi_simple": t["gap"] / t["inv"],
+                     "funder_irr_of_rent3": solve_irr(lambda r: t["rent"] - excess(r, a)),
+                     "funder_irr_of_rent5": solve_irr(lambda r: t["rent5"] - excess(r, a)),
+                     "rent3_annuity": rent3a, "left3_annuity": t["gap"] - rent3a - GIVE,
+                     "left_self": t["gap"] - rent_self - GIVE, "lives": [round(l, 1) for _, l in a]})
+    chk[name] = rows
+
+def sys_from(key, city):
+    out = []
+    for i in range(3):
+        v = VOL["接力"] * chk["接力"][i][key] + VOL["多班倒"] * chk["多班倒"][i][key] + VOL["要停的车"] * chk["要停的车_蹭站"][i][key] + VOL["城配乘用"] * city[i]
+        out.append(v)
+    return out
+
+sys_ann = sys_from("left3_annuity", CITY_LEFT)
+sys_self = sys_from("left_self", [0, 0, 0])
+alt = []
+for i in range(3):
+    v = res["valuation_2030"][i]
+    fee = min(sys_ann[i], FEE_RATE * v["inv_heavy"])
+    main_ann = fee * 0.75 * PE_MGR + (sys_ann[i] - fee) * 0.75 * PE_SPREAD + v["lock_incr"]
+    main_self = sys_self[i] * 0.75 * PE_SPREAD + v["lock_incr"]
+    alt.append({"sys_ann": sys_ann[i], "main_ann": main_ann, "pct_ann": main_ann / MKT_CAP,
+                "sys_self": sys_self[i], "main_self": main_self, "pct_self": main_self / MKT_CAP,
+                "after_tax_total": v["sys_pre"] * 0.75 + v["lock_profit"]})
+# 蹭站把站跑到近满、基本盘的储能回血被吃掉的上限
+per_station_piggy = res["network_2030"]["要停的车要的车次每天"] / res["network_2030"]["干线站"] * KWH_SWAP
+arb_loss = 0.074 * 30000 / per_station_piggy
+res["复核"] = {"chk": chk, "alt": alt, "蹭站每站每天度数": per_station_piggy, "蹭站储能回血损失上限_元每度": arb_loss,
+               "蹭站储能回血损失_体系亿": arb_loss * VOL["要停的车"],
+               "2035税后合计": res["y2035"]["sys_pre"] * 0.75 + res["y2035"]["lock_profit"]}
+
+if __name__ == "__main__":
+    for name, rows in chk.items():
+        print("复核", name, [{k: (round(v, 4) if isinstance(v, float) else v) for k, v in r.items()} for r in rows])
+    print("复核 alt", [{k: round(v, 3) for k, v in a.items()} for a in alt])
+    print("复核 蹭站", round(per_station_piggy), round(arb_loss, 4), round(arb_loss * VOL["要停的车"], 1), "2035税后", round(res["复核"]["2035税后合计"], 1))
+    out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "七环结论数.json")
+    with open(out, "w", encoding="utf-8") as f:
+        json.dump(res, f, ensure_ascii=False, indent=1)

@@ -19,9 +19,10 @@ def r3(x):
     return round(x, 4)
 
 blocks = {}
+CHK = R["复核"]["chk"]
 for name, b in R["blocks"].items():
     rows = []
-    for t in b["tiers"]:
+    for i, t in enumerate(b["tiers"]):
         st_ret = t["rival_station"] - (ST_MW if t["rival"] == "超充" else 0.080)
         real = (t["gap_station"] - st_ret) + t["gap_time"] + t["gap_batt_premium_tax"] + t["gap_batt_life"]
         ret = st_ret + t["gap_batt_return"]
@@ -30,12 +31,13 @@ for name, b in R["blocks"].items():
             "inv": r3(t["inv"]), "roi": r3(t["roi"]), "rent": r3(t["rent"]), "rent5": r3(t["rent5"]),
             "left": r3(t["left"]), "left5": r3(t["left5"]), "left0": r3(t["left0"]),
             "payback": round(t["payback"], 1),
+            "irr": r3(CHK[name][i]["irr_swap"]), "left_self": r3(CHK[name][i]["left_self"]),
         })
     blocks[name] = rows
 
 val = []
 for v in R["valuation_2030"]:
-    val.append({k: round(v[k], 1) for k in ("sys_pre", "sys_pre5", "sys_pre0", "fee", "spread", "mgr_fee",
+    val.append({k: (round(v[k], 4) if k == "roi_heavy" else round(v[k], 1)) for k in ("sys_pre", "sys_pre5", "sys_pre0", "fee", "spread", "mgr_fee",
                                              "spread_v", "lock_incr", "lock_full", "main", "main5", "main0",
                                              "total_full", "inv_heavy", "pie_heavy", "roi_heavy")})
 

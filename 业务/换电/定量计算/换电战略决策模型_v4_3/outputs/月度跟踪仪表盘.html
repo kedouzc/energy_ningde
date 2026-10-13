@@ -37,10 +37,23 @@ h1{font-size:22px;margin:8px 0 4px}
   <h1>换电漏斗 · 月度跟踪仪表盘</h1>
   <p class="sub" id="subtitle"></p>
   <div class="kpis" id="kpis"></div>
+  <div class="card" style="margin-bottom:16px"><h2>主线 2 的观测量：接数情况（2026-10-05）</h2>
+  <p class="cal">四个先行观测量只算客户主动的拉动；另列三条最该盯的反证。有月度数据源的接进下面的图，没有的空着并标明。</p>
+  <div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;min-width:560px;font-size:13px">
+  <thead><tr style="color:var(--sub);text-align:left"><th style="padding:6px 8px;border-bottom:1px solid var(--line)">看什么</th><th style="padding:6px 8px;border-bottom:1px solid var(--line)">信源</th><th style="padding:6px 8px;border-bottom:1px solid var(--line)">本页</th></tr></thead>
+  <tbody>
+  <tr><td style="padding:6px 8px;border-bottom:1px solid var(--line)">换电占纯电重卡的比例（观测量）</td><td style="padding:6px 8px;border-bottom:1px solid var(--line)">第一商用车网月度上险，电车人整理</td><td style="padding:6px 8px;border-bottom:1px solid var(--line);color:var(--green)">已接：图 ③（最新 2026 年 1–7 月累计 24.0%）</td></tr>
+  <tr><td style="padding:6px 8px;border-bottom:1px solid var(--line)">以服务方式交付的电占宁德出货的比例（观测量）</td><td style="padding:6px 8px;border-bottom:1px solid var(--line)">宁德年报、半年报（目前只披露巧克力与骐骥合计换电量）</td><td style="padding:6px 8px;border-bottom:1px solid var(--line);color:var(--red)">空：没有月度数据</td></tr>
+  <tr><td style="padding:6px 8px;border-bottom:1px solid var(--line)">车企主动发布的换电车型数（观测量）</td><td style="padding:6px 8px;border-bottom:1px solid var(--line)">工信部《道路机动车辆生产企业及产品公告》</td><td style="padding:6px 8px;border-bottom:1px solid var(--line);color:var(--red)">空：月度公告有，尚未接入</td></tr>
+  <tr><td style="padding:6px 8px;border-bottom:1px solid var(--line)">电池银行拿到 3% 一级的钱（观测量）</td><td style="padding:6px 8px;border-bottom:1px solid var(--line)">宁德、启源公告；保险、公募 REITs、资产支持证券公告</td><td style="padding:6px 8px;border-bottom:1px solid var(--line);color:var(--red)">空：事件型，无月度</td></tr>
+  <tr><td style="padding:6px 8px;border-bottom:1px solid var(--line)">对手电池租赁的报价（反证）</td><td style="padding:6px 8px;border-bottom:1px solid var(--line)">解放时代、鲸E租；亿纬与福田的电池银行</td><td style="padding:6px 8px;border-bottom:1px solid var(--line);color:var(--red)">空：事件型，无月度</td></tr>
+  <tr><td style="padding:6px 8px;border-bottom:1px solid var(--line)">重卡充电服务费（反证）</td><td style="padding:6px 8px;border-bottom:1px solid var(--line)">充换电研究院月报、行业媒体（2026-09 部分地区 0.08–0.10 元/度）</td><td style="padding:6px 8px;border-bottom:1px solid var(--line);color:var(--red)">空：尚未接入月度序列</td></tr>
+  <tr><td style="padding:6px 8px">宁德在商用车电池里的装车份额（锁住的制造）</td><td style="padding:6px 8px">中国汽车动力电池产业创新联盟月报</td><td style="padding:6px 8px;color:var(--green)">已接：图 ⑤</td></tr>
+  </tbody></table></div></div>
   <div class="grid">
     <div class="card"><h2>① 全国新能源汽车：月销量与渗透率</h2><p class="cal">柱＝NEV 月销（万辆，左轴）；线＝单月渗透率（右轴）</p><div id="c1"></div></div>
     <div class="card"><h2>② 新能源重卡：单月与累计电动化率</h2><p class="cal">单月＝边际信号（调仓）；累计＝趋势锚（曲线重标）</p><div id="c2"></div></div>
-    <div class="card"><h2>③ 换电占纯电重卡：月度与累计</h2><p class="cal">模型反转预期＝兑现年加权 44.8%（沙盘②跟踪卡同口径比对）</p><div id="c3"></div></div>
+    <div class="card"><h2>③ 换电占纯电重卡：月度与累计</h2><p class="cal">主线 2：2030 年换电约占重卡用电四成（七环第 5 环）；第一号跟踪——2027 年仍低于 25% 且短途车型也在跌，说明换电在原有场景失守</p><div id="c3"></div></div>
     <div class="card"><h2>④ 新能源物流车：月销量</h2><p class="cal">NEV 物流车七类上险（不含重卡/皮卡/客车，含中卡），万辆</p><div id="c4"></div></div>
     <div class="card"><h2>⑤ 动力电池：月度装车量与 CATL 份额</h2><p class="cal">柱＝装车量（GWh，左轴）；线＝CATL 乘用/商用车装车份额（右轴）</p><div id="c5"></div></div>
   </div>
@@ -245,7 +258,7 @@ CHARTS.forEach(drawChart);
   var el=document.getElementById('missing');
   el.textContent='序列区间 '+((rows[0]||{}).ym||'—')+' 至 '+D.latest_ym
     +'；缺月：'+(miss.length?miss.join('、')+'（历史底稿缺口或当月拆分尚未发布，图表自动断线）':'无')
-    +'。生成：src/monthly_dashboard.py（python src/run.py 随主链重生成）；更新数据：xlsx→tracker extract（≤2026-06 人工底稿，2026-07 起 agent 按底稿数据源联网取数 fill）。';
+    +'。旧生成程序已冻结（2026-10-03），本页数据截至 2026 年 8 月；主线 2（2026-10-05）只改了说明和上面的观测量表。';
 })();
 </script>
 </body>
